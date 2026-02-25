@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modular Arithmetic</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fbbf24}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(251,191,36,0.13);border-color:rgba(251,191,36,0.4);color:#fbbf24}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .gold{color:#fbbf24}.math-line .green{color:#2ecc71}.math-line .blue{color:#60a5fa}
+        .math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#fbbf24;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#fbbf24}
+        .slider-label{color:#fbbf24;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 300px;min-width:280px}
+        .table-wrapper{overflow-x:auto;margin:10px 0}
+        .mod-table{border-collapse:collapse;font-family:'Courier New',monospace;font-size:0.82em}
+        .mod-table td,.mod-table th{width:28px;height:28px;text-align:center;border:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background 0.15s}
+        .mod-table th{color:#808098;background:rgba(255,255,255,0.03);font-weight:400}
+        .mod-table td:hover{outline:1px solid rgba(251,191,36,0.5)}
+        .mod-table .highlight-row{background:rgba(251,191,36,0.06)!important}
+        .mod-table .highlight-col{background:rgba(251,191,36,0.06)!important}
+        .mod-table .highlight-cell{outline:2px solid #fbbf24!important}
+        .app-input{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#e0e0e0;padding:6px 12px;border-radius:6px;font-family:'Courier New',monospace;font-size:0.92em;width:100%;margin:6px 0}
+        .app-input:focus{outline:none;border-color:rgba(251,191,36,0.4)}
+        .app-result{font-family:'Courier New',monospace;font-size:0.88em;color:#c0c0d8;margin:8px 0;line-height:1.8;min-height:1.8em}
+        .step-box{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:6px;padding:10px 14px;margin:8px 0;font-family:'Courier New',monospace;font-size:0.82em;color:#a0a0b8;line-height:1.9;overflow-x:auto}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}.mod-table td,.mod-table th{width:22px;height:22px;font-size:0.7em}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Modular Arithmetic</h1>
+    <p class="subtitle">Clock math &mdash; when numbers wrap around</p>
+
+    <!-- Section 1: Clock Visualization -->
+    <h2>The Clock</h2>
+    <div class="panel">
+        <h3>Mode</h3>
+        <div class="btn-row" id="clockModeBtns">
+            <button class="btn active" data-mode="add">Addition</button>
+            <button class="btn" data-mode="mul">Multiplication</button>
+        </div>
+        <div class="slider-row">
+            <span class="math-line muted">modulus n =</span>
+            <input type="range" id="modSlider" min="2" max="16" value="7">
+            <span class="slider-label" id="modLabel">7</span>
+        </div>
+        <div style="color:#808098;font-size:0.82em;margin-bottom:10px">Click two numbers on the clock to compute. First click selects <span style="color:#60a5fa">a</span>, second selects <span style="color:#fbbf24">b</span>.</div>
+        <canvas id="clockCanvas" width="450" height="450" style="margin:0 auto"></canvas>
+        <div class="math-line" id="clockResult" style="text-align:center;margin-top:12px;font-size:1.05em">&nbsp;</div>
+    </div>
+
+    <!-- Section 2: Operation Tables -->
+    <h2>Operation Tables</h2>
+    <div class="flex-row">
+        <div class="flex-half">
+            <div class="panel">
+                <h3>Addition mod <span id="addTableN">7</span></h3>
+                <div class="table-wrapper" id="addTableWrap"></div>
+            </div>
+        </div>
+        <div class="flex-half">
+            <div class="panel">
+                <h3>Multiplication mod <span id="mulTableN">7</span></h3>
+                <div class="table-wrapper" id="mulTableWrap"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 3: Powers & Patterns -->
+    <h2>Powers &amp; Patterns</h2>
+    <div class="panel">
+        <div class="slider-row">
+            <span class="math-line muted">base a =</span>
+            <input type="range" id="baseSlider" min="1" max="6" value="2">
+            <span class="slider-label" id="baseLabel">2</span>
+        </div>
+        <canvas id="powersCanvas" width="500" height="300" style="margin:0 auto"></canvas>
+        <div class="math-line" id="powersInfo" style="margin-top:10px"></div>
+        <div class="math-line muted" id="powersEuler" style="font-size:0.85em"></div>
+        <div class="math-line" id="generatorInfo" style="font-size:0.88em;margin-top:4px"></div>
+    </div>
+
+    <!-- Section 4: GCD & Inverses -->
+    <h2>GCD &amp; Inverses</h2>
+    <div class="panel">
+        <div class="slider-row">
+            <span class="math-line muted">a =</span>
+            <input type="range" id="invASlider" min="1" max="6" value="3">
+            <span class="slider-label" id="invALabel">3</span>
+        </div>
+        <div class="math-line" id="gcdResult"></div>
+        <div class="math-line" id="inverseResult"></div>
+        <div id="euclidSteps" class="step-box" style="display:none"></div>
+        <div class="math-line muted" id="inversesList" style="margin-top:12px;font-size:0.88em"></div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06)">
+            <div class="math-line" style="color:#fbbf24;font-size:0.95em">Why do primes make everything nicer?</div>
+            <div class="math-line muted" id="primeNote" style="font-size:0.85em"></div>
+        </div>
+    </div>
+
+    <!-- Section 5: Applications -->
+    <h2>Applications</h2>
+    <div class="panel">
+        <h3>Check Digits (ISBN-13, mod 10)</h3>
+        <div style="color:#808098;font-size:0.82em;margin-bottom:6px">Enter the first 12 digits of an ISBN-13 code:</div>
+        <input class="app-input" id="isbnInput" type="text" placeholder="978030640615" maxlength="12" style="max-width:260px">
+        <div class="app-result" id="isbnResult"></div>
+    </div>
+    <div class="panel">
+        <h3>Caesar Cipher (mod 26)</h3>
+        <div class="slider-row">
+            <span class="math-line muted">shift k =</span>
+            <input type="range" id="caesarShift" min="0" max="25" value="3">
+            <span class="slider-label" id="caesarLabel">3</span>
+        </div>
+        <input class="app-input" id="caesarInput" type="text" placeholder="HELLO WORLD" style="max-width:400px">
+        <div class="btn-row" style="margin-top:8px">
+            <button class="btn" id="caesarEncBtn">Encrypt</button>
+            <button class="btn" id="caesarDecBtn">Decrypt</button>
+        </div>
+        <div class="app-result" id="caesarResult"></div>
+    </div>
+    <div class="panel">
+        <h3>Days of the Week (mod 7)</h3>
+        <div style="color:#808098;font-size:0.82em;margin-bottom:6px">Starting day and number of days forward:</div>
+        <div class="btn-row" id="dayBtns"></div>
+        <div class="slider-row">
+            <span class="math-line muted">days forward =</span>
+            <input type="range" id="daySlider" min="1" max="365" value="100">
+            <span class="slider-label" id="dayLabel">100</span>
+        </div>
+        <div class="app-result" id="dayResult"></div>
+    </div>
+
+    <!-- Section 6: Explanation -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            Modular arithmetic is arithmetic that "wraps around" after reaching a certain value &mdash; the modulus. Just as a clock resets after 12, numbers in mod n reset after n. This simple idea has profound consequences:
+            <br><br>
+            <strong style="color:#c0c0d8">Addition and multiplication</strong> still work, preserving many familiar algebraic properties. The operation tables reveal beautiful symmetries &mdash; addition tables have diagonal stripes, multiplication tables show which elements generate the whole group.
+            <br><br>
+            <strong style="color:#c0c0d8">Inverses</strong> exist precisely when gcd(a, n) = 1. When n is prime, every non-zero element has an inverse, making Z<sub>p</sub> a field &mdash; a complete algebraic playground where you can add, subtract, multiply, and divide freely.
+            <br><br>
+            <strong style="color:#c0c0d8">Powers cycle</strong>, and the cycle length always divides Euler's totient &phi;(n) &mdash; a deep fact known as Euler's theorem. Elements whose powers hit every non-zero residue are called primitive roots, and they exist whenever n is prime.
+            <br><br>
+            <strong style="color:#c0c0d8">Key insight:</strong> Modular arithmetic is the foundation for RSA encryption (which secures the internet), hash functions (which secure data), error-correcting codes (which make digital communication reliable), and much of modern computer science. From clocks to cryptography, this simple "wrapping" idea is everywhere.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   MODULAR ARITHMETIC — Interactive Education Page
+   ============================================================ */
+
+/* ── Global State ── */
+let modN = 7;
+let clockMode = 'add'; // 'add' or 'mul'
+let clockA = null;      // first selected number
+let clockB = null;      // second selected number
+let clockAnim = null;   // animation state
+
+const GOLD = '#fbbf24';
+const BLUE = '#60a5fa';
+const GREEN = '#2ecc71';
+const MUTED = '#808098';
+const BG = '#0a0a1a';
+
+/* ── Math Helpers ── */
+function mod(a, n) { return ((a % n) + n) % n; }
+
+function gcd(a, b) {
+    a = Math.abs(a); b = Math.abs(b);
+    while (b > 0) { [a, b] = [b, a % b]; }
+    return a;
+}
+
+function eulerTotient(n) {
+    let result = n;
+    let p = 2;
+    let temp = n;
+    while (p * p <= temp) {
+        if (temp % p === 0) {
+            while (temp % p === 0) temp /= p;
+            result -= result / p;
+        }
+        p++;
+    }
+    if (temp > 1) result -= result / temp;
+    return Math.round(result);
+}
+
+function isPrime(n) {
+    if (n < 2) return false;
+    if (n < 4) return true;
+    if (n % 2 === 0 || n % 3 === 0) return false;
+    for (let i = 5; i * i <= n; i += 6) {
+        if (n % i === 0 || n % (i + 2) === 0) return false;
+    }
+    return true;
+}
+
+function extendedGCD(a, b) {
+    // Returns [gcd, x, y] such that a*x + b*y = gcd
+    // Also returns steps for display
+    const steps = [];
+    let old_r = a, r = b;
+    let old_s = 1, s = 0;
+    let old_t = 0, t = 1;
+    while (r !== 0) {
+        const q = Math.floor(old_r / r);
+        steps.push({ a: old_r, b: r, q: q, r: old_r - q * r });
+        [old_r, r] = [r, old_r - q * r];
+        [old_s, s] = [s, old_s - q * s];
+        [old_t, t] = [t, old_t - q * t];
+    }
+    return { gcd: old_r, x: old_s, y: old_t, steps: steps };
+}
+
+function findInverse(a, n) {
+    const result = extendedGCD(a, n);
+    if (result.gcd !== 1) return null;
+    return mod(result.x, n);
+}
+
+function powerCycle(base, n) {
+    const values = [];
+    let val = 1;
+    for (let i = 1; i <= n; i++) {
+        val = mod(val * base, n);
+        values.push(val);
+        if (val === 1) break;
+    }
+    return values;
+}
+
+/* ── Clock Canvas ── */
+const clockCvs = document.getElementById('clockCanvas');
+const clockCtx = clockCvs.getContext('2d');
+const CW = clockCvs.width, CH = clockCvs.height;
+const clockCX = CW / 2, clockCY = CH / 2;
+const clockR = 170;
+
+function clockPos(k, n, radius) {
+    const angle = 2 * Math.PI * k / n - Math.PI / 2;
+    return { x: clockCX + radius * Math.cos(angle), y: clockCY + radius * Math.sin(angle), angle: angle };
+}
+
+function drawClock() {
+    const ctx = clockCtx;
+    ctx.clearRect(0, 0, CW, CH);
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, CW, CH);
+
+    // Circle outline
+    ctx.beginPath();
+    ctx.arc(clockCX, clockCY, clockR, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Inner circle
+    ctx.beginPath();
+    ctx.arc(clockCX, clockCY, clockR - 30, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Draw connecting lines from center (subtle)
+    for (let k = 0; k < modN; k++) {
+        const p = clockPos(k, modN, clockR);
+        ctx.beginPath();
+        ctx.moveTo(clockCX, clockCY);
+        ctx.lineTo(p.x, p.y);
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    // Compute result for animation/display
+    let result = null;
+    if (clockA !== null && clockB !== null) {
+        if (clockMode === 'add') {
+            result = mod(clockA + clockB, modN);
+        } else {
+            result = mod(clockA * clockB, modN);
+        }
+    }
+
+    // Draw animation arc if both selected
+    if (clockA !== null && clockB !== null && !clockAnim) {
+        drawClockArc(clockA, clockB, result);
+    }
+
+    // Draw number positions
+    for (let k = 0; k < modN; k++) {
+        const p = clockPos(k, modN, clockR);
+        let dotR = 18;
+        let fillColor = 'rgba(255,255,255,0.06)';
+        let textColor = '#808098';
+        let borderColor = 'rgba(255,255,255,0.1)';
+
+        if (k === clockA) {
+            fillColor = 'rgba(96,165,250,0.2)';
+            textColor = BLUE;
+            borderColor = 'rgba(96,165,250,0.5)';
+        }
+        if (k === clockB) {
+            fillColor = 'rgba(251,191,36,0.15)';
+            textColor = GOLD;
+            borderColor = 'rgba(251,191,36,0.5)';
+        }
+        if (result !== null && k === result) {
+            fillColor = 'rgba(46,204,113,0.15)';
+            textColor = GREEN;
+            borderColor = 'rgba(46,204,113,0.6)';
+            // Glow
+            ctx.save();
+            ctx.shadowColor = GREEN;
+            ctx.shadowBlur = 16;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, dotR + 2, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(46,204,113,0.08)';
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Dot background
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+        ctx.strokeStyle = borderColor;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Number text
+        ctx.font = '15px Georgia';
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(k, p.x, p.y);
+    }
+
+    // Center label
+    ctx.font = '11px Georgia';
+    ctx.fillStyle = MUTED;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('mod ' + modN, clockCX, clockCY);
+
+    // Update result text
+    updateClockResult(result);
+}
+
+function drawClockArc(a, b, result) {
+    const ctx = clockCtx;
+    if (clockMode === 'add') {
+        // Arc from position a, sweep b steps clockwise
+        if (b === 0) return;
+        const startAngle = 2 * Math.PI * a / modN - Math.PI / 2;
+        const endAngle = 2 * Math.PI * result / modN - Math.PI / 2;
+        const arcR = clockR - 40;
+
+        // Draw stepping arcs
+        ctx.strokeStyle = 'rgba(251,191,36,0.4)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 3]);
+        for (let step = 0; step < b; step++) {
+            const fromK = mod(a + step, modN);
+            const toK = mod(a + step + 1, modN);
+            const fromAngle = 2 * Math.PI * fromK / modN - Math.PI / 2;
+            const toAngle = 2 * Math.PI * toK / modN - Math.PI / 2;
+            let sweepEnd = toAngle;
+            if (sweepEnd <= fromAngle) sweepEnd += 2 * Math.PI;
+            ctx.beginPath();
+            ctx.arc(clockCX, clockCY, arcR - step * 2, fromAngle, sweepEnd);
+            ctx.stroke();
+        }
+        ctx.setLineDash([]);
+
+        // Arrow at final position
+        const finalAngle = 2 * Math.PI * result / modN - Math.PI / 2;
+        const fp = { x: clockCX + (arcR - (b - 1) * 2) * Math.cos(finalAngle), y: clockCY + (arcR - (b - 1) * 2) * Math.sin(finalAngle) };
+        const tangent = finalAngle + Math.PI / 2;
+        ctx.fillStyle = GOLD;
+        ctx.beginPath();
+        ctx.moveTo(fp.x, fp.y);
+        ctx.lineTo(fp.x - 8 * Math.cos(tangent - 0.4), fp.y - 8 * Math.sin(tangent - 0.4));
+        ctx.lineTo(fp.x - 8 * Math.cos(tangent + 0.4), fp.y - 8 * Math.sin(tangent + 0.4));
+        ctx.closePath();
+        ctx.fill();
+    } else {
+        // Multiplication: show b hops of size a from 0
+        if (b === 0 || a === 0) return;
+        const arcR = clockR - 40;
+        ctx.strokeStyle = 'rgba(251,191,36,0.35)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 3]);
+        for (let step = 0; step < b; step++) {
+            const fromK = mod(a * step, modN);
+            const toK = mod(a * (step + 1), modN);
+            const fromAngle = 2 * Math.PI * fromK / modN - Math.PI / 2;
+            let toAngle = 2 * Math.PI * toK / modN - Math.PI / 2;
+            if (toAngle <= fromAngle) toAngle += 2 * Math.PI;
+            ctx.beginPath();
+            ctx.arc(clockCX, clockCY, arcR - step * 2, fromAngle, toAngle);
+            ctx.stroke();
+
+            // Small dot at intermediate position
+            const midP = clockPos(toK, modN, arcR - step * 2);
+            ctx.fillStyle = 'rgba(251,191,36,0.3)';
+            ctx.beginPath();
+            ctx.arc(midP.x, midP.y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.setLineDash([]);
+    }
+}
+
+function updateClockResult(result) {
+    const el = document.getElementById('clockResult');
+    if (clockA === null) {
+        el.innerHTML = '<span class="muted">Click a number to select <span style="color:' + BLUE + '">a</span></span>';
+    } else if (clockB === null) {
+        el.innerHTML = '<span style="color:' + BLUE + '">a = ' + clockA + '</span> <span class="muted">&mdash; now click <span style="color:' + GOLD + '">b</span></span>';
+    } else {
+        const op = clockMode === 'add' ? '+' : '\u00D7';
+        el.innerHTML = '<span style="color:' + BLUE + '">' + clockA + '</span> ' + op +
+            ' <span style="color:' + GOLD + '">' + clockB + '</span> \u2261 <span style="color:' + GREEN + '">' +
+            result + '</span> <span class="muted">(mod ' + modN + ')</span>';
+    }
+}
+
+// Clock click handler
+function handleClockClick(e) {
+    const rect = clockCvs.getBoundingClientRect();
+    const scaleX = CW / rect.width;
+    const scaleY = CH / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+
+    // Find closest number
+    let closest = -1;
+    let minDist = Infinity;
+    for (let k = 0; k < modN; k++) {
+        const p = clockPos(k, modN, clockR);
+        const d = Math.sqrt((mx - p.x) ** 2 + (my - p.y) ** 2);
+        if (d < 30 && d < minDist) {
+            minDist = d;
+            closest = k;
+        }
+    }
+
+    if (closest < 0) return;
+
+    if (clockA === null) {
+        clockA = closest;
+    } else if (clockB === null) {
+        clockB = closest;
+    } else {
+        // Reset and start new selection
+        clockA = closest;
+        clockB = null;
+    }
+    drawClock();
+}
+
+clockCvs.addEventListener('click', handleClockClick);
+clockCvs.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    const t = e.changedTouches[0];
+    const rect = clockCvs.getBoundingClientRect();
+    const scaleX = CW / rect.width;
+    const scaleY = CH / rect.height;
+    const mx = (t.clientX - rect.left) * scaleX;
+    const my = (t.clientY - rect.top) * scaleY;
+    let closest = -1, minDist = Infinity;
+    for (let k = 0; k < modN; k++) {
+        const p = clockPos(k, modN, clockR);
+        const d = Math.sqrt((mx - p.x) ** 2 + (my - p.y) ** 2);
+        if (d < 40 && d < minDist) { minDist = d; closest = k; }
+    }
+    if (closest < 0) return;
+    if (clockA === null) { clockA = closest; }
+    else if (clockB === null) { clockB = closest; }
+    else { clockA = closest; clockB = null; }
+    drawClock();
+});
+
+// Mode buttons
+document.getElementById('clockModeBtns').addEventListener('click', function(e) {
+    if (!e.target.dataset.mode) return;
+    clockMode = e.target.dataset.mode;
+    document.querySelectorAll('#clockModeBtns .btn').forEach(b => b.classList.remove('active'));
+    e.target.classList.add('active');
+    clockA = null; clockB = null;
+    drawClock();
+});
+
+// Modulus slider
+const modSlider = document.getElementById('modSlider');
+modSlider.addEventListener('input', function() {
+    modN = parseInt(this.value);
+    document.getElementById('modLabel').textContent = modN;
+    clockA = null; clockB = null;
+    updateBaseSlider();
+    updateInvSlider();
+    drawClock();
+    buildTables();
+    drawPowers();
+    updateGCDPanel();
+});
+
+/* ── Section 2: Operation Tables ── */
+function cellColor(val, n) {
+    const hue = (val / n) * 300;
+    return 'hsla(' + hue + ', 55%, 45%, 0.35)';
+}
+
+function buildTables() {
+    document.getElementById('addTableN').textContent = modN;
+    document.getElementById('mulTableN').textContent = modN;
+    buildTable('addTableWrap', 'add');
+    buildTable('mulTableWrap', 'mul');
+}
+
+function buildTable(wrapperId, op) {
+    const wrap = document.getElementById(wrapperId);
+    let html = '<table class="mod-table"><tr><th>' + (op === 'add' ? '+' : '\u00D7') + '</th>';
+    for (let j = 0; j < modN; j++) html += '<th>' + j + '</th>';
+    html += '</tr>';
+    for (let i = 0; i < modN; i++) {
+        html += '<tr><th>' + i + '</th>';
+        for (let j = 0; j < modN; j++) {
+            const val = op === 'add' ? mod(i + j, modN) : mod(i * j, modN);
+            const bg = cellColor(val, modN);
+            html += '<td data-i="' + i + '" data-j="' + j + '" data-val="' + val + '" data-op="' + op + '" style="background:' + bg + ';color:#d0d0e0">' + val + '</td>';
+        }
+        html += '</tr>';
+    }
+    html += '</table>';
+    wrap.innerHTML = html;
+
+    // Hover: highlight row and column
+    const table = wrap.querySelector('.mod-table');
+    table.addEventListener('mouseover', function(e) {
+        const td = e.target.closest('td[data-i]');
+        if (!td) return;
+        const ri = parseInt(td.dataset.i);
+        const ci = parseInt(td.dataset.j);
+        table.querySelectorAll('td, th').forEach(c => {
+            c.classList.remove('highlight-row', 'highlight-col', 'highlight-cell');
+        });
+        table.querySelectorAll('tr').forEach((row, rowIdx) => {
+            if (rowIdx === ri + 1) {
+                row.querySelectorAll('td, th').forEach(c => c.classList.add('highlight-row'));
+            }
+            row.querySelectorAll('td, th').forEach((c, colIdx) => {
+                if (colIdx === ci + 1) c.classList.add('highlight-col');
+            });
+        });
+        td.classList.add('highlight-cell');
+    });
+    table.addEventListener('mouseleave', function() {
+        table.querySelectorAll('td, th').forEach(c => {
+            c.classList.remove('highlight-row', 'highlight-col', 'highlight-cell');
+        });
+    });
+
+    // Click: show on clock
+    table.addEventListener('click', function(e) {
+        const td = e.target.closest('td[data-i]');
+        if (!td) return;
+        clockA = parseInt(td.dataset.i);
+        clockB = parseInt(td.dataset.j);
+        clockMode = td.dataset.op;
+        document.querySelectorAll('#clockModeBtns .btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.mode === clockMode);
+        });
+        drawClock();
+        clockCvs.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+}
+
+/* ── Section 3: Powers & Patterns ── */
+const powCvs = document.getElementById('powersCanvas');
+const powCtx = powCvs.getContext('2d');
+const PW = powCvs.width, PH = powCvs.height;
+
+function updateBaseSlider() {
+    const slider = document.getElementById('baseSlider');
+    slider.max = modN - 1;
+    if (parseInt(slider.value) >= modN) slider.value = 1;
+    document.getElementById('baseLabel').textContent = slider.value;
+}
+
+function drawPowers() {
+    const base = parseInt(document.getElementById('baseSlider').value);
+    document.getElementById('baseLabel').textContent = base;
+    const ctx = powCtx;
+    ctx.clearRect(0, 0, PW, PH);
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, PW, PH);
+
+    // Draw clock on left side
+    const cx = 150, cy = PH / 2, r = 110;
+
+    // Circle
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Get power cycle
+    const cycle = powerCycle(base, modN);
+    const cycleLen = cycle.length;
+
+    // Draw all number positions
+    for (let k = 0; k < modN; k++) {
+        const angle = 2 * Math.PI * k / modN - Math.PI / 2;
+        const px = cx + r * Math.cos(angle);
+        const py = cy + r * Math.sin(angle);
+
+        const inCycle = cycle.includes(k) || k === 0;
+        ctx.beginPath();
+        ctx.arc(px, py, 12, 0, Math.PI * 2);
+        ctx.fillStyle = inCycle ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.04)';
+        ctx.fill();
+        ctx.strokeStyle = inCycle ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.font = '11px Georgia';
+        ctx.fillStyle = inCycle ? GOLD : '#505068';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(k, px, py);
+    }
+
+    // Draw arrows connecting consecutive powers
+    const fullPath = [1].concat(cycle.slice(0, -1)); // positions: 1, a, a^2, ..., before wrapping back
+    for (let i = 0; i < cycle.length; i++) {
+        const fromK = i === 0 ? 1 : cycle[i - 1];
+        const toK = cycle[i];
+        if (fromK === toK) continue;
+
+        const fromAngle = 2 * Math.PI * fromK / modN - Math.PI / 2;
+        const toAngle = 2 * Math.PI * toK / modN - Math.PI / 2;
+        const fr = r - 18;
+        const fx = cx + fr * Math.cos(fromAngle);
+        const fy = cy + fr * Math.sin(fromAngle);
+        const tx = cx + fr * Math.cos(toAngle);
+        const ty = cy + fr * Math.sin(toAngle);
+
+        // Use a curved arrow (quadratic bezier through center-ish)
+        const midAngle = (fromAngle + toAngle) / 2;
+        // Handle wrapping
+        let angleDiff = toAngle - fromAngle;
+        if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+        if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+        const midA = fromAngle + angleDiff / 2;
+        const curveR = fr * 0.7;
+        const mx = cx + curveR * Math.cos(midA);
+        const my = cy + curveR * Math.sin(midA);
+
+        const alpha = Math.max(0.15, 0.5 - i * 0.03);
+        ctx.strokeStyle = 'rgba(251,191,36,' + alpha + ')';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(fx, fy);
+        ctx.quadraticCurveTo(mx, my, tx, ty);
+        ctx.stroke();
+
+        // Arrowhead
+        const t = 0.95;
+        const ax = 2 * (1 - t) * (mx - fx) + 2 * t * (tx - mx);
+        const ay = 2 * (1 - t) * (my - fy) + 2 * t * (ty - my);
+        const aAngle = Math.atan2(ay, ax);
+        ctx.fillStyle = 'rgba(251,191,36,' + alpha + ')';
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(tx - 7 * Math.cos(aAngle - 0.4), ty - 7 * Math.sin(aAngle - 0.4));
+        ctx.lineTo(tx - 7 * Math.cos(aAngle + 0.4), ty - 7 * Math.sin(aAngle + 0.4));
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // Highlight start (1) with glow
+    const startAngle = 2 * Math.PI * 1 / modN - Math.PI / 2;
+    const sx = cx + r * Math.cos(startAngle);
+    const sy = cy + r * Math.sin(startAngle);
+    ctx.save();
+    ctx.shadowColor = GOLD;
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 13, 0, Math.PI * 2);
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    // Right side: text info
+    const textX = 290;
+    ctx.font = '13px Georgia';
+    ctx.fillStyle = '#c0c0d8';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+
+    let yPos = 20;
+    ctx.fillStyle = GOLD;
+    ctx.fillText('Powers of ' + base + ' mod ' + modN, textX, yPos);
+    yPos += 28;
+
+    ctx.font = '11px "Courier New", monospace';
+    for (let i = 0; i < cycle.length; i++) {
+        ctx.fillStyle = '#a0a0b8';
+        const exp = i + 1;
+        const superscripts = ['\u00B9', '\u00B2', '\u00B3', '\u2074', '\u2075', '\u2076', '\u2077', '\u2078', '\u2079'];
+        const sup = exp <= 9 ? superscripts[exp - 1] : '^' + exp;
+        const line = base + sup + ' \u2261 ' + cycle[i] + ' (mod ' + modN + ')';
+        if (yPos > PH - 20) break;
+        ctx.fillText(line, textX, yPos);
+        yPos += 20;
+    }
+
+    if (cycle[cycle.length - 1] === 1) {
+        yPos += 8;
+        ctx.fillStyle = GOLD;
+        ctx.font = '11px Georgia';
+        ctx.fillText('Cycle length: ' + cycleLen, textX, yPos);
+    } else {
+        yPos += 8;
+        ctx.fillStyle = MUTED;
+        ctx.font = '11px Georgia';
+        ctx.fillText('Does not return to 1', textX, yPos);
+        ctx.fillText('(gcd(' + base + ', ' + modN + ') \u2260 1)', textX, yPos + 18);
+    }
+
+    // Info below canvas
+    const phi = eulerTotient(modN);
+    const infoEl = document.getElementById('powersInfo');
+    const eulerEl = document.getElementById('powersEuler');
+    const genEl = document.getElementById('generatorInfo');
+
+    if (cycle[cycle.length - 1] === 1 && gcd(base, modN) === 1) {
+        infoEl.innerHTML = '<span class="gold">Cycle: ' +
+            cycle.map((v, i) => base + '<sup>' + (i + 1) + '</sup>\u2261' + v).join(', ') +
+            ' &mdash; repeats with period ' + cycleLen + '</span>';
+        eulerEl.innerHTML = '\u03C6(' + modN + ') = ' + phi +
+            (cycleLen <= phi ? ' and ' + cycleLen + ' divides ' + phi + ' \u2714 (Euler\'s theorem)' : '');
+    } else {
+        infoEl.innerHTML = '<span class="muted">gcd(' + base + ', ' + modN + ') = ' + gcd(base, modN) + ' \u2260 1, so powers do not form a clean cycle back to 1</span>';
+        eulerEl.innerHTML = '';
+    }
+
+    // Primitive roots
+    const generators = [];
+    for (let a = 1; a < modN; a++) {
+        if (gcd(a, modN) !== 1) continue;
+        const cyc = powerCycle(a, modN);
+        if (cyc.length === phi && cyc[cyc.length - 1] === 1) {
+            generators.push(a);
+        }
+    }
+
+    if (generators.length > 0) {
+        const isGen = generators.includes(base);
+        genEl.innerHTML = '<span style="color:' + (isGen ? GREEN : MUTED) + '">Primitive roots of ' + modN + ': {' +
+            generators.join(', ') + '}' +
+            (isGen ? ' &mdash; ' + base + ' is a generator! Its powers hit every coprime residue.' : '') + '</span>';
+    } else {
+        genEl.innerHTML = '<span class="muted">No primitive roots exist for n = ' + modN +
+            (modN > 2 && !isPrime(modN) ? ' (primitive roots exist for primes, and for 2, 4, p^k, 2p^k)' : '') + '</span>';
+    }
+}
+
+document.getElementById('baseSlider').addEventListener('input', drawPowers);
+
+/* ── Section 4: GCD & Inverses ── */
+function updateInvSlider() {
+    const slider = document.getElementById('invASlider');
+    slider.max = modN - 1;
+    if (parseInt(slider.value) >= modN) slider.value = 1;
+    document.getElementById('invALabel').textContent = slider.value;
+}
+
+function updateGCDPanel() {
+    const a = parseInt(document.getElementById('invASlider').value);
+    document.getElementById('invALabel').textContent = a;
+
+    const g = gcd(a, modN);
+    const gcdEl = document.getElementById('gcdResult');
+    const invEl = document.getElementById('inverseResult');
+    const stepsEl = document.getElementById('euclidSteps');
+
+    gcdEl.innerHTML = 'gcd(' + a + ', ' + modN + ') = <span style="color:' + (g === 1 ? GREEN : '#e06060') + '">' + g + '</span>';
+
+    if (g === 1) {
+        const inv = findInverse(a, modN);
+        invEl.innerHTML = '<span class="gold">' + a + '<sup>-1</sup> \u2261 ' + inv + ' (mod ' + modN +
+            ')</span> &mdash; because ' + a + ' \u00D7 ' + inv + ' = ' + (a * inv) + ' \u2261 1 (mod ' + modN + ')';
+
+        // Extended Euclidean steps
+        const result = extendedGCD(a, modN);
+        let stepsHTML = '<div style="color:' + GOLD + ';margin-bottom:6px">Extended Euclidean Algorithm:</div>';
+        for (let i = 0; i < result.steps.length; i++) {
+            const s = result.steps[i];
+            stepsHTML += s.a + ' = ' + s.q + ' \u00D7 ' + s.b + ' + ' + s.r + '\n';
+        }
+        stepsHTML += '\nBack-substitution gives: ' + result.x + ' \u00D7 ' + a + ' + ' + result.y + ' \u00D7 ' + modN + ' = ' + result.gcd;
+        stepsHTML += '\nSo ' + a + '<sup style="font-size:0.8em">-1</sup> \u2261 ' + mod(result.x, modN) + ' (mod ' + modN + ')';
+        stepsEl.innerHTML = stepsHTML;
+        stepsEl.style.display = 'block';
+    } else {
+        invEl.innerHTML = '<span style="color:#e06060">' + a + ' has no inverse mod ' + modN + '</span> <span class="muted">&mdash; because gcd(' + a + ', ' + modN + ') \u2260 1</span>';
+        stepsEl.style.display = 'none';
+    }
+
+    // List all invertible elements
+    const invertibles = [];
+    for (let i = 1; i < modN; i++) {
+        if (gcd(i, modN) === 1) {
+            const inv = findInverse(i, modN);
+            invertibles.push({ a: i, inv: inv });
+        }
+    }
+    const listEl = document.getElementById('inversesList');
+    listEl.innerHTML = 'Invertible elements mod ' + modN + ' (\u03C6(' + modN + ') = ' + eulerTotient(modN) + '): ' +
+        invertibles.map(function(p) {
+            return '<span style="color:#c0c0d8">' + p.a + '\u2194' + p.inv + '</span>';
+        }).join(', ');
+
+    // Prime note
+    const primeNote = document.getElementById('primeNote');
+    if (isPrime(modN)) {
+        primeNote.innerHTML = 'Since ' + modN + ' is prime, <strong style="color:#c0c0d8">every</strong> non-zero element {1, 2, ..., ' + (modN - 1) +
+            '} has a multiplicative inverse. This makes Z<sub>' + modN + '</sub> a <em>field</em> &mdash; a complete algebraic structure where addition, subtraction, multiplication, and division (except by zero) all work perfectly. Fields are the algebraic "sweet spot" that makes linear algebra, polynomials, and much of mathematics work cleanly.';
+    } else {
+        const factors = [];
+        let temp = modN;
+        for (let p = 2; p * p <= temp; p++) {
+            while (temp % p === 0) { factors.push(p); temp /= p; }
+        }
+        if (temp > 1) factors.push(temp);
+        primeNote.innerHTML = modN + ' = ' + factors.join(' \u00D7 ') + ' is <strong style="color:#c0c0d8">not prime</strong>, so some elements (the ones sharing a factor with ' +
+            modN + ') lack inverses. Z<sub>' + modN + '</sub> is only a <em>ring</em>, not a field. Try a prime modulus (like 5, 7, 11, 13) to see the difference &mdash; the multiplication table will have exactly one "1" in every row and column.';
+    }
+}
+
+document.getElementById('invASlider').addEventListener('input', updateGCDPanel);
+
+/* ── Section 5: Applications ── */
+
+// ISBN-13
+document.getElementById('isbnInput').addEventListener('input', function() {
+    const digits = this.value.replace(/\D/g, '');
+    const el = document.getElementById('isbnResult');
+    if (digits.length < 12) {
+        el.innerHTML = '<span class="muted">Enter 12 digits...</span>';
+        return;
+    }
+    const d = digits.slice(0, 12).split('').map(Number);
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+        sum += d[i] * (i % 2 === 0 ? 1 : 3);
+    }
+    const check = mod(10 - mod(sum, 10), 10);
+    el.innerHTML = 'Weighted sum: ' + d.map(function(v, i) {
+        return v + '\u00D7' + (i % 2 === 0 ? '1' : '3');
+    }).join(' + ') + ' = ' + sum +
+        '<br>Check digit: (10 - ' + sum + ' mod 10) mod 10 = (10 - ' + mod(sum, 10) + ') mod 10 = <span style="color:' + GOLD + '">' + check + '</span>' +
+        '<br>Full ISBN-13: <span style="color:' + GOLD + '">' + digits.slice(0, 12) + check + '</span>';
+});
+
+// Caesar cipher
+function caesarShiftChar(c, k, decrypt) {
+    const code = c.charCodeAt(0);
+    if (code >= 65 && code <= 90) {
+        const shifted = decrypt ? mod(code - 65 - k, 26) : mod(code - 65 + k, 26);
+        return String.fromCharCode(shifted + 65);
+    }
+    if (code >= 97 && code <= 122) {
+        const shifted = decrypt ? mod(code - 97 - k, 26) : mod(code - 97 + k, 26);
+        return String.fromCharCode(shifted + 97);
+    }
+    return c;
+}
+
+function applyCaesar(decrypt) {
+    const k = parseInt(document.getElementById('caesarShift').value);
+    const text = document.getElementById('caesarInput').value;
+    const result = text.split('').map(function(c) { return caesarShiftChar(c, k, decrypt); }).join('');
+    const label = decrypt ? 'Decrypted' : 'Encrypted';
+    document.getElementById('caesarResult').innerHTML = label + ': <span style="color:' + GOLD + '">' + result + '</span>' +
+        '<br><span class="muted">Each letter shifted ' + (decrypt ? 'back ' : '') + k + ' positions mod 26</span>';
+}
+
+document.getElementById('caesarShift').addEventListener('input', function() {
+    document.getElementById('caesarLabel').textContent = this.value;
+});
+document.getElementById('caesarEncBtn').addEventListener('click', function() { applyCaesar(false); });
+document.getElementById('caesarDecBtn').addEventListener('click', function() { applyCaesar(true); });
+document.getElementById('caesarInput').addEventListener('keyup', function(e) {
+    if (e.key === 'Enter') applyCaesar(false);
+});
+
+// Days of the week
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+let selectedDay = 1; // Monday
+
+function renderDayBtns() {
+    const wrap = document.getElementById('dayBtns');
+    wrap.innerHTML = DAYS.map(function(d, i) {
+        return '<button class="btn' + (i === selectedDay ? ' active' : '') + '" data-day="' + i + '">' + d.slice(0, 3) + '</button>';
+    }).join('');
+    wrap.querySelectorAll('.btn').forEach(function(b) {
+        b.addEventListener('click', function() {
+            selectedDay = parseInt(this.dataset.day);
+            renderDayBtns();
+            updateDayResult();
+        });
+    });
+}
+
+function updateDayResult() {
+    const forward = parseInt(document.getElementById('daySlider').value);
+    document.getElementById('dayLabel').textContent = forward;
+    const resultDay = mod(selectedDay + forward, 7);
+    const el = document.getElementById('dayResult');
+    el.innerHTML = forward + ' days from ' + DAYS[selectedDay] + ': (' + selectedDay + ' + ' + forward + ') mod 7 = ' +
+        mod(selectedDay + forward, 7) + ' = <span style="color:' + GOLD + '">' + DAYS[resultDay] + '</span>' +
+        '<br><span class="muted">That\'s ' + Math.floor(forward / 7) + ' full weeks and ' + mod(forward, 7) + ' extra days</span>';
+}
+
+document.getElementById('daySlider').addEventListener('input', updateDayResult);
+renderDayBtns();
+updateDayResult();
+
+/* ── Initial draw ── */
+updateBaseSlider();
+updateInvSlider();
+drawClock();
+buildTables();
+drawPowers();
+updateGCDPanel();
+
+// Trigger ISBN default
+document.getElementById('isbnInput').value = '978030640615';
+document.getElementById('isbnInput').dispatchEvent(new Event('input'));
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Built in collaboration with <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude Code</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

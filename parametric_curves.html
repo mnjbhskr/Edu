@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parametric Curves &amp; Polar Coordinates</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#34d399}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(52,211,153,0.13);border-color:rgba(52,211,153,0.4);color:#34d399}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .accent{color:#34d399}
+        .math-line .muted{color:#808098}
+        .math-line .gold{color:#fbbf24}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#34d399;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#808098;font-size:0.88em;min-width:80px}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#34d399}
+        .slider-label{color:#34d399;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 300px;min-width:280px}
+        .side-graphs{display:flex;gap:12px;margin-top:10px}
+        .side-graph-box{flex:1}
+        .side-graph-box .label{color:#808098;font-size:0.75em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+        .values-display{font-family:'Courier New',monospace;font-size:0.85em;color:#c0c0d8;margin:8px 0;line-height:1.9}
+        .values-display .val{color:#34d399}
+        .ratio-display{font-family:'Courier New',monospace;font-size:1.3em;color:#34d399;text-align:center;margin:8px 0}
+        .canvas-wrap{position:relative;display:inline-block}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}.side-graphs{flex-direction:column}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Parametric Curves &amp; Polar Coordinates</h1>
+    <p class="subtitle">Lissajous figures, spirals, and roses &mdash; curves beyond y = f(x)</p>
+
+    <!-- ═══════════ SECTION 1: Parametric Curve Drawer ═══════════ -->
+    <h2>Parametric Curve Drawer</h2>
+    <div class="panel">
+        <h3>Preset Curves</h3>
+        <div class="btn-row" id="paramPresets"></div>
+        <canvas id="paramCanvas" width="600" height="500"></canvas>
+        <div class="side-graphs">
+            <div class="side-graph-box">
+                <div class="label">x(t)</div>
+                <canvas id="xGraph" width="280" height="100" style="cursor:default"></canvas>
+            </div>
+            <div class="side-graph-box">
+                <div class="label">y(t)</div>
+                <canvas id="yGraph" width="280" height="100" style="cursor:default"></canvas>
+            </div>
+        </div>
+        <div class="values-display" id="paramValues"></div>
+        <div class="slider-row">
+            <label>Speed</label>
+            <input type="range" id="paramSpeed" min="1" max="10" value="4">
+            <span class="slider-label" id="paramSpeedLabel">4</span>
+        </div>
+        <div class="slider-row">
+            <label>t range</label>
+            <input type="range" id="paramRange" min="1" max="8" step="0.5" value="2">
+            <span class="slider-label" id="paramRangeLabel">2&pi;</span>
+        </div>
+        <div style="margin-top:10px">
+            <button class="btn" id="paramRestart">Restart</button>
+        </div>
+    </div>
+
+    <!-- ═══════════ SECTION 2: Lissajous Lab ═══════════ -->
+    <h2>Lissajous Lab</h2>
+    <div class="panel">
+        <h3>Controls</h3>
+        <div class="slider-row">
+            <label>a (x freq)</label>
+            <input type="range" id="lissA" min="1" max="7" value="2">
+            <span class="slider-label" id="lissALabel">2</span>
+        </div>
+        <div class="slider-row">
+            <label>b (y freq)</label>
+            <input type="range" id="lissB" min="1" max="7" value="3">
+            <span class="slider-label" id="lissBLabel">3</span>
+        </div>
+        <div class="slider-row">
+            <label>&delta; (phase)</label>
+            <input type="range" id="lissDelta" min="0" max="628" value="0">
+            <span class="slider-label" id="lissDeltaLabel">0</span>
+        </div>
+        <div class="ratio-display" id="lissRatio">a : b = 2 : 3</div>
+        <div class="math-line muted" id="lissFormula">x = sin(2t + 0), y = sin(3t)</div>
+        <canvas id="lissCanvas" width="600" height="400"></canvas>
+        <div style="margin-top:12px">
+            <button class="btn" id="lissGallery">Gallery Mode</button>
+            <button class="btn" id="lissStop" style="display:none">Stop Gallery</button>
+        </div>
+    </div>
+
+    <!-- ═══════════ SECTION 3: Polar Coordinates ═══════════ -->
+    <h2>Polar Coordinates</h2>
+    <div class="panel">
+        <h3>Polar Curves</h3>
+        <div class="btn-row" id="polarPresets"></div>
+        <canvas id="polarCanvas" width="500" height="500"></canvas>
+        <div class="values-display" id="polarValues"></div>
+        <div class="math-line muted" id="polarConversion"></div>
+        <div class="slider-row">
+            <label>Speed</label>
+            <input type="range" id="polarSpeed" min="1" max="10" value="4">
+            <span class="slider-label" id="polarSpeedLabel">4</span>
+        </div>
+        <div style="margin-top:10px">
+            <button class="btn" id="polarRestart">Restart</button>
+        </div>
+    </div>
+
+    <!-- ═══════════ SECTION 4: Rose Curve Explorer ═══════════ -->
+    <h2>Rose Curve Explorer</h2>
+    <div class="panel">
+        <h3>r = cos(n&theta;)</h3>
+        <div class="slider-row">
+            <label>n</label>
+            <input type="range" id="roseN" min="10" max="80" value="30">
+            <span class="slider-label" id="roseNLabel">3.0</span>
+        </div>
+        <canvas id="roseCanvas" width="400" height="400"></canvas>
+        <div class="values-display" id="roseInfo"></div>
+        <div class="slider-row">
+            <label>Speed</label>
+            <input type="range" id="roseSpeed" min="1" max="10" value="5">
+            <span class="slider-label" id="roseSpeedLabel">5</span>
+        </div>
+        <div style="margin-top:10px">
+            <button class="btn" id="roseRestart">Restart</button>
+        </div>
+    </div>
+
+    <!-- ═══════════ SECTION 5: Spirograph Machine ═══════════ -->
+    <h2>Spirograph Machine</h2>
+    <div class="panel">
+        <h3>Hypotrochoid Parameters</h3>
+        <div class="slider-row">
+            <label>R (outer)</label>
+            <input type="range" id="spiroR" min="30" max="100" value="50">
+            <span class="slider-label" id="spiroRLabel">5.0</span>
+        </div>
+        <div class="slider-row">
+            <label>r (inner)</label>
+            <input type="range" id="spiror" min="10" max="90" value="30">
+            <span class="slider-label" id="spirorLabel">3.0</span>
+        </div>
+        <div class="slider-row">
+            <label>d (pen)</label>
+            <input type="range" id="spiroD" min="1" max="90" value="20">
+            <span class="slider-label" id="spiroDLabel">2.0</span>
+        </div>
+        <div class="math-line muted" id="spiroFormula"></div>
+        <div class="math-line muted" id="spiroRatioInfo"></div>
+        <canvas id="spiroCanvas" width="500" height="500"></canvas>
+        <div style="margin-top:12px">
+            <button class="btn" id="spiroSurprise">Surprise Me</button>
+            <button class="btn" id="spiroRestart">Restart</button>
+        </div>
+    </div>
+
+    <!-- ═══════════ SECTION 6: Explanation Panel ═══════════ -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            <p>Parametric and polar representations free us from the constraint y = f(x). A single-valued function can only pass through each x-value once, but parametric curves can loop, cross themselves, and form shapes impossible in Cartesian coordinates. By letting both x and y depend on a third variable t, we gain the full expressive power of curves in the plane.</p>
+            <p style="margin-top:12px"><strong style="color:#34d399">Lissajous figures</strong> appear on oscilloscopes when two perpendicular signals of different frequencies are combined. The ratio of frequencies determines the shape: rational ratios produce closed curves, while irrational ratios cause the curve to eventually fill a region. Jules Antoine Lissajous studied them in the 1850s using vibrating tuning forks and mirrors.</p>
+            <p style="margin-top:12px"><strong style="color:#34d399">Spirals in nature</strong> &mdash; the logarithmic spiral (r = e<sup>k&theta;</sup>) appears in nautilus shells, hurricane clouds, spiral galaxies, and the arrangement of seeds in sunflowers. Its defining property is self-similarity: every portion, when magnified, looks identical to the whole. It connects to the golden ratio when k = ln(&phi;)/(&pi;/2).</p>
+            <p style="margin-top:12px"><strong style="color:#34d399">The cycloid</strong> is the curve traced by a point on a rolling wheel. It is the brachistochrone &mdash; the curve of fastest descent under gravity &mdash; and also the tautochrone: a ball released from any point on an inverted cycloid reaches the bottom in the same time. Johann Bernoulli posed the brachistochrone problem in 1696; its solution launched the calculus of variations.</p>
+            <p style="margin-top:12px"><strong style="color:#34d399">Rose curves</strong> reveal a surprising pattern: r = cos(n&theta;) has n petals when n is odd, but 2n petals when n is even. When n is irrational, the curve never closes and gradually fills the entire unit disk &mdash; a beautiful connection between number theory and geometry.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   SECTION 1: Parametric Curve Drawer
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('paramCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const xCvs = document.getElementById('xGraph');
+    const xCtx = xCvs.getContext('2d');
+    const yCvs = document.getElementById('yGraph');
+    const yCtx = yCvs.getContext('2d');
+
+    const presets = [
+        { name:'Circle', xFn: t=>Math.cos(t), yFn: t=>Math.sin(t), xStr:'cos(t)', yStr:'sin(t)', scale:1.4 },
+        { name:'Ellipse', xFn: t=>2*Math.cos(t), yFn: t=>Math.sin(t), xStr:'2cos(t)', yStr:'sin(t)', scale:2.5 },
+        { name:'Lissajous 2:3', xFn: t=>Math.sin(2*t), yFn: t=>Math.sin(3*t), xStr:'sin(2t)', yStr:'sin(3t)', scale:1.4 },
+        { name:'Lissajous 3:4', xFn: t=>Math.sin(3*t), yFn: t=>Math.sin(4*t+Math.PI/4), xStr:'sin(3t)', yStr:'sin(4t+\u03C0/4)', scale:1.4 },
+        { name:'Cycloid', xFn: t=>t-Math.sin(t), yFn: t=>1-Math.cos(t), xStr:'t-sin(t)', yStr:'1-cos(t)', scale:0, tMax:4 },
+        { name:'Epicycloid (3-cusp)', xFn: t=>4*Math.cos(t)-Math.cos(4*t), yFn: t=>4*Math.sin(t)-Math.sin(4*t), xStr:'4cos(t)-cos(4t)', yStr:'4sin(t)-sin(4t)', scale:6 },
+        { name:'Spirograph', xFn: t=>{const R=5,r=2,d=1.5;return(R-r)*Math.cos(t)+d*Math.cos((R-r)*t/r);}, yFn: t=>{const R=5,r=2,d=1.5;return(R-r)*Math.sin(t)-d*Math.sin((R-r)*t/r);}, xStr:'(R-r)cos(t)+d\u00B7cos((R-r)t/r)', yStr:'(R-r)sin(t)-d\u00B7sin((R-r)t/r)', scale:5, tMax:4 },
+        { name:'Figure Eight', xFn: t=>Math.sin(t), yFn: t=>Math.sin(t)*Math.cos(t), xStr:'sin(t)', yStr:'sin(t)cos(t)', scale:1.4 }
+    ];
+
+    let current = 0;
+    let tCurrent = 0;
+    let animId = null;
+    let trailPoints = [];
+
+    function getTMax(){
+        const rangeVal = parseFloat(document.getElementById('paramRange').value);
+        if(presets[current].tMax) return presets[current].tMax * Math.PI;
+        return rangeVal * Math.PI;
+    }
+
+    function getScale(){
+        const p = presets[current];
+        if(p.scale === 0){
+            /* auto-scale for cycloid-like curves */
+            const tMax = getTMax();
+            let maxX=0, maxY=0;
+            for(let t=0;t<=tMax;t+=0.05){
+                maxX = Math.max(maxX, Math.abs(p.xFn(t)));
+                maxY = Math.max(maxY, Math.abs(p.yFn(t)));
+            }
+            return Math.max(maxX, maxY) * 1.15;
+        }
+        return p.scale;
+    }
+
+    function toScreen(x, y, sc){
+        const cx = W/2, cy = H/2;
+        const pxPerUnit = Math.min(W,H) / (2*sc);
+        return { x: cx + x*pxPerUnit, y: cy - y*pxPerUnit };
+    }
+
+    function drawGrid(sc){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+        const pxPerUnit = Math.min(W,H) / (2*sc);
+        const cx = W/2, cy = H/2;
+
+        /* grid lines */
+        ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+        const halfU = sc;
+        for(let i=Math.ceil(-halfU);i<=Math.floor(halfU);i++){
+            const sx = cx + i*pxPerUnit;
+            if(sx>0 && sx<W){ ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,H); ctx.stroke(); }
+            const sy = cy - i*pxPerUnit;
+            if(sy>0 && sy<H){ ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(W,sy); ctx.stroke(); }
+        }
+        /* axes */
+        ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(0,cy); ctx.lineTo(W,cy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx,0); ctx.lineTo(cx,H); ctx.stroke();
+        /* axis labels */
+        ctx.font='13px Georgia'; ctx.fillStyle='#808098';
+        ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText('x',W-20,cy-6);
+        ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText('y',cx+8,6);
+    }
+
+    function drawTrail(sc){
+        if(trailPoints.length < 2) return;
+        const len = trailPoints.length;
+        for(let i=1;i<len;i++){
+            const alpha = 0.15 + 0.85*(i/len);
+            ctx.strokeStyle='rgba(52,211,153,'+alpha.toFixed(3)+')';
+            ctx.lineWidth = 1.5 + 1*(i/len);
+            const p0 = toScreen(trailPoints[i-1].x, trailPoints[i-1].y, sc);
+            const p1 = toScreen(trailPoints[i].x, trailPoints[i].y, sc);
+            ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+        }
+    }
+
+    function drawDot(x, y, sc){
+        const p = toScreen(x, y, sc);
+        /* glow */
+        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 14);
+        grad.addColorStop(0, 'rgba(52,211,153,0.6)');
+        grad.addColorStop(1, 'rgba(52,211,153,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, Math.PI*2); ctx.fill();
+        /* dot */
+        ctx.fillStyle='#34d399';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
+    }
+
+    function drawSideGraph(canvas, context, fn, tMax, tNow, label, color){
+        const w = canvas.width, h = canvas.height;
+        context.clearRect(0,0,w,h);
+        context.fillStyle='rgba(10,10,26,0.9)'; context.fillRect(0,0,w,h);
+
+        /* find y range */
+        let minY=Infinity, maxY=-Infinity;
+        for(let t=0;t<=tMax;t+=0.02){
+            const v = fn(t);
+            if(v<minY) minY=v;
+            if(v>maxY) maxY=v;
+        }
+        const pad = (maxY-minY)*0.1 || 0.5;
+        minY-=pad; maxY+=pad;
+
+        /* axis line */
+        const zeroY = h - (0-minY)/(maxY-minY)*h;
+        context.strokeStyle='rgba(255,255,255,0.1)'; context.lineWidth=1;
+        context.beginPath(); context.moveTo(0,zeroY); context.lineTo(w,zeroY); context.stroke();
+
+        /* full curve (dim) */
+        context.strokeStyle='rgba(52,211,153,0.15)'; context.lineWidth=1;
+        context.beginPath();
+        for(let i=0;i<=200;i++){
+            const t = tMax*i/200;
+            const v = fn(t);
+            const sx = w*i/200;
+            const sy = h - (v-minY)/(maxY-minY)*h;
+            if(i===0) context.moveTo(sx,sy); else context.lineTo(sx,sy);
+        }
+        context.stroke();
+
+        /* traced portion */
+        if(tNow > 0){
+            const steps = Math.min(200, Math.floor(200*tNow/tMax));
+            context.strokeStyle=color; context.lineWidth=1.5;
+            context.beginPath();
+            for(let i=0;i<=steps;i++){
+                const t = tMax*i/200;
+                if(t > tNow) break;
+                const v = fn(t);
+                const sx = w*i/200;
+                const sy = h - (v-minY)/(maxY-minY)*h;
+                if(i===0) context.moveTo(sx,sy); else context.lineTo(sx,sy);
+            }
+            context.stroke();
+
+            /* current dot */
+            const csx = w*(tNow/tMax);
+            const csy = h - (fn(tNow)-minY)/(maxY-minY)*h;
+            context.fillStyle=color;
+            context.beginPath(); context.arc(csx, csy, 3, 0, Math.PI*2); context.fill();
+        }
+
+        /* label */
+        context.font='10px Courier New'; context.fillStyle='#808098';
+        context.textAlign='left'; context.textBaseline='top';
+        context.fillText(label, 4, 4);
+    }
+
+    function updateValues(t, x, y){
+        const el = document.getElementById('paramValues');
+        const p = presets[current];
+        el.innerHTML = '<span class="muted">Curve:</span> x(t) = '+p.xStr+', y(t) = '+p.yStr+
+            '<br><span class="muted">t =</span> <span class="val">'+t.toFixed(3)+'</span>' +
+            '&emsp;<span class="muted">x(t) =</span> <span class="val">'+x.toFixed(4)+'</span>' +
+            '&emsp;<span class="muted">y(t) =</span> <span class="val">'+y.toFixed(4)+'</span>';
+    }
+
+    function animate(){
+        const p = presets[current];
+        const tMax = getTMax();
+        const speed = parseInt(document.getElementById('paramSpeed').value);
+        const dt = speed * 0.003;
+
+        tCurrent += dt;
+        if(tCurrent > tMax) tCurrent = tMax;
+
+        const x = p.xFn(tCurrent);
+        const y = p.yFn(tCurrent);
+        trailPoints.push({x, y});
+
+        const sc = getScale();
+        drawGrid(sc);
+        drawTrail(sc);
+        drawDot(x, y, sc);
+
+        drawSideGraph(xCvs, xCtx, p.xFn, tMax, tCurrent, 'x(t)', '#34d399');
+        drawSideGraph(yCvs, yCtx, p.yFn, tMax, tCurrent, 'y(t)', '#fbbf24');
+
+        updateValues(tCurrent, x, y);
+
+        if(tCurrent < tMax){
+            animId = requestAnimationFrame(animate);
+        }
+    }
+
+    function start(){
+        if(animId) cancelAnimationFrame(animId);
+        tCurrent = 0;
+        trailPoints = [];
+        animate();
+    }
+
+    /* preset buttons */
+    const container = document.getElementById('paramPresets');
+    presets.forEach(function(p, i){
+        const btn = document.createElement('button');
+        btn.className = 'btn' + (i===0?' active':'');
+        btn.textContent = p.name;
+        btn.addEventListener('click', function(){
+            container.querySelectorAll('.btn').forEach(function(b){b.classList.remove('active');});
+            btn.classList.add('active');
+            current = i;
+            start();
+        });
+        container.appendChild(btn);
+    });
+
+    document.getElementById('paramRestart').addEventListener('click', start);
+    document.getElementById('paramSpeed').addEventListener('input', function(){
+        document.getElementById('paramSpeedLabel').textContent = this.value;
+    });
+    document.getElementById('paramRange').addEventListener('input', function(){
+        document.getElementById('paramRangeLabel').innerHTML = this.value + '&pi;';
+        start();
+    });
+
+    start();
+})();
+
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 2: Lissajous Lab
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('lissCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const cx = W/2, cy = H/2;
+    const amp = Math.min(W,H)/2 - 40;
+
+    const sliderA = document.getElementById('lissA');
+    const sliderB = document.getElementById('lissB');
+    const sliderD = document.getElementById('lissDelta');
+    let galleryMode = false;
+    let galleryTimer = null;
+    let galleryIdx = 0;
+    const gallerySeq = [
+        {a:1,b:1,d:0}, {a:1,b:2,d:0}, {a:1,b:3,d:0},
+        {a:2,b:3,d:0}, {a:3,b:4,d:0}, {a:3,b:5,d:0}
+    ];
+
+    function getParams(){
+        const a = parseInt(sliderA.value);
+        const b = parseInt(sliderB.value);
+        const delta = parseInt(sliderD.value)/100;
+        return {a, b, delta};
+    }
+
+    function drawLissajous(){
+        const {a, b, delta} = getParams();
+        document.getElementById('lissALabel').textContent = a;
+        document.getElementById('lissBLabel').textContent = b;
+        document.getElementById('lissDeltaLabel').textContent = delta.toFixed(2);
+        document.getElementById('lissRatio').textContent = 'a : b = ' + a + ' : ' + b;
+        document.getElementById('lissFormula').textContent = 'x = sin('+a+'t + '+delta.toFixed(2)+'), y = sin('+b+'t)';
+
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        /* grid */
+        ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(0,cy); ctx.lineTo(W,cy); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx,0); ctx.lineTo(cx,H); ctx.stroke();
+        /* border box */
+        ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+        ctx.strokeRect(cx-amp, cy-amp, amp*2, amp*2);
+
+        /* curve */
+        const N = 2000;
+        ctx.strokeStyle='#34d399'; ctx.lineWidth=1.8;
+        ctx.beginPath();
+        for(let i=0;i<=N;i++){
+            const t = 2*Math.PI*i/N;
+            const x = cx + amp*Math.sin(a*t + delta);
+            const y = cy - amp*Math.sin(b*t);
+            if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        }
+        ctx.stroke();
+
+        /* axis labels */
+        ctx.font='11px Georgia'; ctx.fillStyle='#808098';
+        ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.fillText('x',W-16,cy-6);
+        ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText('y',cx+8,6);
+    }
+
+    sliderA.addEventListener('input', drawLissajous);
+    sliderB.addEventListener('input', drawLissajous);
+    sliderD.addEventListener('input', drawLissajous);
+
+    document.getElementById('lissGallery').addEventListener('click', function(){
+        if(galleryMode) return;
+        galleryMode = true;
+        this.style.display = 'none';
+        document.getElementById('lissStop').style.display = '';
+        galleryIdx = 0;
+        function step(){
+            if(!galleryMode) return;
+            const g = gallerySeq[galleryIdx % gallerySeq.length];
+            sliderA.value = g.a;
+            sliderB.value = g.b;
+            /* animate phase from 0 to 2pi */
+            let phase = 0;
+            const phaseStep = 0.04;
+            function animPhase(){
+                if(!galleryMode) return;
+                phase += phaseStep;
+                if(phase > 6.28){
+                    galleryIdx++;
+                    galleryTimer = setTimeout(step, 300);
+                    return;
+                }
+                sliderD.value = Math.round(phase*100);
+                drawLissajous();
+                requestAnimationFrame(animPhase);
+            }
+            sliderD.value = 0;
+            drawLissajous();
+            requestAnimationFrame(animPhase);
+        }
+        step();
+    });
+
+    document.getElementById('lissStop').addEventListener('click', function(){
+        galleryMode = false;
+        if(galleryTimer) clearTimeout(galleryTimer);
+        this.style.display = 'none';
+        document.getElementById('lissGallery').style.display = '';
+    });
+
+    drawLissajous();
+})();
+
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 3: Polar Coordinates
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('polarCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const cxp = W/2, cyp = H/2;
+    const pxPerUnit = 90;
+
+    const presets = [
+        { name:'Circle', fn: function(th){ return 1; }, str:'r = 1', tMax:2 },
+        { name:'Cardioid', fn: function(th){ return 1+Math.cos(th); }, str:'r = 1 + cos(\u03B8)', tMax:2 },
+        { name:'Rose (3 petals)', fn: function(th){ return Math.cos(3*th); }, str:'r = cos(3\u03B8)', tMax:1 },
+        { name:'Rose (4 petals)', fn: function(th){ return Math.cos(2*th); }, str:'r = cos(2\u03B8)', tMax:2 },
+        { name:'Lemniscate', fn: function(th){ var v=Math.cos(2*th); return v>=0?Math.sqrt(v):null; }, str:'r\u00B2 = cos(2\u03B8)', tMax:2 },
+        { name:'Archimedes\' Spiral', fn: function(th){ return th/Math.PI; }, str:'r = \u03B8/\u03C0', tMax:6 },
+        { name:'Log Spiral', fn: function(th){ return Math.exp(0.2*th); }, str:'r = e^(0.2\u03B8)', tMax:3 },
+        { name:'Lima\u00E7on', fn: function(th){ return 1+2*Math.cos(th); }, str:'r = 1 + 2cos(\u03B8)', tMax:2 }
+    ];
+
+    let current = 0;
+    let thetaCurrent = 0;
+    let animId = null;
+    let trailPoints = [];
+
+    function getMaxR(){
+        var p = presets[current];
+        var maxR = 0;
+        var tMax = p.tMax * Math.PI;
+        for(var t=0;t<=tMax;t+=0.02){
+            var r = p.fn(t);
+            if(r !== null && Math.abs(r) > maxR) maxR = Math.abs(r);
+        }
+        return maxR || 1;
+    }
+
+    function drawPolarGrid(maxR){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        var gridScale = (Math.min(W,H)/2 - 30) / maxR;
+
+        /* concentric circles */
+        ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+        var step = maxR <= 2 ? 0.5 : maxR <= 5 ? 1 : 2;
+        for(var r=step; r<=maxR*1.1; r+=step){
+            ctx.beginPath();
+            ctx.arc(cxp, cyp, r*gridScale, 0, Math.PI*2);
+            ctx.stroke();
+            ctx.font='9px Courier New'; ctx.fillStyle='#505068';
+            ctx.textAlign='left'; ctx.textBaseline='bottom';
+            ctx.fillText(r.toFixed(1), cxp+r*gridScale+2, cyp-2);
+        }
+
+        /* radial lines every 30 degrees */
+        for(var a=0; a<360; a+=30){
+            var rad = a*Math.PI/180;
+            var x2 = cxp + maxR*1.1*gridScale*Math.cos(rad);
+            var y2 = cyp - maxR*1.1*gridScale*Math.sin(rad);
+            ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.moveTo(cxp, cyp); ctx.lineTo(x2, y2); ctx.stroke();
+            /* angle label */
+            var lx = cxp + (maxR*1.1*gridScale+12)*Math.cos(rad);
+            var ly = cyp - (maxR*1.1*gridScale+12)*Math.sin(rad);
+            ctx.font='8px Courier New'; ctx.fillStyle='#404058';
+            ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText(a+'\u00B0', lx, ly);
+        }
+
+        return gridScale;
+    }
+
+    function toXY(r, theta, gridScale){
+        return {
+            x: cxp + r*gridScale*Math.cos(theta),
+            y: cyp - r*gridScale*Math.sin(theta)
+        };
+    }
+
+    function drawTrail(gridScale){
+        if(trailPoints.length < 2) return;
+        var len = trailPoints.length;
+        for(var i=1;i<len;i++){
+            var alpha = 0.15 + 0.85*(i/len);
+            ctx.strokeStyle='rgba(52,211,153,'+alpha.toFixed(3)+')';
+            ctx.lineWidth = 1.5 + 1*(i/len);
+            var p0 = toXY(trailPoints[i-1].r, trailPoints[i-1].theta, gridScale);
+            var p1 = toXY(trailPoints[i].r, trailPoints[i].theta, gridScale);
+            ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+        }
+    }
+
+    function drawRadiusArm(r, theta, gridScale){
+        var p = toXY(r, theta, gridScale);
+        ctx.strokeStyle='rgba(52,211,153,0.4)'; ctx.lineWidth=1;
+        ctx.setLineDash([4,4]);
+        ctx.beginPath(); ctx.moveTo(cxp, cyp); ctx.lineTo(p.x, p.y); ctx.stroke();
+        ctx.setLineDash([]);
+
+        /* glow dot */
+        var grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 14);
+        grad.addColorStop(0, 'rgba(52,211,153,0.6)');
+        grad.addColorStop(1, 'rgba(52,211,153,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 14, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle='#34d399';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2); ctx.fill();
+    }
+
+    function updatePolarValues(theta, r){
+        var p = presets[current];
+        var x = r*Math.cos(theta);
+        var y = r*Math.sin(theta);
+        document.getElementById('polarValues').innerHTML =
+            '<span class="muted">Formula:</span> '+p.str+
+            '<br><span class="muted">\u03B8 =</span> <span class="val">'+theta.toFixed(3)+'</span>' +
+            ' <span class="muted">('+((theta*180/Math.PI)%360).toFixed(1)+'\u00B0)</span>' +
+            '&emsp;<span class="muted">r =</span> <span class="val">'+(r!==null?r.toFixed(4):'--')+'</span>';
+        document.getElementById('polarConversion').textContent =
+            '(r, \u03B8) \u2192 (r\u00B7cos\u03B8, r\u00B7sin\u03B8) = (' + x.toFixed(3) + ', ' + y.toFixed(3) + ')';
+    }
+
+    function animate(){
+        var p = presets[current];
+        var tMax = p.tMax * Math.PI;
+        var speed = parseInt(document.getElementById('polarSpeed').value);
+        var dt = speed * 0.004;
+
+        thetaCurrent += dt;
+        if(thetaCurrent > tMax) thetaCurrent = tMax;
+
+        var r = p.fn(thetaCurrent);
+        if(r !== null){
+            trailPoints.push({r:r, theta:thetaCurrent});
+        }
+
+        var maxR = getMaxR();
+        var gridScale = drawPolarGrid(maxR);
+        drawTrail(gridScale);
+        if(r !== null){
+            drawRadiusArm(r, thetaCurrent, gridScale);
+        }
+        updatePolarValues(thetaCurrent, r !== null ? r : 0);
+
+        if(thetaCurrent < tMax){
+            animId = requestAnimationFrame(animate);
+        }
+    }
+
+    function start(){
+        if(animId) cancelAnimationFrame(animId);
+        thetaCurrent = 0;
+        trailPoints = [];
+        animate();
+    }
+
+    /* preset buttons */
+    var container = document.getElementById('polarPresets');
+    presets.forEach(function(p, i){
+        var btn = document.createElement('button');
+        btn.className = 'btn' + (i===0?' active':'');
+        btn.textContent = p.name;
+        btn.addEventListener('click', function(){
+            container.querySelectorAll('.btn').forEach(function(b){b.classList.remove('active');});
+            btn.classList.add('active');
+            current = i;
+            start();
+        });
+        container.appendChild(btn);
+    });
+
+    document.getElementById('polarRestart').addEventListener('click', start);
+    document.getElementById('polarSpeed').addEventListener('input', function(){
+        document.getElementById('polarSpeedLabel').textContent = this.value;
+    });
+
+    start();
+})();
+
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 4: Rose Curve Explorer
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+    var cvs = document.getElementById('roseCanvas');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var cx = W/2, cy = H/2;
+    var radius = Math.min(W,H)/2 - 30;
+
+    var slider = document.getElementById('roseN');
+    var animId = null;
+    var thetaCurrent = 0;
+    var trailPoints = [];
+
+    function getN(){
+        return parseInt(slider.value) / 10;
+    }
+
+    function isInteger(n){
+        return Math.abs(n - Math.round(n)) < 0.001;
+    }
+
+    function gcd(a, b){
+        a = Math.round(a); b = Math.round(b);
+        if(b===0) return a;
+        return gcd(b, a%b);
+    }
+
+    function getTMax(n){
+        /* For integer n: odd n -> pi, even n -> 2pi */
+        /* For non-integer n: larger range needed */
+        if(isInteger(n)){
+            var ni = Math.round(n);
+            if(ni % 2 === 1) return Math.PI;
+            return 2*Math.PI;
+        }
+        /* for rational n = p/q, period is q*pi or 2q*pi */
+        /* approximate: use enough to fill nicely */
+        return 8*Math.PI;
+    }
+
+    function getInfo(n){
+        if(isInteger(n)){
+            var ni = Math.round(n);
+            if(ni <= 0) return {petals:0, sym:''};
+            if(ni % 2 === 1) return {petals:ni, sym:ni+' petals, odd symmetry'};
+            return {petals:2*ni, sym:2*ni+' petals, even symmetry'};
+        }
+        /* rational check */
+        var p = Math.round(n*10), q = 10;
+        var g = gcd(p, q);
+        p /= g; q /= g;
+        return {petals:'--', sym:'n = '+p+'/'+q+' (rational) \u2014 fills toward disk'};
+    }
+
+    function drawRoseGrid(){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+        /* circles at 0.5, 1 */
+        ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.arc(cx,cy,radius*0.5,0,Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx,cy,radius,0,Math.PI*2); ctx.stroke();
+        /* radial lines */
+        for(var a=0;a<360;a+=30){
+            var rad=a*Math.PI/180;
+            ctx.beginPath();
+            ctx.moveTo(cx,cy);
+            ctx.lineTo(cx+radius*1.05*Math.cos(rad), cy-radius*1.05*Math.sin(rad));
+            ctx.stroke();
+        }
+    }
+
+    function animate(){
+        var n = getN();
+        var tMax = getTMax(n);
+        var speed = parseInt(document.getElementById('roseSpeed').value);
+        var dt = speed * 0.006;
+
+        thetaCurrent += dt;
+        if(thetaCurrent > tMax) thetaCurrent = tMax;
+
+        var r = Math.cos(n * thetaCurrent);
+        trailPoints.push({r:Math.abs(r), theta: r>=0 ? thetaCurrent : thetaCurrent+Math.PI});
+
+        drawRoseGrid();
+
+        /* draw trail */
+        if(trailPoints.length > 1){
+            var len = trailPoints.length;
+            for(var i=1;i<len;i++){
+                var alpha = 0.2 + 0.8*(i/len);
+                ctx.strokeStyle='rgba(52,211,153,'+alpha.toFixed(3)+')';
+                ctx.lineWidth = 1.5;
+                var p0 = trailPoints[i-1];
+                var p1 = trailPoints[i];
+                var x0 = cx + p0.r*radius*Math.cos(p0.theta);
+                var y0 = cy - p0.r*radius*Math.sin(p0.theta);
+                var x1 = cx + p1.r*radius*Math.cos(p1.theta);
+                var y1 = cy - p1.r*radius*Math.sin(p1.theta);
+                ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+            }
+        }
+
+        /* dot */
+        var dr = Math.cos(n * thetaCurrent);
+        var dotR = Math.abs(dr);
+        var dotTheta = dr >= 0 ? thetaCurrent : thetaCurrent + Math.PI;
+        var dx = cx + dotR*radius*Math.cos(dotTheta);
+        var dy = cy - dotR*radius*Math.sin(dotTheta);
+        var grad = ctx.createRadialGradient(dx,dy,0,dx,dy,12);
+        grad.addColorStop(0,'rgba(52,211,153,0.6)');
+        grad.addColorStop(1,'rgba(52,211,153,0)');
+        ctx.fillStyle=grad;
+        ctx.beginPath(); ctx.arc(dx,dy,12,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#34d399';
+        ctx.beginPath(); ctx.arc(dx,dy,4,0,Math.PI*2); ctx.fill();
+
+        /* info */
+        var info = getInfo(n);
+        document.getElementById('roseNLabel').textContent = n.toFixed(1);
+        document.getElementById('roseInfo').innerHTML =
+            '<span class="muted">r = cos('+n.toFixed(1)+'\u03B8)</span>' +
+            '&emsp;<span class="muted">Petals:</span> <span class="val">'+info.petals+'</span>' +
+            '<br><span class="muted">'+info.sym+'</span>';
+
+        if(thetaCurrent < tMax){
+            animId = requestAnimationFrame(animate);
+        }
+    }
+
+    function start(){
+        if(animId) cancelAnimationFrame(animId);
+        thetaCurrent = 0;
+        trailPoints = [];
+        animate();
+    }
+
+    slider.addEventListener('input', function(){
+        start();
+    });
+
+    document.getElementById('roseRestart').addEventListener('click', start);
+    document.getElementById('roseSpeed').addEventListener('input', function(){
+        document.getElementById('roseSpeedLabel').textContent = this.value;
+    });
+
+    start();
+})();
+
+
+/* ═══════════════════════════════════════════════════════════
+   SECTION 5: Spirograph Machine
+   ═══════════════════════════════════════════════════════════ */
+(function(){
+    var cvs = document.getElementById('spiroCanvas');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var cx = W/2, cy = H/2;
+
+    var sliderR = document.getElementById('spiroR');
+    var sliderr = document.getElementById('spiror');
+    var sliderD = document.getElementById('spiroD');
+
+    var animId = null;
+    var tCurrent = 0;
+    var trailPoints = [];
+    var canvasScale = 1;
+
+    function getParams(){
+        var R = parseInt(sliderR.value) / 10;
+        var r = parseInt(sliderr.value) / 10;
+        var d = parseInt(sliderD.value) / 10;
+        /* ensure r < R */
+        if(r >= R) r = R - 0.1;
+        return {R:R, r:r, d:d};
+    }
+
+    function hypoX(t, R, r, d){
+        return (R-r)*Math.cos(t) + d*Math.cos((R-r)*t/r);
+    }
+
+    function hypoY(t, R, r, d){
+        return (R-r)*Math.sin(t) - d*Math.sin((R-r)*t/r);
+    }
+
+    function gcd(a, b){
+        a = Math.round(a*100); b = Math.round(b*100);
+        while(b){var t=b; b=a%b; a=t;}
+        return a/100;
+    }
+
+    function getTMax(R, r){
+        /* period = 2*pi*r / gcd(R,r) -- but let's compute needed rotations */
+        /* For rational R/r = p/q (reduced), inner circle goes around p times */
+        var g = gcd(R, r);
+        var p = Math.round(R/g);
+        var q = Math.round(r/g);
+        return 2 * Math.PI * q;
+    }
+
+    function getMaxExtent(R, r, d){
+        /* max radius of the hypotrochoid */
+        return (R-r) + d;
+    }
+
+    function updateLabels(){
+        var p = getParams();
+        document.getElementById('spiroRLabel').textContent = p.R.toFixed(1);
+        document.getElementById('spirorLabel').textContent = p.r.toFixed(1);
+        document.getElementById('spiroDLabel').textContent = p.d.toFixed(1);
+        document.getElementById('spiroFormula').textContent =
+            'x = ('+p.R.toFixed(1)+'-'+p.r.toFixed(1)+')cos(t) + '+p.d.toFixed(1)+'\u00B7cos(('+(p.R-p.r).toFixed(1)+')t/'+p.r.toFixed(1)+')';
+
+        var g = gcd(p.R, p.r);
+        var num = Math.round(p.R / g);
+        var den = Math.round(p.r / g);
+        var rational = (Math.abs(p.R/p.r - num/den) < 0.01);
+        document.getElementById('spiroRatioInfo').textContent =
+            'R/r = ' + p.R.toFixed(1) + '/' + p.r.toFixed(1) + ' = ' + (p.R/p.r).toFixed(3) +
+            (rational ? ' (rational \u2014 closed curve)' : ' (may not close)');
+    }
+
+    function drawSpiroFrame(){
+        var p = getParams();
+        var maxE = getMaxExtent(p.R, p.r, p.d);
+        canvasScale = (Math.min(W,H)/2 - 30) / maxE;
+
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        /* outer circle */
+        ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, p.R*canvasScale, 0, Math.PI*2);
+        ctx.stroke();
+
+        /* inner circle position */
+        var innerCx = cx + (p.R - p.r)*canvasScale*Math.cos(tCurrent);
+        var innerCy = cy - (p.R - p.r)*canvasScale*Math.sin(tCurrent);
+
+        ctx.strokeStyle='rgba(251,191,36,0.35)'; ctx.lineWidth=1;
+        ctx.beginPath();
+        ctx.arc(innerCx, innerCy, p.r*canvasScale, 0, Math.PI*2);
+        ctx.stroke();
+
+        /* inner circle center dot */
+        ctx.fillStyle='rgba(251,191,36,0.5)';
+        ctx.beginPath(); ctx.arc(innerCx, innerCy, 3, 0, Math.PI*2); ctx.fill();
+
+        /* pen arm */
+        var penX = cx + hypoX(tCurrent, p.R, p.r, p.d)*canvasScale;
+        var penY = cy - hypoY(tCurrent, p.R, p.r, p.d)*canvasScale;
+
+        ctx.strokeStyle='rgba(251,191,36,0.25)'; ctx.lineWidth=1;
+        ctx.setLineDash([3,3]);
+        ctx.beginPath(); ctx.moveTo(innerCx, innerCy); ctx.lineTo(penX, penY); ctx.stroke();
+        ctx.setLineDash([]);
+
+        /* trail */
+        if(trailPoints.length > 1){
+            var len = trailPoints.length;
+            for(var i=1;i<len;i++){
+                var alpha = 0.12 + 0.88*(i/len);
+                ctx.strokeStyle='rgba(52,211,153,'+alpha.toFixed(3)+')';
+                ctx.lineWidth = 1.5 + 0.5*(i/len);
+                ctx.beginPath();
+                ctx.moveTo(cx + trailPoints[i-1].x*canvasScale, cy - trailPoints[i-1].y*canvasScale);
+                ctx.lineTo(cx + trailPoints[i].x*canvasScale, cy - trailPoints[i].y*canvasScale);
+                ctx.stroke();
+            }
+        }
+
+        /* pen dot with glow */
+        var grad = ctx.createRadialGradient(penX, penY, 0, penX, penY, 12);
+        grad.addColorStop(0, 'rgba(52,211,153,0.6)');
+        grad.addColorStop(1, 'rgba(52,211,153,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(penX, penY, 12, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle='#34d399';
+        ctx.beginPath(); ctx.arc(penX, penY, 4, 0, Math.PI*2); ctx.fill();
+    }
+
+    function animate(){
+        var p = getParams();
+        var tMax = getTMax(p.R, p.r);
+        /* limit to a reasonable max */
+        if(tMax > 100*Math.PI) tMax = 100*Math.PI;
+
+        var dt = 0.04;
+        tCurrent += dt;
+        if(tCurrent > tMax) tCurrent = tMax;
+
+        var px = hypoX(tCurrent, p.R, p.r, p.d);
+        var py = hypoY(tCurrent, p.R, p.r, p.d);
+        trailPoints.push({x:px, y:py});
+
+        drawSpiroFrame();
+
+        if(tCurrent < tMax){
+            animId = requestAnimationFrame(animate);
+        }
+    }
+
+    function start(){
+        if(animId) cancelAnimationFrame(animId);
+        tCurrent = 0;
+        trailPoints = [];
+        updateLabels();
+        animate();
+    }
+
+    sliderR.addEventListener('input', function(){ updateLabels(); start(); });
+    sliderr.addEventListener('input', function(){ updateLabels(); start(); });
+    sliderD.addEventListener('input', function(){ updateLabels(); start(); });
+
+    document.getElementById('spiroRestart').addEventListener('click', start);
+
+    document.getElementById('spiroSurprise').addEventListener('click', function(){
+        sliderR.value = Math.floor(Math.random()*71) + 30;
+        sliderr.value = Math.floor(Math.random()*(parseInt(sliderR.value)-11)) + 10;
+        sliderD.value = Math.floor(Math.random()*(parseInt(sliderr.value)-1)) + 1;
+        start();
+    });
+
+    start();
+})();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Built in collaboration with <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude Code</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

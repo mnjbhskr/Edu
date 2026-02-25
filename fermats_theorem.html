@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fermat's Little Theorem &amp; Primality</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fbbf24}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fbbf24;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(251,191,36,0.13);border-color:rgba(251,191,36,0.4);color:#fbbf24}
+        .btn.gold{background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.35);color:#fbbf24}
+        .btn.gold:hover{background:rgba(251,191,36,0.22)}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .gold{color:#fbbf24}.math-line .blue{color:#60a5fa}.math-line .green{color:#2ecc71}.math-line .red{color:#ef4444}
+        .math-line .muted{color:#808098}
+        .concept{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-left:3px solid #fbbf24;border-radius:10px;padding:18px 24px;margin-bottom:28px;color:#a0a0b8;font-size:0.93em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0;flex-wrap:wrap}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#fbbf24}
+        .slider-label{color:#fbbf24;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .steps-list{font-family:'Courier New',monospace;font-size:0.85em;color:#c0c0d8;margin-top:10px;line-height:2;max-height:200px;overflow-y:auto}
+        .power-table{width:100%;border-collapse:collapse;font-family:'Courier New',monospace;font-size:0.8em;margin-top:10px}
+        .power-table th,.power-table td{padding:4px 6px;text-align:center;border:1px solid rgba(255,255,255,0.06);min-width:28px}
+        .power-table th{color:#808098;font-weight:400;font-size:0.85em}
+        .power-table td{transition:background 0.2s}
+        .input-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0}
+        .input-row input[type=number],.input-row select{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#e0e0e0;font-family:Georgia,serif;font-size:1em;padding:7px 12px;border-radius:8px;text-align:center}
+        .input-row input[type=number]:focus,.input-row select:focus{outline:none;border-color:#fbbf24}
+        .input-row select{min-width:80px}
+        .input-row input[type=number]{width:100px}
+        .result-box{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:14px 18px;margin-top:12px}
+        .tag-prime{display:inline-block;background:rgba(46,204,113,0.15);color:#2ecc71;padding:2px 10px;border-radius:5px;font-size:0.9em;margin:2px}
+        .tag-composite{display:inline-block;background:rgba(239,68,68,0.15);color:#ef4444;padding:2px 10px;border-radius:5px;font-size:0.9em;margin:2px}
+        .tag-carmichael{display:inline-block;background:rgba(251,191,36,0.15);color:#fbbf24;padding:2px 10px;border-radius:5px;font-size:0.9em;margin:2px}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#fbbf24;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .rsa-step{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:12px 16px;margin:8px 0}
+        .rsa-step .step-num{color:#fbbf24;font-size:0.85em;font-weight:600}
+        .totient-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;margin:12px 0;max-width:400px}
+        .totient-cell{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:4px;font-family:'Courier New',monospace;font-size:0.75em;transition:all 0.2s}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 420px;min-width:280px}
+        .overflow-x{overflow-x:auto}
+        @media(max-width:700px){
+            canvas{width:100%!important;height:auto!important}
+            .power-table{font-size:0.7em}
+            .totient-grid{grid-template-columns:repeat(10,1fr)}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Fermat's Little Theorem &amp; Primality</h1>
+    <p class="subtitle">Testing primes with powers &mdash; the gateway to modern cryptography</p>
+
+    <div class="concept">
+        <strong style="color:#fbbf24">Fermat's Little Theorem:</strong> If <em>p</em> is prime and gcd(<em>a</em>, <em>p</em>) = 1, then
+        <span style="color:#e0e0e0">a<sup>p&minus;1</sup> &equiv; 1 (mod p)</span>. Stated by Fermat in 1640 and first proved by Euler in 1736, this elegant result connects prime numbers to the structure of modular exponentiation &mdash; and underpins the cryptography that protects the modern internet.
+    </div>
+
+    <!-- Section 1: Fermat's Little Theorem Verifier -->
+    <h2>1. Fermat's Little Theorem Verifier</h2>
+    <div class="panel">
+        <h3>Interactive verification</h3>
+        <div class="slider-row">
+            <span style="color:#808098">Base a =</span>
+            <input type="range" id="fltA" min="2" max="20" value="3">
+            <span class="slider-label" id="fltALabel">3</span>
+        </div>
+        <div class="slider-row">
+            <span style="color:#808098">Prime p =</span>
+            <select id="fltP" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#e0e0e0;font-family:Georgia,serif;font-size:0.95em;padding:5px 10px;border-radius:6px;accent-color:#fbbf24">
+                <option value="2">2</option><option value="3">3</option><option value="5">5</option>
+                <option value="7" selected>7</option><option value="11">11</option><option value="13">13</option>
+                <option value="17">17</option><option value="19">19</option><option value="23">23</option>
+                <option value="29">29</option><option value="31">31</option>
+            </select>
+        </div>
+        <div style="margin:6px 0">
+            <button class="btn gold" id="fltComposite">Try a composite (p = 15)</button>
+        </div>
+        <canvas id="fltCanvas" width="600" height="350" style="margin-top:12px"></canvas>
+        <div id="fltSteps" class="steps-list"></div>
+    </div>
+
+    <!-- Section 2: Power Table Visualization -->
+    <h2>2. Power Table (mod p)</h2>
+    <div class="panel">
+        <h3>All bases, all exponents</h3>
+        <div class="slider-row">
+            <span style="color:#808098">Prime p =</span>
+            <select id="ptP" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#e0e0e0;font-family:Georgia,serif;font-size:0.95em;padding:5px 10px;border-radius:6px">
+                <option value="5">5</option><option value="7" selected>7</option><option value="11">11</option><option value="13">13</option>
+            </select>
+        </div>
+        <div class="overflow-x">
+            <canvas id="ptCanvas" width="650" height="350" style="margin-top:8px"></canvas>
+        </div>
+        <div id="ptInfo" class="math-line" style="margin-top:10px"></div>
+    </div>
+
+    <!-- Section 3: Fermat Primality Test -->
+    <h2>3. Fermat Primality Test</h2>
+    <div class="panel">
+        <h3>Probabilistic primality testing</h3>
+        <div class="input-row">
+            <span style="color:#808098">Test n =</span>
+            <input type="number" id="fpN" value="561" min="2" max="100000">
+            <button class="btn gold" id="fpTest1">Test 1 round</button>
+            <button class="btn gold" id="fpTest10">Test 10 rounds</button>
+            <button class="btn" id="fpReset">Reset</button>
+        </div>
+        <div class="btn-row" style="margin-top:10px">
+            <span style="color:#808098;font-size:0.85em;margin-right:6px">Quick picks:</span>
+            <button class="btn" onclick="document.getElementById('fpN').value=17;fpReset()">17 (prime)</button>
+            <button class="btn" onclick="document.getElementById('fpN').value=561;fpReset()">561 (Carmichael)</button>
+            <button class="btn" onclick="document.getElementById('fpN').value=1105;fpReset()">1105 (Carmichael)</button>
+            <button class="btn" onclick="document.getElementById('fpN').value=1729;fpReset()">1729 (Carmichael)</button>
+            <button class="btn" onclick="document.getElementById('fpN').value=91;fpReset()">91 (composite)</button>
+            <button class="btn" onclick="document.getElementById('fpN').value=997;fpReset()">997 (prime)</button>
+        </div>
+        <div id="fpResults" class="result-box" style="margin-top:12px">
+            <div style="color:#808098;font-size:0.88em">Click &ldquo;Test&rdquo; to begin.</div>
+        </div>
+        <div style="margin-top:12px;color:#808098;font-size:0.85em;line-height:1.7">
+            <strong style="color:#fbbf24">Carmichael numbers</strong> fool the Fermat test: 561 = 3 &times; 11 &times; 17 passes for every base coprime to it. The Fermat test is probabilistic, not certain. For guaranteed results, use Miller&ndash;Rabin or AKS.
+        </div>
+    </div>
+
+    <!-- Section 4: RSA Encryption Demo -->
+    <h2>4. RSA Encryption Demo</h2>
+    <div class="panel">
+        <h3>Public-key cryptography with small numbers</h3>
+        <div class="rsa-step">
+            <span class="step-num">Step 1:</span> <span style="color:#808098">Choose two primes</span>
+            <div class="input-row" style="margin-top:6px">
+                <span style="color:#a0a0b8">p =</span>
+                <select id="rsaP" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#e0e0e0;font-family:Georgia,serif;padding:5px 10px;border-radius:6px">
+                    <option value="5">5</option><option value="7">7</option><option value="11" selected>11</option><option value="13">13</option><option value="17">17</option><option value="19">19</option><option value="23">23</option>
+                </select>
+                <span style="color:#a0a0b8">q =</span>
+                <select id="rsaQ" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:#e0e0e0;font-family:Georgia,serif;padding:5px 10px;border-radius:6px">
+                    <option value="5">5</option><option value="7">7</option><option value="11">11</option><option value="13" selected>13</option><option value="17">17</option><option value="19">19</option><option value="23">23</option>
+                </select>
+            </div>
+        </div>
+        <div id="rsaSteps"></div>
+        <div class="rsa-step" style="margin-top:8px">
+            <span class="step-num">Encrypt &amp; Decrypt:</span>
+            <div class="input-row" style="margin-top:6px">
+                <span style="color:#a0a0b8">Message m =</span>
+                <input type="number" id="rsaM" value="7" min="0" max="1000">
+                <button class="btn gold" id="rsaGo">Encrypt &amp; Decrypt</button>
+            </div>
+            <div id="rsaCrypt" class="math-line" style="margin-top:8px"></div>
+        </div>
+        <div style="margin-top:12px;color:#808098;font-size:0.85em;line-height:1.7">
+            This works because of Fermat&rsquo;s theorem (via Euler&rsquo;s generalization): m<sup>ed</sup> &equiv; m<sup>1 + k&phi;(n)</sup> &equiv; m &middot; (m<sup>&phi;(n)</sup>)<sup>k</sup> &equiv; m &middot; 1<sup>k</sup> &equiv; m (mod n).
+        </div>
+    </div>
+
+    <!-- Section 5: Euler's Generalization -->
+    <h2>5. Euler's Generalization</h2>
+    <div class="panel">
+        <h3>Euler's totient and theorem</h3>
+        <div class="concept" style="margin-bottom:16px">
+            <strong style="color:#fbbf24">Euler's Theorem:</strong> If gcd(a, n) = 1, then a<sup>&phi;(n)</sup> &equiv; 1 (mod n), where &phi;(n) counts integers from 1 to n&minus;1 that are coprime to n. When n is prime, &phi;(n) = n&minus;1, recovering Fermat's theorem.
+        </div>
+        <div class="slider-row">
+            <span style="color:#808098">n =</span>
+            <input type="range" id="eulerN" min="2" max="100" value="12">
+            <span class="slider-label" id="eulerNLabel">12</span>
+        </div>
+        <div id="eulerInfo" class="math-line" style="margin-bottom:8px"></div>
+        <div id="eulerGrid" class="totient-grid"></div>
+        <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:14px">
+            <h3 style="font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Verify Euler's theorem</h3>
+            <div class="input-row">
+                <span style="color:#808098">a =</span>
+                <input type="number" id="eulerA" value="5" min="1" max="999">
+                <span style="color:#808098">n =</span>
+                <input type="number" id="eulerVerN" value="12" min="2" max="999">
+                <button class="btn gold" id="eulerVerify">Verify</button>
+            </div>
+            <div id="eulerResult" class="math-line" style="margin-top:8px"></div>
+        </div>
+        <div style="margin-top:14px;color:#808098;font-size:0.85em;line-height:1.7">
+            <strong style="color:#fbbf24">Formulas:</strong>
+            For primes: &phi;(p) = p &minus; 1. &ensp;
+            For prime powers: &phi;(p<sup>k</sup>) = p<sup>k</sup> &minus; p<sup>k&minus;1</sup>. &ensp;
+            Multiplicative: &phi;(mn) = &phi;(m)&phi;(n) when gcd(m,n) = 1.
+        </div>
+    </div>
+
+    <!-- Section 6: Explanation -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            Fermat&rsquo;s Little Theorem reveals a deep structural truth: in the world of modular arithmetic, raising any integer to the power of a prime (minus one) always returns to 1. This seemingly simple observation has extraordinary consequences.
+            <br><br>
+            The <strong style="color:#fbbf24">Fermat primality test</strong> uses this property in reverse: if a<sup>n&minus;1</sup> &nequiv; 1 (mod n), then n cannot be prime. But Carmichael numbers (561, 1105, 1729, ...) show that the converse fails &mdash; some composites mimic primes for every base. This is why modern cryptographic systems use the stronger Miller&ndash;Rabin test.
+            <br><br>
+            <strong style="color:#fbbf24">RSA encryption</strong> depends directly on Euler&rsquo;s generalization of Fermat&rsquo;s theorem. The security of every HTTPS connection, every digital signature, and every encrypted message relies on the fact that while n = pq is easy to compute, factoring n back into p and q is computationally infeasible for large primes. Fermat&rsquo;s insight from 1640 protects billions of transactions every day.
+            <br><br>
+            <span style="color:#808098"><strong>Historical note:</strong> Fermat stated the theorem in a letter to Fr&eacute;nicle de Bessy in 1640, characteristically without proof. Euler provided the first proof in 1736 and later generalised it to composite moduli using his totient function &mdash; one of the most productive generalisations in all of mathematics.</span>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ================================================================
+   Fermat's Little Theorem & Primality — Interactive Engine
+   ================================================================ */
+
+/* ── Utility functions ── */
+function modPow(base, exp, mod) {
+    /* Square-and-multiply modular exponentiation. Uses BigInt internally. */
+    if (mod === 1) return 0;
+    let b = BigInt(base), e = BigInt(exp), m = BigInt(mod);
+    b = ((b % m) + m) % m;
+    let result = 1n;
+    while (e > 0n) {
+        if (e & 1n) result = (result * b) % m;
+        e >>= 1n;
+        b = (b * b) % m;
+    }
+    return Number(result);
+}
+
+function gcd(a, b) {
+    a = Math.abs(a); b = Math.abs(b);
+    while (b) { [a, b] = [b, a % b]; }
+    return a;
+}
+
+function eulerTotient(n) {
+    let result = n;
+    let temp = n;
+    for (let p = 2; p * p <= temp; p++) {
+        if (temp % p === 0) {
+            while (temp % p === 0) temp /= p;
+            result -= result / p;
+        }
+    }
+    if (temp > 1) result -= result / temp;
+    return Math.round(result);
+}
+
+function isPrime(n) {
+    if (n < 2) return false;
+    if (n < 4) return true;
+    if (n % 2 === 0 || n % 3 === 0) return false;
+    for (let i = 5; i * i <= n; i += 6) {
+        if (n % i === 0 || n % (i + 2) === 0) return false;
+    }
+    return true;
+}
+
+function factorize(n) {
+    let factors = [];
+    for (let p = 2; p * p <= n; p++) {
+        while (n % p === 0) { factors.push(p); n /= p; }
+    }
+    if (n > 1) factors.push(n);
+    return factors;
+}
+
+function extendedGcd(a, b) {
+    if (b === 0) return { g: a, x: 1, y: 0 };
+    let r = extendedGcd(b, a % b);
+    return { g: r.g, x: r.y, y: r.x - Math.floor(a / b) * r.y };
+}
+
+function modInverse(a, m) {
+    let r = extendedGcd(((a % m) + m) % m, m);
+    if (r.g !== 1) return null;
+    return ((r.x % m) + m) % m;
+}
+
+/* Color helpers */
+function valueColor(v, maxVal) {
+    const hue = (v / maxVal) * 300;
+    return 'hsl(' + hue + ',55%,55%)';
+}
+
+/* ================================================================
+   SECTION 1: Fermat's Little Theorem Verifier
+   ================================================================ */
+(function() {
+    const sliderA = document.getElementById('fltA');
+    const labelA = document.getElementById('fltALabel');
+    const selectP = document.getElementById('fltP');
+    const canvas = document.getElementById('fltCanvas');
+    const ctx = canvas.getContext('2d');
+    const stepsDiv = document.getElementById('fltSteps');
+    const compositeBtn = document.getElementById('fltComposite');
+    let useComposite = false;
+
+    compositeBtn.addEventListener('click', function() {
+        useComposite = !useComposite;
+        if (useComposite) {
+            compositeBtn.textContent = 'Back to primes';
+            compositeBtn.style.borderColor = 'rgba(239,68,68,0.5)';
+            compositeBtn.style.color = '#ef4444';
+        } else {
+            compositeBtn.textContent = 'Try a composite (p = 15)';
+            compositeBtn.style.borderColor = '';
+            compositeBtn.style.color = '';
+        }
+        draw();
+    });
+
+    sliderA.addEventListener('input', function() { labelA.textContent = sliderA.value; draw(); });
+    selectP.addEventListener('change', draw);
+
+    function draw() {
+        var a = parseInt(sliderA.value);
+        var p = useComposite ? 15 : parseInt(selectP.value);
+        var W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        /* Compute powers */
+        var powers = [];
+        for (var k = 1; k <= p - 1; k++) {
+            powers.push({ k: k, val: modPow(a, k, p) });
+        }
+
+        /* Draw clock (mod p circle) on the left */
+        var cx = 160, cy = 175, radius = 130;
+
+        /* Clock face */
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        /* Number positions around clock */
+        var positions = [];
+        for (var i = 0; i < p; i++) {
+            var angle = -Math.PI / 2 + (2 * Math.PI * i / p);
+            positions.push({
+                x: cx + radius * Math.cos(angle),
+                y: cy + radius * Math.sin(angle),
+                ix: cx + (radius + 18) * Math.cos(angle),
+                iy: cy + (radius + 18) * Math.sin(angle)
+            });
+        }
+
+        /* Draw number labels */
+        ctx.font = '11px Courier New';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (var i = 0; i < p; i++) {
+            ctx.fillStyle = i === 1 ? '#fbbf24' : '#606078';
+            ctx.fillText(i, positions[i].ix, positions[i].iy);
+            /* Small dot on circle */
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.beginPath();
+            ctx.arc(positions[i].x, positions[i].y, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        /* Draw the path of powers */
+        if (powers.length > 0) {
+            ctx.strokeStyle = 'rgba(251,191,36,0.3)';
+            ctx.lineWidth = 1.5;
+            /* Start from a^0 = 1 */
+            var startPos = positions[1]; /* value 1 */
+            for (var i = 0; i < powers.length; i++) {
+                var fromPos = i === 0 ? positions[1] : positions[powers[i - 1].val];
+                var toPos = positions[powers[i].val];
+                if (fromPos && toPos) {
+                    ctx.beginPath();
+                    ctx.moveTo(fromPos.x, fromPos.y);
+                    ctx.lineTo(toPos.x, toPos.y);
+                    ctx.stroke();
+                }
+            }
+
+            /* Highlight visited nodes */
+            var visited = new Set();
+            visited.add(1); /* a^0 = 1 */
+            for (var i = 0; i < powers.length; i++) {
+                visited.add(powers[i].val);
+            }
+            for (var v of visited) {
+                if (v < p) {
+                    ctx.fillStyle = 'rgba(251,191,36,0.25)';
+                    ctx.beginPath();
+                    ctx.arc(positions[v].x, positions[v].y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            /* Highlight final position (a^(p-1)) */
+            var finalVal = powers[powers.length - 1].val;
+            if (finalVal < p) {
+                var fp = positions[finalVal];
+                if (finalVal === 1) {
+                    /* Theorem confirmed! */
+                    ctx.strokeStyle = '#2ecc71';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.arc(fp.x, fp.y, 12, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.fillStyle = '#2ecc71';
+                    ctx.beginPath();
+                    ctx.arc(fp.x, fp.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    /* Theorem fails */
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.arc(fp.x, fp.y, 12, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(fp.x, fp.y, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        /* Right side: step-by-step computation */
+        var rx = 340, ry = 30;
+        ctx.font = '12px Georgia';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#808098';
+        ctx.fillText(useComposite ? 'n = ' + p + ' (composite: ' + factorize(p).join(' x ') + ')' : 'p = ' + p + ' (prime)', rx, ry);
+        ctx.fillText('a = ' + a + ',  gcd(' + a + ', ' + p + ') = ' + gcd(a, p), rx, ry + 20);
+
+        if (gcd(a, p) !== 1) {
+            ctx.fillStyle = '#ef4444';
+            ctx.font = '13px Georgia';
+            ctx.fillText('gcd(a, p) != 1 -- theorem does not apply', rx, ry + 50);
+            stepsDiv.innerHTML = '<span style="color:#ef4444">gcd(' + a + ', ' + p + ') = ' + gcd(a, p) + ' -- not coprime, theorem requires gcd(a,p) = 1</span>';
+            return;
+        }
+
+        ctx.font = '11px Courier New';
+        var maxShow = Math.min(powers.length, 16);
+        for (var i = 0; i < maxShow; i++) {
+            var pw = powers[i];
+            var y = ry + 48 + i * 17;
+            if (y > H - 20) break;
+            var isLast = (i === powers.length - 1);
+            ctx.fillStyle = isLast ? (pw.val === 1 ? '#2ecc71' : '#ef4444') : '#c0c0d8';
+            var text = a + '^' + pw.k + ' mod ' + p + ' = ' + pw.val;
+            if (isLast) text += (pw.val === 1 ? '  <-- always 1!' : '  <-- NOT 1!');
+            ctx.fillText(text, rx, y);
+        }
+        if (powers.length > maxShow) {
+            ctx.fillStyle = '#808098';
+            ctx.fillText('... (' + (powers.length - maxShow) + ' more steps)', rx, ry + 48 + maxShow * 17);
+            /* Show last */
+            var last = powers[powers.length - 1];
+            ctx.fillStyle = last.val === 1 ? '#2ecc71' : '#ef4444';
+            ctx.fillText(a + '^' + last.k + ' mod ' + p + ' = ' + last.val + (last.val === 1 ? '  <-- always 1!' : '  <-- NOT 1!'), rx, ry + 48 + (maxShow + 1) * 17);
+        }
+
+        /* Result label */
+        var finalResult = powers[powers.length - 1].val;
+        ctx.font = '14px Georgia';
+        if (finalResult === 1) {
+            ctx.fillStyle = '#2ecc71';
+            ctx.fillText(a + '^' + (p - 1) + ' = 1 (mod ' + p + ')  --  Theorem confirmed!', rx, H - 30);
+        } else {
+            ctx.fillStyle = '#ef4444';
+            ctx.fillText(a + '^' + (p - 1) + ' = ' + finalResult + ' (mod ' + p + ')  --  Fails!', rx, H - 30);
+            if (!useComposite) {
+                ctx.fillStyle = '#808098';
+                ctx.font = '11px Georgia';
+                ctx.fillText('(a and p share a factor)', rx, H - 12);
+            }
+        }
+
+        /* Steps list below canvas */
+        var html = '';
+        for (var i = 0; i < powers.length; i++) {
+            var pw = powers[i];
+            var isLast = (i === powers.length - 1);
+            var color = isLast ? (pw.val === 1 ? '#2ecc71' : '#ef4444') : '#c0c0d8';
+            html += '<span style="color:' + color + '">' + a + '<sup>' + pw.k + '</sup> mod ' + p + ' = ' + pw.val;
+            if (isLast && pw.val === 1) html += ' &larr; <strong style="color:#2ecc71">always lands on 1</strong>';
+            if (isLast && pw.val !== 1) html += ' &larr; <strong style="color:#ef4444">NOT 1 &mdash; theorem fails for composites</strong>';
+            html += '</span><br>';
+        }
+        stepsDiv.innerHTML = html;
+    }
+
+    draw();
+})();
+
+/* ================================================================
+   SECTION 2: Power Table Visualization
+   ================================================================ */
+(function() {
+    var selectP = document.getElementById('ptP');
+    var canvas = document.getElementById('ptCanvas');
+    var ctx = canvas.getContext('2d');
+    var infoDiv = document.getElementById('ptInfo');
+
+    selectP.addEventListener('change', draw);
+
+    function draw() {
+        var p = parseInt(selectP.value);
+        var W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var rows = p - 1; /* a = 1 .. p-1 */
+        var cols = p - 1; /* k = 1 .. p-1 */
+
+        /* Table layout */
+        var leftMargin = 52, topMargin = 36;
+        var cellW = Math.min(Math.floor((W - leftMargin - 20) / cols), 50);
+        var cellH = Math.min(Math.floor((H - topMargin - 40) / rows), 30);
+
+        /* Compute orders and primitive roots */
+        var orders = [];
+        var primitiveRoots = [];
+        for (var a = 1; a < p; a++) {
+            var ord = 1;
+            var v = a % p;
+            while (v !== 1 && ord < p) { v = (v * a) % p; ord++; }
+            orders.push(ord);
+            if (ord === p - 1) primitiveRoots.push(a);
+        }
+
+        /* Column headers */
+        ctx.font = '10px Courier New';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#808098';
+        ctx.fillText('a \\ k', leftMargin / 2, topMargin / 2);
+        for (var k = 1; k <= cols; k++) {
+            var x = leftMargin + (k - 1) * cellW + cellW / 2;
+            ctx.fillStyle = k === cols ? '#fbbf24' : '#808098';
+            ctx.fillText(k, x, topMargin / 2);
+        }
+
+        /* Row headers and cells */
+        for (var ai = 0; ai < rows; ai++) {
+            var a = ai + 1;
+            var y = topMargin + ai * cellH;
+            var isPrimRoot = primitiveRoots.indexOf(a) >= 0;
+
+            /* Row label */
+            ctx.fillStyle = isPrimRoot ? '#fbbf24' : '#808098';
+            ctx.font = isPrimRoot ? 'bold 10px Courier New' : '10px Courier New';
+            ctx.textAlign = 'right';
+            ctx.fillText(a, leftMargin - 8, y + cellH / 2);
+
+            /* Primitive root indicator */
+            if (isPrimRoot) {
+                ctx.fillStyle = 'rgba(251,191,36,0.08)';
+                ctx.fillRect(leftMargin, y, cols * cellW, cellH);
+            }
+
+            for (var k = 1; k <= cols; k++) {
+                var val = modPow(a, k, p);
+                var x = leftMargin + (k - 1) * cellW;
+                var isLastCol = (k === cols);
+                var isOrderCol = (k === orders[ai]);
+
+                /* Cell background */
+                if (isLastCol) {
+                    ctx.fillStyle = 'rgba(46,204,113,0.12)';
+                } else if (isOrderCol && val === 1) {
+                    ctx.fillStyle = 'rgba(251,191,36,0.12)';
+                } else {
+                    ctx.fillStyle = 'rgba(255,255,255,' + (0.01 + 0.04 * (val / (p - 1))) + ')';
+                }
+                ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
+
+                /* Cell border */
+                ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(x, y, cellW, cellH);
+
+                /* Cell text */
+                ctx.font = '10px Courier New';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                if (isLastCol) {
+                    ctx.fillStyle = '#2ecc71';
+                } else if (isOrderCol && val === 1) {
+                    ctx.fillStyle = '#fbbf24';
+                } else {
+                    ctx.fillStyle = valueColor(val, p - 1);
+                }
+                ctx.fillText(val, x + cellW / 2, y + cellH / 2);
+            }
+        }
+
+        /* Legend and info */
+        var legendY = topMargin + rows * cellH + 16;
+        ctx.font = '11px Georgia';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillText('Last column (k = ' + (p - 1) + '): ALL 1s -- Fermat\'s theorem!', leftMargin, legendY);
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillText('Gold rows: primitive roots (order = ' + (p - 1) + '), hitting every value 1 to ' + (p - 1), leftMargin, legendY + 16);
+
+        /* Info panel */
+        var html = '<span class="gold">Primitive roots of ' + p + ':</span> ' + (primitiveRoots.length > 0 ? primitiveRoots.join(', ') : 'none') + '<br>';
+        html += '<span class="muted">Orders: </span>';
+        for (var ai = 0; ai < rows; ai++) {
+            html += '<span style="color:' + (orders[ai] === p - 1 ? '#fbbf24' : '#c0c0d8') + '">ord(' + (ai + 1) + ')=' + orders[ai] + '</span>';
+            if (ai < rows - 1) html += ', ';
+        }
+        infoDiv.innerHTML = html;
+    }
+
+    draw();
+})();
+
+/* ================================================================
+   SECTION 3: Fermat Primality Test
+   ================================================================ */
+var fpTestedBases = [];
+var fpCompositeFound = false;
+
+function fpReset() {
+    fpTestedBases = [];
+    fpCompositeFound = false;
+    document.getElementById('fpResults').innerHTML = '<div style="color:#808098;font-size:0.88em">Click "Test" to begin.</div>';
+}
+
+(function() {
+    var inputN = document.getElementById('fpN');
+    var btn1 = document.getElementById('fpTest1');
+    var btn10 = document.getElementById('fpTest10');
+    var resetBtn = document.getElementById('fpReset');
+    var resultsDiv = document.getElementById('fpResults');
+
+    resetBtn.addEventListener('click', fpReset);
+    inputN.addEventListener('change', fpReset);
+    btn1.addEventListener('click', function() { runTest(1); });
+    btn10.addEventListener('click', function() { runTest(10); });
+
+    function runTest(rounds) {
+        var n = parseInt(inputN.value);
+        if (n < 2 || isNaN(n)) {
+            resultsDiv.innerHTML = '<span style="color:#ef4444">Enter a number >= 2</span>';
+            return;
+        }
+        if (n === 2 || n === 3) {
+            resultsDiv.innerHTML = '<span class="tag-prime">' + n + ' is trivially prime</span>';
+            return;
+        }
+
+        var actualPrime = isPrime(n);
+        var isCarmichael = !actualPrime && isCarmichaelNumber(n);
+
+        for (var r = 0; r < rounds; r++) {
+            if (fpCompositeFound) break;
+            /* Pick random base not already tested */
+            var a;
+            var attempts = 0;
+            do {
+                a = 2 + Math.floor(Math.random() * (n - 3));
+                attempts++;
+            } while (fpTestedBases.indexOf(a) >= 0 && attempts < 100);
+
+            if (attempts >= 100) break;
+
+            var g = gcd(a, n);
+            var result;
+            if (g > 1) {
+                result = { a: a, val: -1, gcd: g, composite: true };
+                fpCompositeFound = true;
+            } else {
+                var val = modPow(a, n - 1, n);
+                result = { a: a, val: val, gcd: 1, composite: val !== 1 };
+                if (val !== 1) fpCompositeFound = true;
+            }
+            fpTestedBases.push(result);
+        }
+
+        /* Render results */
+        var html = '<div style="margin-bottom:10px">';
+        html += '<span style="color:#808098">Testing n = ' + n + '</span>';
+        if (actualPrime) html += ' <span class="tag-prime">Actually prime</span>';
+        else {
+            html += ' <span class="tag-composite">Actually composite: ' + factorize(n).join(' &times; ') + '</span>';
+            if (isCarmichael) html += ' <span class="tag-carmichael">Carmichael number!</span>';
+        }
+        html += '</div>';
+
+        html += '<div style="font-family:Courier New,monospace;font-size:0.85em;line-height:2">';
+        for (var i = 0; i < fpTestedBases.length; i++) {
+            var t = fpTestedBases[i];
+            if (t.gcd && t.gcd > 1) {
+                html += '<div style="color:#ef4444">a = ' + t.a + ': gcd(' + t.a + ', ' + n + ') = ' + t.gcd + ' &gt; 1 &rarr; COMPOSITE (factor found!)</div>';
+            } else if (t.composite) {
+                html += '<div style="color:#ef4444">a = ' + t.a + ': ' + t.a + '<sup>' + (n - 1) + '</sup> mod ' + n + ' = ' + t.val + ' &ne; 1 &rarr; DEFINITELY COMPOSITE</div>';
+            } else {
+                html += '<div style="color:#a0a0b8">a = ' + t.a + ': ' + t.a + '<sup>' + (n - 1) + '</sup> mod ' + n + ' = 1 &rarr; passed</div>';
+            }
+        }
+        html += '</div>';
+
+        /* Verdict */
+        html += '<div style="margin-top:10px;padding:8px 14px;border-radius:6px;';
+        if (fpCompositeFound) {
+            html += 'background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3)">';
+            html += '<strong style="color:#ef4444">Verdict: COMPOSITE</strong> (proven by Fermat witness)';
+        } else {
+            var confidence = 1 - Math.pow(0.5, fpTestedBases.length);
+            html += 'background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.3)">';
+            html += '<strong style="color:#2ecc71">Verdict: PROBABLY PRIME</strong>';
+            html += ' (' + fpTestedBases.length + ' base' + (fpTestedBases.length > 1 ? 's' : '') + ' tested, confidence ~' + (confidence * 100).toFixed(1) + '%)';
+            if (isCarmichael) {
+                html += '<br><span style="color:#fbbf24">Warning: This is a Carmichael number! The Fermat test will never detect it as composite (for coprime bases). This demonstrates the fundamental limitation of the Fermat test.</span>';
+            }
+        }
+        html += '</div>';
+
+        resultsDiv.innerHTML = html;
+    }
+
+    function isCarmichaelNumber(n) {
+        if (n < 2 || isPrime(n)) return false;
+        if (n % 2 === 0) return false;
+        /* Korselt's criterion: n is Carmichael iff n is square-free and
+           for every prime factor p of n, (p-1) | (n-1) */
+        var factors = factorize(n);
+        var unique = [];
+        for (var i = 0; i < factors.length; i++) {
+            if (unique.indexOf(factors[i]) >= 0) return false; /* not square-free */
+            unique.push(factors[i]);
+        }
+        for (var i = 0; i < unique.length; i++) {
+            if ((n - 1) % (unique[i] - 1) !== 0) return false;
+        }
+        return unique.length >= 2;
+    }
+})();
+
+/* ================================================================
+   SECTION 4: RSA Encryption Demo
+   ================================================================ */
+(function() {
+    var selP = document.getElementById('rsaP');
+    var selQ = document.getElementById('rsaQ');
+    var inputM = document.getElementById('rsaM');
+    var goBtn = document.getElementById('rsaGo');
+    var stepsDiv = document.getElementById('rsaSteps');
+    var cryptDiv = document.getElementById('rsaCrypt');
+
+    selP.addEventListener('change', updateRSA);
+    selQ.addEventListener('change', updateRSA);
+    goBtn.addEventListener('click', encryptDecrypt);
+
+    function updateRSA() {
+        var p = parseInt(selP.value);
+        var q = parseInt(selQ.value);
+        var n = p * q;
+        var phi = (p - 1) * (q - 1);
+
+        /* Find suitable e */
+        var e = 0;
+        var candidates = [3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43];
+        for (var i = 0; i < candidates.length; i++) {
+            if (candidates[i] < phi && gcd(candidates[i], phi) === 1) {
+                e = candidates[i];
+                break;
+            }
+        }
+        if (e === 0) {
+            stepsDiv.innerHTML = '<div class="rsa-step" style="color:#ef4444">Cannot find suitable e. Try different primes.</div>';
+            return;
+        }
+
+        var d = modInverse(e, phi);
+        if (d === null) {
+            stepsDiv.innerHTML = '<div class="rsa-step" style="color:#ef4444">Cannot compute modular inverse. Try different primes.</div>';
+            return;
+        }
+
+        /* Update max message */
+        inputM.max = n - 1;
+        if (parseInt(inputM.value) >= n) inputM.value = n - 2;
+
+        var html = '';
+        html += '<div class="rsa-step"><span class="step-num">Step 2:</span> <span style="color:#808098">Compute n and &phi;(n)</span>';
+        html += '<div class="math-line">n = p &times; q = ' + p + ' &times; ' + q + ' = <span class="gold">' + n + '</span></div>';
+        html += '<div class="math-line">&phi;(n) = (p&minus;1)(q&minus;1) = ' + (p - 1) + ' &times; ' + (q - 1) + ' = <span class="gold">' + phi + '</span></div></div>';
+
+        html += '<div class="rsa-step"><span class="step-num">Step 3:</span> <span style="color:#808098">Choose e coprime to &phi;(n)</span>';
+        html += '<div class="math-line">e = <span class="gold">' + e + '</span> &ensp; (gcd(' + e + ', ' + phi + ') = 1)</div></div>';
+
+        html += '<div class="rsa-step"><span class="step-num">Step 4:</span> <span style="color:#808098">Compute d = e<sup>&minus;1</sup> mod &phi;(n)</span>';
+        html += '<div class="math-line">d = ' + e + '<sup>&minus;1</sup> mod ' + phi + ' = <span class="gold">' + d + '</span>';
+        html += ' &ensp; (verify: ' + e + ' &times; ' + d + ' = ' + (e * d) + ' &equiv; ' + ((e * d) % phi) + ' mod ' + phi + ')</div></div>';
+
+        html += '<div class="rsa-step"><span class="step-num">Step 5:</span> <span style="color:#808098">Keys</span>';
+        html += '<div class="math-line"><span class="green">Public key:</span> (n, e) = (' + n + ', ' + e + ')</div>';
+        html += '<div class="math-line"><span class="red">Private key:</span> (n, d) = (' + n + ', ' + d + ')</div></div>';
+
+        stepsDiv.innerHTML = html;
+
+        /* Store for encryption */
+        stepsDiv.dataset.n = n;
+        stepsDiv.dataset.e = e;
+        stepsDiv.dataset.d = d;
+        stepsDiv.dataset.p = p;
+        stepsDiv.dataset.q = q;
+    }
+
+    function encryptDecrypt() {
+        var n = parseInt(stepsDiv.dataset.n);
+        var e = parseInt(stepsDiv.dataset.e);
+        var d = parseInt(stepsDiv.dataset.d);
+        var m = parseInt(inputM.value);
+
+        if (isNaN(m) || m < 0 || m >= n) {
+            cryptDiv.innerHTML = '<span style="color:#ef4444">Message must be between 0 and ' + (n - 1) + '</span>';
+            return;
+        }
+
+        var c = modPow(m, e, n);
+        var decrypted = modPow(c, d, n);
+
+        var html = '';
+        html += '<div style="margin:4px 0"><span class="gold">Encrypt:</span> c = m<sup>e</sup> mod n = ' + m + '<sup>' + e + '</sup> mod ' + n + ' = <span class="gold">' + c + '</span></div>';
+        html += '<div style="margin:4px 0"><span class="green">Decrypt:</span> m = c<sup>d</sup> mod n = ' + c + '<sup>' + d + '</sup> mod ' + n + ' = <span class="green">' + decrypted + '</span></div>';
+
+        if (decrypted === m) {
+            html += '<div style="margin-top:8px;padding:6px 12px;background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.3);border-radius:6px;color:#2ecc71">';
+            html += 'Decrypted message = ' + decrypted + ' = original message. RSA works!</div>';
+        } else {
+            html += '<div style="margin-top:8px;padding:6px 12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:6px;color:#ef4444">';
+            html += 'Decryption mismatch: got ' + decrypted + ' but expected ' + m + '. Ensure m &lt; n and gcd(m, n) = 1.</div>';
+        }
+
+        cryptDiv.innerHTML = html;
+    }
+
+    updateRSA();
+})();
+
+/* ================================================================
+   SECTION 5: Euler's Generalization
+   ================================================================ */
+(function() {
+    var slider = document.getElementById('eulerN');
+    var label = document.getElementById('eulerNLabel');
+    var infoDiv = document.getElementById('eulerInfo');
+    var gridDiv = document.getElementById('eulerGrid');
+    var btnVerify = document.getElementById('eulerVerify');
+    var resultDiv = document.getElementById('eulerResult');
+
+    slider.addEventListener('input', function() {
+        label.textContent = slider.value;
+        drawTotient();
+    });
+
+    btnVerify.addEventListener('click', verifyEuler);
+
+    function drawTotient() {
+        var n = parseInt(slider.value);
+        var phi = eulerTotient(n);
+        var coprimes = [];
+        for (var i = 1; i < n; i++) {
+            if (gcd(i, n) === 1) coprimes.push(i);
+        }
+
+        /* Info */
+        var html = '<span class="gold">&phi;(' + n + ') = ' + phi + '</span>';
+        if (isPrime(n)) {
+            html += ' &ensp; <span class="muted">(' + n + ' is prime, so &phi;(' + n + ') = ' + n + ' &minus; 1 = ' + (n - 1) + ')</span>';
+        } else {
+            var factors = factorize(n);
+            html += ' &ensp; <span class="muted">' + n + ' = ' + factors.join(' &times; ') + '</span>';
+        }
+        infoDiv.innerHTML = html;
+
+        /* Grid */
+        var gridCols = Math.min(10, n - 1);
+        if (n <= 10) gridCols = n - 1;
+        else if (n <= 50) gridCols = 10;
+        else gridCols = 10;
+
+        gridDiv.style.gridTemplateColumns = 'repeat(' + gridCols + ', 1fr)';
+        var gh = '';
+        for (var i = 1; i < n; i++) {
+            var isCoprime = gcd(i, n) === 1;
+            var bg = isCoprime ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.03)';
+            var fg = isCoprime ? '#fbbf24' : '#404058';
+            gh += '<div class="totient-cell" style="background:' + bg + ';color:' + fg + '">' + i + '</div>';
+        }
+        gridDiv.innerHTML = gh;
+    }
+
+    function verifyEuler() {
+        var a = parseInt(document.getElementById('eulerA').value);
+        var n = parseInt(document.getElementById('eulerVerN').value);
+
+        if (isNaN(a) || isNaN(n) || n < 2 || a < 1) {
+            resultDiv.innerHTML = '<span style="color:#ef4444">Enter valid a >= 1 and n >= 2</span>';
+            return;
+        }
+
+        var g = gcd(a, n);
+        if (g !== 1) {
+            resultDiv.innerHTML = '<span style="color:#ef4444">gcd(' + a + ', ' + n + ') = ' + g + ' &ne; 1 &mdash; Euler\'s theorem requires gcd(a, n) = 1</span>';
+            return;
+        }
+
+        var phi = eulerTotient(n);
+        var result = modPow(a, phi, n);
+        var html = '<span class="gold">&phi;(' + n + ') = ' + phi + '</span><br>';
+        html += a + '<sup>' + phi + '</sup> mod ' + n + ' = <span style="color:' + (result === 1 ? '#2ecc71' : '#ef4444') + '">' + result + '</span>';
+        if (result === 1) {
+            html += ' &ensp; <span style="color:#2ecc71">Euler\'s theorem confirmed!</span>';
+        } else {
+            html += ' &ensp; <span style="color:#ef4444">Unexpected result -- check inputs</span>';
+        }
+        resultDiv.innerHTML = html;
+    }
+
+    drawTotient();
+})();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Built in collaboration with <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude Code</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

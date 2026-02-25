@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correlation &amp; Regression</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#f472b6}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(244,114,182,0.13);border-color:rgba(244,114,182,0.4);color:#f472b6}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .pink{color:#f472b6}.math-line .cyan{color:#67e8f9}.math-line .gold{color:#fbbf24}
+        .math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#f472b6;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:340px;accent-color:#f472b6}
+        .slider-label{color:#f472b6;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px}
+        .stat-box{display:inline-block;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:4px 12px;margin:3px 4px;font-family:'Courier New',monospace;font-size:0.88em}
+        .stat-label{color:#808098;font-size:0.82em}
+        .stat-value{color:#f472b6;font-size:1em}
+        .stats-row{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+        .section-desc{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:14px}
+        .causal-panel{display:flex;flex-wrap:wrap;gap:20px;margin:14px 0}
+        .causal-example{flex:1 1 260px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:14px 16px}
+        .causal-example h4{color:#f472b6;font-weight:400;font-size:0.95em;margin-bottom:6px}
+        .causal-example p{color:#a0a0b8;font-size:0.85em;line-height:1.6}
+        .toggle-row{display:flex;align-items:center;gap:10px;margin:8px 0}
+        .toggle-label{color:#808098;font-size:0.88em}
+        .error-display{font-family:'Courier New',monospace;font-size:0.9em;margin:8px 0;padding:8px 14px;background:rgba(255,255,255,0.02);border-radius:6px}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Correlation &amp; Regression</h1>
+    <p class="subtitle">Finding patterns in data &mdash; from scatter plots to predictions</p>
+
+    <!-- ═══════════ SECTION 1: Interactive Scatter Plot ═══════════ -->
+    <h2>1. Interactive Scatter Plot</h2>
+    <p class="section-desc">Click on the canvas to place data points. The regression line and statistics update live as you add points.</p>
+    <canvas id="scatterCanvas" width="650" height="500"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Controls</h3>
+        <div class="btn-row">
+            <button class="btn" id="btnClearAll">Clear All</button>
+            <button class="btn" id="btnUndoLast">Undo Last</button>
+            <button class="btn" id="btnToggleResiduals">Show Residuals: ON</button>
+        </div>
+        <div class="stats-row" id="scatterStats">
+            <div class="stat-box"><span class="stat-label">Points:</span> <span class="stat-value" id="statN">0</span></div>
+            <div class="stat-box"><span class="stat-label">Slope m:</span> <span class="stat-value" id="statM">&mdash;</span></div>
+            <div class="stat-box"><span class="stat-label">Intercept b:</span> <span class="stat-value" id="statB">&mdash;</span></div>
+            <div class="stat-box"><span class="stat-label">r:</span> <span class="stat-value" id="statR">&mdash;</span></div>
+            <div class="stat-box"><span class="stat-label">R&sup2;:</span> <span class="stat-value" id="statR2">&mdash;</span></div>
+        </div>
+        <div class="math-line" id="scatterEquation" style="margin-top:6px"></div>
+    </div>
+
+    <!-- ═══════════ SECTION 2: Correlation Coefficient Visualizer ═══════════ -->
+    <h2>2. Correlation Coefficient Visualizer</h2>
+    <p class="section-desc">Explore how different datasets produce different correlation values. Anscombe's Quartet shows why you must always plot the data.</p>
+    <div class="panel">
+        <h3>Preset Datasets</h3>
+        <div class="btn-row" id="corrPresetBtns"></div>
+    </div>
+    <canvas id="corrCanvas" width="600" height="350"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div class="stats-row" id="corrStats"></div>
+        <div class="math-line" id="corrDescription"></div>
+    </div>
+    <div class="panel">
+        <h3>Correlation Slider</h3>
+        <p class="section-desc" style="margin-bottom:8px">Generate random data with a target correlation. Drag the slider to see how data shape changes with r.</p>
+        <div class="slider-row">
+            <span class="math-line muted">r =</span>
+            <input type="range" id="corrSlider" min="-100" max="100" value="80">
+            <span class="slider-label" id="corrSliderLabel">0.80</span>
+        </div>
+        <canvas id="corrSliderCanvas" width="600" height="300" style="margin-top:10px"></canvas>
+    </div>
+
+    <!-- ═══════════ SECTION 3: Least Squares — Why This Line? ═══════════ -->
+    <h2>3. Least Squares &mdash; Why This Line?</h2>
+    <p class="section-desc">The regression line minimizes the total area of the squared residual boxes. Drag the line to see why no other line does better.</p>
+    <canvas id="lsCanvas" width="600" height="400"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Drag the Line</h3>
+        <p class="section-desc" style="margin-bottom:8px">Click and drag on the canvas to adjust the line's slope and intercept. Release to see it snap back to the optimal fit.</p>
+        <div class="error-display" id="lsError">
+            <span class="stat-label">Your total squared error:</span> <span class="stat-value" id="lsUserError">&mdash;</span>
+            &emsp;|&emsp;
+            <span class="stat-label">Optimal error:</span> <span class="stat-value" id="lsOptError">&mdash;</span>
+        </div>
+        <div class="btn-row" style="margin-top:10px">
+            <button class="btn" id="btnLsReset">New Data</button>
+        </div>
+    </div>
+
+    <!-- ═══════════ SECTION 4: Beyond Linear ═══════════ -->
+    <h2>4. Beyond Linear &mdash; Polynomial Regression</h2>
+    <p class="section-desc">Higher-degree polynomials always increase R&sup2; but may overfit. Add an outlier to see how one point can distort everything.</p>
+    <canvas id="polyCanvas" width="600" height="350"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Fit Type</h3>
+        <div class="btn-row" id="polyBtns">
+            <button class="btn active" data-deg="1">Linear</button>
+            <button class="btn" data-deg="2">Quadratic</button>
+            <button class="btn" data-deg="3">Cubic</button>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnAddOutlier">Add Outlier</button>
+            <button class="btn" id="btnPolyReset">Reset Data</button>
+        </div>
+        <div class="stats-row">
+            <div class="stat-box"><span class="stat-label">Degree:</span> <span class="stat-value" id="polyDeg">1</span></div>
+            <div class="stat-box"><span class="stat-label">R&sup2;:</span> <span class="stat-value" id="polyR2">&mdash;</span></div>
+        </div>
+        <div class="math-line" id="polyEquation"></div>
+    </div>
+
+    <!-- ═══════════ SECTION 5: Correlation is Not Causation ═══════════ -->
+    <h2>5. Correlation is Not Causation</h2>
+    <p class="section-desc">Just because two things move together does not mean one causes the other. A hidden "confounding" variable is often the real explanation.</p>
+    <div class="causal-panel">
+        <div class="causal-example">
+            <h4>Ice Cream &amp; Drowning</h4>
+            <p>Ice cream sales and drowning deaths both rise in summer. The confounding variable is <strong style="color:#f472b6">temperature</strong> &mdash; hot weather drives both.</p>
+        </div>
+        <div class="causal-example">
+            <h4>Shoe Size &amp; Reading</h4>
+            <p>Children with bigger feet read better. The confounding variable is <strong style="color:#f472b6">age</strong> &mdash; older children have bigger feet and read better.</p>
+        </div>
+        <div class="causal-example">
+            <h4>Nicolas Cage &amp; Pool Drownings</h4>
+            <p>Nicolas Cage films per year correlate with pool drownings. This is pure <strong style="color:#f472b6">coincidence</strong> &mdash; a spurious correlation with no causal mechanism.</p>
+        </div>
+    </div>
+    <canvas id="causalCanvas" width="600" height="280"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Hidden Variable Demonstration</h3>
+        <p class="section-desc" style="margin-bottom:8px">X and Y appear correlated, but both are actually driven by a hidden variable Z. Click "Reveal Z" to see the true structure.</p>
+        <div class="btn-row">
+            <button class="btn" id="btnRevealZ">Reveal Z</button>
+            <button class="btn" id="btnHideZ">Hide Z</button>
+            <button class="btn" id="btnNewCausal">New Data</button>
+        </div>
+        <div class="math-line" id="causalInfo"></div>
+    </div>
+
+    <!-- ═══════════ SECTION 6: Explanation Panel ═══════════ -->
+    <div class="explain" style="margin-top:28px">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            <p style="margin-bottom:10px"><strong style="color:#e0e0e0">Regression</strong> finds the best linear summary of a relationship between two variables. The slope tells us the rate of change; the intercept tells us the baseline. <strong style="color:#e0e0e0">R&sup2;</strong> tells us how much of the variation in Y is explained by X &mdash; from 0% (no relationship) to 100% (perfect fit).</p>
+            <p style="margin-bottom:10px"><strong style="color:#e0e0e0">But always plot the data.</strong> Anscombe's Quartet proves that four wildly different datasets can produce identical regression statistics. Summary numbers alone can mislead &mdash; visualisation is not optional, it is essential.</p>
+            <p style="margin-bottom:10px"><strong style="color:#e0e0e0">Correlation is not causation</strong> &mdash; perhaps the most important lesson in all of statistics. Two variables can move together because of a hidden third variable, because of coincidence, or because causation runs in the opposite direction. Establishing causation requires controlled experiments or careful causal reasoning, never correlation alone.</p>
+            <p><strong style="color:#f472b6">Bridge to finance:</strong> regression is the foundation of CAPM, where beta (the slope of stock returns regressed on market returns) measures systematic risk. Factor models, risk attribution, and hedging all rely on regression. Understanding its strengths and limitations is essential for anyone working with financial data.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   SECTION 1: Interactive Scatter Plot
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('scatterCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const PAD = {left:55, right:20, top:20, bottom:45};
+    const plotW = W - PAD.left - PAD.right;
+    const plotH = H - PAD.top - PAD.bottom;
+    let points = [];
+    let showResiduals = true;
+    const MAX_POINTS = 50;
+
+    function toScreen(dx, dy) {
+        return {
+            x: PAD.left + dx / 10 * plotW,
+            y: PAD.top + plotH - dy / 10 * plotH
+        };
+    }
+    function fromScreen(sx, sy) {
+        return {
+            x: (sx - PAD.left) / plotW * 10,
+            y: (plotH - (sy - PAD.top)) / plotH * 10
+        };
+    }
+
+    function computeRegression(pts) {
+        const n = pts.length;
+        if (n < 2) return null;
+        let sx=0, sy=0, sxx=0, sxy=0, syy=0;
+        for (const p of pts) { sx+=p.x; sy+=p.y; sxx+=p.x*p.x; sxy+=p.x*p.y; syy+=p.y*p.y; }
+        const mx = sx/n, my = sy/n;
+        let num=0, denX=0, denY=0;
+        for (const p of pts) {
+            const dx = p.x - mx, dy = p.y - my;
+            num += dx*dy; denX += dx*dx; denY += dy*dy;
+        }
+        if (denX < 1e-12) return null;
+        const m = num / denX;
+        const b = my - m * mx;
+        const r = (denX > 1e-12 && denY > 1e-12) ? num / Math.sqrt(denX * denY) : 0;
+        return {m, b, r, r2: r*r};
+    }
+
+    function draw() {
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        // grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+        for (let i = 0; i <= 10; i++) {
+            const sx = PAD.left + i/10*plotW;
+            const sy = PAD.top + i/10*plotH;
+            ctx.beginPath(); ctx.moveTo(sx, PAD.top); ctx.lineTo(sx, PAD.top+plotH); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(PAD.left, sy); ctx.lineTo(PAD.left+plotW, sy); ctx.stroke();
+        }
+
+        // axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top+plotH); ctx.lineTo(PAD.left+plotW, PAD.top+plotH); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, PAD.top+plotH); ctx.stroke();
+
+        // tick labels
+        ctx.font = '10px Georgia'; ctx.fillStyle = '#505068'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (let i = 0; i <= 10; i += 2) {
+            const sx = PAD.left + i/10*plotW;
+            ctx.fillText(i, sx, PAD.top+plotH+6);
+        }
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (let i = 0; i <= 10; i += 2) {
+            const sy = PAD.top + plotH - i/10*plotH;
+            ctx.fillText(i, PAD.left-8, sy);
+        }
+        ctx.font = '12px Georgia'; ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText('x', PAD.left+plotW/2, PAD.top+plotH+24);
+        ctx.save(); ctx.translate(14, PAD.top+plotH/2); ctx.rotate(-Math.PI/2);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('y', 0, 0); ctx.restore();
+
+        const reg = computeRegression(points);
+
+        // regression line
+        if (reg) {
+            const x0 = 0, x1 = 10;
+            const y0 = reg.m * x0 + reg.b;
+            const y1 = reg.m * x1 + reg.b;
+            const s0 = toScreen(x0, y0);
+            const s1 = toScreen(x1, y1);
+            ctx.strokeStyle = '#67e8f9'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.save(); ctx.beginPath();
+            ctx.rect(PAD.left, PAD.top, plotW, plotH); ctx.clip();
+            ctx.beginPath(); ctx.moveTo(s0.x, s0.y); ctx.lineTo(s1.x, s1.y); ctx.stroke();
+            ctx.restore();
+        }
+
+        // residuals
+        if (reg && showResiduals) {
+            ctx.setLineDash([4,4]); ctx.strokeStyle = 'rgba(244,114,182,0.4)'; ctx.lineWidth = 1;
+            for (const p of points) {
+                const predicted = reg.m * p.x + reg.b;
+                const sp = toScreen(p.x, p.y);
+                const spr = toScreen(p.x, predicted);
+                ctx.beginPath(); ctx.moveTo(sp.x, sp.y); ctx.lineTo(spr.x, spr.y); ctx.stroke();
+            }
+            ctx.setLineDash([]);
+        }
+
+        // points
+        for (const p of points) {
+            const sp = toScreen(p.x, p.y);
+            ctx.fillStyle = '#f472b6'; ctx.beginPath(); ctx.arc(sp.x, sp.y, 5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = 'rgba(244,114,182,0.2)'; ctx.beginPath(); ctx.arc(sp.x, sp.y, 8, 0, Math.PI*2); ctx.fill();
+        }
+
+        // update stats
+        document.getElementById('statN').textContent = points.length;
+        if (reg) {
+            document.getElementById('statM').textContent = reg.m.toFixed(4);
+            document.getElementById('statB').textContent = reg.b.toFixed(4);
+            document.getElementById('statR').textContent = reg.r.toFixed(4);
+            document.getElementById('statR2').textContent = reg.r2.toFixed(4);
+            document.getElementById('scatterEquation').innerHTML =
+                '<span class="cyan">y = ' + reg.m.toFixed(3) + 'x + ' + reg.b.toFixed(3) + '</span>';
+        } else {
+            document.getElementById('statM').textContent = '\u2014';
+            document.getElementById('statB').textContent = '\u2014';
+            document.getElementById('statR').textContent = '\u2014';
+            document.getElementById('statR2').textContent = '\u2014';
+            document.getElementById('scatterEquation').innerHTML = '<span class="muted">Add at least 2 points to see the regression line</span>';
+        }
+    }
+
+    function getCanvasPos(e) {
+        const r = cvs.getBoundingClientRect();
+        return { x: (e.clientX - r.left)*(W/r.width), y: (e.clientY - r.top)*(H/r.height) };
+    }
+
+    cvs.addEventListener('click', function(e) {
+        if (points.length >= MAX_POINTS) return;
+        const pos = getCanvasPos(e);
+        const dp = fromScreen(pos.x, pos.y);
+        if (dp.x >= 0 && dp.x <= 10 && dp.y >= 0 && dp.y <= 10) {
+            points.push({x: dp.x, y: dp.y});
+            draw();
+        }
+    });
+
+    cvs.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        if (points.length >= MAX_POINTS) return;
+        const t = e.touches[0];
+        const r = cvs.getBoundingClientRect();
+        const pos = { x: (t.clientX - r.left)*(W/r.width), y: (t.clientY - r.top)*(H/r.height) };
+        const dp = fromScreen(pos.x, pos.y);
+        if (dp.x >= 0 && dp.x <= 10 && dp.y >= 0 && dp.y <= 10) {
+            points.push({x: dp.x, y: dp.y});
+            draw();
+        }
+    }, {passive:false});
+
+    document.getElementById('btnClearAll').addEventListener('click', function() { points = []; draw(); });
+    document.getElementById('btnUndoLast').addEventListener('click', function() { points.pop(); draw(); });
+    document.getElementById('btnToggleResiduals').addEventListener('click', function() {
+        showResiduals = !showResiduals;
+        this.textContent = 'Show Residuals: ' + (showResiduals ? 'ON' : 'OFF');
+        if (showResiduals) { this.classList.add('active'); } else { this.classList.remove('active'); }
+        draw();
+    });
+    document.getElementById('btnToggleResiduals').classList.add('active');
+
+    draw();
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 2: Correlation Coefficient Visualizer
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('corrCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+
+    // Anscombe's Quartet — classic data
+    const anscombe = {
+        x1: [10,8,13,9,11,14,6,4,12,7,5],
+        y1: [8.04,6.95,7.58,8.81,8.33,9.96,7.24,4.26,10.84,4.82,5.68],
+        x2: [10,8,13,9,11,14,6,4,12,7,5],
+        y2: [9.14,8.14,8.74,8.77,9.26,8.10,6.13,3.10,9.13,7.26,4.74],
+        x3: [10,8,13,9,11,14,6,4,12,7,5],
+        y3: [7.46,6.77,12.74,7.11,7.81,8.84,6.08,5.39,8.15,6.42,5.73],
+        x4: [8,8,8,8,8,8,8,19,8,8,8],
+        y4: [6.58,5.76,7.71,8.84,8.47,7.04,5.25,12.50,5.56,7.91,6.89]
+    };
+
+    function generateCorrelated(r, n) {
+        n = n || 40;
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+            const u1 = Math.random(), u2 = Math.random();
+            const z1 = Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+            const z2 = Math.sqrt(-2*Math.log(u1))*Math.sin(2*Math.PI*u2);
+            const x = z1;
+            const y = r * z1 + Math.sqrt(1 - r*r) * z2;
+            pts.push({x, y});
+        }
+        return pts;
+    }
+
+    function generateParabola(n) {
+        n = n || 40;
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+            const x = (Math.random() - 0.5) * 6;
+            const y = x*x + (Math.random()-0.5)*2;
+            pts.push({x, y});
+        }
+        return pts;
+    }
+
+    function calcR(pts) {
+        const n = pts.length;
+        let sx=0,sy=0;
+        for (const p of pts) { sx+=p.x; sy+=p.y; }
+        const mx=sx/n, my=sy/n;
+        let num=0, dx2=0, dy2=0;
+        for (const p of pts) {
+            const dx=p.x-mx, dy=p.y-my;
+            num+=dx*dy; dx2+=dx*dx; dy2+=dy*dy;
+        }
+        return (dx2>1e-12 && dy2>1e-12) ? num/Math.sqrt(dx2*dy2) : 0;
+    }
+
+    function calcRegression(pts) {
+        const n = pts.length; if (n<2) return null;
+        let sx=0,sy=0;
+        for (const p of pts) { sx+=p.x; sy+=p.y; }
+        const mx=sx/n, my=sy/n;
+        let num=0, den=0;
+        for (const p of pts) { const dx=p.x-mx; num+=dx*(p.y-my); den+=dx*dx; }
+        if (den<1e-12) return null;
+        const m=num/den, b=my-m*mx;
+        return {m, b};
+    }
+
+    // seed data for reproducible presets
+    let presetSeed = 42;
+    function seededRandom() {
+        presetSeed = (presetSeed * 16807) % 2147483647;
+        return (presetSeed - 1) / 2147483646;
+    }
+
+    function generateSeeded(r, n, seed) {
+        presetSeed = seed;
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+            const u1 = seededRandom(), u2 = seededRandom();
+            const z1 = Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+            const z2 = Math.sqrt(-2*Math.log(u1))*Math.sin(2*Math.PI*u2);
+            const x = z1;
+            const y = r*z1 + Math.sqrt(Math.max(0, 1-r*r))*z2;
+            pts.push({x, y});
+        }
+        return pts;
+    }
+
+    function generateParabolaSeeded(n, seed) {
+        presetSeed = seed;
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+            const x = (seededRandom()-0.5)*6;
+            const y = x*x + (seededRandom()-0.5)*2;
+            pts.push({x, y});
+        }
+        return pts;
+    }
+
+    const presets = [
+        { label: 'r \u2248 1.0 (strong +)', desc: 'Strong positive: height vs weight', data: function(){ return generateSeeded(0.97, 40, 101); } },
+        { label: 'r \u2248 -0.9 (strong -)', desc: 'Strong negative: price vs demand', data: function(){ return generateSeeded(-0.9, 40, 202); } },
+        { label: 'r \u2248 0.5 (moderate)', desc: 'Moderate positive correlation', data: function(){ return generateSeeded(0.5, 40, 303); } },
+        { label: 'r \u2248 0.0 (random)', desc: 'No correlation: random scatter', data: function(){ return generateSeeded(0.0, 40, 404); } },
+        { label: 'r \u2248 0 but curved', desc: 'No LINEAR correlation but clear parabolic pattern', data: function(){ return generateParabolaSeeded(50, 505); } },
+        { label: "Anscombe's Quartet", desc: 'Four datasets, all with r \u2248 0.816 but very different patterns', data: 'anscombe' }
+    ];
+
+    let currentPreset = 0;
+
+    function renderPresetBtns() {
+        const c = document.getElementById('corrPresetBtns');
+        c.innerHTML = presets.map((p,i) =>
+            '<button class="btn' + (i===currentPreset?' active':'') + '" data-ci="'+i+'">'+p.label+'</button>'
+        ).join('');
+        c.querySelectorAll('.btn').forEach(b => b.addEventListener('click', function(){
+            currentPreset = parseInt(this.dataset.ci);
+            renderPresetBtns();
+            drawCorr();
+        }));
+    }
+
+    function drawScatterSub(cx, x0, y0, w, h, pts, title, regLine) {
+        // background
+        cx.fillStyle = 'rgba(255,255,255,0.015)';
+        cx.fillRect(x0, y0, w, h);
+        cx.strokeStyle = 'rgba(255,255,255,0.06)'; cx.lineWidth = 1;
+        cx.strokeRect(x0, y0, w, h);
+
+        if (pts.length === 0) return;
+        // find bounds
+        let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+        for (const p of pts) {
+            if (p.x<minX) minX=p.x; if (p.x>maxX) maxX=p.x;
+            if (p.y<minY) minY=p.y; if (p.y>maxY) maxY=p.y;
+        }
+        const rangeX = maxX-minX || 1, rangeY = maxY-minY || 1;
+        const pad = 12;
+        const pw = w - pad*2, ph = h - pad*2 - 16;
+
+        function toS(px, py) {
+            return {
+                x: x0 + pad + (px-minX)/rangeX * pw,
+                y: y0 + pad + 16 + ph - (py-minY)/rangeY * ph
+            };
+        }
+
+        // title
+        cx.font = '10px Georgia'; cx.fillStyle = '#f472b6'; cx.textAlign = 'center'; cx.textBaseline = 'top';
+        cx.fillText(title, x0 + w/2, y0 + 4);
+
+        // regression line
+        if (regLine) {
+            const lx0 = minX - rangeX*0.1, lx1 = maxX + rangeX*0.1;
+            const ly0 = regLine.m * lx0 + regLine.b;
+            const ly1 = regLine.m * lx1 + regLine.b;
+            const s0 = toS(lx0, ly0), s1 = toS(lx1, ly1);
+            cx.save(); cx.beginPath(); cx.rect(x0, y0, w, h); cx.clip();
+            cx.strokeStyle = '#67e8f9'; cx.lineWidth = 1.5;
+            cx.beginPath(); cx.moveTo(s0.x, s0.y); cx.lineTo(s1.x, s1.y); cx.stroke();
+            cx.restore();
+        }
+
+        // points
+        for (const p of pts) {
+            const s = toS(p.x, p.y);
+            cx.fillStyle = '#f472b6'; cx.beginPath(); cx.arc(s.x, s.y, 3, 0, Math.PI*2); cx.fill();
+        }
+
+        // r value
+        const r = calcR(pts);
+        cx.font = '10px Courier New'; cx.fillStyle = '#67e8f9'; cx.textAlign = 'center'; cx.textBaseline = 'bottom';
+        cx.fillText('r = ' + r.toFixed(3), x0 + w/2, y0 + h - 2);
+    }
+
+    function drawCorr() {
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        const preset = presets[currentPreset];
+        const statsDiv = document.getElementById('corrStats');
+        const descDiv = document.getElementById('corrDescription');
+
+        if (preset.data === 'anscombe') {
+            // draw 4 sub-plots
+            const gap = 10, cols = 4;
+            const subW = (W - gap*(cols+1)) / cols;
+            const subH = H - gap*2;
+
+            const datasets = [
+                { pts: anscombe.x1.map((x,i) => ({x, y:anscombe.y1[i]})), title: 'Dataset I' },
+                { pts: anscombe.x2.map((x,i) => ({x, y:anscombe.y2[i]})), title: 'Dataset II' },
+                { pts: anscombe.x3.map((x,i) => ({x, y:anscombe.y3[i]})), title: 'Dataset III' },
+                { pts: anscombe.x4.map((x,i) => ({x, y:anscombe.y4[i]})), title: 'Dataset IV' }
+            ];
+
+            for (let i = 0; i < 4; i++) {
+                const x0 = gap + i*(subW+gap);
+                const reg = calcRegression(datasets[i].pts);
+                drawScatterSub(ctx, x0, gap, subW, subH, datasets[i].pts, datasets[i].title, reg);
+            }
+
+            const r1 = calcR(datasets[0].pts);
+            statsDiv.innerHTML =
+                '<div class="stat-box"><span class="stat-label">All four datasets:</span> <span class="stat-value">r \u2248 ' + r1.toFixed(3) + '</span></div>' +
+                '<div class="stat-box"><span class="stat-label">Mean x:</span> <span class="stat-value">9.0</span></div>' +
+                '<div class="stat-box"><span class="stat-label">Mean y:</span> <span class="stat-value">\u22487.5</span></div>';
+            descDiv.innerHTML = '<span class="pink">Anscombe\'s Quartet:</span> <span class="muted">All four datasets have nearly identical statistical properties (mean, variance, correlation, regression line) yet look completely different. This is the most famous demonstration that you must always visualise your data.</span>';
+        } else {
+            const pts = preset.data();
+            const r = calcR(pts);
+            const reg = calcRegression(pts);
+
+            // single scatter with padding
+            const pad = {left:50, right:20, top:20, bottom:40};
+            const pw = W-pad.left-pad.right, ph = H-pad.top-pad.bottom;
+            let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+            for (const p of pts) {
+                if (p.x<minX) minX=p.x; if (p.x>maxX) maxX=p.x;
+                if (p.y<minY) minY=p.y; if (p.y>maxY) maxY=p.y;
+            }
+            const rx = maxX-minX||1, ry = maxY-minY||1;
+            minX -= rx*0.05; maxX += rx*0.05; minY -= ry*0.05; maxY += ry*0.05;
+            const rngX = maxX-minX, rngY = maxY-minY;
+
+            function toS(x,y) {
+                return { x: pad.left + (x-minX)/rngX*pw, y: pad.top + ph - (y-minY)/rngY*ph };
+            }
+
+            // grid
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const sx = pad.left + i/5*pw, sy = pad.top + i/5*ph;
+                ctx.beginPath(); ctx.moveTo(sx, pad.top); ctx.lineTo(sx, pad.top+ph); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(pad.left, sy); ctx.lineTo(pad.left+pw, sy); ctx.stroke();
+            }
+
+            // axes
+            ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(pad.left, pad.top+ph); ctx.lineTo(pad.left+pw, pad.top+ph); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top+ph); ctx.stroke();
+
+            // regression line
+            if (reg) {
+                const lx0 = minX, lx1 = maxX;
+                const s0 = toS(lx0, reg.m*lx0+reg.b), s1 = toS(lx1, reg.m*lx1+reg.b);
+                ctx.save(); ctx.beginPath(); ctx.rect(pad.left, pad.top, pw, ph); ctx.clip();
+                ctx.strokeStyle = '#67e8f9'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(s0.x, s0.y); ctx.lineTo(s1.x, s1.y); ctx.stroke();
+                ctx.restore();
+            }
+
+            // points
+            for (const p of pts) {
+                const s = toS(p.x, p.y);
+                ctx.fillStyle = '#f472b6'; ctx.beginPath(); ctx.arc(s.x, s.y, 4, 0, Math.PI*2); ctx.fill();
+            }
+
+            statsDiv.innerHTML =
+                '<div class="stat-box"><span class="stat-label">r:</span> <span class="stat-value">' + r.toFixed(4) + '</span></div>' +
+                '<div class="stat-box"><span class="stat-label">R\u00B2:</span> <span class="stat-value">' + (r*r).toFixed(4) + '</span></div>' +
+                '<div class="stat-box"><span class="stat-label">n:</span> <span class="stat-value">' + pts.length + '</span></div>';
+            descDiv.innerHTML = '<span class="pink">' + preset.desc + '</span>';
+        }
+    }
+
+    renderPresetBtns();
+    drawCorr();
+
+    // Correlation slider
+    const sliderCvs = document.getElementById('corrSliderCanvas');
+    const sliderCtx = sliderCvs.getContext('2d');
+    const sW = sliderCvs.width, sH = sliderCvs.height;
+    const corrSlider = document.getElementById('corrSlider');
+    const corrSliderLabel = document.getElementById('corrSliderLabel');
+
+    function drawSliderPlot() {
+        const targetR = parseInt(corrSlider.value) / 100;
+        corrSliderLabel.textContent = targetR.toFixed(2);
+
+        sliderCtx.clearRect(0,0,sW,sH);
+        sliderCtx.fillStyle = '#0a0a1a'; sliderCtx.fillRect(0,0,sW,sH);
+
+        const pts = generateCorrelated(targetR, 60);
+        const r = calcR(pts);
+        const reg = calcRegression(pts);
+
+        const pad = {left:40, right:20, top:20, bottom:35};
+        const pw = sW-pad.left-pad.right, ph = sH-pad.top-pad.bottom;
+        let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+        for (const p of pts) {
+            if (p.x<minX) minX=p.x; if (p.x>maxX) maxX=p.x;
+            if (p.y<minY) minY=p.y; if (p.y>maxY) maxY=p.y;
+        }
+        const rx = maxX-minX||1, ry = maxY-minY||1;
+        minX -= rx*0.08; maxX += rx*0.08; minY -= ry*0.08; maxY += ry*0.08;
+        const rngX = maxX-minX, rngY = maxY-minY;
+
+        function toS(x,y) {
+            return { x: pad.left + (x-minX)/rngX*pw, y: pad.top + ph - (y-minY)/rngY*ph };
+        }
+
+        // grid
+        sliderCtx.strokeStyle = 'rgba(255,255,255,0.04)'; sliderCtx.lineWidth = 1;
+        for (let i = 0; i <= 5; i++) {
+            const sx = pad.left+i/5*pw, sy = pad.top+i/5*ph;
+            sliderCtx.beginPath(); sliderCtx.moveTo(sx, pad.top); sliderCtx.lineTo(sx, pad.top+ph); sliderCtx.stroke();
+            sliderCtx.beginPath(); sliderCtx.moveTo(pad.left, sy); sliderCtx.lineTo(pad.left+pw, sy); sliderCtx.stroke();
+        }
+
+        // axes
+        sliderCtx.strokeStyle = 'rgba(255,255,255,0.18)'; sliderCtx.lineWidth = 1.5;
+        sliderCtx.beginPath(); sliderCtx.moveTo(pad.left, pad.top+ph); sliderCtx.lineTo(pad.left+pw, pad.top+ph); sliderCtx.stroke();
+        sliderCtx.beginPath(); sliderCtx.moveTo(pad.left, pad.top); sliderCtx.lineTo(pad.left, pad.top+ph); sliderCtx.stroke();
+
+        // regression line
+        if (reg) {
+            const lx0 = minX, lx1 = maxX;
+            const s0 = toS(lx0, reg.m*lx0+reg.b), s1 = toS(lx1, reg.m*lx1+reg.b);
+            sliderCtx.save(); sliderCtx.beginPath(); sliderCtx.rect(pad.left, pad.top, pw, ph); sliderCtx.clip();
+            sliderCtx.strokeStyle = '#67e8f9'; sliderCtx.lineWidth = 2;
+            sliderCtx.beginPath(); sliderCtx.moveTo(s0.x, s0.y); sliderCtx.lineTo(s1.x, s1.y); sliderCtx.stroke();
+            sliderCtx.restore();
+        }
+
+        // points
+        for (const p of pts) {
+            const s = toS(p.x, p.y);
+            sliderCtx.fillStyle = '#f472b6'; sliderCtx.beginPath(); sliderCtx.arc(s.x, s.y, 3.5, 0, Math.PI*2); sliderCtx.fill();
+        }
+
+        // r display
+        sliderCtx.font = '13px Courier New'; sliderCtx.fillStyle = '#67e8f9';
+        sliderCtx.textAlign = 'right'; sliderCtx.textBaseline = 'top';
+        sliderCtx.fillText('actual r = ' + r.toFixed(3), sW - 30, 28);
+        sliderCtx.fillStyle = '#808098'; sliderCtx.font = '11px Georgia';
+        sliderCtx.fillText('target r = ' + targetR.toFixed(2), sW - 30, 46);
+    }
+
+    corrSlider.addEventListener('input', drawSliderPlot);
+    drawSliderPlot();
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 3: Least Squares — Why This Line?
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('lsCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const PAD = {left:50, right:30, top:25, bottom:40};
+    const plotW = W-PAD.left-PAD.right, plotH = H-PAD.top-PAD.bottom;
+
+    let points = [];
+    let optM = 0, optB = 0;
+    let userM = 0, userB = 0;
+    let dragging = false;
+    let dragStart = null;
+    let isUserLine = false;
+    let animating = false;
+
+    function generateData() {
+        points = [];
+        const baseM = 0.6 + Math.random()*0.8;
+        const baseB = 1 + Math.random()*2;
+        for (let i = 0; i < 12; i++) {
+            const x = 1 + Math.random()*8;
+            const y = baseM * x + baseB + (Math.random()-0.5)*3;
+            points.push({x, y});
+        }
+        computeOptimal();
+        userM = optM; userB = optB;
+        isUserLine = false;
+    }
+
+    function computeOptimal() {
+        const n = points.length; if (n < 2) return;
+        let sx=0,sy=0;
+        for (const p of points) { sx+=p.x; sy+=p.y; }
+        const mx=sx/n, my=sy/n;
+        let num=0, den=0;
+        for (const p of points) { num+=(p.x-mx)*(p.y-my); den+=(p.x-mx)*(p.x-mx); }
+        optM = den>1e-12 ? num/den : 0;
+        optB = my - optM * mx;
+    }
+
+    function totalSquaredError(m, b) {
+        let sum = 0;
+        for (const p of points) { const e = p.y - (m*p.x + b); sum += e*e; }
+        return sum;
+    }
+
+    function toScreen(x, y) {
+        return {
+            x: PAD.left + (x/10)*plotW,
+            y: PAD.top + plotH - (y/10)*plotH
+        };
+    }
+    function fromScreen(sx, sy) {
+        return {
+            x: (sx - PAD.left) / plotW * 10,
+            y: (plotH - (sy - PAD.top)) / plotH * 10
+        };
+    }
+
+    function draw() {
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        // grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+        for (let i = 0; i <= 10; i++) {
+            const sx = PAD.left + i/10*plotW, sy = PAD.top + i/10*plotH;
+            ctx.beginPath(); ctx.moveTo(sx, PAD.top); ctx.lineTo(sx, PAD.top+plotH); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(PAD.left, sy); ctx.lineTo(PAD.left+plotW, sy); ctx.stroke();
+        }
+
+        // axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top+plotH); ctx.lineTo(PAD.left+plotW, PAD.top+plotH); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, PAD.top+plotH); ctx.stroke();
+
+        // tick labels
+        ctx.font = '10px Georgia'; ctx.fillStyle = '#505068';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (let i = 0; i <= 10; i += 2) {
+            ctx.fillText(i, PAD.left + i/10*plotW, PAD.top+plotH+6);
+        }
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (let i = 0; i <= 10; i += 2) {
+            ctx.fillText(i, PAD.left - 8, PAD.top + plotH - i/10*plotH);
+        }
+
+        const m = isUserLine ? userM : optM;
+        const b = isUserLine ? userB : optB;
+
+        // squared residual boxes
+        for (const p of points) {
+            const predicted = m * p.x + b;
+            const residual = p.y - predicted;
+            const sp = toScreen(p.x, p.y);
+            const spr = toScreen(p.x, predicted);
+            const side = Math.abs(sp.y - spr.y);
+
+            if (side > 1) {
+                // draw square hanging from point to line
+                const left = sp.x;
+                const top2 = Math.min(sp.y, spr.y);
+                ctx.fillStyle = 'rgba(244,114,182,0.08)';
+                ctx.fillRect(left, top2, side, side);
+                ctx.strokeStyle = 'rgba(244,114,182,0.25)'; ctx.lineWidth = 1;
+                ctx.strokeRect(left, top2, side, side);
+            }
+        }
+
+        // regression line
+        ctx.save(); ctx.beginPath(); ctx.rect(PAD.left, PAD.top, plotW, plotH); ctx.clip();
+        const s0 = toScreen(0, m*0+b), s1 = toScreen(10, m*10+b);
+        if (isUserLine) {
+            // show optimal as ghost
+            const os0 = toScreen(0, optM*0+optB), os1 = toScreen(10, optM*10+optB);
+            ctx.setLineDash([4,4]); ctx.strokeStyle = 'rgba(103,232,249,0.3)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(os0.x, os0.y); ctx.lineTo(os1.x, os1.y); ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        ctx.strokeStyle = isUserLine ? '#fbbf24' : '#67e8f9'; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(s0.x, s0.y); ctx.lineTo(s1.x, s1.y); ctx.stroke();
+        ctx.restore();
+
+        // vertical residual lines
+        ctx.setLineDash([3,3]); ctx.strokeStyle = 'rgba(244,114,182,0.5)'; ctx.lineWidth = 1;
+        for (const p of points) {
+            const predicted = m * p.x + b;
+            const sp = toScreen(p.x, p.y);
+            const spr = toScreen(p.x, predicted);
+            ctx.beginPath(); ctx.moveTo(sp.x, sp.y); ctx.lineTo(spr.x, spr.y); ctx.stroke();
+        }
+        ctx.setLineDash([]);
+
+        // points
+        for (const p of points) {
+            const sp = toScreen(p.x, p.y);
+            ctx.fillStyle = '#f472b6'; ctx.beginPath(); ctx.arc(sp.x, sp.y, 5, 0, Math.PI*2); ctx.fill();
+        }
+
+        // error display
+        const userErr = totalSquaredError(isUserLine ? userM : optM, isUserLine ? userB : optB);
+        const optErr = totalSquaredError(optM, optB);
+        document.getElementById('lsUserError').textContent = userErr.toFixed(2);
+        document.getElementById('lsOptError').textContent = optErr.toFixed(2);
+
+        // label
+        ctx.font = '11px Georgia'; ctx.fillStyle = '#808098';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        if (isUserLine) {
+            ctx.fillText('Yellow = your line  |  Dashed cyan = optimal', PAD.left + 6, PAD.top + 6);
+        } else {
+            ctx.fillText('Cyan = optimal least-squares line', PAD.left + 6, PAD.top + 6);
+        }
+        ctx.fillText('Pink squares = squared residuals (area = error\u00B2)', PAD.left + 6, PAD.top + 20);
+    }
+
+    function getCanvasPos(e) {
+        const r = cvs.getBoundingClientRect();
+        return { x: (e.clientX-r.left)*(W/r.width), y: (e.clientY-r.top)*(H/r.height) };
+    }
+
+    cvs.addEventListener('mousedown', function(e) {
+        if (animating) return;
+        dragging = true;
+        dragStart = getCanvasPos(e);
+        isUserLine = true;
+    });
+    cvs.addEventListener('mousemove', function(e) {
+        if (!dragging || animating) return;
+        const pos = getCanvasPos(e);
+        const dp1 = fromScreen(dragStart.x, dragStart.y);
+        const dp2 = fromScreen(pos.x, pos.y);
+        // define line through these two points
+        if (Math.abs(dp2.x - dp1.x) > 0.01) {
+            userM = (dp2.y - dp1.y) / (dp2.x - dp1.x);
+            userB = dp1.y - userM * dp1.x;
+        }
+        draw();
+    });
+
+    function endDrag() {
+        if (!dragging) return;
+        dragging = false;
+        if (!isUserLine) return;
+        // animate snap back
+        animating = true;
+        const startM = userM, startB = userB;
+        const duration = 500;
+        const t0 = performance.now();
+        function step(now) {
+            let frac = (now - t0) / duration;
+            if (frac >= 1) { frac = 1; animating = false; isUserLine = false; }
+            // ease out
+            const t = 1 - Math.pow(1 - frac, 3);
+            userM = startM + (optM - startM) * t;
+            userB = startB + (optB - startB) * t;
+            isUserLine = frac < 1;
+            draw();
+            if (frac < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    }
+
+    cvs.addEventListener('mouseup', endDrag);
+    cvs.addEventListener('mouseleave', function() { if (dragging) endDrag(); });
+
+    // touch
+    cvs.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        if (animating) return;
+        const t = e.touches[0];
+        const r = cvs.getBoundingClientRect();
+        dragStart = { x: (t.clientX-r.left)*(W/r.width), y: (t.clientY-r.top)*(H/r.height) };
+        dragging = true; isUserLine = true;
+    }, {passive:false});
+    cvs.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        if (!dragging || animating) return;
+        const t = e.touches[0];
+        const r = cvs.getBoundingClientRect();
+        const pos = { x: (t.clientX-r.left)*(W/r.width), y: (t.clientY-r.top)*(H/r.height) };
+        const dp1 = fromScreen(dragStart.x, dragStart.y);
+        const dp2 = fromScreen(pos.x, pos.y);
+        if (Math.abs(dp2.x - dp1.x) > 0.01) {
+            userM = (dp2.y - dp1.y) / (dp2.x - dp1.x);
+            userB = dp1.y - userM * dp1.x;
+        }
+        draw();
+    }, {passive:false});
+    cvs.addEventListener('touchend', function(e) { e.preventDefault(); endDrag(); }, {passive:false});
+
+    document.getElementById('btnLsReset').addEventListener('click', function() { generateData(); draw(); });
+
+    generateData();
+    draw();
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 4: Beyond Linear — Polynomial Regression
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('polyCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const PAD = {left:50, right:20, top:20, bottom:40};
+    const plotW = W-PAD.left-PAD.right, plotH = H-PAD.top-PAD.bottom;
+
+    let points = [];
+    let degree = 1;
+
+    function generateQuadData() {
+        points = [];
+        for (let i = 0; i < 25; i++) {
+            const x = 0.5 + Math.random() * 9;
+            const y = -0.12*(x-5)*(x-5) + 5 + (Math.random()-0.5)*1.8;
+            points.push({x, y});
+        }
+    }
+
+    // Polynomial fit via normal equations
+    function polyFit(pts, deg) {
+        const n = pts.length;
+        if (n <= deg) return null;
+        // build Vandermonde matrix
+        const m = deg + 1;
+        // XtX = m x m, XtY = m x 1
+        const XtX = Array.from({length:m}, () => new Array(m).fill(0));
+        const XtY = new Array(m).fill(0);
+        for (const p of pts) {
+            const xpow = [1];
+            for (let j = 1; j < m; j++) xpow.push(xpow[j-1]*p.x);
+            for (let i = 0; i < m; i++) {
+                for (let j = 0; j < m; j++) {
+                    XtX[i][j] += xpow[i]*xpow[j];
+                }
+                XtY[i] += xpow[i]*p.y;
+            }
+        }
+        // Gaussian elimination
+        const A = XtX.map((row,i) => [...row, XtY[i]]);
+        for (let col = 0; col < m; col++) {
+            // pivot
+            let maxRow = col;
+            for (let row = col+1; row < m; row++) {
+                if (Math.abs(A[row][col]) > Math.abs(A[maxRow][col])) maxRow = row;
+            }
+            [A[col], A[maxRow]] = [A[maxRow], A[col]];
+            if (Math.abs(A[col][col]) < 1e-14) return null;
+            for (let row = col+1; row < m; row++) {
+                const f = A[row][col] / A[col][col];
+                for (let j = col; j <= m; j++) A[row][j] -= f * A[col][j];
+            }
+        }
+        // back substitution
+        const coeffs = new Array(m);
+        for (let i = m-1; i >= 0; i--) {
+            coeffs[i] = A[i][m];
+            for (let j = i+1; j < m; j++) coeffs[i] -= A[i][j]*coeffs[j];
+            coeffs[i] /= A[i][i];
+        }
+        return coeffs;
+    }
+
+    function evalPoly(coeffs, x) {
+        let y = 0;
+        for (let i = 0; i < coeffs.length; i++) y += coeffs[i] * Math.pow(x, i);
+        return y;
+    }
+
+    function calcR2(pts, coeffs) {
+        const n = pts.length;
+        let sy = 0; for (const p of pts) sy += p.y;
+        const my = sy / n;
+        let ssTot = 0, ssRes = 0;
+        for (const p of pts) {
+            ssTot += (p.y - my)*(p.y - my);
+            const pred = evalPoly(coeffs, p.x);
+            ssRes += (p.y - pred)*(p.y - pred);
+        }
+        return ssTot > 1e-12 ? 1 - ssRes/ssTot : 0;
+    }
+
+    function formatPolyHTML(coeffs) {
+        if (!coeffs) return '';
+        let s = 'y = ';
+        const sup = ['&sup0;','&sup1;','&sup2;','&sup3;'];
+        for (let i = coeffs.length-1; i >= 0; i--) {
+            const c = coeffs[i];
+            const sign = (i === coeffs.length-1) ? '' : (c >= 0 ? ' + ' : ' &minus; ');
+            const ac = (i === coeffs.length-1) ? c.toFixed(3) : Math.abs(c).toFixed(3);
+            if (i === 0) s += sign + ac;
+            else if (i === 1) s += sign + ac + 'x';
+            else s += sign + ac + 'x<sup>' + i + '</sup>';
+        }
+        return s;
+    }
+
+    function toScreen(x, y) {
+        return {
+            x: PAD.left + (x/10)*plotW,
+            y: PAD.top + plotH - ((y+2)/10)*plotH
+        };
+    }
+
+    function draw() {
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        // grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+        for (let i = 0; i <= 10; i++) {
+            const sx = PAD.left + i/10*plotW, sy = PAD.top + i/10*plotH;
+            ctx.beginPath(); ctx.moveTo(sx, PAD.top); ctx.lineTo(sx, PAD.top+plotH); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(PAD.left, sy); ctx.lineTo(PAD.left+plotW, sy); ctx.stroke();
+        }
+
+        // axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top+plotH); ctx.lineTo(PAD.left+plotW, PAD.top+plotH); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, PAD.top+plotH); ctx.stroke();
+
+        // tick labels
+        ctx.font = '10px Georgia'; ctx.fillStyle = '#505068';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (let i = 0; i <= 10; i += 2) {
+            ctx.fillText(i, PAD.left + i/10*plotW, PAD.top+plotH+6);
+        }
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (let v = -2; v <= 8; v += 2) {
+            const sy = PAD.top + plotH - ((v+2)/10)*plotH;
+            ctx.fillText(v, PAD.left - 8, sy);
+        }
+
+        // fit
+        const coeffs = polyFit(points, degree);
+        if (coeffs) {
+            ctx.save(); ctx.beginPath(); ctx.rect(PAD.left, PAD.top, plotW, plotH); ctx.clip();
+            ctx.strokeStyle = '#67e8f9'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let px = 0; px <= plotW; px++) {
+                const dataX = (px / plotW) * 10;
+                const dataY = evalPoly(coeffs, dataX);
+                const s = toScreen(dataX, dataY);
+                if (px === 0) ctx.moveTo(s.x, s.y); else ctx.lineTo(s.x, s.y);
+            }
+            ctx.stroke();
+            ctx.restore();
+
+            const r2 = calcR2(points, coeffs);
+            document.getElementById('polyR2').textContent = r2.toFixed(4);
+            document.getElementById('polyEquation').innerHTML = '<span class="cyan">' + formatPolyHTML(coeffs) + '</span>';
+        }
+
+        // points
+        for (const p of points) {
+            const sp = toScreen(p.x, p.y);
+            ctx.fillStyle = '#f472b6'; ctx.beginPath(); ctx.arc(sp.x, sp.y, 4.5, 0, Math.PI*2); ctx.fill();
+        }
+
+        document.getElementById('polyDeg').textContent = degree;
+    }
+
+    // buttons
+    document.getElementById('polyBtns').querySelectorAll('.btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            degree = parseInt(this.dataset.deg);
+            document.getElementById('polyBtns').querySelectorAll('.btn').forEach(function(b) { b.classList.remove('active'); });
+            this.classList.add('active');
+            draw();
+        });
+    });
+
+    document.getElementById('btnAddOutlier').addEventListener('click', function() {
+        // add extreme point
+        const x = 1 + Math.random()*8;
+        const y = -2 + Math.random()*1.5; // well below normal range
+        if (Math.random() > 0.5) {
+            points.push({x: x, y: 7 + Math.random()*1.5}); // or well above
+        } else {
+            points.push({x: x, y: y});
+        }
+        draw();
+    });
+
+    document.getElementById('btnPolyReset').addEventListener('click', function() {
+        generateQuadData();
+        draw();
+    });
+
+    generateQuadData();
+    draw();
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 5: Correlation is Not Causation
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('causalCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+
+    let zRevealed = false;
+    let zData = [], xData = [], yData = [];
+
+    function generateCausalData() {
+        zData = []; xData = []; yData = [];
+        for (let i = 0; i < 40; i++) {
+            const z = Math.random() * 10;
+            const x = 0.8*z + (Math.random()-0.5)*3;
+            const y = 0.6*z + (Math.random()-0.5)*3;
+            zData.push(z); xData.push(x); yData.push(y);
+        }
+        zRevealed = false;
+    }
+
+    function calcRFromArrays(a, b) {
+        const n = a.length;
+        let sa=0, sb=0;
+        for (let i=0;i<n;i++) { sa+=a[i]; sb+=b[i]; }
+        const ma=sa/n, mb=sb/n;
+        let num=0, da2=0, db2=0;
+        for (let i=0;i<n;i++) {
+            const da=a[i]-ma, db=b[i]-mb;
+            num+=da*db; da2+=da*da; db2+=db*db;
+        }
+        return (da2>1e-12 && db2>1e-12) ? num/Math.sqrt(da2*db2) : 0;
+    }
+
+    function draw() {
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        if (!zRevealed) {
+            // show X vs Y scatter
+            const pad = {left:50, right:20, top:30, bottom:40};
+            const pw = W - pad.left - pad.right, ph = H - pad.top - pad.bottom;
+
+            let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+            for (let i=0;i<xData.length;i++) {
+                if (xData[i]<minX) minX=xData[i]; if (xData[i]>maxX) maxX=xData[i];
+                if (yData[i]<minY) minY=yData[i]; if (yData[i]>maxY) maxY=yData[i];
+            }
+            const rx = maxX-minX||1, ry = maxY-minY||1;
+            minX -= rx*0.08; maxX += rx*0.08; minY -= ry*0.08; maxY += ry*0.08;
+            const rngX = maxX-minX, rngY = maxY-minY;
+
+            function toS(x,y) {
+                return { x: pad.left + (x-minX)/rngX*pw, y: pad.top + ph - (y-minY)/rngY*ph };
+            }
+
+            // grid
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+            for (let i=0;i<=5;i++) {
+                const sx = pad.left+i/5*pw, sy = pad.top+i/5*ph;
+                ctx.beginPath(); ctx.moveTo(sx,pad.top); ctx.lineTo(sx,pad.top+ph); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(pad.left,sy); ctx.lineTo(pad.left+pw,sy); ctx.stroke();
+            }
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(pad.left, pad.top+ph); ctx.lineTo(pad.left+pw, pad.top+ph); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top+ph); ctx.stroke();
+
+            // regression line
+            const n = xData.length;
+            let sx2=0,sy2=0; for (let i=0;i<n;i++){sx2+=xData[i];sy2+=yData[i];}
+            const mx2=sx2/n, my2=sy2/n;
+            let nm=0,dn=0; for (let i=0;i<n;i++){nm+=(xData[i]-mx2)*(yData[i]-my2);dn+=(xData[i]-mx2)*(xData[i]-mx2);}
+            if (dn>1e-12) {
+                const m=nm/dn, b=my2-m*mx2;
+                const s0=toS(minX, m*minX+b), s1=toS(maxX, m*maxX+b);
+                ctx.save(); ctx.beginPath(); ctx.rect(pad.left,pad.top,pw,ph); ctx.clip();
+                ctx.strokeStyle='#67e8f9'; ctx.lineWidth=2;
+                ctx.beginPath(); ctx.moveTo(s0.x,s0.y); ctx.lineTo(s1.x,s1.y); ctx.stroke();
+                ctx.restore();
+            }
+
+            // points
+            for (let i=0;i<xData.length;i++) {
+                const s = toS(xData[i], yData[i]);
+                ctx.fillStyle = '#f472b6'; ctx.beginPath(); ctx.arc(s.x, s.y, 4, 0, Math.PI*2); ctx.fill();
+            }
+
+            const rXY = calcRFromArrays(xData, yData);
+            ctx.font = '12px Georgia'; ctx.fillStyle = '#f472b6';
+            ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+            ctx.fillText('X vs Y:  r = ' + rXY.toFixed(3) + '  \u2014  looks correlated!', pad.left + 8, 8);
+            ctx.font = '12px Georgia'; ctx.fillStyle = '#808098';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText('X', pad.left + pw/2, pad.top + ph + 14);
+            ctx.save(); ctx.translate(14, pad.top+ph/2); ctx.rotate(-Math.PI/2);
+            ctx.textAlign = 'center'; ctx.fillText('Y', 0, 0); ctx.restore();
+
+            document.getElementById('causalInfo').innerHTML = '<span class="pink">X and Y appear correlated (r = ' + rXY.toFixed(3) + '). But is there a hidden variable?</span>';
+
+        } else {
+            // show 3 subplots: X vs Z, Y vs Z, X vs Y colored by Z
+            const gap = 12;
+            const subW = (W - gap*4)/3;
+            const subH = H - 60;
+            const subTop = 30;
+
+            const titles = ['X vs Z (hidden)', 'Y vs Z (hidden)', 'X vs Y (colored by Z)'];
+            const pairs = [
+                {a: xData, b: zData, la: 'X', lb: 'Z'},
+                {a: yData, b: zData, la: 'Y', lb: 'Z'},
+                {a: xData, b: yData, la: 'X', lb: 'Y'}
+            ];
+
+            for (let p = 0; p < 3; p++) {
+                const x0 = gap + p*(subW+gap);
+                const pair = pairs[p];
+
+                // bounds
+                let minA=Infinity, maxA=-Infinity, minB=Infinity, maxB=-Infinity;
+                for (let i=0;i<pair.a.length;i++) {
+                    if (pair.a[i]<minA) minA=pair.a[i]; if (pair.a[i]>maxA) maxA=pair.a[i];
+                    if (pair.b[i]<minB) minB=pair.b[i]; if (pair.b[i]>maxB) maxB=pair.b[i];
+                }
+                const ra=maxA-minA||1, rb=maxB-minB||1;
+                minA-=ra*0.08; maxA+=ra*0.08; minB-=rb*0.08; maxB+=rb*0.08;
+                const rngA=maxA-minA, rngB=maxB-minB;
+
+                const pad2 = 10;
+                const pw = subW-pad2*2, ph = subH-pad2*2-14;
+
+                function toS(a,b) {
+                    return {
+                        x: x0 + pad2 + (a-minA)/rngA*pw,
+                        y: subTop + pad2 + 14 + ph - (b-minB)/rngB*ph
+                    };
+                }
+
+                ctx.fillStyle = 'rgba(255,255,255,0.015)';
+                ctx.fillRect(x0, subTop, subW, subH);
+                ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+                ctx.strokeRect(x0, subTop, subW, subH);
+
+                // title
+                ctx.font = '10px Georgia'; ctx.fillStyle = p<2 ? '#fbbf24' : '#f472b6';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+                ctx.fillText(titles[p], x0 + subW/2, subTop + 3);
+
+                // regression line
+                const n = pair.a.length;
+                let sa=0,sb=0; for(let i=0;i<n;i++){sa+=pair.a[i];sb+=pair.b[i];}
+                const ma=sa/n,mb=sb/n;
+                let nm=0,dn=0; for(let i=0;i<n;i++){nm+=(pair.a[i]-ma)*(pair.b[i]-mb);dn+=(pair.a[i]-ma)*(pair.a[i]-ma);}
+                if(dn>1e-12){
+                    const mm=nm/dn,bb=mb-mm*ma;
+                    const s0=toS(minA,mm*minA+bb), s1=toS(maxA,mm*maxA+bb);
+                    ctx.save(); ctx.beginPath(); ctx.rect(x0,subTop,subW,subH); ctx.clip();
+                    ctx.strokeStyle='rgba(103,232,249,0.5)'; ctx.lineWidth=1.5;
+                    ctx.beginPath(); ctx.moveTo(s0.x,s0.y); ctx.lineTo(s1.x,s1.y); ctx.stroke();
+                    ctx.restore();
+                }
+
+                // points
+                for (let i=0;i<pair.a.length;i++) {
+                    const s = toS(pair.a[i], pair.b[i]);
+                    if (p === 2) {
+                        // color by Z
+                        const zNorm = (zData[i] - Math.min(...zData)) / (Math.max(...zData) - Math.min(...zData) || 1);
+                        const r = Math.round(244 * (1-zNorm) + 103 * zNorm);
+                        const g = Math.round(114 * (1-zNorm) + 232 * zNorm);
+                        const b = Math.round(182 * (1-zNorm) + 249 * zNorm);
+                        ctx.fillStyle = 'rgb('+r+','+g+','+b+')';
+                    } else {
+                        ctx.fillStyle = '#fbbf24';
+                    }
+                    ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, Math.PI*2); ctx.fill();
+                }
+
+                // r value
+                const rVal = calcRFromArrays(pair.a, pair.b);
+                ctx.font = '9px Courier New'; ctx.fillStyle = '#67e8f9';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                ctx.fillText('r = ' + rVal.toFixed(3), x0+subW/2, subTop+subH-2);
+
+                // axis labels
+                ctx.font = '9px Georgia'; ctx.fillStyle = '#808098';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+                ctx.fillText(pair.la, x0+subW/2, subTop+subH+14);
+            }
+
+            // causal diagram
+            ctx.font = '12px Georgia'; ctx.fillStyle = '#f472b6';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText('Z drives both X and Y:   X \u2190 Z \u2192 Y', W/2, 6);
+
+            const rXY = calcRFromArrays(xData, yData);
+            const rXZ = calcRFromArrays(xData, zData);
+            const rYZ = calcRFromArrays(yData, zData);
+            document.getElementById('causalInfo').innerHTML =
+                '<span class="pink">Hidden variable Z revealed!</span><br>' +
+                '<span class="muted">r(X,Y) = ' + rXY.toFixed(3) + '  |  r(X,Z) = ' + rXZ.toFixed(3) + '  |  r(Y,Z) = ' + rYZ.toFixed(3) + '</span><br>' +
+                '<span class="muted">Both X and Y are driven by Z. The apparent X-Y correlation is entirely explained by the confounding variable.</span>';
+        }
+    }
+
+    document.getElementById('btnRevealZ').addEventListener('click', function() { zRevealed = true; draw(); });
+    document.getElementById('btnHideZ').addEventListener('click', function() { zRevealed = false; draw(); });
+    document.getElementById('btnNewCausal').addEventListener('click', function() { generateCausalData(); draw(); });
+
+    generateCausalData();
+    draw();
+})();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Built in collaboration with <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude Code</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

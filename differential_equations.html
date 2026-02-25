@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Differential Equations</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fb923c}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(251,146,60,0.13);border-color:rgba(251,146,60,0.4);color:#fb923c}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .orange{color:#fb923c}.math-line .cyan{color:#22d3ee}.math-line .pink{color:#f472b6}.math-line .green{color:#2ecc71}
+        .math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#fb923c;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#fb923c}
+        .slider-label{color:#fb923c;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-third{flex:1 1 280px;min-width:260px}
+        .info-box{font-family:'Courier New',monospace;font-size:0.82em;color:#c0c0d8;margin-top:10px;line-height:1.9;min-height:80px}
+        .eq-display{font-family:'Courier New',monospace;font-size:1.05em;color:#fb923c;margin:8px 0;padding:8px 14px;background:rgba(251,146,60,0.06);border:1px solid rgba(251,146,60,0.15);border-radius:6px;display:inline-block}
+        .family-label{font-family:'Courier New',monospace;font-size:0.85em;color:#808098;margin-top:6px}
+        .eq-type{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.78em;color:#808098;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);margin-left:8px}
+        @media(max-width:700px){canvas{width:100%!important;height:auto!important}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Differential Equations</h1>
+    <p class="subtitle">Slope fields, flows, and the mathematics of change over time</p>
+
+    <!-- ═══ Section 1: Slope Field Visualizer ═══ -->
+    <h2>1. Slope Field Visualizer</h2>
+    <div class="panel">
+        <h3>Equation dy/dx = f(x, y)</h3>
+        <div class="btn-row" id="slopeBtns"></div>
+        <div class="eq-display" id="slopeEqDisplay">dy/dx = y</div>
+        <div style="margin-top:8px;margin-bottom:8px;color:#808098;font-size:0.82em">Click anywhere on the field to draw a solution curve from that point</div>
+        <canvas id="slopeCanvas" width="700" height="500"></canvas>
+        <div style="margin-top:12px">
+            <button class="btn" id="clearSolutions">Clear Solutions</button>
+        </div>
+        <div class="info-box" id="slopeInfo"></div>
+    </div>
+
+    <!-- ═══ Section 2: Euler's Method Step-by-Step ═══ -->
+    <h2>2. Euler's Method Step-by-Step</h2>
+    <div class="panel">
+        <h3>Numerical Approximation</h3>
+        <div class="eq-display" id="eulerEqDisplay">dy/dx = y, exact: y = e^x</div>
+        <div class="slider-row">
+            <span class="math-line muted">Step size h =</span>
+            <input type="range" id="eulerH" min="1" max="50" value="20">
+            <span class="slider-label" id="eulerHLabel">0.20</span>
+        </div>
+        <div style="margin-bottom:8px;color:#808098;font-size:0.82em">Click on the canvas to place starting point, then use Step or Auto</div>
+        <canvas id="eulerCanvas" width="700" height="400"></canvas>
+        <div style="margin-top:12px" class="btn-row">
+            <button class="btn" id="eulerStep">Step</button>
+            <button class="btn" id="eulerAuto">Auto</button>
+            <button class="btn" id="eulerReset">Reset</button>
+            <button class="btn" id="eulerCompare">Compare h values</button>
+        </div>
+        <div class="info-box" id="eulerInfo"></div>
+    </div>
+
+    <!-- ═══ Section 3: Separable Equations ═══ -->
+    <h2>3. Separable Equations &mdash; Visual Solution</h2>
+    <div class="panel">
+        <h3>dy/dx = f(x) g(y) &rarr; &int;dy/g(y) = &int;f(x)dx</h3>
+        <div class="btn-row" id="sepBtns"></div>
+        <div class="eq-display" id="sepEqDisplay">dy/dx = y &rarr; y = Ce^x</div>
+        <div class="slider-row">
+            <span class="math-line muted">C =</span>
+            <input type="range" id="sepC" min="-200" max="200" value="100">
+            <span class="slider-label" id="sepCLabel">1.00</span>
+        </div>
+        <canvas id="sepCanvas" width="600" height="350"></canvas>
+        <div class="family-label" id="sepFamily"></div>
+        <div class="info-box" id="sepInfo"></div>
+    </div>
+
+    <!-- ═══ Section 4: Phase Portrait ═══ -->
+    <h2>4. Phase Portrait &mdash; Systems of ODEs</h2>
+    <div class="panel">
+        <h3>2D Vector Field</h3>
+        <div class="btn-row" id="phaseBtns"></div>
+        <div class="eq-display" id="phaseEqDisplay">dx/dt = -x - y, dy/dt = x - y</div>
+        <span class="eq-type" id="phaseType">Stable spiral</span>
+        <div style="margin-top:8px;margin-bottom:8px;color:#808098;font-size:0.82em">Click to launch trajectories that flow along the vector field</div>
+        <canvas id="phaseCanvas" width="500" height="500"></canvas>
+        <div style="margin-top:12px">
+            <button class="btn" id="clearTrajectories">Clear Trajectories</button>
+        </div>
+        <div class="info-box" id="phaseInfo"></div>
+    </div>
+
+    <!-- ═══ Section 5: Real-World Models ═══ -->
+    <h2>5. Real-World Models</h2>
+    <div class="flex-row">
+        <div class="flex-third">
+            <div class="panel">
+                <h3>Population Growth</h3>
+                <div class="eq-display" style="font-size:0.88em">dy/dt = ry(1 - y/K)</div>
+                <div class="slider-row">
+                    <span class="math-line muted">r =</span>
+                    <input type="range" id="popR" min="5" max="30" value="10">
+                    <span class="slider-label" id="popRLabel">1.0</span>
+                </div>
+                <div class="slider-row">
+                    <span class="math-line muted">K =</span>
+                    <input type="range" id="popK" min="20" max="200" value="100">
+                    <span class="slider-label" id="popKLabel">100</span>
+                </div>
+                <canvas id="popCanvas" width="280" height="200" style="cursor:default"></canvas>
+            </div>
+        </div>
+        <div class="flex-third">
+            <div class="panel">
+                <h3>Newton's Cooling</h3>
+                <div class="eq-display" style="font-size:0.88em">dT/dt = -k(T - T_a)</div>
+                <div class="slider-row">
+                    <span class="math-line muted">k =</span>
+                    <input type="range" id="coolK" min="1" max="30" value="10">
+                    <span class="slider-label" id="coolKLabel">0.10</span>
+                </div>
+                <div class="slider-row">
+                    <span class="math-line muted">T_a =</span>
+                    <input type="range" id="coolTa" min="10" max="40" value="22">
+                    <span class="slider-label" id="coolTaLabel">22</span>
+                </div>
+                <canvas id="coolCanvas" width="280" height="200" style="cursor:default"></canvas>
+            </div>
+        </div>
+        <div class="flex-third">
+            <div class="panel">
+                <h3>Radioactive Decay</h3>
+                <div class="eq-display" style="font-size:0.88em">dN/dt = -&lambda;N</div>
+                <div class="slider-row">
+                    <span class="math-line muted">&lambda; =</span>
+                    <input type="range" id="decayL" min="1" max="30" value="10">
+                    <span class="slider-label" id="decayLLabel">0.10</span>
+                </div>
+                <canvas id="decayCanvas" width="280" height="200" style="cursor:default"></canvas>
+                <div class="family-label" id="decayHL"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ Section 6: Explanation ═══ -->
+    <div class="explain" style="margin-top:24px">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            Differential equations describe how quantities <em>change</em> &mdash; they are the mathematical language of physics, biology, economics, and engineering. A slope field visualises the equation before you solve it: every tiny segment whispers the direction a solution must travel. Euler's method shows how we approximate these solutions numerically, stepping forward along the slope, and why smaller steps yield better answers.
+            <br><br>
+            Separable equations reveal that many differential equations can be unwound by pulling the variables apart &mdash; separating x from y &mdash; and integrating each side. The family of solutions, parameterised by C, shows how initial conditions select one particular trajectory from infinitely many.
+            <br><br>
+            Phase portraits lift us into the world of systems: two coupled equations create a 2D flow, with trajectories that spiral, orbit, or flee. The classification of equilibria &mdash; stable nodes, saddle points, centres, spirals &mdash; is one of the deepest insights in applied mathematics.
+            <br><br>
+            <strong>Connection:</strong> This is where calculus meets the real world. Every model of growth, decay, oscillation, and equilibrium is a differential equation. Population dynamics, radioactive half-lives, Newton's law of cooling &mdash; all are governed by these equations. And in financial mathematics, the Black-Scholes PDE that prices options is itself a differential equation, connecting this chapter directly to quantitative finance.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   SECTION 1: SLOPE FIELD VISUALIZER
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('slopeCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+
+    const solutionColors = ['#fb923c','#22d3ee','#f472b6','#2ecc71','#fbbf24','#818cf8'];
+    let solutions = [];
+    let colorIdx = 0;
+
+    /* coordinate system: x in [-5,5], y in [-3.5,3.5] */
+    const xMin = -5, xMax = 5, yMin = -3.5, yMax = 3.5;
+    function toSx(x){ return (x - xMin) / (xMax - xMin) * W; }
+    function toSy(y){ return H - (y - yMin) / (yMax - yMin) * H; }
+    function toMx(sx){ return xMin + sx / W * (xMax - xMin); }
+    function toMy(sy){ return yMin + (H - sy) / H * (yMax - yMin); }
+
+    const presets = [
+        { label:'dy/dx = y',       f:(x,y)=>y,         desc:'Exponential growth/decay' },
+        { label:'dy/dx = -y',      f:(x,y)=>-y,        desc:'Exponential decay' },
+        { label:'dy/dx = x',       f:(x,y)=>x,         desc:'Parabolas' },
+        { label:'dy/dx = -x/y',    f:(x,y)=> Math.abs(y)<0.01 ? 999 : -x/y, desc:'Circles' },
+        { label:'dy/dx = x - y',   f:(x,y)=>x-y,       desc:'Approach to diagonal' },
+        { label:'dy/dx = sin(x)',   f:(x,y)=>Math.sin(x), desc:'Oscillating slopes' },
+        { label:'dy/dx = y(1-y)',  f:(x,y)=>y*(1-y),   desc:'Logistic (S-curves)' }
+    ];
+    let current = 0;
+
+    function renderButtons(){
+        const c = document.getElementById('slopeBtns');
+        c.innerHTML = presets.map((p,i)=>'<button class="btn'+(i===current?' active':'')+'" data-i="'+i+'">'+p.label+'</button>').join('');
+        c.querySelectorAll('.btn').forEach(b=>b.addEventListener('click',()=>{
+            current = parseInt(b.dataset.i);
+            solutions = []; colorIdx = 0;
+            renderButtons(); draw();
+        }));
+        document.getElementById('slopeEqDisplay').textContent = presets[current].label;
+        document.getElementById('slopeInfo').innerHTML = '<span style="color:#808098">'+presets[current].desc+'</span>';
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        /* grid lines */
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+        for(let x = Math.ceil(xMin); x <= Math.floor(xMax); x++){
+            const sx = toSx(x);
+            ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,H); ctx.stroke();
+        }
+        for(let y = Math.ceil(yMin); y <= Math.floor(yMax); y++){
+            const sy = toSy(y);
+            ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(W,sy); ctx.stroke();
+        }
+
+        /* axes */
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+        const ox = toSx(0), oy = toSy(0);
+        if(ox >= 0 && ox <= W){ ctx.beginPath(); ctx.moveTo(ox,0); ctx.lineTo(ox,H); ctx.stroke(); }
+        if(oy >= 0 && oy <= H){ ctx.beginPath(); ctx.moveTo(0,oy); ctx.lineTo(W,oy); ctx.stroke(); }
+
+        /* axis labels */
+        ctx.font = '12px Georgia'; ctx.fillStyle = '#808098';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText('x', W-16, oy-4 > 12 ? oy-4 : 16);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText('y', ox+6 < W-16 ? ox+6 : W-24, 6);
+
+        /* tick labels */
+        ctx.font = '9px Georgia'; ctx.fillStyle = '#505068';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for(let x = Math.ceil(xMin); x <= Math.floor(xMax); x++){
+            if(x===0) continue;
+            ctx.fillText(x, toSx(x), oy+3 < H-12 ? oy+3 : H-12);
+        }
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for(let y = Math.ceil(yMin); y <= Math.floor(yMax); y++){
+            if(y===0) continue;
+            ctx.fillText(y, ox-5 > 16 ? ox-5 : 18, toSy(y));
+        }
+
+        /* slope field */
+        const f = presets[current].f;
+        const nx = 35, ny = 25;
+        const dx = (xMax - xMin) / nx;
+        const dy = (yMax - yMin) / ny;
+        const segLen = 7;
+
+        for(let i = 0; i < nx; i++){
+            for(let j = 0; j < ny; j++){
+                const mx = xMin + (i + 0.5) * dx;
+                const my = yMin + (j + 0.5) * dy;
+                const slope = f(mx, my);
+                if(!isFinite(slope) || Math.abs(slope) > 100) continue;
+
+                const angle = Math.atan(slope);
+                const cosA = Math.cos(angle);
+                const sinA = Math.sin(angle);
+
+                const sx = toSx(mx), sy = toSy(my);
+                const x1 = sx - segLen * cosA;
+                const y1 = sy + segLen * sinA;
+                const x2 = sx + segLen * cosA;
+                const y2 = sy - segLen * sinA;
+
+                /* color by slope: blue for negative, white for zero, orange for positive */
+                let r, g, b;
+                if(slope < 0){
+                    const t = Math.min(1, Math.abs(slope) / 3);
+                    r = Math.round(100 + (96-100)*t);
+                    g = Math.round(160 + (165-160)*t);
+                    b = Math.round(220 + (250-220)*t);
+                } else if(slope > 0){
+                    const t = Math.min(1, slope / 3);
+                    r = Math.round(200 + (251-200)*t);
+                    g = Math.round(200 + (146-200)*t);
+                    b = Math.round(220 + (60-220)*t);
+                } else {
+                    r = 200; g = 200; b = 210;
+                }
+
+                ctx.strokeStyle = 'rgba('+r+','+g+','+b+',0.6)';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+            }
+        }
+
+        /* draw solution curves */
+        for(const sol of solutions){
+            ctx.strokeStyle = sol.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for(let k = 0; k < sol.pts.length; k++){
+                const sx = toSx(sol.pts[k][0]);
+                const sy = toSy(sol.pts[k][1]);
+                if(k===0) ctx.moveTo(sx,sy); else ctx.lineTo(sx,sy);
+            }
+            ctx.stroke();
+            /* start dot */
+            ctx.fillStyle = sol.color;
+            ctx.beginPath();
+            ctx.arc(toSx(sol.pts[0][0]), toSy(sol.pts[0][1]), 4, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+
+    /* RK4 integration for slope field */
+    function integrateCurve(x0, y0){
+        const f = presets[current].f;
+        const h = 0.02;
+        const pts = [[x0, y0]];
+
+        /* forward */
+        let x = x0, y = y0;
+        for(let i = 0; i < 800; i++){
+            const k1 = f(x, y);
+            if(!isFinite(k1) || Math.abs(k1) > 1000) break;
+            const k2 = f(x + h/2, y + h/2 * k1);
+            const k3 = f(x + h/2, y + h/2 * k2);
+            const k4 = f(x + h, y + h * k3);
+            if(!isFinite(k2) || !isFinite(k3) || !isFinite(k4)) break;
+            y = y + h/6 * (k1 + 2*k2 + 2*k3 + k4);
+            x = x + h;
+            if(x > xMax + 1 || y > yMax + 5 || y < yMin - 5) break;
+            pts.push([x, y]);
+        }
+
+        /* backward */
+        x = x0; y = y0;
+        const ptsBack = [];
+        for(let i = 0; i < 800; i++){
+            const k1 = f(x, y);
+            if(!isFinite(k1) || Math.abs(k1) > 1000) break;
+            const k2 = f(x - h/2, y - h/2 * k1);
+            const k3 = f(x - h/2, y - h/2 * k2);
+            const k4 = f(x - h, y - h * k3);
+            if(!isFinite(k2) || !isFinite(k3) || !isFinite(k4)) break;
+            y = y - h/6 * (k1 + 2*k2 + 2*k3 + k4);
+            x = x - h;
+            if(x < xMin - 1 || y > yMax + 5 || y < yMin - 5) break;
+            ptsBack.push([x, y]);
+        }
+
+        ptsBack.reverse();
+        return ptsBack.concat(pts);
+    }
+
+    function getCanvasPos(e){
+        const r = cvs.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            sx: (clientX - r.left) * (W / r.width),
+            sy: (clientY - r.top) * (H / r.height)
+        };
+    }
+
+    function handleClick(e){
+        e.preventDefault();
+        const pos = getCanvasPos(e);
+        const mx = toMx(pos.sx), my = toMy(pos.sy);
+        const pts = integrateCurve(mx, my);
+        const color = solutionColors[colorIdx % solutionColors.length];
+        colorIdx++;
+        solutions.push({ pts, color });
+        draw();
+        document.getElementById('slopeInfo').innerHTML =
+            '<span style="color:'+color+'">Solution through ('+mx.toFixed(2)+', '+my.toFixed(2)+')</span>' +
+            '<span style="color:#808098"> &mdash; '+solutions.length+' curve(s) drawn</span>';
+    }
+
+    cvs.addEventListener('click', handleClick);
+    cvs.addEventListener('touchstart', handleClick, {passive:false});
+
+    document.getElementById('clearSolutions').addEventListener('click',()=>{
+        solutions = []; colorIdx = 0; draw();
+        document.getElementById('slopeInfo').innerHTML = '<span style="color:#808098">'+presets[current].desc+'</span>';
+    });
+
+    renderButtons();
+    draw();
+})();
+
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 2: EULER'S METHOD STEP-BY-STEP
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('eulerCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+
+    const xMin = -1, xMax = 5, yMin = -1, yMax = 8;
+    function toSx(x){ return (x - xMin) / (xMax - xMin) * W; }
+    function toSy(y){ return H - (y - yMin) / (yMax - yMin) * H; }
+    function toMx(sx){ return xMin + sx / W * (xMax - xMin); }
+    function toMy(sy){ return yMin + (H - sy) / H * (yMax - yMin); }
+
+    /* equation: dy/dx = y, exact: y = y0 * e^(x - x0) */
+    const f = (x,y) => y;
+    const exact = (x, x0, y0) => y0 * Math.exp(x - x0);
+
+    let x0 = 0, y0 = 1;
+    let steps = [];
+    let placed = false;
+    let autoInterval = null;
+    let comparing = false;
+
+    function getH(){ return parseInt(document.getElementById('eulerH').value) / 100; }
+
+    document.getElementById('eulerH').addEventListener('input', function(){
+        document.getElementById('eulerHLabel').textContent = getH().toFixed(2);
+        if(placed){ steps = []; comparing = false; draw(); }
+    });
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        /* grid */
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+        for(let x = Math.ceil(xMin); x <= Math.floor(xMax); x++){
+            ctx.beginPath(); ctx.moveTo(toSx(x),0); ctx.lineTo(toSx(x),H); ctx.stroke();
+        }
+        for(let y = Math.ceil(yMin); y <= Math.floor(yMax); y++){
+            ctx.beginPath(); ctx.moveTo(0,toSy(y)); ctx.lineTo(W,toSy(y)); ctx.stroke();
+        }
+
+        /* axes */
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+        const ox = toSx(0), oy = toSy(0);
+        if(ox >= 0 && ox <= W){ ctx.beginPath(); ctx.moveTo(ox,0); ctx.lineTo(ox,H); ctx.stroke(); }
+        if(oy >= 0 && oy <= H){ ctx.beginPath(); ctx.moveTo(0,oy); ctx.lineTo(W,oy); ctx.stroke(); }
+
+        /* tick labels */
+        ctx.font = '9px Georgia'; ctx.fillStyle = '#505068';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for(let x = Math.ceil(xMin); x <= Math.floor(xMax); x++){
+            if(x===0) continue;
+            ctx.fillText(x, toSx(x), oy+3 < H-12 ? oy+3 : H-12);
+        }
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for(let y = Math.ceil(yMin); y <= Math.floor(yMax); y++){
+            if(y===0) continue;
+            ctx.fillText(y, ox-5 > 16 ? ox-5 : 18, toSy(y));
+        }
+
+        if(!placed){
+            ctx.font = '14px Georgia'; ctx.fillStyle = '#808098';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('Click to place starting point (x\u2080, y\u2080)', W/2, H/2);
+            return;
+        }
+
+        if(comparing){
+            drawComparison();
+            return;
+        }
+
+        /* exact solution curve */
+        ctx.strokeStyle = 'rgba(46,204,113,0.5)'; ctx.lineWidth = 1.5;
+        ctx.setLineDash([4,4]);
+        ctx.beginPath();
+        let started = false;
+        for(let px = 0; px <= W; px += 2){
+            const mx = toMx(px);
+            const ey = exact(mx, x0, y0);
+            if(ey > yMax + 2 || ey < yMin - 2) continue;
+            if(!started){ ctx.moveTo(px, toSy(ey)); started = true; }
+            else ctx.lineTo(px, toSy(ey));
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        /* label for exact */
+        ctx.font = '11px Georgia'; ctx.fillStyle = '#2ecc71';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText('Exact: y = '+y0.toFixed(1)+'e^(x'+(x0===0?'':' - '+x0.toFixed(1))+')', 12, 20);
+
+        /* Euler steps */
+        if(steps.length > 0){
+            ctx.strokeStyle = '#fb923c'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(toSx(steps[0].x), toSy(steps[0].y));
+            for(let i = 1; i < steps.length; i++){
+                ctx.lineTo(toSx(steps[i].x), toSy(steps[i].y));
+            }
+            ctx.stroke();
+
+            /* dots at each step */
+            for(let i = 0; i < steps.length; i++){
+                const sx = toSx(steps[i].x), sy = toSy(steps[i].y);
+                if(sy < -20 || sy > H + 20) continue;
+                ctx.fillStyle = '#fb923c';
+                ctx.beginPath(); ctx.arc(sx, sy, 3.5, 0, Math.PI*2); ctx.fill();
+
+                /* tangent line segments */
+                if(i < steps.length - 1){
+                    const slope = f(steps[i].x, steps[i].y);
+                    const tanLen = 0.3;
+                    ctx.strokeStyle = 'rgba(251,146,60,0.25)'; ctx.lineWidth = 1;
+                    ctx.setLineDash([2,2]);
+                    ctx.beginPath();
+                    ctx.moveTo(toSx(steps[i].x - tanLen), toSy(steps[i].y - tanLen * slope));
+                    ctx.lineTo(toSx(steps[i].x + tanLen * 2), toSy(steps[i].y + tanLen * 2 * slope));
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+
+            /* start point highlight */
+            ctx.fillStyle = '#fb923c';
+            ctx.beginPath();
+            ctx.arc(toSx(steps[0].x), toSy(steps[0].y), 5, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        updateEulerInfo();
+    }
+
+    function drawComparison(){
+        /* draw exact */
+        ctx.strokeStyle = 'rgba(46,204,113,0.6)'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        let started = false;
+        for(let px = 0; px <= W; px += 2){
+            const mx = toMx(px);
+            const ey = exact(mx, x0, y0);
+            if(ey > yMax + 2 || ey < yMin - 2) continue;
+            if(!started){ ctx.moveTo(px, toSy(ey)); started = true; }
+            else ctx.lineTo(px, toSy(ey));
+        }
+        ctx.stroke();
+
+        const hValues = [0.5, 0.1, 0.01];
+        const colors = ['#f472b6', '#22d3ee', '#fb923c'];
+        const labels = ['h = 0.50', 'h = 0.10', 'h = 0.01'];
+
+        for(let hi = 0; hi < hValues.length; hi++){
+            const h = hValues[hi];
+            const pts = [{x: x0, y: y0}];
+            let cx2 = x0, cy = y0;
+            while(cx2 < xMax){
+                const slope = f(cx2, cy);
+                cy = cy + h * slope;
+                cx2 = cx2 + h;
+                if(cy > yMax + 5) break;
+                pts.push({x: cx2, y: cy});
+            }
+
+            ctx.strokeStyle = colors[hi]; ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            for(let k = 0; k < pts.length; k++){
+                const sx = toSx(pts[k].x), sy = toSy(pts[k].y);
+                if(k===0) ctx.moveTo(sx,sy); else ctx.lineTo(sx,sy);
+            }
+            ctx.stroke();
+
+            /* dots for large h */
+            if(h >= 0.1){
+                for(let k = 0; k < pts.length && k < 60; k++){
+                    const sy = toSy(pts[k].y);
+                    if(sy < -10 || sy > H+10) continue;
+                    ctx.fillStyle = colors[hi];
+                    ctx.beginPath();
+                    ctx.arc(toSx(pts[k].x), sy, h >= 0.5 ? 3 : 2, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        /* legend */
+        ctx.font = '11px Georgia';
+        ctx.fillStyle = '#2ecc71'; ctx.textAlign = 'left'; ctx.fillText('Exact', 12, 20);
+        for(let i = 0; i < 3; i++){
+            ctx.fillStyle = colors[i];
+            ctx.fillText(labels[i], 12, 38 + i*18);
+        }
+
+        document.getElementById('eulerInfo').innerHTML =
+            '<span style="color:#808098">Comparison: smaller step size h produces more accurate approximation.</span><br>' +
+            '<span style="color:#f472b6">h=0.50: large steps, overshoots badly</span><br>' +
+            '<span style="color:#22d3ee">h=0.10: moderate steps, visible error</span><br>' +
+            '<span style="color:#fb923c">h=0.01: small steps, nearly exact</span>';
+    }
+
+    function updateEulerInfo(){
+        if(steps.length < 2){
+            document.getElementById('eulerInfo').innerHTML = '<span style="color:#808098">Place a point and step to begin</span>';
+            return;
+        }
+        const last = steps[steps.length - 1];
+        const ex = exact(last.x, x0, y0);
+        const err = Math.abs(last.y - ex);
+        document.getElementById('eulerInfo').innerHTML =
+            '<span style="color:#fb923c">Step '+(steps.length-1)+'</span>' +
+            ' &mdash; <span style="color:#c0c0d8">(x, y) = ('+last.x.toFixed(3)+', '+last.y.toFixed(4)+')</span>' +
+            ' &mdash; <span style="color:#808098">slope = '+f(last.x, last.y).toFixed(4)+'</span>' +
+            '<br><span style="color:#2ecc71">Exact y = '+ex.toFixed(4)+'</span>' +
+            ' &mdash; <span style="color:#f472b6">Error = '+err.toFixed(6)+'</span>' +
+            ' &mdash; <span style="color:#808098">h = '+getH().toFixed(2)+'</span>';
+    }
+
+    function addStep(){
+        if(!placed) return;
+        const h = getH();
+        let cx2, cy;
+        if(steps.length === 0){
+            cx2 = x0; cy = y0;
+            steps.push({x: cx2, y: cy});
+        }
+        const last = steps[steps.length - 1];
+        if(last.x >= xMax) return;
+        const slope = f(last.x, last.y);
+        const ny = last.y + h * slope;
+        const nx = last.x + h;
+        if(ny > yMax + 10 || ny < yMin - 10) return;
+        steps.push({x: nx, y: ny});
+        draw();
+    }
+
+    function getCanvasPos(e){
+        const r = cvs.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            sx: (clientX - r.left) * (W / r.width),
+            sy: (clientY - r.top) * (H / r.height)
+        };
+    }
+
+    function handlePlace(e){
+        e.preventDefault();
+        const pos = getCanvasPos(e);
+        x0 = toMx(pos.sx); y0 = toMy(pos.sy);
+        /* clamp */
+        x0 = Math.round(x0 * 10) / 10;
+        y0 = Math.round(y0 * 10) / 10;
+        if(y0 <= 0) y0 = 0.1;
+        placed = true;
+        steps = [{x: x0, y: y0}];
+        comparing = false;
+        if(autoInterval){ clearInterval(autoInterval); autoInterval = null; }
+        draw();
+        document.getElementById('eulerEqDisplay').textContent = 'dy/dx = y, exact: y = '+y0.toFixed(1)+'e^(x'+(x0===0?'':' - '+x0.toFixed(1))+')';
+    }
+
+    cvs.addEventListener('click', handlePlace);
+    cvs.addEventListener('touchstart', handlePlace, {passive:false});
+
+    document.getElementById('eulerStep').addEventListener('click', ()=>{
+        comparing = false;
+        addStep();
+    });
+
+    document.getElementById('eulerAuto').addEventListener('click', ()=>{
+        if(!placed) return;
+        comparing = false;
+        if(autoInterval){ clearInterval(autoInterval); autoInterval = null; return; }
+        autoInterval = setInterval(()=>{
+            if(!placed || (steps.length > 0 && steps[steps.length-1].x >= xMax)){
+                clearInterval(autoInterval); autoInterval = null; return;
+            }
+            addStep();
+        }, 80);
+    });
+
+    document.getElementById('eulerReset').addEventListener('click', ()=>{
+        if(autoInterval){ clearInterval(autoInterval); autoInterval = null; }
+        steps = [];
+        if(placed) steps = [{x: x0, y: y0}];
+        comparing = false;
+        draw();
+    });
+
+    document.getElementById('eulerCompare').addEventListener('click', ()=>{
+        if(!placed) return;
+        if(autoInterval){ clearInterval(autoInterval); autoInterval = null; }
+        comparing = true;
+        draw();
+    });
+
+    draw();
+})();
+
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 3: SEPARABLE EQUATIONS
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('sepCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+
+    const xMin = -4, xMax = 4, yMin = -3, yMax = 3;
+    function toSx(x){ return (x - xMin) / (xMax - xMin) * W; }
+    function toSy(y){ return H - (y - yMin) / (yMax - yMin) * H; }
+
+    const presets = [
+        {
+            label: 'dy/dx = y',
+            eq: 'dy/dx = y',
+            sol: 'y = Ce^x',
+            sep: 'dy/y = dx',
+            integral: 'ln|y| = x + C',
+            fn: (x, C) => C * Math.exp(x),
+            desc: 'Exponential growth (C > 0) or decay (C < 0). The separation dy/y = dx integrates to ln|y| = x + const.'
+        },
+        {
+            label: 'dy/dx = -y',
+            eq: 'dy/dx = -y',
+            sol: 'y = Ce^(-x)',
+            sep: 'dy/y = -dx',
+            integral: 'ln|y| = -x + C',
+            fn: (x, C) => C * Math.exp(-x),
+            desc: 'Exponential decay. Every solution approaches y = 0 as x grows. The rate of approach depends on the initial value.'
+        },
+        {
+            label: 'dy/dx = y\u00B2',
+            eq: 'dy/dx = y\u00B2',
+            sol: 'y = -1/(x + C)',
+            sep: 'dy/y\u00B2 = dx',
+            integral: '-1/y = x + C',
+            fn: (x, C) => {
+                const denom = x + C;
+                if(Math.abs(denom) < 0.03) return NaN;
+                return -1 / denom;
+            },
+            desc: 'Finite-time blow-up! The solution y = -1/(x+C) has a vertical asymptote at x = -C. The function races to infinity in finite time.'
+        },
+        {
+            label: 'dy/dx = y(1-y)',
+            eq: 'dy/dx = y(1-y)',
+            sol: 'y = 1/(1 + Ce^(-x))',
+            sep: 'dy/[y(1-y)] = dx',
+            integral: 'ln|y/(1-y)| = x + C',
+            fn: (x, C) => {
+                const val = 1 / (1 + C * Math.exp(-x));
+                return val;
+            },
+            desc: 'The logistic equation. Solutions approach y = 1 (carrying capacity) from above and below. S-shaped curves emerge naturally.'
+        }
+    ];
+    let current = 0;
+
+    function getCVal(){
+        return (parseInt(document.getElementById('sepC').value) - 100) / 50;  /* -2 to 2 */
+    }
+
+    function renderButtons(){
+        const c = document.getElementById('sepBtns');
+        c.innerHTML = presets.map((p,i)=>'<button class="btn'+(i===current?' active':'')+'" data-i="'+i+'">'+p.label+'</button>').join('');
+        c.querySelectorAll('.btn').forEach(b=>b.addEventListener('click',()=>{
+            current = parseInt(b.dataset.i);
+            renderButtons(); draw();
+        }));
+        const p = presets[current];
+        document.getElementById('sepEqDisplay').textContent = p.eq + ' \u2192 ' + p.sol;
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        /* grid */
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+        for(let x = Math.ceil(xMin); x <= Math.floor(xMax); x++){
+            ctx.beginPath(); ctx.moveTo(toSx(x),0); ctx.lineTo(toSx(x),H); ctx.stroke();
+        }
+        for(let y = Math.ceil(yMin); y <= Math.floor(yMax); y++){
+            ctx.beginPath(); ctx.moveTo(0,toSy(y)); ctx.lineTo(W,toSy(y)); ctx.stroke();
+        }
+
+        /* axes */
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+        const ox = toSx(0), oy = toSy(0);
+        ctx.beginPath(); ctx.moveTo(ox,0); ctx.lineTo(ox,H); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,oy); ctx.lineTo(W,oy); ctx.stroke();
+
+        /* tick labels */
+        ctx.font = '9px Georgia'; ctx.fillStyle = '#505068';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for(let x = Math.ceil(xMin); x <= Math.floor(xMax); x++){
+            if(x===0) continue;
+            ctx.fillText(x, toSx(x), oy+3);
+        }
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for(let y = Math.ceil(yMin); y <= Math.floor(yMax); y++){
+            if(y===0) continue;
+            ctx.fillText(y, ox-5, toSy(y));
+        }
+
+        const p = presets[current];
+        const cSlider = getCVal();
+
+        /* family of curves for C = -2, -1, 0, 1, 2 */
+        const familyCs = [-2, -1, 0, 1, 2];
+        for(const C of familyCs){
+            const isSelected = Math.abs(C - cSlider) < 0.03;
+            ctx.strokeStyle = isSelected ? '#fb923c' : 'rgba(251,146,60,0.18)';
+            ctx.lineWidth = isSelected ? 2.5 : 1;
+
+            ctx.beginPath();
+            let started = false;
+            let prevY = null;
+            for(let px = 0; px <= W; px += 1){
+                const mx = xMin + px / W * (xMax - xMin);
+                const yVal = p.fn(mx, C);
+                if(!isFinite(yVal) || Math.abs(yVal) > 50){
+                    started = false; prevY = null; continue;
+                }
+                if(yVal < yMin - 1 || yVal > yMax + 1){
+                    started = false; prevY = null; continue;
+                }
+                /* detect discontinuity */
+                if(prevY !== null && Math.abs(yVal - prevY) > 3){
+                    started = false;
+                }
+                const sy = toSy(yVal);
+                if(!started){ ctx.moveTo(px, sy); started = true; }
+                else ctx.lineTo(px, sy);
+                prevY = yVal;
+            }
+            ctx.stroke();
+
+            /* label */
+            if(!isSelected){
+                const labelX = xMax - 0.3;
+                const labelY = p.fn(labelX, C);
+                if(isFinite(labelY) && labelY > yMin && labelY < yMax){
+                    ctx.font = '9px Courier New';
+                    ctx.fillStyle = 'rgba(251,146,60,0.35)';
+                    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                    ctx.fillText('C='+C, toSx(labelX)+4, toSy(labelY));
+                }
+            }
+        }
+
+        /* highlighted curve for slider C */
+        ctx.strokeStyle = '#fb923c'; ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        let started = false;
+        let prevY = null;
+        for(let px = 0; px <= W; px += 1){
+            const mx = xMin + px / W * (xMax - xMin);
+            const yVal = p.fn(mx, cSlider);
+            if(!isFinite(yVal) || Math.abs(yVal) > 50){
+                started = false; prevY = null; continue;
+            }
+            if(yVal < yMin - 1 || yVal > yMax + 1){
+                started = false; prevY = null; continue;
+            }
+            if(prevY !== null && Math.abs(yVal - prevY) > 3){ started = false; }
+            const sy = toSy(yVal);
+            if(!started){ ctx.moveTo(px, sy); started = true; }
+            else ctx.lineTo(px, sy);
+            prevY = yVal;
+        }
+        ctx.stroke();
+
+        /* info */
+        document.getElementById('sepCLabel').textContent = cSlider.toFixed(2);
+        document.getElementById('sepFamily').innerHTML =
+            '<span style="color:#fb923c">Selected: C = '+cSlider.toFixed(2)+'</span>' +
+            ' &mdash; <span style="color:#808098">Separation: '+p.sep+' &rarr; '+p.integral+'</span>';
+        document.getElementById('sepInfo').innerHTML = '<span style="color:#808098">'+p.desc+'</span>';
+    }
+
+    document.getElementById('sepC').addEventListener('input', draw);
+
+    renderButtons();
+    draw();
+})();
+
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 4: PHASE PORTRAIT
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('phaseCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+
+    const solutionColors = ['#fb923c','#22d3ee','#f472b6','#2ecc71','#fbbf24','#818cf8'];
+    let trajectories = [];
+    let colorIdx = 0;
+
+    const range = 3;
+    const xMin = -range, xMax = range, yMin = -range, yMax = range;
+    function toSx(x){ return (x - xMin) / (xMax - xMin) * W; }
+    function toSy(y){ return H - (y - yMin) / (yMax - yMin) * H; }
+    function toMx(sx){ return xMin + sx / W * (xMax - xMin); }
+    function toMy(sy){ return yMin + (H - sy) / H * (yMax - yMin); }
+
+    const presets = [
+        {
+            label: 'Stable spiral',
+            fx: (x,y) => -x - y,
+            fy: (x,y) => x - y,
+            eqX: 'dx/dt = -x - y',
+            eqY: 'dy/dt = x - y',
+            type: 'Stable spiral',
+            desc: 'Trajectories spiral inward to the origin. Eigenvalues are complex with negative real part: -1 +/- i.',
+            eqPts: [{x:0,y:0,stable:true}]
+        },
+        {
+            label: 'Saddle point',
+            fx: (x,y) => x,
+            fy: (x,y) => -y,
+            eqX: 'dx/dt = x',
+            eqY: 'dy/dt = -y',
+            type: 'Saddle point',
+            desc: 'Hyperbolic flow: attracted along one axis, repelled along the other. Eigenvalues +1 and -1 have opposite signs.',
+            eqPts: [{x:0,y:0,stable:false}]
+        },
+        {
+            label: 'Center',
+            fx: (x,y) => y,
+            fy: (x,y) => -x,
+            eqX: 'dx/dt = y',
+            eqY: 'dy/dt = -x',
+            type: 'Center (undamped oscillator)',
+            desc: 'Trajectories orbit forever in closed loops. Eigenvalues are purely imaginary: +/- i. This models a frictionless pendulum or spring.',
+            eqPts: [{x:0,y:0,stable:false}]
+        },
+        {
+            label: 'Predator-prey',
+            fx: (x,y) => x*(1-y),
+            fy: (x,y) => -y*(1-x),
+            eqX: 'dx/dt = x(1-y)',
+            eqY: 'dy/dt = -y(1-x)',
+            type: 'Lotka-Volterra cycling',
+            desc: 'Predator and prey populations cycle: when prey is abundant, predators grow; predator growth causes prey decline; predator decline allows prey recovery.',
+            eqPts: [{x:0,y:0,stable:false},{x:1,y:1,stable:false}]
+        }
+    ];
+    let current = 0;
+
+    function renderButtons(){
+        const c = document.getElementById('phaseBtns');
+        c.innerHTML = presets.map((p,i)=>'<button class="btn'+(i===current?' active':'')+'" data-i="'+i+'">'+p.label+'</button>').join('');
+        c.querySelectorAll('.btn').forEach(b=>b.addEventListener('click',()=>{
+            current = parseInt(b.dataset.i);
+            trajectories = []; colorIdx = 0;
+            renderButtons(); draw();
+        }));
+        const p = presets[current];
+        document.getElementById('phaseEqDisplay').textContent = p.eqX + ', ' + p.eqY;
+        document.getElementById('phaseType').textContent = p.type;
+        document.getElementById('phaseInfo').innerHTML = '<span style="color:#808098">'+p.desc+'</span>';
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        /* grid */
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+        for(let x = Math.ceil(xMin); x <= Math.floor(xMax); x++){
+            ctx.beginPath(); ctx.moveTo(toSx(x),0); ctx.lineTo(toSx(x),H); ctx.stroke();
+        }
+        for(let y = Math.ceil(yMin); y <= Math.floor(yMax); y++){
+            ctx.beginPath(); ctx.moveTo(0,toSy(y)); ctx.lineTo(W,toSy(y)); ctx.stroke();
+        }
+
+        /* axes */
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+        const ox = toSx(0), oy = toSy(0);
+        ctx.beginPath(); ctx.moveTo(ox,0); ctx.lineTo(ox,H); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,oy); ctx.lineTo(W,oy); ctx.stroke();
+
+        /* axis labels */
+        ctx.font = '12px Georgia'; ctx.fillStyle = '#808098';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText('x', W-16, oy-4);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText('y', ox+6, 6);
+
+        const p = presets[current];
+
+        /* vector field */
+        const n = 20;
+        const dx = (xMax - xMin) / n;
+        const dy = (yMax - yMin) / n;
+        const maxArrow = 10;
+
+        for(let i = 0; i < n; i++){
+            for(let j = 0; j < n; j++){
+                const mx = xMin + (i + 0.5) * dx;
+                const my = yMin + (j + 0.5) * dy;
+                const vx = p.fx(mx, my);
+                const vy = p.fy(mx, my);
+                const mag = Math.sqrt(vx*vx + vy*vy);
+                if(mag < 1e-6) continue;
+
+                const scale = Math.min(maxArrow, mag * 4) / mag;
+                const ax = vx * scale;
+                const ay = vy * scale;
+
+                const sx = toSx(mx), sy = toSy(my);
+                const ex = sx + ax * (W / (xMax - xMin)) / n * 0.6;
+                const ey = sy - ay * (H / (yMax - yMin)) / n * 0.6;
+
+                /* color by magnitude */
+                const t = Math.min(1, mag / 3);
+                const r = Math.round(128 + (251-128)*t);
+                const g = Math.round(128 + (146-128)*t);
+                const b2 = Math.round(160 + (60-160)*t);
+
+                ctx.strokeStyle = 'rgba('+r+','+g+','+b2+',0.5)';
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke();
+
+                /* arrowhead */
+                const ang = Math.atan2(ey-sy, ex-sx);
+                const hl = 3;
+                ctx.fillStyle = 'rgba('+r+','+g+','+b2+',0.5)';
+                ctx.beginPath();
+                ctx.moveTo(ex, ey);
+                ctx.lineTo(ex - hl*Math.cos(ang-0.5), ey - hl*Math.sin(ang-0.5));
+                ctx.lineTo(ex - hl*Math.cos(ang+0.5), ey - hl*Math.sin(ang+0.5));
+                ctx.closePath(); ctx.fill();
+            }
+        }
+
+        /* equilibrium points */
+        for(const eq of p.eqPts){
+            const sx = toSx(eq.x), sy = toSy(eq.y);
+            ctx.strokeStyle = eq.stable ? '#2ecc71' : '#f472b6';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(sx, sy, 6, 0, Math.PI*2); ctx.stroke();
+            ctx.fillStyle = eq.stable ? 'rgba(46,204,113,0.3)' : 'rgba(244,114,182,0.3)';
+            ctx.beginPath(); ctx.arc(sx, sy, 6, 0, Math.PI*2); ctx.fill();
+        }
+
+        /* trajectories */
+        for(const traj of trajectories){
+            ctx.strokeStyle = traj.color;
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            for(let k = 0; k < traj.pts.length; k++){
+                const sx = toSx(traj.pts[k][0]);
+                const sy = toSy(traj.pts[k][1]);
+                if(k===0) ctx.moveTo(sx,sy); else ctx.lineTo(sx,sy);
+            }
+            ctx.stroke();
+
+            /* start dot */
+            ctx.fillStyle = traj.color;
+            ctx.beginPath();
+            ctx.arc(toSx(traj.pts[0][0]), toSy(traj.pts[0][1]), 4, 0, Math.PI*2);
+            ctx.fill();
+
+            /* arrowhead at midpoint */
+            if(traj.pts.length > 20){
+                const mid = Math.floor(traj.pts.length / 2);
+                const px0 = traj.pts[mid-1], px1 = traj.pts[mid];
+                const ang = Math.atan2(toSy(px1[1]) - toSy(px0[1]), toSx(px1[0]) - toSx(px0[0]));
+                const tx = toSx(px1[0]), ty = toSy(px1[1]);
+                ctx.fillStyle = traj.color;
+                ctx.beginPath();
+                ctx.moveTo(tx, ty);
+                ctx.lineTo(tx - 6*Math.cos(ang-0.4), ty - 6*Math.sin(ang-0.4));
+                ctx.lineTo(tx - 6*Math.cos(ang+0.4), ty - 6*Math.sin(ang+0.4));
+                ctx.closePath(); ctx.fill();
+            }
+        }
+    }
+
+    /* RK4 for 2D system */
+    function integrateTrajectory(x0, y0){
+        const p = presets[current];
+        const h = 0.02;
+        const pts = [[x0, y0]];
+        let x = x0, y = y0;
+
+        for(let i = 0; i < 2000; i++){
+            const k1x = p.fx(x,y), k1y = p.fy(x,y);
+            const k2x = p.fx(x+h/2*k1x, y+h/2*k1y), k2y = p.fy(x+h/2*k1x, y+h/2*k1y);
+            const k3x = p.fx(x+h/2*k2x, y+h/2*k2y), k3y = p.fy(x+h/2*k2x, y+h/2*k2y);
+            const k4x = p.fx(x+h*k3x, y+h*k3y), k4y = p.fy(x+h*k3x, y+h*k3y);
+
+            if(!isFinite(k1x+k1y+k2x+k2y+k3x+k3y+k4x+k4y)) break;
+
+            x = x + h/6*(k1x+2*k2x+2*k3x+k4x);
+            y = y + h/6*(k1y+2*k2y+2*k3y+k4y);
+
+            if(x < xMin - 1 || x > xMax + 1 || y < yMin - 1 || y > yMax + 1) break;
+            if(Math.abs(x) > 100 || Math.abs(y) > 100) break;
+            pts.push([x, y]);
+        }
+
+        return pts;
+    }
+
+    function getCanvasPos(e){
+        const r = cvs.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            sx: (clientX - r.left) * (W / r.width),
+            sy: (clientY - r.top) * (H / r.height)
+        };
+    }
+
+    function handleClick(e){
+        e.preventDefault();
+        const pos = getCanvasPos(e);
+        const mx = toMx(pos.sx), my = toMy(pos.sy);
+        const pts = integrateTrajectory(mx, my);
+        const color = solutionColors[colorIdx % solutionColors.length];
+        colorIdx++;
+        trajectories.push({ pts, color });
+        draw();
+    }
+
+    cvs.addEventListener('click', handleClick);
+    cvs.addEventListener('touchstart', handleClick, {passive:false});
+
+    document.getElementById('clearTrajectories').addEventListener('click', ()=>{
+        trajectories = []; colorIdx = 0; draw();
+    });
+
+    renderButtons();
+    draw();
+})();
+
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 5: REAL-WORLD MODELS
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Population Growth ── */
+(function(){
+    const cvs = document.getElementById('popCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const pad = {l:35, r:10, t:10, b:25};
+
+    function draw(){
+        const r = parseInt(document.getElementById('popR').value) / 10;
+        const K = parseInt(document.getElementById('popK').value);
+        document.getElementById('popRLabel').textContent = r.toFixed(1);
+        document.getElementById('popKLabel').textContent = K;
+
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        const gW = W - pad.l - pad.r;
+        const gH = H - pad.t - pad.b;
+        const tMax = 10;
+        const yMax2 = K * 1.3;
+
+        /* axes */
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H-pad.b); ctx.lineTo(W-pad.r, H-pad.b); ctx.stroke();
+
+        /* carrying capacity line */
+        const ky = pad.t + gH * (1 - K / yMax2);
+        ctx.strokeStyle = 'rgba(251,146,60,0.2)'; ctx.lineWidth = 1;
+        ctx.setLineDash([4,4]);
+        ctx.beginPath(); ctx.moveTo(pad.l, ky); ctx.lineTo(W-pad.r, ky); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = '9px Courier New'; ctx.fillStyle = '#fb923c'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText('K='+K, pad.l+4, ky-2);
+
+        /* labels */
+        ctx.font = '9px Georgia'; ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText('t', W/2, H-10);
+        ctx.save(); ctx.translate(10, H/2); ctx.rotate(-Math.PI/2);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText('y(t)', 0, 0);
+        ctx.restore();
+
+        /* logistic curves for different initial conditions */
+        const y0s = [5, 10, K/4, K/2, K*0.8, K*1.2];
+        const colors = ['rgba(251,146,60,0.3)', 'rgba(251,146,60,0.4)', 'rgba(251,146,60,0.5)', '#fb923c', 'rgba(251,146,60,0.5)', 'rgba(34,211,238,0.5)'];
+        const widths = [1, 1, 1.2, 2.2, 1.2, 1.2];
+
+        for(let ci = 0; ci < y0s.length; ci++){
+            const y0 = y0s[ci];
+            ctx.strokeStyle = colors[ci]; ctx.lineWidth = widths[ci];
+            ctx.beginPath();
+            for(let px = 0; px <= gW; px += 2){
+                const t = px / gW * tMax;
+                /* logistic exact: y = K / (1 + ((K-y0)/y0) * exp(-r*t)) */
+                const y = K / (1 + ((K - y0) / y0) * Math.exp(-r * t));
+                if(!isFinite(y) || y < -yMax2 || y > yMax2 * 2) continue;
+                const sy = pad.t + gH * (1 - y / yMax2);
+                if(px===0) ctx.moveTo(pad.l + px, sy); else ctx.lineTo(pad.l + px, sy);
+            }
+            ctx.stroke();
+        }
+
+        /* exponential for comparison */
+        ctx.strokeStyle = 'rgba(46,204,113,0.3)'; ctx.lineWidth = 1;
+        ctx.setLineDash([3,3]);
+        ctx.beginPath();
+        for(let px = 0; px <= gW; px += 2){
+            const t = px / gW * tMax;
+            const y = 10 * Math.exp(r * t);
+            if(y > yMax2 * 2) break;
+            const sy = pad.t + gH * (1 - y / yMax2);
+            if(px===0) ctx.moveTo(pad.l+px, sy); else ctx.lineTo(pad.l+px, sy);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    document.getElementById('popR').addEventListener('input', draw);
+    document.getElementById('popK').addEventListener('input', draw);
+    draw();
+})();
+
+/* ── Newton's Cooling ── */
+(function(){
+    const cvs = document.getElementById('coolCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const pad = {l:35, r:10, t:10, b:25};
+
+    function draw(){
+        const k = parseInt(document.getElementById('coolK').value) / 100;
+        const Ta = parseInt(document.getElementById('coolTa').value);
+        document.getElementById('coolKLabel').textContent = k.toFixed(2);
+        document.getElementById('coolTaLabel').textContent = Ta;
+
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        const gW = W - pad.l - pad.r;
+        const gH = H - pad.t - pad.b;
+        const tMax = 40;
+        const TMax = 100, TMin2 = 0;
+
+        /* axes */
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H-pad.b); ctx.lineTo(W-pad.r, H-pad.b); ctx.stroke();
+
+        /* ambient line */
+        const ay = pad.t + gH * (1 - (Ta - TMin2) / (TMax - TMin2));
+        ctx.strokeStyle = 'rgba(34,211,238,0.25)'; ctx.lineWidth = 1;
+        ctx.setLineDash([4,4]);
+        ctx.beginPath(); ctx.moveTo(pad.l, ay); ctx.lineTo(W-pad.r, ay); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = '9px Courier New'; ctx.fillStyle = '#22d3ee'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText('T_a='+Ta, pad.l+4, ay+2);
+
+        /* labels */
+        ctx.font = '9px Georgia'; ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText('t', W/2, H-10);
+        ctx.save(); ctx.translate(10, H/2); ctx.rotate(-Math.PI/2);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText('T(t)', 0, 0);
+        ctx.restore();
+
+        /* cooling curves: T(t) = Ta + (T0 - Ta) * e^(-kt) */
+        const T0s = [95, 80, 5];
+        const colors = ['#fb923c', 'rgba(251,146,60,0.5)', 'rgba(46,204,113,0.6)'];
+
+        for(let ci = 0; ci < T0s.length; ci++){
+            const T0 = T0s[ci];
+            ctx.strokeStyle = colors[ci]; ctx.lineWidth = ci===0 ? 2 : 1.3;
+            ctx.beginPath();
+            for(let px = 0; px <= gW; px += 2){
+                const t = px / gW * tMax;
+                const T = Ta + (T0 - Ta) * Math.exp(-k * t);
+                const sy = pad.t + gH * (1 - (T - TMin2) / (TMax - TMin2));
+                if(px===0) ctx.moveTo(pad.l+px, sy); else ctx.lineTo(pad.l+px, sy);
+            }
+            ctx.stroke();
+
+            /* label at start */
+            ctx.font = '8px Courier New'; ctx.fillStyle = colors[ci];
+            ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            const sy0 = pad.t + gH * (1 - (T0 - TMin2) / (TMax - TMin2));
+            ctx.fillText('T\u2080='+T0, pad.l + 3, sy0 - (ci===2 ? -8 : 8));
+        }
+    }
+
+    document.getElementById('coolK').addEventListener('input', draw);
+    document.getElementById('coolTa').addEventListener('input', draw);
+    draw();
+})();
+
+/* ── Radioactive Decay ── */
+(function(){
+    const cvs = document.getElementById('decayCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const pad = {l:35, r:10, t:10, b:25};
+
+    function draw(){
+        const lambda = parseInt(document.getElementById('decayL').value) / 100;
+        document.getElementById('decayLLabel').textContent = lambda.toFixed(2);
+        const halfLife = Math.log(2) / lambda;
+        document.getElementById('decayHL').innerHTML = '<span style="color:#fb923c">Half-life = ln(2)/&lambda; = '+halfLife.toFixed(2)+'</span>';
+
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        const gW = W - pad.l - pad.r;
+        const gH = H - pad.t - pad.b;
+        const N0 = 100;
+        const tMax = Math.max(halfLife * 5, 20);
+        const NMax = N0 * 1.1;
+
+        /* axes */
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H-pad.b); ctx.lineTo(W-pad.r, H-pad.b); ctx.stroke();
+
+        /* labels */
+        ctx.font = '9px Georgia'; ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText('t', W/2, H-10);
+        ctx.save(); ctx.translate(10, H/2); ctx.rotate(-Math.PI/2);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText('N(t)', 0, 0);
+        ctx.restore();
+
+        /* decay curve */
+        ctx.strokeStyle = '#fb923c'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        for(let px = 0; px <= gW; px += 2){
+            const t = px / gW * tMax;
+            const N = N0 * Math.exp(-lambda * t);
+            const sy = pad.t + gH * (1 - N / NMax);
+            if(px===0) ctx.moveTo(pad.l+px, sy); else ctx.lineTo(pad.l+px, sy);
+        }
+        ctx.stroke();
+
+        /* half-life markers */
+        ctx.setLineDash([3,3]);
+        for(let n = 1; n <= 4; n++){
+            const t = halfLife * n;
+            if(t > tMax) break;
+            const tx = pad.l + (t / tMax) * gW;
+            const N = N0 * Math.pow(0.5, n);
+            const ny = pad.t + gH * (1 - N / NMax);
+
+            /* vertical line down to curve */
+            ctx.strokeStyle = 'rgba(251,146,60,0.2)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(tx, H-pad.b); ctx.lineTo(tx, ny); ctx.stroke();
+
+            /* horizontal line to y-axis */
+            ctx.beginPath(); ctx.moveTo(pad.l, ny); ctx.lineTo(tx, ny); ctx.stroke();
+
+            /* dot */
+            ctx.fillStyle = '#fb923c';
+            ctx.beginPath(); ctx.arc(tx, ny, 3, 0, Math.PI*2); ctx.fill();
+
+            /* labels */
+            ctx.font = '8px Courier New'; ctx.fillStyle = '#808098';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText(n+'t\u00BD', tx, H-pad.b+3);
+
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            ctx.fillText(N.toFixed(0), pad.l-4, ny);
+        }
+        ctx.setLineDash([]);
+
+        /* N0 label */
+        ctx.font = '8px Courier New'; ctx.fillStyle = '#fb923c';
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText('N\u2080='+N0, pad.l-4, pad.t + gH * (1 - N0 / NMax));
+    }
+
+    document.getElementById('decayL').addEventListener('input', draw);
+    draw();
+})();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Built in collaboration with <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude Code</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

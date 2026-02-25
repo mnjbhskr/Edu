@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometric Transformations</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#f87171}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(248,113,113,0.13);border-color:rgba(248,113,113,0.4);color:#f87171}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .coral{color:#f87171}
+        .math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#808098;font-size:0.88em;min-width:90px}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#f87171}
+        .slider-label{color:#f87171;font-family:'Courier New',monospace;font-size:1.05em;min-width:55px}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#f87171;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .badge{display:inline-block;padding:3px 10px;border-radius:5px;font-size:0.78em;font-family:'Courier New',monospace;margin:4px 4px 4px 0}
+        .badge-iso{background:rgba(46,204,113,0.12);border:1px solid rgba(46,204,113,0.3);color:#2ecc71}
+        .badge-sim{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);color:#f87171}
+        .props-table{width:100%;border-collapse:collapse;font-size:0.88em;margin-top:8px}
+        .props-table td{padding:5px 10px;border-bottom:1px solid rgba(255,255,255,0.04)}
+        .props-table td:first-child{color:#808098;width:130px}
+        .preserved{color:#2ecc71}.changed{color:#f87171}
+        .coord-rule{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:6px;padding:8px 14px;margin:6px 0;font-family:'Courier New',monospace;font-size:0.88em;color:#c0c0d8}
+        .coord-rule .arrow{color:#f87171}
+        select.sel{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#c0c0d8;padding:4px 8px;border-radius:5px;font-family:Georgia,serif;font-size:0.88em}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 300px;min-width:280px}
+        .sym-info{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:8px 0;line-height:2}
+        @media(max-width:700px){canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Geometric Transformations</h1>
+    <p class="subtitle">Translate, rotate, reflect, dilate &mdash; moving shapes on the plane</p>
+
+    <!-- ════════════════ SECTION 1: Transformation Playground ════════════════ -->
+    <h2>1. Transformation Playground</h2>
+    <div class="panel">
+        <h3>Shape</h3>
+        <div class="btn-row" id="shapeBtns"></div>
+    </div>
+    <div class="panel">
+        <h3>Transformation</h3>
+        <div class="btn-row" id="txBtns"></div>
+        <div id="txControls"></div>
+        <div style="margin-top:10px">
+            <button class="btn" id="applyBtn" style="background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.35);color:#f87171">Apply</button>
+            <button class="btn" id="resetBtn" style="margin-left:6px">Reset</button>
+        </div>
+    </div>
+    <canvas id="playground" width="650" height="500"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Vertex Coordinates</h3>
+        <div id="vertexInfo" class="math-line" style="font-size:0.85em"></div>
+    </div>
+
+    <!-- ════════════════ SECTION 2: Properties Explorer ════════════════ -->
+    <h2>2. Properties Explorer</h2>
+    <div class="panel" id="propsPanel">
+        <h3>Properties of Current Transformation</h3>
+        <div id="propsContent"></div>
+    </div>
+
+    <!-- ════════════════ SECTION 3: Composition of Transformations ════════════════ -->
+    <h2>3. Composition of Transformations</h2>
+    <div class="panel">
+        <h3>Build a Composition</h3>
+        <div class="flex-row" style="align-items:center;margin-bottom:12px">
+            <div>
+                <label style="color:#808098;font-size:0.85em">First:</label>
+                <select class="sel" id="comp1">
+                    <option value="refl_x">Reflect x-axis</option>
+                    <option value="refl_y">Reflect y-axis</option>
+                    <option value="refl_yx">Reflect y=x</option>
+                    <option value="refl_ynx">Reflect y=-x</option>
+                    <option value="rot90">Rotate 90&deg;</option>
+                    <option value="rot180">Rotate 180&deg;</option>
+                    <option value="trans">Translate (2, 1)</option>
+                    <option value="dilate2">Dilate &times;2</option>
+                </select>
+            </div>
+            <div style="color:#808098;font-size:1.2em;padding:0 4px">then</div>
+            <div>
+                <label style="color:#808098;font-size:0.85em">Second:</label>
+                <select class="sel" id="comp2">
+                    <option value="refl_y" selected>Reflect y-axis</option>
+                    <option value="refl_x">Reflect x-axis</option>
+                    <option value="refl_yx">Reflect y=x</option>
+                    <option value="refl_ynx">Reflect y=-x</option>
+                    <option value="rot90">Rotate 90&deg;</option>
+                    <option value="rot180">Rotate 180&deg;</option>
+                    <option value="trans">Translate (2, 1)</option>
+                    <option value="dilate2">Dilate &times;2</option>
+                </select>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="compApply" style="background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.35);color:#f87171">Apply Composition</button>
+            <button class="btn" id="compSwap">Swap Order</button>
+            <button class="btn" id="compReset">Reset</button>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="compDemo1">Demo: 2 parallel reflections = translation</button>
+            <button class="btn" id="compDemo2">Demo: 2 intersecting reflections = rotation</button>
+        </div>
+        <div id="compInsight" class="math-line muted" style="font-size:0.85em;margin-top:6px"></div>
+    </div>
+    <canvas id="compCanvas" width="600" height="400"></canvas>
+
+    <!-- ════════════════ SECTION 4: Symmetry Detection ════════════════ -->
+    <h2>4. Symmetry Detection</h2>
+    <div class="panel">
+        <h3>Choose a Shape</h3>
+        <div class="btn-row" id="symShapeBtns"></div>
+        <div class="flex-row" style="margin-top:10px">
+            <div class="flex-half">
+                <div class="sym-info" id="symLineInfo">Lines of symmetry: &mdash;</div>
+                <div class="sym-info" id="symRotInfo">Rotational symmetry of order: &mdash;</div>
+            </div>
+            <div class="flex-half">
+                <div class="slider-row">
+                    <label>Rotation test:</label>
+                    <input type="range" id="symRotSlider" min="0" max="360" value="0">
+                    <span class="slider-label" id="symRotLabel">0&deg;</span>
+                </div>
+                <div id="symRotMatch" class="math-line muted" style="font-size:0.85em"></div>
+            </div>
+        </div>
+    </div>
+    <canvas id="symCanvas" width="500" height="400"></canvas>
+
+    <!-- ════════════════ SECTION 5: Coordinate Rules ════════════════ -->
+    <h2>5. Coordinate Rules</h2>
+    <div class="panel">
+        <h3>Standard Coordinate Rules</h3>
+        <div class="coord-rule">Translation by (a, b): &ensp;(x, y) <span class="arrow">&rarr;</span> (x + a, y + b)</div>
+        <div class="coord-rule">Rotation 90&deg; about origin: &ensp;(x, y) <span class="arrow">&rarr;</span> (&minus;y, x)</div>
+        <div class="coord-rule">Rotation 180&deg; about origin: &ensp;(x, y) <span class="arrow">&rarr;</span> (&minus;x, &minus;y)</div>
+        <div class="coord-rule">Rotation 270&deg; about origin: &ensp;(x, y) <span class="arrow">&rarr;</span> (y, &minus;x)</div>
+        <div class="coord-rule">Reflection across x-axis: &ensp;(x, y) <span class="arrow">&rarr;</span> (x, &minus;y)</div>
+        <div class="coord-rule">Reflection across y-axis: &ensp;(x, y) <span class="arrow">&rarr;</span> (&minus;x, y)</div>
+        <div class="coord-rule">Reflection across y = x: &ensp;(x, y) <span class="arrow">&rarr;</span> (y, x)</div>
+        <div class="coord-rule">Reflection across y = &minus;x: &ensp;(x, y) <span class="arrow">&rarr;</span> (&minus;y, &minus;x)</div>
+        <div class="coord-rule">Dilation by factor k from origin: &ensp;(x, y) <span class="arrow">&rarr;</span> (kx, ky)</div>
+    </div>
+    <div class="panel">
+        <h3>Interactive Verifier</h3>
+        <div class="flex-row" style="align-items:center;gap:12px;flex-wrap:wrap">
+            <div>
+                <label style="color:#808098;font-size:0.85em">Point: (</label>
+                <input type="number" id="ruleX" value="3" step="0.5" style="width:50px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#e0e0e0;padding:3px 6px;border-radius:4px;font-family:'Courier New',monospace;font-size:0.92em">
+                <label style="color:#808098;font-size:0.85em">,</label>
+                <input type="number" id="ruleY" value="2" step="0.5" style="width:50px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#e0e0e0;padding:3px 6px;border-radius:4px;font-family:'Courier New',monospace;font-size:0.92em">
+                <label style="color:#808098;font-size:0.85em">)</label>
+            </div>
+            <div>
+                <select class="sel" id="ruleSelect">
+                    <option value="rot90">Rotate 90&deg;</option>
+                    <option value="rot180">Rotate 180&deg;</option>
+                    <option value="rot270">Rotate 270&deg;</option>
+                    <option value="refl_x">Reflect x-axis</option>
+                    <option value="refl_y">Reflect y-axis</option>
+                    <option value="refl_yx">Reflect y=x</option>
+                    <option value="refl_ynx">Reflect y=-x</option>
+                    <option value="dilate">Dilate (k=2)</option>
+                </select>
+            </div>
+            <button class="btn" id="ruleApply" style="background:rgba(248,113,113,0.1);border-color:rgba(248,113,113,0.35);color:#f87171">Compute</button>
+        </div>
+        <div id="ruleResult" class="math-line" style="margin-top:10px;font-size:0.9em"></div>
+    </div>
+
+    <!-- ════════════════ SECTION 6: Explanation ════════════════ -->
+    <h2>6. What Have We Learnt?</h2>
+    <div class="explain">
+        <div class="explain-name">Geometry as the Study of Invariants</div>
+        <div class="explain-text">
+            <p>Every geometric transformation preserves something and changes something. Translations, rotations, and reflections are <em>isometries</em> &mdash; they preserve distances and angles. Dilations preserve angles but change distances. These distinctions matter: congruent shapes are related by isometries, while similar shapes are related by similarities (isometries plus dilations).</p>
+            <p style="margin-top:10px">The deep insight, due to Felix Klein's <em>Erlangen Programme</em> (1872), is that geometry itself can be <em>defined</em> by its group of transformations. Euclidean geometry studies properties invariant under isometries. Similarity geometry studies properties invariant under similarities. Affine geometry studies properties invariant under affine maps (which preserve parallelism). Each broadening of the transformation group yields a more general geometry with fewer invariants.</p>
+            <p style="margin-top:10px">Composition reveals hidden structure: two reflections across parallel lines produce a translation; two reflections across intersecting lines produce a rotation whose angle is twice the angle between the lines. Order matters &mdash; transformations do not generally commute.</p>
+            <p style="margin-top:10px"><strong>Connections:</strong> In Chapter 7 (Linear Transformations), these same geometric ideas reappear as matrix operations &mdash; rotations become rotation matrices, reflections become reflection matrices, and composition becomes matrix multiplication. In Chapter 10 (Group Theory), the set of symmetries of a shape forms a <em>group</em>, formalising the algebraic structure that underlies symmetry.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 1: Transformation Playground
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── shape definitions (in grid units) ── */
+const SHAPES = {
+    Triangle: [{x:1,y:1},{x:4,y:1},{x:2.5,y:4}],
+    Square: [{x:1,y:1},{x:4,y:1},{x:4,y:4},{x:1,y:4}],
+    'L-shape': [{x:1,y:1},{x:3,y:1},{x:3,y:2},{x:2,y:2},{x:2,y:4},{x:1,y:4}],
+    Arrow: [{x:2,y:1},{x:4,y:1},{x:4,y:2.5},{x:5,y:2.5},{x:3,y:4.5},{x:1,y:2.5},{x:2,y:2.5}],
+    Star: (function(){
+        const pts=[];
+        for(let i=0;i<10;i++){
+            const a=Math.PI/2+i*Math.PI/5;
+            const r=i%2===0?2:0.9;
+            pts.push({x:2.5+r*Math.cos(a), y:2.5+r*Math.sin(a)});
+        }
+        return pts;
+    })()
+};
+const SHAPE_LABELS = {Triangle:['A','B','C'], Square:['A','B','C','D'], 'L-shape':null, Arrow:null, Star:null};
+const SHAPE_NAMES = Object.keys(SHAPES);
+
+let currentShape = 'Triangle';
+let originalVerts = SHAPES[currentShape].map(p=>({x:p.x,y:p.y}));
+let transformedVerts = null;
+let currentTx = 'translate';
+let animProgress = null; // null = no anim, 0-1 = animating
+
+/* transformation parameters */
+let txParams = {
+    translate: {dx:2, dy:1},
+    rotate: {angle:90, cx:0, cy:0, useOrigin:true},
+    reflect: {axis:'x-axis'},
+    dilate: {k:2, cx:0, cy:0}
+};
+
+const PG = document.getElementById('playground');
+const pgCtx = PG.getContext('2d');
+const PG_W = PG.width, PG_H = PG.height;
+const GRID = 40; // pixels per unit
+const PG_OX = 200, PG_OY = 340; // origin screen position
+
+function pgToScreen(gx,gy){return{x:PG_OX+gx*GRID, y:PG_OY-gy*GRID};}
+function pgToGrid(sx,sy){return{x:(sx-PG_OX)/GRID, y:-(sy-PG_OY)/GRID};}
+
+/* ── centroid ── */
+function centroid(pts){
+    let cx=0,cy=0;
+    for(const p of pts){cx+=p.x;cy+=p.y;}
+    return{x:cx/pts.length, y:cy/pts.length};
+}
+
+/* ── transformation functions ── */
+function applyTranslate(pts,dx,dy){return pts.map(p=>({x:p.x+dx,y:p.y+dy}));}
+function applyRotate(pts,angleDeg,cx,cy){
+    const a=angleDeg*Math.PI/180;
+    const cosA=Math.cos(a),sinA=Math.sin(a);
+    return pts.map(p=>{
+        const rx=p.x-cx, ry=p.y-cy;
+        return{x:cx+rx*cosA-ry*sinA, y:cy+rx*sinA+ry*cosA};
+    });
+}
+function applyReflect(pts,axis){
+    switch(axis){
+        case 'x-axis': return pts.map(p=>({x:p.x,y:-p.y}));
+        case 'y-axis': return pts.map(p=>({x:-p.x,y:p.y}));
+        case 'y=x': return pts.map(p=>({x:p.y,y:p.x}));
+        case 'y=-x': return pts.map(p=>({x:-p.y,y:-p.x}));
+        default: return pts.map(p=>({x:p.x,y:p.y}));
+    }
+}
+function applyDilate(pts,k,cx,cy){
+    return pts.map(p=>({x:cx+k*(p.x-cx), y:cy+k*(p.y-cy)}));
+}
+function applyCurrentTx(pts){
+    const p=txParams[currentTx];
+    switch(currentTx){
+        case 'translate': return applyTranslate(pts,p.dx,p.dy);
+        case 'rotate': {
+            let cx=p.cx, cy=p.cy;
+            if(p.useOrigin){cx=0;cy=0;}
+            return applyRotate(pts,p.angle,cx,cy);
+        }
+        case 'reflect': return applyReflect(pts,p.axis);
+        case 'dilate': return applyDilate(pts,p.k,p.cx,p.cy);
+    }
+}
+
+/* ── interpolate vertices for animation ── */
+function lerpVerts(a,b,t){
+    return a.map((p,i)=>({x:p.x+(b[i].x-p.x)*t, y:p.y+(b[i].y-p.y)*t}));
+}
+function easeInOut(t){return t<0.5?2*t*t:(4-2*t)*t-1;}
+
+/* ── draw playground ── */
+function drawPlayground(){
+    const ctx=pgCtx;
+    ctx.clearRect(0,0,PG_W,PG_H);
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,PG_W,PG_H);
+
+    /* grid */
+    const minGX=Math.floor(-PG_OX/GRID)-1, maxGX=Math.ceil((PG_W-PG_OX)/GRID)+1;
+    const minGY=Math.floor(-(PG_H-PG_OY)/GRID)-1, maxGY=Math.ceil(PG_OY/GRID)+1;
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+    for(let gx=minGX;gx<=maxGX;gx++){
+        const sx=PG_OX+gx*GRID;
+        ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,PG_H);ctx.stroke();
+    }
+    for(let gy=minGY;gy<=maxGY;gy++){
+        const sy=PG_OY-gy*GRID;
+        ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(PG_W,sy);ctx.stroke();
+    }
+    /* axes */
+    ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(0,PG_OY);ctx.lineTo(PG_W,PG_OY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(PG_OX,0);ctx.lineTo(PG_OX,PG_H);ctx.stroke();
+    /* tick labels */
+    ctx.font='10px Georgia';ctx.fillStyle='#505068';ctx.textAlign='center';ctx.textBaseline='top';
+    for(let gx=minGX;gx<=maxGX;gx++){
+        if(gx===0)continue;
+        ctx.fillText(gx,PG_OX+gx*GRID,PG_OY+4);
+    }
+    ctx.textAlign='right';ctx.textBaseline='middle';
+    for(let gy=minGY;gy<=maxGY;gy++){
+        if(gy===0)continue;
+        ctx.fillText(gy,PG_OX-6,PG_OY-gy*GRID);
+    }
+    ctx.font='12px Georgia';ctx.fillStyle='#808098';ctx.textAlign='left';ctx.textBaseline='bottom';
+    ctx.fillText('x',PG_W-18,PG_OY-6);
+    ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillText('y',PG_OX+6,6);
+
+    /* reflection line */
+    if(currentTx==='reflect'){
+        drawReflectionLine(ctx,txParams.reflect.axis);
+    }
+
+    /* determine verts to draw */
+    let dispVerts = transformedVerts;
+    if(animProgress!==null && transformedVerts){
+        const t=easeInOut(animProgress);
+        dispVerts=lerpVerts(originalVerts,transformedVerts,t);
+    }
+
+    /* original shape (dashed, faint) */
+    drawPoly(ctx,originalVerts,'rgba(255,255,255,0.15)','rgba(255,255,255,0.03)',true);
+    drawVertexDots(ctx,originalVerts,'rgba(255,255,255,0.35)',SHAPE_LABELS[currentShape],false);
+
+    /* transformed shape (solid coral) */
+    if(dispVerts){
+        drawPoly(ctx,dispVerts,'rgba(248,113,113,0.8)','rgba(248,113,113,0.08)',false);
+        drawVertexDots(ctx,dispVerts,'#f87171',SHAPE_LABELS[currentShape]?SHAPE_LABELS[currentShape].map(l=>l+"'"):null,true);
+    }
+
+    updateVertexInfo();
+    updatePropsPanel();
+}
+
+function drawPoly(ctx,pts,strokeColor,fillColor,dashed){
+    if(dashed)ctx.setLineDash([5,4]); else ctx.setLineDash([]);
+    ctx.strokeStyle=strokeColor;ctx.fillStyle=fillColor;ctx.lineWidth=dashed?1.5:2;
+    ctx.beginPath();
+    for(let i=0;i<=pts.length;i++){
+        const p=pgToScreen(pts[i%pts.length].x,pts[i%pts.length].y);
+        if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
+    }
+    ctx.closePath();ctx.fill();ctx.stroke();
+    ctx.setLineDash([]);
+}
+
+function drawVertexDots(ctx,pts,color,labels,isPrime){
+    for(let i=0;i<pts.length;i++){
+        const s=pgToScreen(pts[i].x,pts[i].y);
+        ctx.fillStyle=color;ctx.beginPath();ctx.arc(s.x,s.y,4,0,Math.PI*2);ctx.fill();
+        if(labels && labels[i]){
+            ctx.font='12px Georgia';ctx.fillStyle=color;
+            ctx.textAlign='left';ctx.textBaseline='bottom';
+            ctx.fillText(labels[i],s.x+6,s.y-6);
+        }
+        /* coordinate label */
+        ctx.font='9px Courier New';ctx.fillStyle=color;ctx.globalAlpha=0.7;
+        ctx.textAlign='left';ctx.textBaseline='top';
+        const xr=Math.round(pts[i].x*100)/100, yr=Math.round(pts[i].y*100)/100;
+        ctx.fillText('('+xr+', '+yr+')',s.x+6,s.y+4);
+        ctx.globalAlpha=1;
+    }
+}
+
+function drawReflectionLine(ctx,axis){
+    ctx.setLineDash([6,4]);ctx.strokeStyle='rgba(248,113,113,0.4)';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    switch(axis){
+        case 'x-axis':
+            ctx.moveTo(0,PG_OY);ctx.lineTo(PG_W,PG_OY);break;
+        case 'y-axis':
+            ctx.moveTo(PG_OX,0);ctx.lineTo(PG_OX,PG_H);break;
+        case 'y=x':
+            ctx.moveTo(PG_OX-PG_H,PG_OY+PG_H);ctx.lineTo(PG_OX+PG_H,PG_OY-PG_H);break;
+        case 'y=-x':
+            ctx.moveTo(PG_OX-PG_H,PG_OY-PG_H);ctx.lineTo(PG_OX+PG_H,PG_OY+PG_H);break;
+    }
+    ctx.stroke();ctx.setLineDash([]);
+    /* label */
+    ctx.font='11px Georgia';ctx.fillStyle='rgba(248,113,113,0.6)';ctx.textAlign='left';ctx.textBaseline='bottom';
+    let lx,ly;
+    switch(axis){
+        case 'x-axis': lx=PG_W-60;ly=PG_OY-6;break;
+        case 'y-axis': lx=PG_OX+6;ly=20;break;
+        case 'y=x': lx=PG_OX+120;ly=PG_OY-120-6;break;
+        case 'y=-x': lx=PG_OX+120;ly=PG_OY+120-6;break;
+    }
+    ctx.fillText(axis==='x-axis'?'x-axis':axis==='y-axis'?'y-axis':axis,lx,ly);
+}
+
+/* ── vertex info ── */
+function updateVertexInfo(){
+    const d=document.getElementById('vertexInfo');
+    const labels=SHAPE_LABELS[currentShape];
+    let html='<span class="muted">Original:</span> ';
+    for(let i=0;i<originalVerts.length;i++){
+        const p=originalVerts[i];
+        const lbl=labels?labels[i]:'V'+(i+1);
+        html+=lbl+'('+rd(p.x)+', '+rd(p.y)+') &ensp;';
+    }
+    if(transformedVerts){
+        html+='<br><span class="coral">Transformed:</span> ';
+        for(let i=0;i<transformedVerts.length;i++){
+            const p=transformedVerts[i];
+            const lbl=labels?labels[i]+"'":'V'+(i+1)+"'";
+            html+=lbl+'('+rd(p.x)+', '+rd(p.y)+') &ensp;';
+        }
+    }
+    d.innerHTML=html;
+}
+function rd(v){return Math.round(v*100)/100;}
+
+/* ── shape buttons ── */
+function renderShapeBtns(){
+    const c=document.getElementById('shapeBtns');
+    c.innerHTML=SHAPE_NAMES.map(s=>'<button class="btn'+(s===currentShape?' active':'')+'" data-s="'+s+'">'+s+'</button>').join('');
+    c.querySelectorAll('.btn').forEach(b=>b.addEventListener('click',()=>{
+        currentShape=b.dataset.s;
+        originalVerts=SHAPES[currentShape].map(p=>({x:p.x,y:p.y}));
+        transformedVerts=null;animProgress=null;
+        renderShapeBtns();drawPlayground();
+    }));
+}
+
+/* ── transformation buttons & controls ── */
+const TX_NAMES = ['translate','rotate','reflect','dilate'];
+const TX_LABELS = ['Translate','Rotate','Reflect','Dilate'];
+
+function renderTxBtns(){
+    const c=document.getElementById('txBtns');
+    c.innerHTML=TX_NAMES.map((t,i)=>'<button class="btn'+(t===currentTx?' active':'')+'" data-tx="'+t+'">'+TX_LABELS[i]+'</button>').join('');
+    c.querySelectorAll('.btn').forEach(b=>b.addEventListener('click',()=>{
+        currentTx=b.dataset.tx;renderTxBtns();renderTxControls();drawPlayground();
+    }));
+}
+
+function renderTxControls(){
+    const c=document.getElementById('txControls');
+    let html='';
+    switch(currentTx){
+        case 'translate':
+            html+='<div class="slider-row"><label>dx:</label><input type="range" id="slDx" min="-5" max="5" step="0.5" value="'+txParams.translate.dx+'"><span class="slider-label" id="lblDx">'+txParams.translate.dx+'</span></div>';
+            html+='<div class="slider-row"><label>dy:</label><input type="range" id="slDy" min="-5" max="5" step="0.5" value="'+txParams.translate.dy+'"><span class="slider-label" id="lblDy">'+txParams.translate.dy+'</span></div>';
+            break;
+        case 'rotate':
+            html+='<div class="slider-row"><label>Angle:</label><input type="range" id="slAngle" min="0" max="360" step="1" value="'+txParams.rotate.angle+'"><span class="slider-label" id="lblAngle">'+txParams.rotate.angle+'&deg;</span></div>';
+            html+='<div class="slider-row"><label>Center:</label><span class="math-line muted" style="font-size:0.85em">Rotation about the origin (0, 0)</span></div>';
+            break;
+        case 'reflect':
+            html+='<div class="slider-row"><label>Axis:</label>';
+            ['x-axis','y-axis','y=x','y=-x'].forEach(ax=>{
+                html+='<button class="btn'+(txParams.reflect.axis===ax?' active':'')+'" data-ax="'+ax+'" style="font-size:0.82em;padding:4px 10px">'+ax+'</button>';
+            });
+            html+='</div>';
+            break;
+        case 'dilate':
+            html+='<div class="slider-row"><label>Scale factor:</label><input type="range" id="slK" min="0.2" max="3" step="0.1" value="'+txParams.dilate.k+'"><span class="slider-label" id="lblK">'+txParams.dilate.k+'</span></div>';
+            html+='<div class="slider-row"><label>Center:</label><span class="math-line muted" style="font-size:0.85em">Dilation from the origin (0, 0)</span></div>';
+            break;
+    }
+    c.innerHTML=html;
+    /* attach listeners */
+    if(currentTx==='translate'){
+        const dx=document.getElementById('slDx'),dy=document.getElementById('slDy');
+        dx.addEventListener('input',()=>{txParams.translate.dx=parseFloat(dx.value);document.getElementById('lblDx').textContent=dx.value;});
+        dy.addEventListener('input',()=>{txParams.translate.dy=parseFloat(dy.value);document.getElementById('lblDy').textContent=dy.value;});
+    } else if(currentTx==='rotate'){
+        const sl=document.getElementById('slAngle');
+        sl.addEventListener('input',()=>{txParams.rotate.angle=parseInt(sl.value);document.getElementById('lblAngle').innerHTML=sl.value+'&deg;';});
+    } else if(currentTx==='reflect'){
+        c.querySelectorAll('[data-ax]').forEach(b=>b.addEventListener('click',()=>{
+            txParams.reflect.axis=b.dataset.ax;renderTxControls();drawPlayground();
+        }));
+    } else if(currentTx==='dilate'){
+        const sl=document.getElementById('slK');
+        sl.addEventListener('input',()=>{txParams.dilate.k=parseFloat(sl.value);document.getElementById('lblK').textContent=sl.value;});
+    }
+}
+
+/* ── Apply button with animation ── */
+document.getElementById('applyBtn').addEventListener('click',()=>{
+    const target=applyCurrentTx(originalVerts);
+    transformedVerts=target;
+    animProgress=0;
+    const t0=performance.now();
+    const dur=500;
+    function step(now){
+        animProgress=Math.min(1,(now-t0)/dur);
+        drawPlayground();
+        if(animProgress<1) requestAnimationFrame(step);
+        else animProgress=null;
+    }
+    requestAnimationFrame(step);
+});
+
+/* ── Reset ── */
+document.getElementById('resetBtn').addEventListener('click',()=>{
+    transformedVerts=null;animProgress=null;drawPlayground();
+});
+
+/* init playground */
+renderShapeBtns();renderTxBtns();renderTxControls();drawPlayground();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 2: Properties Explorer
+   ═══════════════════════════════════════════════════════════════ */
+
+function updatePropsPanel(){
+    const d=document.getElementById('propsContent');
+    const txName=currentTx.charAt(0).toUpperCase()+currentTx.slice(1);
+    const props={
+        translate:{preserves:['Size (distances)','Shape (angles)','Orientation (handedness)'],changes:['Position'],iso:true},
+        rotate:{preserves:['Size (distances)','Shape (angles)'],changes:['Position','Orientation (direction)'],iso:true},
+        reflect:{preserves:['Size (distances)','Shape (angles)'],changes:['Position','Orientation (flips handedness)'],iso:true},
+        dilate:{preserves:['Shape (angles)','Angle measures'],changes:['Size (distances scaled by k)','Position (unless center on shape)'],iso:false}
+    };
+    const info=props[currentTx];
+    let html='<div style="margin-bottom:8px"><strong style="color:#fff;font-weight:400">'+txName+'</strong></div>';
+    if(info.iso){
+        html+='<span class="badge badge-iso">Isometry (distance-preserving)</span>';
+    } else {
+        html+='<span class="badge badge-sim">Similarity (shape-preserving)</span>';
+    }
+    html+='<table class="props-table"><tr><td>Preserves</td><td>';
+    html+=info.preserves.map(p=>'<span class="preserved">'+p+'</span>').join(', ');
+    html+='</td></tr><tr><td>Changes</td><td>';
+    html+=info.changes.map(p=>'<span class="changed">'+p+'</span>').join(', ');
+    html+='</td></tr></table>';
+
+    /* distance check */
+    if(originalVerts.length>=2 && transformedVerts){
+        const d0=dist(originalVerts[0],originalVerts[1]);
+        const d1=dist(transformedVerts[0],transformedVerts[1]);
+        const labels=SHAPE_LABELS[currentShape];
+        const l0=labels?labels[0]:'V1', l1=labels?labels[1]:'V2';
+        html+='<div style="margin-top:10px;font-size:0.85em;color:#808098">';
+        html+='Distance '+l0+l1+' (original): <span style="color:#c0c0d8">'+d0.toFixed(3)+'</span> &ensp;';
+        html+='Distance '+l0+"'"+l1+"' (transformed): <span style="color:#f87171">'+d1.toFixed(3)+'</span>';
+        if(Math.abs(d0-d1)<0.01){
+            html+=' &ensp;<span class="preserved">= same (isometry)</span>';
+        } else {
+            const ratio=d1/d0;
+            html+=' &ensp;<span class="changed">ratio = '+ratio.toFixed(3)+'</span>';
+        }
+        html+='</div>';
+    }
+    d.innerHTML=html;
+}
+function dist(a,b){return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 3: Composition of Transformations
+   ═══════════════════════════════════════════════════════════════ */
+
+const compCvs=document.getElementById('compCanvas');
+const compCtx=compCvs.getContext('2d');
+const COMP_W=compCvs.width, COMP_H=compCvs.height;
+const COMP_GRID=35;
+const COMP_OX=200, COMP_OY=280;
+
+function compToScreen(gx,gy){return{x:COMP_OX+gx*COMP_GRID, y:COMP_OY-gy*COMP_GRID};}
+
+const compOriginal=[{x:1,y:1},{x:3,y:1},{x:2,y:3}]; // triangle
+let compStep1=null, compStep2=null;
+
+function compApplyNamed(pts,name){
+    switch(name){
+        case 'refl_x': return pts.map(p=>({x:p.x,y:-p.y}));
+        case 'refl_y': return pts.map(p=>({x:-p.x,y:p.y}));
+        case 'refl_yx': return pts.map(p=>({x:p.y,y:p.x}));
+        case 'refl_ynx': return pts.map(p=>({x:-p.y,y:-p.x}));
+        case 'rot90': return applyRotate(pts,90,0,0);
+        case 'rot180': return applyRotate(pts,180,0,0);
+        case 'trans': return applyTranslate(pts,2,1);
+        case 'dilate2': return applyDilate(pts,2,0,0);
+        default: return pts;
+    }
+}
+function compTxLabel(name){
+    const m={'refl_x':'Reflect x-axis','refl_y':'Reflect y-axis','refl_yx':'Reflect y=x','refl_ynx':'Reflect y=-x','rot90':'Rotate 90\u00B0','rot180':'Rotate 180\u00B0','trans':'Translate (2,1)','dilate2':'Dilate \u00D72'};
+    return m[name]||name;
+}
+
+function drawCompCanvas(){
+    const ctx=compCtx;
+    ctx.clearRect(0,0,COMP_W,COMP_H);
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,COMP_W,COMP_H);
+
+    /* grid */
+    const minGX=Math.floor(-COMP_OX/COMP_GRID)-1, maxGX=Math.ceil((COMP_W-COMP_OX)/COMP_GRID)+1;
+    const minGY=Math.floor(-(COMP_H-COMP_OY)/COMP_GRID)-1, maxGY=Math.ceil(COMP_OY/COMP_GRID)+1;
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+    for(let gx=minGX;gx<=maxGX;gx++){const sx=COMP_OX+gx*COMP_GRID;ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,COMP_H);ctx.stroke();}
+    for(let gy=minGY;gy<=maxGY;gy++){const sy=COMP_OY-gy*COMP_GRID;ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(COMP_W,sy);ctx.stroke();}
+    ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(0,COMP_OY);ctx.lineTo(COMP_W,COMP_OY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(COMP_OX,0);ctx.lineTo(COMP_OX,COMP_H);ctx.stroke();
+    ctx.font='10px Georgia';ctx.fillStyle='#505068';ctx.textAlign='center';ctx.textBaseline='top';
+    for(let gx=minGX;gx<=maxGX;gx++){if(gx===0)continue;ctx.fillText(gx,COMP_OX+gx*COMP_GRID,COMP_OY+3);}
+    ctx.textAlign='right';ctx.textBaseline='middle';
+    for(let gy=minGY;gy<=maxGY;gy++){if(gy===0)continue;ctx.fillText(gy,COMP_OX-5,COMP_OY-gy*COMP_GRID);}
+
+    /* draw original (dashed gray) */
+    compDrawPoly(ctx,compOriginal,'rgba(255,255,255,0.15)','rgba(255,255,255,0.02)',true);
+
+    /* step 1 (dashed blue) */
+    if(compStep1){
+        compDrawPoly(ctx,compStep1,'rgba(96,165,250,0.5)','rgba(96,165,250,0.04)',true);
+    }
+
+    /* step 2 / final (solid coral) */
+    if(compStep2){
+        compDrawPoly(ctx,compStep2,'rgba(248,113,113,0.8)','rgba(248,113,113,0.06)',false);
+        /* label dots */
+        for(let i=0;i<compStep2.length;i++){
+            const s=compToScreen(compStep2[i].x,compStep2[i].y);
+            ctx.fillStyle='#f87171';ctx.beginPath();ctx.arc(s.x,s.y,3,0,Math.PI*2);ctx.fill();
+        }
+    }
+
+    /* legend */
+    ctx.font='11px Georgia';
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillText('Original (dashed gray)',12,12);
+    if(compStep1){ctx.fillStyle='rgba(96,165,250,0.6)';ctx.fillText('After first (dashed blue)',12,28);}
+    if(compStep2){ctx.fillStyle='rgba(248,113,113,0.7)';ctx.fillText('After second (solid coral)',12,44);}
+}
+
+function compDrawPoly(ctx,pts,stroke,fill,dashed){
+    if(dashed)ctx.setLineDash([5,4]);else ctx.setLineDash([]);
+    ctx.strokeStyle=stroke;ctx.fillStyle=fill;ctx.lineWidth=dashed?1.5:2;
+    ctx.beginPath();
+    for(let i=0;i<=pts.length;i++){
+        const s=compToScreen(pts[i%pts.length].x,pts[i%pts.length].y);
+        if(i===0)ctx.moveTo(s.x,s.y);else ctx.lineTo(s.x,s.y);
+    }
+    ctx.closePath();ctx.fill();ctx.stroke();ctx.setLineDash([]);
+}
+
+document.getElementById('compApply').addEventListener('click',()=>{
+    const t1=document.getElementById('comp1').value;
+    const t2=document.getElementById('comp2').value;
+    compStep1=compApplyNamed(compOriginal,t1);
+    compStep2=compApplyNamed(compStep1,t2);
+    document.getElementById('compInsight').textContent=compTxLabel(t1)+' then '+compTxLabel(t2);
+    /* animate step 1 */
+    animateComp(compOriginal,compStep1,compStep2);
+});
+
+document.getElementById('compSwap').addEventListener('click',()=>{
+    const s1=document.getElementById('comp1');
+    const s2=document.getElementById('comp2');
+    const tmp=s1.value;s1.value=s2.value;s2.value=tmp;
+    /* re-apply */
+    const t1=s1.value, t2=s2.value;
+    compStep1=compApplyNamed(compOriginal,t1);
+    compStep2=compApplyNamed(compStep1,t2);
+    document.getElementById('compInsight').textContent=compTxLabel(t1)+' then '+compTxLabel(t2)+' (order swapped — notice the result may differ!)';
+    animateComp(compOriginal,compStep1,compStep2);
+});
+
+document.getElementById('compReset').addEventListener('click',()=>{
+    compStep1=null;compStep2=null;
+    document.getElementById('compInsight').textContent='';
+    drawCompCanvas();
+});
+
+/* Demo 1: two parallel reflections = translation */
+document.getElementById('compDemo1').addEventListener('click',()=>{
+    document.getElementById('comp1').value='refl_x';
+    document.getElementById('comp2').value='refl_x';
+    /* Use custom reflections: across y=1 and y=3 (parallel, distance 2 apart) => translate by (0,4) */
+    /* Since we only have standard axes, demo with x-axis then reflect across y=2 manually */
+    /* Simplify: reflect across x-axis then y-axis => rotation 180deg. But for parallel lines, use custom. */
+    /* Instead show the concept: reflect y-axis then reflect across x=2 (which is translate by 4 in x) */
+    /* For simplicity, use reflect x-axis twice and explain */
+    const line1Pts = compOriginal.map(p=>({x:p.x, y:-p.y})); // reflect across x-axis (y=0)
+    const line2Pts = line1Pts.map(p=>({x:p.x, y:4-p.y})); // reflect across y=2 (parallel to x-axis)
+    /* net effect: translate by (0, 4) */
+    compStep1=line1Pts;
+    compStep2=line2Pts;
+    document.getElementById('compInsight').innerHTML='Reflect across y = 0 (x-axis), then reflect across y = 2. Two parallel mirror lines 2 units apart produce a translation by 4 units (2 &times; the distance between lines).';
+    animateComp(compOriginal,compStep1,compStep2);
+});
+
+/* Demo 2: two intersecting reflections = rotation */
+document.getElementById('compDemo2').addEventListener('click',()=>{
+    document.getElementById('comp1').value='refl_x';
+    document.getElementById('comp2').value='refl_yx';
+    /* reflect across x-axis then across y=x: angle between lines is 45deg => rotation of 90deg */
+    compStep1=compOriginal.map(p=>({x:p.x,y:-p.y}));
+    compStep2=compStep1.map(p=>({x:p.y,y:p.x}));
+    document.getElementById('compInsight').innerHTML='Reflect across x-axis, then reflect across y = x. The lines meet at 45&deg;, so the composition is a rotation of 2 &times; 45&deg; = 90&deg; about the origin.';
+    animateComp(compOriginal,compStep1,compStep2);
+});
+
+function animateComp(orig,mid,final){
+    /* phase 1: original -> mid (0 to 0.5s), phase 2: mid -> final (0.5s to 1s) */
+    const dur=1000;
+    const t0=performance.now();
+    function step(now){
+        const elapsed=now-t0;
+        const frac=Math.min(1,elapsed/dur);
+        const ctx=compCtx;
+        ctx.clearRect(0,0,COMP_W,COMP_H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,COMP_W,COMP_H);
+        /* grid (simplified redraw) */
+        const minGX=Math.floor(-COMP_OX/COMP_GRID)-1, maxGX=Math.ceil((COMP_W-COMP_OX)/COMP_GRID)+1;
+        const minGY=Math.floor(-(COMP_H-COMP_OY)/COMP_GRID)-1, maxGY=Math.ceil(COMP_OY/COMP_GRID)+1;
+        ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+        for(let gx=minGX;gx<=maxGX;gx++){const sx=COMP_OX+gx*COMP_GRID;ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,COMP_H);ctx.stroke();}
+        for(let gy=minGY;gy<=maxGY;gy++){const sy=COMP_OY-gy*COMP_GRID;ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(COMP_W,sy);ctx.stroke();}
+        ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(0,COMP_OY);ctx.lineTo(COMP_W,COMP_OY);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(COMP_OX,0);ctx.lineTo(COMP_OX,COMP_H);ctx.stroke();
+        ctx.font='10px Georgia';ctx.fillStyle='#505068';ctx.textAlign='center';ctx.textBaseline='top';
+        for(let gx=minGX;gx<=maxGX;gx++){if(gx===0)continue;ctx.fillText(gx,COMP_OX+gx*COMP_GRID,COMP_OY+3);}
+        ctx.textAlign='right';ctx.textBaseline='middle';
+        for(let gy=minGY;gy<=maxGY;gy++){if(gy===0)continue;ctx.fillText(gy,COMP_OX-5,COMP_OY-gy*COMP_GRID);}
+
+        /* always draw original */
+        compDrawPoly(ctx,orig,'rgba(255,255,255,0.15)','rgba(255,255,255,0.02)',true);
+
+        if(frac<=0.5){
+            /* phase 1: animate orig -> mid */
+            const t=easeInOut(frac*2);
+            const interp=lerpVerts(orig,mid,t);
+            compDrawPoly(ctx,interp,'rgba(96,165,250,0.5)','rgba(96,165,250,0.04)',true);
+        } else {
+            /* show mid in dashed */
+            compDrawPoly(ctx,mid,'rgba(96,165,250,0.5)','rgba(96,165,250,0.04)',true);
+            /* phase 2: animate mid -> final */
+            const t=easeInOut((frac-0.5)*2);
+            const interp=lerpVerts(mid,final,t);
+            compDrawPoly(ctx,interp,'rgba(248,113,113,0.8)','rgba(248,113,113,0.06)',false);
+        }
+
+        ctx.font='11px Georgia';
+        ctx.fillStyle='rgba(255,255,255,0.3)';ctx.textAlign='left';ctx.textBaseline='top';
+        ctx.fillText('Original (dashed gray)',12,12);
+        if(frac>0){ctx.fillStyle='rgba(96,165,250,0.6)';ctx.fillText('After first (dashed blue)',12,28);}
+        if(frac>0.5){ctx.fillStyle='rgba(248,113,113,0.7)';ctx.fillText('After second (solid coral)',12,44);}
+
+        if(frac<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+drawCompCanvas();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 4: Symmetry Detection
+   ═══════════════════════════════════════════════════════════════ */
+
+const symCvs=document.getElementById('symCanvas');
+const symCtx=symCvs.getContext('2d');
+const SYM_W=symCvs.width, SYM_H=symCvs.height;
+const SYM_CX=SYM_W/2, SYM_CY=SYM_H/2;
+const SYM_SCALE=50;
+
+const SYM_SHAPES = {
+    'Equilateral triangle': {
+        verts:(function(){const r=2.2;const pts=[];for(let i=0;i<3;i++){const a=Math.PI/2+i*2*Math.PI/3;pts.push({x:r*Math.cos(a),y:r*Math.sin(a)});}return pts;})(),
+        lines:3, rotOrder:3, rotAngle:120, mirrorAngles:[90,210,330]
+    },
+    'Square': {
+        verts:[{x:-1.8,y:-1.8},{x:1.8,y:-1.8},{x:1.8,y:1.8},{x:-1.8,y:1.8}],
+        lines:4, rotOrder:4, rotAngle:90, mirrorAngles:[0,45,90,135]
+    },
+    'Rectangle': {
+        verts:[{x:-2.5,y:-1.3},{x:2.5,y:-1.3},{x:2.5,y:1.3},{x:-2.5,y:1.3}],
+        lines:2, rotOrder:2, rotAngle:180, mirrorAngles:[0,90]
+    },
+    'Regular hexagon': {
+        verts:(function(){const r=2;const pts=[];for(let i=0;i<6;i++){const a=i*Math.PI/3;pts.push({x:r*Math.cos(a),y:r*Math.sin(a)});}return pts;})(),
+        lines:6, rotOrder:6, rotAngle:60, mirrorAngles:[0,30,60,90,120,150]
+    },
+    'Parallelogram': {
+        verts:[{x:-2,y:-1},{x:1,y:-1},{x:2,y:1},{x:-1,y:1}],
+        lines:0, rotOrder:2, rotAngle:180, mirrorAngles:[]
+    }
+};
+const SYM_NAMES = Object.keys(SYM_SHAPES);
+let currentSymShape = 'Equilateral triangle';
+let symRotAngle = 0;
+
+function renderSymShapeBtns(){
+    const c=document.getElementById('symShapeBtns');
+    c.innerHTML=SYM_NAMES.map(s=>'<button class="btn'+(s===currentSymShape?' active':'')+'" data-ss="'+s+'">'+s+'</button>').join('');
+    c.querySelectorAll('.btn').forEach(b=>b.addEventListener('click',()=>{
+        currentSymShape=b.dataset.ss;
+        symRotAngle=0;
+        document.getElementById('symRotSlider').value=0;
+        document.getElementById('symRotLabel').innerHTML='0&deg;';
+        renderSymShapeBtns();drawSymCanvas();updateSymInfo();
+    }));
+}
+
+function drawSymCanvas(){
+    const ctx=symCtx;
+    const info=SYM_SHAPES[currentSymShape];
+    const verts=info.verts;
+    ctx.clearRect(0,0,SYM_W,SYM_H);
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,SYM_W,SYM_H);
+
+    /* light grid */
+    ctx.strokeStyle='rgba(255,255,255,0.03)';ctx.lineWidth=1;
+    for(let x=SYM_CX%SYM_SCALE;x<SYM_W;x+=SYM_SCALE){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,SYM_H);ctx.stroke();}
+    for(let y=SYM_CY%SYM_SCALE;y<SYM_H;y+=SYM_SCALE){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(SYM_W,y);ctx.stroke();}
+
+    /* axes through center */
+    ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,SYM_CY);ctx.lineTo(SYM_W,SYM_CY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(SYM_CX,0);ctx.lineTo(SYM_CX,SYM_H);ctx.stroke();
+
+    /* mirror lines */
+    ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(248,113,113,0.25)';ctx.lineWidth=1;
+    for(const deg of info.mirrorAngles){
+        const a=deg*Math.PI/180;
+        const len=200;
+        ctx.beginPath();
+        ctx.moveTo(SYM_CX-len*Math.cos(a),SYM_CY+len*Math.sin(a));
+        ctx.lineTo(SYM_CX+len*Math.cos(a),SYM_CY-len*Math.sin(a));
+        ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    /* draw original shape */
+    symDrawPoly(ctx,verts,'rgba(255,255,255,0.25)','rgba(255,255,255,0.04)',true);
+
+    /* draw rotated shape */
+    if(symRotAngle!==0){
+        const rotVerts=applyRotate(verts,symRotAngle,0,0);
+        const match=checkSymRotMatch(verts,rotVerts);
+        const color=match?'rgba(46,204,113,0.7)':'rgba(248,113,113,0.6)';
+        const fill=match?'rgba(46,204,113,0.06)':'rgba(248,113,113,0.05)';
+        symDrawPoly(ctx,rotVerts,color,fill,false);
+    }
+
+    /* center dot */
+    ctx.fillStyle='#f87171';ctx.beginPath();ctx.arc(SYM_CX,SYM_CY,3,0,Math.PI*2);ctx.fill();
+}
+
+function symDrawPoly(ctx,pts,stroke,fill,dashed){
+    if(dashed)ctx.setLineDash([4,3]);else ctx.setLineDash([]);
+    ctx.strokeStyle=stroke;ctx.fillStyle=fill;ctx.lineWidth=dashed?1.5:2;
+    ctx.beginPath();
+    for(let i=0;i<=pts.length;i++){
+        const p=pts[i%pts.length];
+        const sx=SYM_CX+p.x*SYM_SCALE, sy=SYM_CY-p.y*SYM_SCALE;
+        if(i===0)ctx.moveTo(sx,sy);else ctx.lineTo(sx,sy);
+    }
+    ctx.closePath();ctx.fill();ctx.stroke();ctx.setLineDash([]);
+    /* vertex dots */
+    for(const p of pts){
+        const sx=SYM_CX+p.x*SYM_SCALE, sy=SYM_CY-p.y*SYM_SCALE;
+        ctx.fillStyle=stroke.replace(/[\d.]+\)$/,'1)');
+        ctx.beginPath();ctx.arc(sx,sy,3,0,Math.PI*2);ctx.fill();
+    }
+}
+
+function checkSymRotMatch(original,rotated){
+    /* Check if rotated matches original by testing if every rotated vertex is close to some original vertex */
+    const eps=0.15;
+    for(const rp of rotated){
+        let found=false;
+        for(const op of original){
+            if(Math.abs(rp.x-op.x)<eps && Math.abs(rp.y-op.y)<eps){found=true;break;}
+        }
+        if(!found) return false;
+    }
+    return true;
+}
+
+function updateSymInfo(){
+    const info=SYM_SHAPES[currentSymShape];
+    document.getElementById('symLineInfo').innerHTML='Lines of symmetry: <span style="color:#f87171">'+info.lines+'</span>';
+    document.getElementById('symRotInfo').innerHTML='Rotational symmetry of order: <span style="color:#f87171">'+info.rotOrder+'</span> (every '+info.rotAngle+'&deg;)';
+}
+
+const symRotSlider=document.getElementById('symRotSlider');
+symRotSlider.addEventListener('input',()=>{
+    symRotAngle=parseInt(symRotSlider.value);
+    document.getElementById('symRotLabel').innerHTML=symRotAngle+'&deg;';
+    drawSymCanvas();
+    /* check match */
+    const info=SYM_SHAPES[currentSymShape];
+    const verts=info.verts;
+    const rotVerts=applyRotate(verts,symRotAngle,0,0);
+    const match=checkSymRotMatch(verts,rotVerts);
+    document.getElementById('symRotMatch').innerHTML=match&&symRotAngle!==0?
+        '<span style="color:#2ecc71">The shape maps onto itself at '+symRotAngle+'&deg; &mdash; this is a rotational symmetry!</span>':
+        symRotAngle===0?'':'<span style="color:#808098">Does not map onto itself at this angle.</span>';
+});
+
+renderSymShapeBtns();drawSymCanvas();updateSymInfo();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 5: Coordinate Rules — Interactive Verifier
+   ═══════════════════════════════════════════════════════════════ */
+
+document.getElementById('ruleApply').addEventListener('click',computeRule);
+function computeRule(){
+    const x=parseFloat(document.getElementById('ruleX').value)||0;
+    const y=parseFloat(document.getElementById('ruleY').value)||0;
+    const rule=document.getElementById('ruleSelect').value;
+    let rx,ry,desc;
+    switch(rule){
+        case 'rot90': rx=-y;ry=x;desc='Rotate 90\u00B0: ('+x+', '+y+') \u2192 (\u2212y, x) = ('+rd(rx)+', '+rd(ry)+')';break;
+        case 'rot180': rx=-x;ry=-y;desc='Rotate 180\u00B0: ('+x+', '+y+') \u2192 (\u2212x, \u2212y) = ('+rd(rx)+', '+rd(ry)+')';break;
+        case 'rot270': rx=y;ry=-x;desc='Rotate 270\u00B0: ('+x+', '+y+') \u2192 (y, \u2212x) = ('+rd(rx)+', '+rd(ry)+')';break;
+        case 'refl_x': rx=x;ry=-y;desc='Reflect x-axis: ('+x+', '+y+') \u2192 (x, \u2212y) = ('+rd(rx)+', '+rd(ry)+')';break;
+        case 'refl_y': rx=-x;ry=y;desc='Reflect y-axis: ('+x+', '+y+') \u2192 (\u2212x, y) = ('+rd(rx)+', '+rd(ry)+')';break;
+        case 'refl_yx': rx=y;ry=x;desc='Reflect y=x: ('+x+', '+y+') \u2192 (y, x) = ('+rd(rx)+', '+rd(ry)+')';break;
+        case 'refl_ynx': rx=-y;ry=-x;desc='Reflect y=\u2212x: ('+x+', '+y+') \u2192 (\u2212y, \u2212x) = ('+rd(rx)+', '+rd(ry)+')';break;
+        case 'dilate': rx=2*x;ry=2*y;desc='Dilate k=2: ('+x+', '+y+') \u2192 (2x, 2y) = ('+rd(rx)+', '+rd(ry)+')';break;
+    }
+    document.getElementById('ruleResult').innerHTML='<span class="coral">'+desc+'</span>';
+}
+computeRule();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   TOUCH SUPPORT for Playground Canvas
+   ═══════════════════════════════════════════════════════════════ */
+
+let pgDrag=null;
+
+function pgGetCanvasXY(e){
+    const r=PG.getBoundingClientRect();
+    return{x:(e.clientX-r.left)*(PG_W/r.width), y:(e.clientY-r.top)*(PG_H/r.height)};
+}
+
+PG.addEventListener('mousedown',e=>{
+    if(animProgress!==null)return;
+    /* not using drag on playground for now — shapes are controlled via sliders */
+});
+
+PG.addEventListener('touchstart',e=>{e.preventDefault();},{passive:false});
+PG.addEventListener('touchmove',e=>{e.preventDefault();},{passive:false});
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Built in collaboration with <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude Code</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>
