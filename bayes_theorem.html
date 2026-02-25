@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bayes' Theorem</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#f472b6}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(244,114,182,0.13);border-color:rgba(244,114,182,0.4);color:#f472b6}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .pink{color:#f472b6}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .gray{color:#808098}
+        .math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#f472b6;cursor:pointer}
+        .slider-val{color:#f472b6;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(244,114,182,0.06);border:1px solid rgba(244,114,182,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .result-big{font-size:1.5em;color:#f472b6;font-family:'Courier New',monospace;font-weight:bold}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#f472b6;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .scenario-desc{color:#a0a0b8;font-size:0.88em;line-height:1.6;margin-top:8px;padding:8px 12px;background:rgba(255,255,255,0.015);border-radius:6px}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:12px;border-radius:2px}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Bayes' Theorem</h1>
+    <p class="subtitle">Update your beliefs with evidence &mdash; the most practical theorem</p>
+
+    <!-- Section 1: Medical Test Scenario -->
+    <h2>The Medical Test Scenario</h2>
+    <div class="panel">
+        <h3>1000 People Tested</h3>
+        <canvas id="iconGrid" width="650" height="400" style="cursor:default"></canvas>
+        <div class="grid-legend" id="gridLegend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Sick, tested positive</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#a04060"></div><span style="color:#a04060">Sick, tested negative</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fb923c"></div><span style="color:#fb923c">Healthy, false positive</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#404060"></div><span style="color:#808098">Healthy, tested negative</span></div>
+        </div>
+        <div class="result-box">
+            <div style="color:#a0a0b8;font-size:0.9em;margin-bottom:4px">You tested positive. What is the probability you are actually sick?</div>
+            <div class="result-big" id="posteriorDisplay">P(D|+) = 49.0%</div>
+            <div style="color:#808098;font-size:0.85em;margin-top:6px" id="posteriorExplain">Only about half of positive results are true positives!</div>
+        </div>
+    </div>
+
+    <!-- Section 2: Interactive Sliders -->
+    <h2>Interactive Parameters</h2>
+    <div class="panel">
+        <h3>Adjust Probabilities</h3>
+        <div class="slider-row">
+            <label>Prior P(D):</label>
+            <input type="range" id="sliderPrior" min="1" max="500" value="10">
+            <span class="slider-val" id="valPrior">1.0%</span>
+        </div>
+        <div class="slider-row">
+            <label>Sensitivity P(+|D):</label>
+            <input type="range" id="sliderSens" min="500" max="999" value="950">
+            <span class="slider-val" id="valSens">95.0%</span>
+        </div>
+        <div class="slider-row">
+            <label>Specificity P(-|~D):</label>
+            <input type="range" id="sliderSpec" min="500" max="999" value="990">
+            <span class="slider-val" id="valSpec">99.0%</span>
+        </div>
+        <div id="computedValues" style="margin-top:14px"></div>
+    </div>
+
+    <!-- Section 3: Tree Diagram -->
+    <h2>Probability Tree</h2>
+    <div class="panel">
+        <h3>Branch Diagram</h3>
+        <canvas id="treeCanvas" width="600" height="350" style="cursor:default"></canvas>
+    </div>
+
+    <!-- Section 4: Sequential Evidence -->
+    <h2>Sequential Evidence Update</h2>
+    <div class="panel">
+        <h3>Repeated Testing</h3>
+        <canvas id="seqCanvas" width="500" height="300" style="cursor:default"></canvas>
+        <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="btn" id="btnTestAgain">Test Positive Again</button>
+            <button class="btn" id="btnReset">Reset</button>
+            <span class="math-line muted" id="seqLabel">Prior: 1.0% &mdash; click to apply evidence</span>
+        </div>
+    </div>
+
+    <!-- Section 5: Real-World Scenarios -->
+    <h2>Real-World Scenarios</h2>
+    <div class="panel">
+        <h3>Preset Scenarios</h3>
+        <div class="btn-row" id="scenarioBtns"></div>
+        <div class="scenario-desc" id="scenarioDesc">Select a scenario above to see Bayes' theorem in context.</div>
+    </div>
+
+    <!-- Section 6: Bayes' Formula -->
+    <h2>Bayes' Formula</h2>
+    <div class="panel">
+        <h3>Three Equivalent Forms</h3>
+        <div class="formula-block">
+            <div class="math-line"><span class="muted">Standard:</span> <span class="pink">P(A|B)</span> = <span class="gold">P(B|A)</span> &middot; <span class="cyan">P(A)</span> / <span class="gray">P(B)</span></div>
+            <div class="math-line"><span class="muted">Expanded:</span> <span class="pink">P(A|B)</span> = <span class="gold">P(B|A)</span> &middot; <span class="cyan">P(A)</span> / [<span class="gold">P(B|A)</span> &middot; <span class="cyan">P(A)</span> + P(B|~A) &middot; P(~A)]</div>
+            <div class="math-line"><span class="muted">Odds form:</span> <span class="pink">Posterior odds</span> = <span class="cyan">Prior odds</span> &times; <span class="gold">Likelihood ratio</span></div>
+        </div>
+        <div style="margin-top:10px;font-size:0.85em;color:#808098;line-height:1.7">
+            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:6px">
+                <span><span style="color:#22d3ee">cyan</span> = prior</span>
+                <span><span style="color:#fbbf24">gold</span> = likelihood</span>
+                <span><span style="color:#808098">gray</span> = evidence</span>
+                <span><span style="color:#f472b6">pink</span> = posterior</span>
+            </div>
+            The key insight: the base rate matters enormously &mdash; rare events produce mostly false positives.
+        </div>
+    </div>
+
+    <!-- Section 7: Explanation -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            Bayes' theorem is not just a formula &mdash; it is a way of thinking. Always start with the base rate (prior), then update with evidence. The base rate fallacy, also known as base rate neglect, is the tendency to ignore how rare the condition is, which leads to dramatically wrong conclusions. A 95% accurate test for a 1% prevalence disease yields only ~49% true positive rate among those who test positive.
+            <br><br>
+            <strong style="color:#e0e0e0">The base rate fallacy:</strong> ignoring how rare the condition is leads to dramatically wrong conclusions. When prevalence is low, even highly accurate tests produce many false positives relative to true positives.
+            <br><br>
+            <strong style="color:#e0e0e0">Applications:</strong> medicine (diagnostic testing), law (DNA evidence, false accusations), spam filtering (email classification), machine learning (naive Bayes classifiers), scientific reasoning (hypothesis testing), and everyday decision-making under uncertainty.
+            <br><br>
+            <strong style="color:#e0e0e0">Key takeaway:</strong> extraordinary claims require extraordinary evidence &mdash; precisely because the prior is low, you need very strong likelihood ratios to move the posterior substantially.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   Bayes' Theorem Interactive — Chapter 8
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── State ── */
+let prior = 0.01;       // P(D)
+let sensitivity = 0.95; // P(+|D)
+let specificity = 0.99; // P(-|~D)
+
+// Sequential evidence state
+let seqTests = [];
+let seqPrior = 0.01;
+
+// Animation / throttle
+let lastGridDraw = 0;
+let gridAnimPhase = 0;
+let gridAnimStart = 0;
+let gridAnimating = false;
+
+/* ── Bayes Computation ── */
+function bayesCompute(pr, sens, spec) {
+    const pPosGivenD = sens;
+    const pPosGivenNotD = 1 - spec;
+    const pPos = pPosGivenD * pr + pPosGivenNotD * (1 - pr);
+    const posterior = pPos > 0 ? (pPosGivenD * pr) / pPos : 0;
+    return { posterior, pPos, pPosGivenD, pPosGivenNotD };
+}
+
+function pct(v) { return (v * 100).toFixed(1) + '%'; }
+
+/* ── Icon Grid (Section 1) ── */
+const gridCvs = document.getElementById('iconGrid');
+const gridCtx = gridCvs.getContext('2d');
+const GW = gridCvs.width, GH = gridCvs.height;
+
+// Person icon dimensions
+const COLS = 50, ROWS = 20;
+const TOTAL = COLS * ROWS; // 1000
+const PERSON_W = 10, PERSON_H = 16;
+const GAP_X = (GW - 20) / COLS;
+const GAP_Y = (GH - 20) / ROWS;
+const OFFSET_X = 12, OFFSET_Y = 10;
+
+// Colors
+const COL_SICK_POS = '#f472b6';
+const COL_SICK_NEG = '#a04060';
+const COL_HEALTHY_POS = '#fb923c';
+const COL_HEALTHY_NEG = '#404060';
+
+function drawPerson(ctx, cx, cy, color, alpha) {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    // Head (circle)
+    ctx.beginPath();
+    ctx.arc(cx, cy - 5, 3, 0, Math.PI * 2);
+    ctx.fill();
+    // Body (rounded rect)
+    const bx = cx - 3, by = cy - 1, bw = 6, bh = 9, br = 2;
+    ctx.beginPath();
+    ctx.moveTo(bx + br, by);
+    ctx.lineTo(bx + bw - br, by);
+    ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + br);
+    ctx.lineTo(bx + bw, by + bh - br);
+    ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - br, by + bh);
+    ctx.lineTo(bx + br, by + bh);
+    ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - br);
+    ctx.lineTo(bx, by + br);
+    ctx.quadraticCurveTo(bx, by, bx + br, by);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+}
+
+// Precompute person assignments: a stable random shuffling
+let personAssignments = [];
+function computePersonAssignments() {
+    // Determine counts
+    const nSick = Math.round(TOTAL * prior);
+    const nHealthy = TOTAL - nSick;
+    const nSickPos = Math.round(nSick * sensitivity);
+    const nSickNeg = nSick - nSickPos;
+    const nHealthyPos = Math.round(nHealthy * (1 - specificity));
+    const nHealthyNeg = nHealthy - nHealthyPos;
+
+    // Create assignment array: 0=healthy-neg, 1=healthy-pos, 2=sick-neg, 3=sick-pos
+    personAssignments = [];
+    for (let i = 0; i < nSickPos; i++) personAssignments.push(3);
+    for (let i = 0; i < nSickNeg; i++) personAssignments.push(2);
+    for (let i = 0; i < nHealthyPos; i++) personAssignments.push(1);
+    for (let i = 0; i < nHealthyNeg; i++) personAssignments.push(0);
+
+    // Pad or trim to TOTAL
+    while (personAssignments.length < TOTAL) personAssignments.push(0);
+    personAssignments.length = TOTAL;
+
+    // Seeded shuffle for stability (Fisher-Yates with simple seed)
+    let seed = 42;
+    function seededRandom() {
+        seed = (seed * 16807 + 0) % 2147483647;
+        return seed / 2147483647;
+    }
+    for (let i = personAssignments.length - 1; i > 0; i--) {
+        const j = Math.floor(seededRandom() * (i + 1));
+        const tmp = personAssignments[i];
+        personAssignments[i] = personAssignments[j];
+        personAssignments[j] = tmp;
+    }
+}
+
+function getPersonColor(type) {
+    switch (type) {
+        case 3: return COL_SICK_POS;
+        case 2: return COL_SICK_NEG;
+        case 1: return COL_HEALTHY_POS;
+        case 0: return COL_HEALTHY_NEG;
+        default: return COL_HEALTHY_NEG;
+    }
+}
+
+function drawIconGrid() {
+    gridCtx.clearRect(0, 0, GW, GH);
+    gridCtx.fillStyle = '#0a0a1a';
+    gridCtx.fillRect(0, 0, GW, GH);
+
+    for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+            const idx = row * COLS + col;
+            const type = personAssignments[idx] || 0;
+            const color = getPersonColor(type);
+            const cx = OFFSET_X + col * GAP_X + GAP_X / 2;
+            const cy = OFFSET_Y + row * GAP_Y + GAP_Y / 2;
+            const alpha = (type === 0) ? 0.5 : 1.0;
+            drawPerson(gridCtx, cx, cy, color, alpha);
+        }
+    }
+
+    // Counts for display
+    const counts = [0, 0, 0, 0];
+    personAssignments.forEach(t => counts[t]++);
+    const totalPos = counts[3] + counts[1];
+    const truePos = counts[3];
+
+    // Overlay counts at bottom
+    gridCtx.font = '11px "Courier New", monospace';
+    gridCtx.textAlign = 'left';
+    gridCtx.textBaseline = 'bottom';
+    gridCtx.fillStyle = '#808098';
+    gridCtx.fillText('Sick+Pos: ' + counts[3] + '  Sick+Neg: ' + counts[2] + '  Healthy+Pos: ' + counts[1] + '  Healthy+Neg: ' + counts[0], OFFSET_X, GH - 2);
+}
+
+/* ── Slider Handling (Section 2) ── */
+const sliderPrior = document.getElementById('sliderPrior');
+const sliderSens = document.getElementById('sliderSens');
+const sliderSpec = document.getElementById('sliderSpec');
+const valPrior = document.getElementById('valPrior');
+const valSens = document.getElementById('valSens');
+const valSpec = document.getElementById('valSpec');
+
+function readSliders() {
+    prior = parseInt(sliderPrior.value) / 1000;
+    sensitivity = parseInt(sliderSens.value) / 1000;
+    specificity = parseInt(sliderSpec.value) / 1000;
+}
+
+function updateSliderLabels() {
+    valPrior.textContent = pct(prior);
+    valSens.textContent = pct(sensitivity);
+    valSpec.textContent = pct(specificity);
+}
+
+function updateComputedValues() {
+    const b = bayesCompute(prior, sensitivity, specificity);
+    const div = document.getElementById('computedValues');
+    let html = '<div class="math-line">';
+    html += '<span class="muted">P(+) = P(+|D)&middot;P(D) + P(+|~D)&middot;P(~D)</span>';
+    html += '</div>';
+    html += '<div class="math-line">';
+    html += '<span class="muted">P(+) = </span>' + pct(sensitivity) + ' &times; ' + pct(prior) + ' + ' + pct(1 - specificity) + ' &times; ' + pct(1 - prior);
+    html += ' = <span class="gold">' + pct(b.pPos) + '</span>';
+    html += '</div>';
+    html += '<div class="math-line" style="margin-top:6px">';
+    html += '<span class="muted">P(D|+) = P(+|D)&middot;P(D) / P(+)</span>';
+    html += '</div>';
+    html += '<div class="math-line">';
+    html += '<span class="muted">P(D|+) = </span>' + pct(sensitivity) + ' &times; ' + pct(prior) + ' / ' + pct(b.pPos);
+    html += ' = <span class="pink" style="font-size:1.1em;font-weight:bold">' + pct(b.posterior) + '</span>';
+    html += '</div>';
+    html += '<div class="math-line" style="margin-top:4px">';
+    html += '<span class="muted">P(~D|+) = 1 - P(D|+) = </span><span style="color:#fb923c">' + pct(1 - b.posterior) + '</span>';
+    html += ' <span class="muted">&larr; false positive fraction</span>';
+    html += '</div>';
+    div.innerHTML = html;
+
+    // Update main display
+    document.getElementById('posteriorDisplay').textContent = 'P(D|+) = ' + pct(b.posterior);
+    const explain = document.getElementById('posteriorExplain');
+    if (b.posterior < 0.5) {
+        explain.textContent = 'Only ' + pct(b.posterior) + ' of positive results are true positives!';
+    } else if (b.posterior < 0.9) {
+        explain.textContent = 'A positive result gives ' + pct(b.posterior) + ' confidence of disease.';
+    } else {
+        explain.textContent = 'High confidence: ' + pct(b.posterior) + ' of positive results are true positives.';
+    }
+}
+
+let throttleTimer = null;
+function onSliderInput() {
+    readSliders();
+    updateSliderLabels();
+    const now = performance.now();
+    if (now - lastGridDraw < 33) {
+        if (!throttleTimer) {
+            throttleTimer = setTimeout(function() {
+                throttleTimer = null;
+                fullUpdate();
+            }, 33);
+        }
+        return;
+    }
+    fullUpdate();
+}
+
+function fullUpdate() {
+    lastGridDraw = performance.now();
+    computePersonAssignments();
+    drawIconGrid();
+    updateComputedValues();
+    drawTree();
+    // Reset sequential evidence when params change
+    seqTests = [];
+    seqPrior = prior;
+    drawSequential();
+}
+
+sliderPrior.addEventListener('input', onSliderInput);
+sliderSens.addEventListener('input', onSliderInput);
+sliderSpec.addEventListener('input', onSliderInput);
+
+// Touch support for sliders
+[sliderPrior, sliderSens, sliderSpec].forEach(function(s) {
+    s.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+    s.addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
+});
+
+/* ── Tree Diagram (Section 3) ── */
+const treeCvs = document.getElementById('treeCanvas');
+const treeCtx = treeCvs.getContext('2d');
+const TW = treeCvs.width, TH = treeCvs.height;
+
+function drawTree() {
+    treeCtx.clearRect(0, 0, TW, TH);
+    treeCtx.fillStyle = '#0a0a1a';
+    treeCtx.fillRect(0, 0, TW, TH);
+
+    const b = bayesCompute(prior, sensitivity, specificity);
+    const falseNegRate = 1 - sensitivity;
+    const falsePosRate = 1 - specificity;
+
+    // Layout: root at left, branches to right
+    const rootX = 60, rootY = TH / 2;
+    const midX = 240;
+    const leafX = 480;
+
+    // Disease branch Y positions scaled by probability
+    const spread = 130;
+    const dY = rootY - spread * (1 - prior);  // disease goes up
+    const ndY = rootY + spread * prior;        // no disease goes down
+    // Keep within bounds
+    const diseaseY = Math.max(60, Math.min(TH / 2 - 30, dY));
+    const noDiseaseY = Math.max(TH / 2 + 30, Math.min(TH - 60, ndY));
+
+    // Leaf positions
+    const dPosY = diseaseY - 40;
+    const dNegY = diseaseY + 40;
+    const ndPosY = noDiseaseY - 40;
+    const ndNegY = noDiseaseY + 40;
+
+    // Branch thickness proportional to probability (min 1, max 8)
+    function branchW(p) { return Math.max(1.5, Math.min(8, p * 30)); }
+
+    // Draw bezier branch
+    function drawBranch(x1, y1, x2, y2, color, prob, highlight) {
+        const cpOff = (x2 - x1) * 0.45;
+        treeCtx.strokeStyle = highlight ? color : color;
+        treeCtx.globalAlpha = highlight ? 1.0 : 0.5;
+        treeCtx.lineWidth = branchW(prob);
+        treeCtx.lineCap = 'round';
+        treeCtx.beginPath();
+        treeCtx.moveTo(x1, y1);
+        treeCtx.quadraticCurveTo(x1 + cpOff, y1, x2, y2);
+        treeCtx.stroke();
+        treeCtx.globalAlpha = 1;
+    }
+
+    // Draw label on branch
+    function drawBranchLabel(x1, y1, x2, y2, text, color, side) {
+        const mx = (x1 + x2) / 2;
+        const my = (y1 * 0.6 + y2 * 0.4) + (side === 'above' ? -12 : 14);
+        treeCtx.font = '11px "Courier New", monospace';
+        treeCtx.fillStyle = color;
+        treeCtx.textAlign = 'center';
+        treeCtx.textBaseline = 'middle';
+        treeCtx.fillText(text, mx, my);
+    }
+
+    // Draw node circle
+    function drawNode(x, y, color, label, sublabel) {
+        treeCtx.fillStyle = color;
+        treeCtx.globalAlpha = 0.15;
+        treeCtx.beginPath();
+        treeCtx.arc(x, y, 18, 0, Math.PI * 2);
+        treeCtx.fill();
+        treeCtx.globalAlpha = 1;
+        treeCtx.strokeStyle = color;
+        treeCtx.lineWidth = 1.5;
+        treeCtx.beginPath();
+        treeCtx.arc(x, y, 18, 0, Math.PI * 2);
+        treeCtx.stroke();
+        treeCtx.font = '12px Georgia';
+        treeCtx.fillStyle = color;
+        treeCtx.textAlign = 'center';
+        treeCtx.textBaseline = 'middle';
+        treeCtx.fillText(label, x, y);
+        if (sublabel) {
+            treeCtx.font = '10px "Courier New", monospace';
+            treeCtx.fillStyle = '#808098';
+            treeCtx.fillText(sublabel, x, y + 26);
+        }
+    }
+
+    // Level 1 branches: Root -> Disease, Root -> No Disease
+    // Highlight paths that contribute to P(D|+): D->+ and ~D->+
+    drawBranch(rootX, rootY, midX, diseaseY, '#f472b6', prior, true);
+    drawBranch(rootX, rootY, midX, noDiseaseY, '#22d3ee', 1 - prior, true);
+
+    // Level 2: Disease -> +, Disease -> -
+    drawBranch(midX, diseaseY, leafX, dPosY, '#f472b6', sensitivity * prior, true);
+    drawBranch(midX, diseaseY, leafX, dNegY, '#a04060', falseNegRate * prior, false);
+
+    // Level 2: No Disease -> +, No Disease -> -
+    drawBranch(midX, noDiseaseY, leafX, ndPosY, '#fb923c', falsePosRate * (1 - prior), true);
+    drawBranch(midX, noDiseaseY, leafX, ndNegY, '#22d3ee', specificity * (1 - prior), false);
+
+    // Branch labels
+    drawBranchLabel(rootX, rootY, midX, diseaseY, 'P(D)=' + pct(prior), '#f472b6', 'above');
+    drawBranchLabel(rootX, rootY, midX, noDiseaseY, 'P(~D)=' + pct(1 - prior), '#22d3ee', 'below');
+
+    drawBranchLabel(midX, diseaseY, leafX, dPosY, 'P(+|D)=' + pct(sensitivity), '#f472b6', 'above');
+    drawBranchLabel(midX, diseaseY, leafX, dNegY, 'P(-|D)=' + pct(falseNegRate), '#a04060', 'below');
+
+    drawBranchLabel(midX, noDiseaseY, leafX, ndPosY, 'P(+|~D)=' + pct(falsePosRate), '#fb923c', 'above');
+    drawBranchLabel(midX, noDiseaseY, leafX, ndNegY, 'P(-|~D)=' + pct(specificity), '#22d3ee', 'below');
+
+    // Nodes
+    drawNode(rootX, rootY, '#e0e0e0', 'Pop', '1000');
+
+    drawNode(midX, diseaseY, '#f472b6', 'D', pct(prior));
+    drawNode(midX, noDiseaseY, '#22d3ee', '~D', pct(1 - prior));
+
+    // Leaf nodes with joint probabilities
+    const jointDP = prior * sensitivity;
+    const jointDN = prior * falseNegRate;
+    const jointNDP = (1 - prior) * falsePosRate;
+    const jointNDN = (1 - prior) * specificity;
+
+    drawNode(leafX, dPosY, '#f472b6', '+', pct(jointDP));
+    drawNode(leafX, dNegY, '#a04060', '-', pct(jointDN));
+    drawNode(leafX, ndPosY, '#fb923c', '+', pct(jointNDP));
+    drawNode(leafX, ndNegY, '#404060', '-', pct(jointNDN));
+
+    // Highlight bracket: D->+ and ~D->+ combine to give P(D|+)
+    treeCtx.strokeStyle = 'rgba(244,114,182,0.4)';
+    treeCtx.lineWidth = 1;
+    treeCtx.setLineDash([4, 3]);
+    treeCtx.beginPath();
+    treeCtx.moveTo(leafX + 25, dPosY - 20);
+    treeCtx.lineTo(leafX + 35, dPosY - 20);
+    treeCtx.lineTo(leafX + 35, ndPosY + 20);
+    treeCtx.lineTo(leafX + 25, ndPosY + 20);
+    treeCtx.stroke();
+    treeCtx.setLineDash([]);
+
+    // Label the bracket
+    treeCtx.font = '10px "Courier New", monospace';
+    treeCtx.fillStyle = '#f472b6';
+    treeCtx.textAlign = 'left';
+    treeCtx.textBaseline = 'middle';
+    const bracketMidY = (dPosY + ndPosY) / 2;
+    treeCtx.fillText('P(D|+)=' + pct(b.posterior), leafX + 40, bracketMidY);
+}
+
+/* ── Sequential Evidence (Section 4) ── */
+const seqCvs = document.getElementById('seqCanvas');
+const seqCtx = seqCvs.getContext('2d');
+const SW = seqCvs.width, SH = seqCvs.height;
+
+function drawSequential() {
+    seqCtx.clearRect(0, 0, SW, SH);
+    seqCtx.fillStyle = '#0a0a1a';
+    seqCtx.fillRect(0, 0, SW, SH);
+
+    const maxBars = 8;
+    const barArea = SW - 80;
+    const barW = Math.min(50, barArea / maxBars - 10);
+    const barGap = (barArea - barW * Math.min(maxBars, seqTests.length + 1)) / Math.max(1, Math.min(maxBars, seqTests.length + 1));
+    const baseY = SH - 50;
+    const maxH = SH - 80;
+    const startX = 50;
+
+    // Y-axis
+    seqCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+    seqCtx.lineWidth = 1;
+    seqCtx.beginPath();
+    seqCtx.moveTo(startX - 5, 20);
+    seqCtx.lineTo(startX - 5, baseY);
+    seqCtx.stroke();
+
+    // Y-axis labels
+    seqCtx.font = '10px "Courier New", monospace';
+    seqCtx.fillStyle = '#808098';
+    seqCtx.textAlign = 'right';
+    seqCtx.textBaseline = 'middle';
+    for (let p = 0; p <= 100; p += 25) {
+        const y = baseY - (p / 100) * maxH;
+        seqCtx.fillText(p + '%', startX - 10, y);
+        seqCtx.strokeStyle = 'rgba(255,255,255,0.04)';
+        seqCtx.beginPath();
+        seqCtx.moveTo(startX, y);
+        seqCtx.lineTo(SW - 10, y);
+        seqCtx.stroke();
+    }
+
+    // Build all posteriors: start with the initial prior from sliders
+    var allVals = [prior];
+    var currentPr = prior;
+    for (var i = 0; i < seqTests.length; i++) {
+        var b = bayesCompute(currentPr, sensitivity, specificity);
+        allVals.push(b.posterior);
+        currentPr = b.posterior;
+    }
+
+    // Draw bars
+    var nBars = allVals.length;
+    var totalBarWidth = nBars * barW + (nBars - 1) * 8;
+    var sx = startX + (barArea - totalBarWidth) / 2;
+
+    for (var i = 0; i < nBars; i++) {
+        var val = allVals[i];
+        var h = val * maxH;
+        var x = sx + i * (barW + 8);
+
+        // Gradient intensity
+        var alpha = 0.3 + val * 0.7;
+
+        // Bar
+        seqCtx.fillStyle = i === 0 ? 'rgba(34,211,238,' + alpha + ')' : 'rgba(244,114,182,' + alpha + ')';
+        seqCtx.beginPath();
+        roundRect(seqCtx, x, baseY - h, barW, h, 4);
+        seqCtx.fill();
+
+        // Border
+        seqCtx.strokeStyle = i === 0 ? '#22d3ee' : '#f472b6';
+        seqCtx.lineWidth = 1;
+        seqCtx.beginPath();
+        roundRect(seqCtx, x, baseY - h, barW, h, 4);
+        seqCtx.stroke();
+
+        // Value label
+        seqCtx.font = '11px "Courier New", monospace';
+        seqCtx.fillStyle = '#e0e0e0';
+        seqCtx.textAlign = 'center';
+        seqCtx.textBaseline = 'bottom';
+        seqCtx.fillText(pct(val), x + barW / 2, baseY - h - 4);
+
+        // X label
+        seqCtx.font = '10px Georgia';
+        seqCtx.fillStyle = '#808098';
+        seqCtx.textBaseline = 'top';
+        if (i === 0) {
+            seqCtx.fillText('Prior', x + barW / 2, baseY + 6);
+        } else {
+            seqCtx.fillText('Test ' + i, x + barW / 2, baseY + 6);
+        }
+    }
+
+    // Draw 95% threshold line
+    var threshY = baseY - 0.95 * maxH;
+    seqCtx.strokeStyle = 'rgba(244,114,182,0.3)';
+    seqCtx.setLineDash([5, 4]);
+    seqCtx.lineWidth = 1;
+    seqCtx.beginPath();
+    seqCtx.moveTo(startX, threshY);
+    seqCtx.lineTo(SW - 10, threshY);
+    seqCtx.stroke();
+    seqCtx.setLineDash([]);
+    seqCtx.font = '10px "Courier New", monospace';
+    seqCtx.fillStyle = 'rgba(244,114,182,0.5)';
+    seqCtx.textAlign = 'right';
+    seqCtx.textBaseline = 'bottom';
+    seqCtx.fillText('95% threshold', SW - 15, threshY - 3);
+
+    // Update label
+    var label = document.getElementById('seqLabel');
+    if (seqTests.length === 0) {
+        label.textContent = 'Prior: ' + pct(prior) + ' \u2014 click to apply evidence';
+    } else {
+        var lastPosterior = allVals[allVals.length - 1];
+        label.textContent = 'After ' + seqTests.length + ' positive test' + (seqTests.length > 1 ? 's' : '') + ': P(D) = ' + pct(lastPosterior);
+    }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+    if (h < 1) { h = 1; y = y + h - 1; }
+    r = Math.min(r, h / 2, w / 2);
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+}
+
+document.getElementById('btnTestAgain').addEventListener('click', function() {
+    if (seqTests.length >= 7) return; // max 7 tests (8 bars total)
+    seqTests.push('+');
+    drawSequential();
+});
+
+document.getElementById('btnReset').addEventListener('click', function() {
+    seqTests = [];
+    drawSequential();
+});
+
+/* ── Real-World Scenarios (Section 5) ── */
+const scenarios = [
+    {
+        label: 'Medical screening',
+        prior: 0.01, sensitivity: 0.95, specificity: 0.99,
+        desc: 'A disease with 1% prevalence. A 95% sensitive, 99% specific test. You test positive \u2014 but there is only a ~49% chance you are actually sick. The rarity of the disease means false positives dominate. This is why screening tests require confirmatory follow-up.'
+    },
+    {
+        label: 'Spam filter',
+        prior: 0.30, sensitivity: 0.80, specificity: 0.90,
+        desc: 'About 30% of your emails are spam. The filter detects 80% of spam words, but 10% of legitimate emails also contain them. When the filter flags an email, there is a ~77% chance it really is spam. The moderate base rate of spam makes the filter fairly reliable.'
+    },
+    {
+        label: 'Criminal justice',
+        prior: 0.001, sensitivity: 0.99, specificity: 0.99,
+        desc: 'Only 0.1% of people in the population committed the crime. DNA evidence matches the guilty 99% of the time and falsely matches 1% of innocents. Even with this strong evidence, a match only gives ~9% probability of guilt. This is why courts require evidence beyond reasonable doubt.'
+    },
+    {
+        label: 'Weather forecast',
+        prior: 0.20, sensitivity: 0.90, specificity: 0.70,
+        desc: 'There is a 20% chance of rain. People carry umbrellas 90% of the time when it rains, but 30% carry them even when it does not rain. If you see someone with an umbrella, there is about a 43% chance it will rain. The high false-umbrella rate dilutes the signal.'
+    }
+];
+
+function renderScenarios() {
+    const container = document.getElementById('scenarioBtns');
+    container.innerHTML = scenarios.map(function(s, i) {
+        return '<button class="btn" data-si="' + i + '">' + s.label + '</button>';
+    }).join('');
+    container.querySelectorAll('.btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const s = scenarios[parseInt(btn.dataset.si)];
+            // Highlight active
+            container.querySelectorAll('.btn').forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            // Set sliders
+            prior = s.prior;
+            sensitivity = s.sensitivity;
+            specificity = s.specificity;
+            sliderPrior.value = Math.round(prior * 1000);
+            sliderSens.value = Math.round(sensitivity * 1000);
+            sliderSpec.value = Math.round(specificity * 1000);
+            updateSliderLabels();
+            // Set description
+            document.getElementById('scenarioDesc').textContent = s.desc;
+            // Full redraw
+            seqTests = [];
+            computePersonAssignments();
+            drawIconGrid();
+            updateComputedValues();
+            drawTree();
+            drawSequential();
+        });
+    });
+}
+
+/* ── Initialize Everything ── */
+readSliders();
+updateSliderLabels();
+computePersonAssignments();
+drawIconGrid();
+updateComputedValues();
+drawTree();
+drawSequential();
+renderScenarios();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

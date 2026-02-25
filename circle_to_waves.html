@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How a Circle Creates Sine &amp; Cosine Waves</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #f0f0f0;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 16px;
+        }
+        canvas {
+            background: #16213e;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        .controls {
+            margin-top: 16px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #0f3460;
+            color: #e0e0e0;
+            border: 1px solid #1a5276;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #1a5276; }
+        button.active { background: #e94560; border-color: #e94560; }
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            width: 120px;
+            accent-color: #e94560;
+        }
+        .legend {
+            margin-top: 12px;
+            display: flex;
+            gap: 24px;
+            font-size: 14px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .info {
+            margin-top: 16px;
+            max-width: 800px;
+            text-align: center;
+            font-size: 13px;
+            color: #999;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <h1>How a Circle Creates Sine &amp; Cosine Waves</h1>
+    <p class="subtitle">Watch the point on the circle trace out two waves as it rotates</p>
+    <canvas id="canvas" width="900" height="520"></canvas>
+    <div class="controls">
+        <button id="btnPlay" class="active" onclick="togglePlay()">Pause</button>
+        <button onclick="resetAnimation()">Reset</button>
+        <div class="speed-control">
+            <span>Speed:</span>
+            <input type="range" id="speed" min="1" max="10" value="3">
+        </div>
+    </div>
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#e94560;"></div>
+            <span>Point on circle</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#ff6b6b;"></div>
+            <span><b>sin(angle)</b> = vertical position</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#4ecdc4;"></div>
+            <span><b>cos(angle)</b> = horizontal position</span>
+        </div>
+    </div>
+    <div class="info">
+        As the red point moves around the circle, its <b style="color:#ff6b6b">height</b>
+        traces the <b style="color:#ff6b6b">sine wave</b> and its
+        <b style="color:#4ecdc4">horizontal position</b> traces the
+        <b style="color:#4ecdc4">cosine wave</b>.
+        The angle (in degrees) is shown inside the circle.
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const speedSlider = document.getElementById('speed');
+
+        // Layout constants
+        const circleX = 170;       // circle centre x
+        const circleY = 220;       // circle centre y
+        const R = 100;             // circle radius
+        const waveStartX = 320;    // where waves begin (right of circle)
+        const waveWidth = 540;     // how wide the wave area is
+        const sinWaveY = 150;      // vertical centre of sine wave
+        const cosWaveY = 390;      // vertical centre of cosine wave
+        const waveAmp = 90;        // wave amplitude in pixels
+
+        let angle = 0;             // current angle in radians
+        let playing = true;
+        let sinTrail = [];         // stored sine wave points
+        let cosTrail = [];         // stored cosine wave points
+        const maxTrailLen = 600;   // max points to store
+
+        function togglePlay() {
+            playing = !playing;
+            const btn = document.getElementById('btnPlay');
+            btn.textContent = playing ? 'Pause' : 'Play';
+            btn.className = playing ? 'active' : '';
+        }
+
+        function resetAnimation() {
+            angle = 0;
+            sinTrail = [];
+            cosTrail = [];
+        }
+
+        // ---------- Drawing helpers ----------
+
+        function drawGrid(cx, cy, label, yLabel) {
+            // Light grid lines for wave area
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.lineWidth = 1;
+            // horizontal zero line
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.beginPath();
+            ctx.moveTo(waveStartX, cy);
+            ctx.lineTo(waveStartX + waveWidth, cy);
+            ctx.stroke();
+            // +1 and -1 lines
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.beginPath();
+            ctx.moveTo(waveStartX, cy - waveAmp);
+            ctx.lineTo(waveStartX + waveWidth, cy - waveAmp);
+            ctx.moveTo(waveStartX, cy + waveAmp);
+            ctx.lineTo(waveStartX + waveWidth, cy + waveAmp);
+            ctx.stroke();
+            // labels
+            ctx.fillStyle = '#777';
+            ctx.font = '11px Segoe UI, Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText('+1', waveStartX - 6, cy - waveAmp + 4);
+            ctx.fillText(' 0', waveStartX - 6, cy + 4);
+            ctx.fillText('-1', waveStartX - 6, cy + waveAmp + 4);
+            // Wave name
+            ctx.fillStyle = '#aaa';
+            ctx.font = 'bold 14px Segoe UI, Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(label, waveStartX + 4, cy - waveAmp - 10);
+        }
+
+        function drawCircle() {
+            // Circle outline
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(circleX, circleY, R, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Axes through centre
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(circleX - R - 15, circleY);
+            ctx.lineTo(circleX + R + 15, circleY);
+            ctx.moveTo(circleX, circleY - R - 15);
+            ctx.lineTo(circleX, circleY + R + 15);
+            ctx.stroke();
+
+            // Point position
+            const px = circleX + R * Math.cos(angle);
+            const py = circleY - R * Math.sin(angle);  // canvas y is flipped
+
+            // Radius line from centre to point
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(circleX, circleY);
+            ctx.lineTo(px, py);
+            ctx.stroke();
+
+            // Vertical component (sin) - line from point to x-axis
+            ctx.strokeStyle = 'rgba(255, 107, 107, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(px, circleY);
+            ctx.lineTo(px, py);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Horizontal component (cos) - line from point to y-axis
+            ctx.strokeStyle = 'rgba(78, 205, 196, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(circleX, py);
+            ctx.lineTo(px, py);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // sin label on vertical line
+            if (Math.abs(Math.sin(angle)) > 0.15) {
+                ctx.fillStyle = '#ff6b6b';
+                ctx.font = 'bold 12px Segoe UI, Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText('sin', px + 5, (circleY + py) / 2 + 4);
+            }
+
+            // cos label on horizontal line
+            if (Math.abs(Math.cos(angle)) > 0.15) {
+                ctx.fillStyle = '#4ecdc4';
+                ctx.font = 'bold 12px Segoe UI, Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('cos', (circleX + px) / 2, py - 8);
+            }
+
+            // Angle arc
+            const arcR = 25;
+            ctx.strokeStyle = '#f0c040';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(circleX, circleY, arcR, 0, -angle, angle > 0);
+            ctx.stroke();
+
+            // Angle text
+            let degrees = ((angle * 180 / Math.PI) % 360).toFixed(0);
+            if (degrees < 0) degrees = (360 + parseFloat(degrees)).toFixed(0);
+            ctx.fillStyle = '#f0c040';
+            ctx.font = 'bold 13px Segoe UI, Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(degrees + '\u00B0', circleX, circleY + R + 30);
+
+            // The moving point (drawn last, on top)
+            ctx.fillStyle = '#e94560';
+            ctx.beginPath();
+            ctx.arc(px, py, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Centre dot
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.beginPath();
+            ctx.arc(circleX, circleY, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            return { px, py };
+        }
+
+        function drawConnectors(px, py) {
+            // Dashed line from point to sine wave
+            ctx.strokeStyle = 'rgba(255,107,107,0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 5]);
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(waveStartX, sinWaveY - R * Math.sin(angle) * waveAmp / R);
+            ctx.stroke();
+
+            // Dashed line from point down to cosine wave
+            ctx.strokeStyle = 'rgba(78,205,196,0.3)';
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(waveStartX, cosWaveY - R * Math.cos(angle) * waveAmp / R);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawWave(trail, cy, colour) {
+            if (trail.length < 2) return;
+            ctx.strokeStyle = colour;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (let i = 0; i < trail.length; i++) {
+                const x = waveStartX + (i / maxTrailLen) * waveWidth;
+                const y = cy - trail[i] * waveAmp;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Current value dot at the leading edge
+            if (trail.length > 0) {
+                const lastX = waveStartX + ((trail.length - 1) / maxTrailLen) * waveWidth;
+                const lastY = cy - trail[trail.length - 1] * waveAmp;
+                ctx.fillStyle = colour;
+                ctx.beginPath();
+                ctx.arc(lastX, lastY, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Value label
+                ctx.fillStyle = colour;
+                ctx.font = 'bold 12px Segoe UI, Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(trail[trail.length - 1].toFixed(2), lastX + 10, lastY + 4);
+            }
+        }
+
+        function drawSeparator() {
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(waveStartX - 25, 275);
+            ctx.lineTo(waveStartX + waveWidth, 275);
+            ctx.stroke();
+        }
+
+        // ---------- Main loop ----------
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Title labels for each wave section
+            drawGrid(waveStartX, sinWaveY, 'sin(angle) — vertical position', 'sin');
+            drawGrid(waveStartX, cosWaveY, 'cos(angle) — horizontal position', 'cos');
+            drawSeparator();
+
+            // Circle label
+            ctx.fillStyle = '#aaa';
+            ctx.font = 'bold 14px Segoe UI, Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Unit Circle', circleX, 30);
+
+            // Draw circle and get point position
+            const { px, py } = drawCircle();
+
+            // Draw connector lines
+            drawConnectors(px, py);
+
+            // Draw wave trails
+            drawWave(sinTrail, sinWaveY, '#ff6b6b');
+            drawWave(cosTrail, cosWaveY, '#4ecdc4');
+
+            // Update
+            if (playing) {
+                const speed = parseFloat(speedSlider.value) * 0.008;
+                angle += speed;
+
+                sinTrail.push(Math.sin(angle));
+                cosTrail.push(Math.cos(angle));
+
+                // When trail is full, reset to show continuous waves
+                if (sinTrail.length > maxTrailLen) {
+                    sinTrail = [];
+                    cosTrail = [];
+                }
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        // Start
+        draw();
+    </script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

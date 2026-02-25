@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bolzano-Weierstrass Theorem</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#818cf8}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(129,140,248,0.13);border-color:rgba(129,140,248,0.4);color:#818cf8}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .indigo{color:#818cf8}.math-line .gold{color:#fbbf24}.math-line .green{color:#2ecc71}
+        .math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#818cf8}
+        .slider-label{color:#818cf8;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#818cf8;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .info-box{font-family:'Courier New',monospace;font-size:0.85em;color:#c0c0d8;margin:8px 0;line-height:1.8;min-height:24px}
+        .step-display{font-family:'Courier New',monospace;font-size:0.88em;color:#c0c0d8;line-height:1.9;margin:8px 0;max-height:280px;overflow-y:auto}
+        .step-display::-webkit-scrollbar{width:4px}
+        .step-display::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
+        .connections-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}
+        .conn-card{background:rgba(129,140,248,0.04);border:1px solid rgba(129,140,248,0.12);border-radius:8px;padding:14px 16px}
+        .conn-card h4{font-weight:400;color:#818cf8;font-size:0.95em;margin-bottom:6px}
+        .conn-card p{color:#a0a0b8;font-size:0.85em;line-height:1.65}
+        .chain{text-align:center;font-family:'Courier New',monospace;color:#818cf8;font-size:1em;margin:16px 0;letter-spacing:1px}
+        @media(max-width:700px){
+            canvas{width:100%!important;height:auto!important}
+            .connections-grid{grid-template-columns:1fr}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Bolzano-Weierstrass Theorem</h1>
+    <p class="subtitle">Every bounded sequence has a convergent subsequence</p>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- Section 1: Bounded Sequence Visualizer             -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <h2>1. Bounded Sequence Visualizer</h2>
+    <div class="panel">
+        <h3>Preset Sequences</h3>
+        <div class="btn-row" id="seqBtns"></div>
+        <div class="slider-row">
+            <span class="math-line muted">N =</span>
+            <input type="range" id="nSlider" min="50" max="500" value="150">
+            <span class="slider-label" id="nLabel">150</span>
+        </div>
+        <canvas id="seqCanvas" width="700" height="350"></canvas>
+        <div class="info-box" id="seqInfo"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- Section 2: Subsequence Extractor                   -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <h2>2. Subsequence Extractor</h2>
+    <div class="panel">
+        <h3>Click dots to select a subsequence, or auto-extract</h3>
+        <div class="btn-row">
+            <button class="btn" id="autoExtractBtn">Auto-extract convergent subsequence</button>
+            <button class="btn" id="clearSubseqBtn">Clear selection</button>
+        </div>
+        <canvas id="extractCanvas" width="700" height="350"></canvas>
+        <div class="info-box" id="extractInfo"></div>
+        <div class="step-display" id="extractSteps"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- Section 3: The Proof — Animated Bisection          -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <h2>3. The Proof &mdash; Animated Bisection</h2>
+    <div class="panel">
+        <h3>Constructive proof by nested intervals</h3>
+        <div class="btn-row">
+            <button class="btn" id="proofStepBtn">Step</button>
+            <button class="btn" id="proofAutoBtn">Auto</button>
+            <button class="btn" id="proofResetBtn">Reset</button>
+        </div>
+        <canvas id="proofCanvas" width="650" height="400"></canvas>
+        <div class="step-display" id="proofSteps"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- Section 4: Why Boundedness Matters                 -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <h2>4. Why Boundedness Matters</h2>
+    <div class="panel">
+        <h3>Toggle between bounded and unbounded</h3>
+        <div class="btn-row" id="boundBtns"></div>
+        <canvas id="boundCanvas" width="500" height="300"></canvas>
+        <div class="info-box" id="boundInfo"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- Section 5: Connections                             -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <h2>5. Connections</h2>
+    <div class="panel">
+        <div class="chain">Completeness of R &harr; Bolzano-Weierstrass &harr; Heine-Borel</div>
+        <div class="connections-grid">
+            <div class="conn-card">
+                <h4>Completeness of R</h4>
+                <p>The Bolzano-Weierstrass theorem is equivalent to the completeness of the real numbers. Every Cauchy sequence converges in R. Without completeness, bounded sequences could "aim" at a limit that does not exist in the space.</p>
+            </div>
+            <div class="conn-card">
+                <h4>Compactness</h4>
+                <p>In R^n, BW says closed and bounded sets are sequentially compact: every sequence in such a set has a subsequence converging to a point within the set. This is the sequential characterisation of compactness.</p>
+            </div>
+            <div class="conn-card">
+                <h4>Heine-Borel Theorem</h4>
+                <p>Every open cover of a closed bounded interval [a,b] has a finite subcover. This covering characterisation of compactness is equivalent to BW, and both rely on the completeness of R.</p>
+            </div>
+            <div class="conn-card">
+                <h4>Extreme Value Theorem</h4>
+                <p>"Every continuous function on [a,b] attains its maximum and minimum." This fundamental result depends directly on BW: construct a maximising sequence, extract a convergent subsequence, and continuity does the rest.</p>
+            </div>
+        </div>
+        <h3 style="margin-top:18px">Bolzano-Weierstrass in R^2</h3>
+        <canvas id="bw2dCanvas" width="300" height="300" style="cursor:default"></canvas>
+        <div class="info-box" id="bw2dInfo"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- Section 6: Explanation                             -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            The Bolzano-Weierstrass theorem guarantees that boundedness alone forces some order to emerge from apparent chaos &mdash; you can always find a pattern (a convergent subsequence) within bounded data. No matter how erratically a bounded sequence jumps around, the pigeonhole principle ensures that infinitely many terms must cluster near at least one point.
+            <br><br>
+            This is one of the pillars of real analysis, underpinning compactness, continuity, and the existence of optima. The constructive proof by nested bisection is itself a powerful technique: at each step, we halve the interval and retain the half with infinitely many terms. After k steps the interval has width (sup &minus; inf)/2^k, which tends to zero, trapping the subsequence into convergence.
+            <br><br>
+            The theorem connects three equivalent formulations of completeness: the least upper bound property, the Bolzano-Weierstrass property, and the Heine-Borel covering property. Together they form the backbone of everything from the Extreme Value Theorem ("every continuous function on [a,b] attains its maximum") to the foundations of optimisation and probability theory.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ================================================================
+   Bolzano-Weierstrass Interactive — self-contained, no dependencies
+   ================================================================ */
+
+/* ── colour constants ── */
+const INDIGO = '#818cf8';
+const INDIGO_DIM = 'rgba(129,140,248,0.35)';
+const INDIGO_GLOW = 'rgba(129,140,248,0.55)';
+const INDIGO_BG = 'rgba(129,140,248,0.08)';
+const GOLD = '#fbbf24';
+const GREEN = '#2ecc71';
+const RED = '#ef4444';
+const MUTED = '#808098';
+const GRID = 'rgba(255,255,255,0.04)';
+const AXIS = 'rgba(255,255,255,0.18)';
+const BG = '#0a0a1a';
+
+/* ── shared sequence data ── */
+let seqData = [];       // array of {n, val}
+let seqSup = 1;
+let seqInf = -1;
+let currentPreset = 0;
+let numTerms = 150;
+
+/* ── preset sequence generators ── */
+const presets = [
+    { label: 'sin(n)',           fn: n => Math.sin(n) },
+    { label: '(-1)^n + 1/n',    fn: n => (n%2===0?1:-1) + 1/(n+1) },
+    { label: 'sin(n^2)/sqrt(n) + cos(n)', fn: n => Math.sin(n*n)/Math.sqrt(n+1) + Math.cos(n) },
+    { label: 'Random bounded',  fn: null, random: true },
+    { label: '(n mod 7)/7 + 0.1 sin(n)', fn: n => (n%7)/7 + 0.1*Math.sin(n) }
+];
+
+let randomCache = [];
+
+function generateSequence() {
+    seqData = [];
+    const p = presets[currentPreset];
+    for (let n = 0; n < numTerms; n++) {
+        let val;
+        if (p.random) {
+            if (n < randomCache.length) val = randomCache[n];
+            else { val = Math.random(); randomCache.push(val); }
+        } else {
+            val = p.fn(n);
+        }
+        seqData.push({ n, val });
+    }
+    seqSup = -Infinity; seqInf = Infinity;
+    for (const d of seqData) {
+        if (d.val > seqSup) seqSup = d.val;
+        if (d.val < seqInf) seqInf = d.val;
+    }
+    // small padding
+    const pad = (seqSup - seqInf) * 0.05 || 0.1;
+    seqSup += pad; seqInf -= pad;
+}
+
+/* ── Section 1: Bounded Sequence Visualizer ── */
+const seqCvs = document.getElementById('seqCanvas');
+const seqCtx = seqCvs.getContext('2d');
+const SW = seqCvs.width, SH = seqCvs.height;
+const seqMargin = { left: 55, right: 20, top: 25, bottom: 35 };
+
+function seqToScreen(n, val) {
+    const x = seqMargin.left + (n / (numTerms - 1)) * (SW - seqMargin.left - seqMargin.right);
+    const y = seqMargin.top + (1 - (val - seqInf) / (seqSup - seqInf)) * (SH - seqMargin.top - seqMargin.bottom);
+    return { x, y };
+}
+
+function drawSeqCanvas() {
+    const ctx = seqCtx;
+    ctx.clearRect(0, 0, SW, SH);
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, SW, SH);
+
+    const plotL = seqMargin.left, plotR = SW - seqMargin.right;
+    const plotT = seqMargin.top, plotB = SH - seqMargin.bottom;
+
+    // axes
+    ctx.strokeStyle = AXIS; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(plotL, plotT); ctx.lineTo(plotL, plotB); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(plotL, plotB); ctx.lineTo(plotR, plotB); ctx.stroke();
+
+    // y-axis ticks
+    ctx.font = '10px Courier New'; ctx.fillStyle = MUTED; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const yRange = seqSup - seqInf;
+    const yStep = niceStep(yRange, 6);
+    const yStart = Math.ceil(seqInf / yStep) * yStep;
+    for (let v = yStart; v <= seqSup; v += yStep) {
+        const s = seqToScreen(0, v);
+        if (s.y < plotT + 5 || s.y > plotB - 5) continue;
+        ctx.fillText(v.toFixed(2), plotL - 6, s.y);
+        ctx.strokeStyle = GRID; ctx.lineWidth = 0.5;
+        ctx.beginPath(); ctx.moveTo(plotL, s.y); ctx.lineTo(plotR, s.y); ctx.stroke();
+    }
+
+    // x-axis ticks
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const xStep = niceStep(numTerms, 8);
+    for (let n = 0; n <= numTerms; n += xStep) {
+        const s = seqToScreen(n, seqInf);
+        ctx.fillText(n, s.x, plotB + 5);
+    }
+
+    // bounding lines (dashed)
+    ctx.setLineDash([6, 4]);
+    // sup
+    const supY = seqToScreen(0, seqSup - (seqSup - seqInf) * 0.05).y;
+    const infY = seqToScreen(0, seqInf + (seqSup - seqInf) * 0.05).y;
+    const realSup = seqSup - (seqSup - seqInf) * 0.05;
+    const realInf = seqInf + (seqSup - seqInf) * 0.05;
+    // Compute actual sup/inf from data
+    let actualSup = -Infinity, actualInf = Infinity;
+    for (const d of seqData) { if (d.val > actualSup) actualSup = d.val; if (d.val < actualInf) actualInf = d.val; }
+    const aSY = seqToScreen(0, actualSup).y;
+    const aIY = seqToScreen(0, actualInf).y;
+
+    ctx.strokeStyle = 'rgba(251,191,36,0.5)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(plotL, aSY); ctx.lineTo(plotR, aSY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(plotL, aIY); ctx.lineTo(plotR, aIY); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // labels for bounds
+    ctx.font = '10px Georgia'; ctx.fillStyle = GOLD; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText('sup = ' + actualSup.toFixed(3), plotR - 110, aSY - 3);
+    ctx.textBaseline = 'top';
+    ctx.fillText('inf = ' + actualInf.toFixed(3), plotR - 110, aIY + 3);
+
+    // dots
+    for (const d of seqData) {
+        const s = seqToScreen(d.n, d.val);
+        ctx.fillStyle = INDIGO_DIM;
+        ctx.beginPath(); ctx.arc(s.x, s.y, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // axis labels
+    ctx.font = '12px Georgia'; ctx.fillStyle = MUTED;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('n', (plotL + plotR) / 2, plotB + 20);
+    ctx.save();
+    ctx.translate(14, (plotT + plotB) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('a_n', 0, 0);
+    ctx.restore();
+
+    // info
+    document.getElementById('seqInfo').innerHTML =
+        '<span style="color:' + INDIGO + '">Sequence:</span> a_n = ' + presets[currentPreset].label +
+        '  |  <span style="color:' + GOLD + '">sup = ' + actualSup.toFixed(4) + ', inf = ' + actualInf.toFixed(4) + '</span>' +
+        '  |  N = ' + numTerms + ' terms' +
+        '  |  Bounded: the full sequence may not converge, but a convergent subsequence exists.';
+}
+
+function niceStep(range, maxTicks) {
+    const rough = range / maxTicks;
+    const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    const norm = rough / mag;
+    let step;
+    if (norm <= 1.5) step = 1;
+    else if (norm <= 3) step = 2;
+    else if (norm <= 7) step = 5;
+    else step = 10;
+    return step * mag;
+}
+
+/* ── preset buttons ── */
+function renderSeqBtns() {
+    const c = document.getElementById('seqBtns');
+    c.innerHTML = presets.map((p, i) =>
+        '<button class="btn' + (i === currentPreset ? ' active' : '') + '" data-si="' + i + '">' + p.label + '</button>'
+    ).join('');
+    c.querySelectorAll('.btn').forEach(b => b.addEventListener('click', () => {
+        currentPreset = parseInt(b.dataset.si);
+        if (presets[currentPreset].random) randomCache = [];
+        generateSequence();
+        renderSeqBtns();
+        drawSeqCanvas();
+        // reset extraction
+        selectedIndices = [];
+        autoExtracting = false;
+        autoIntervals = [];
+        drawExtractCanvas();
+        // reset proof
+        resetProof();
+    }));
+}
+
+const nSlider = document.getElementById('nSlider');
+const nLabel = document.getElementById('nLabel');
+nSlider.addEventListener('input', () => {
+    numTerms = parseInt(nSlider.value);
+    nLabel.textContent = numTerms;
+    generateSequence();
+    drawSeqCanvas();
+    selectedIndices = [];
+    autoExtracting = false;
+    autoIntervals = [];
+    drawExtractCanvas();
+    resetProof();
+});
+
+/* ── Section 2: Subsequence Extractor ── */
+const extCvs = document.getElementById('extractCanvas');
+const extCtx = extCvs.getContext('2d');
+const EW = extCvs.width, EH = extCvs.height;
+const extMargin = { left: 55, right: 20, top: 25, bottom: 35 };
+
+let selectedIndices = [];    // indices into seqData selected by user
+let autoExtracting = false;
+let autoIntervals = [];      // array of {lo, hi, chosenIdx}
+let autoAnimStep = 0;
+let autoAnimTimer = null;
+
+function extToScreen(n, val) {
+    const x = extMargin.left + (n / (numTerms - 1)) * (EW - extMargin.left - extMargin.right);
+    const y = extMargin.top + (1 - (val - seqInf) / (seqSup - seqInf)) * (EH - extMargin.top - extMargin.bottom);
+    return { x, y };
+}
+
+function drawExtractCanvas() {
+    const ctx = extCtx;
+    ctx.clearRect(0, 0, EW, EH);
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, EW, EH);
+
+    const plotL = extMargin.left, plotR = EW - extMargin.right;
+    const plotT = extMargin.top, plotB = EH - extMargin.bottom;
+
+    // axes
+    ctx.strokeStyle = AXIS; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(plotL, plotT); ctx.lineTo(plotL, plotB); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(plotL, plotB); ctx.lineTo(plotR, plotB); ctx.stroke();
+
+    // y ticks
+    ctx.font = '10px Courier New'; ctx.fillStyle = MUTED; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const yRange = seqSup - seqInf;
+    const yStep = niceStep(yRange, 6);
+    const yStart = Math.ceil(seqInf / yStep) * yStep;
+    for (let v = yStart; v <= seqSup; v += yStep) {
+        const s = extToScreen(0, v);
+        if (s.y < plotT + 5 || s.y > plotB - 5) continue;
+        ctx.fillText(v.toFixed(2), plotL - 6, s.y);
+        ctx.strokeStyle = GRID; ctx.lineWidth = 0.5;
+        ctx.beginPath(); ctx.moveTo(plotL, s.y); ctx.lineTo(plotR, s.y); ctx.stroke();
+    }
+
+    // draw auto-extract interval bands
+    for (let i = 0; i < autoIntervals.length && i <= autoAnimStep; i++) {
+        const iv = autoIntervals[i];
+        const yTop = extToScreen(0, iv.hi).y;
+        const yBot = extToScreen(0, iv.lo).y;
+        const alpha = 0.06 + 0.04 * (i / Math.max(autoIntervals.length - 1, 1));
+        ctx.fillStyle = 'rgba(129,140,248,' + alpha + ')';
+        ctx.fillRect(plotL, yTop, plotR - plotL, yBot - yTop);
+        // interval boundary lines
+        ctx.strokeStyle = 'rgba(129,140,248,' + (0.15 + 0.1 * i / Math.max(autoIntervals.length - 1, 1)) + ')';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(plotL, yTop); ctx.lineTo(plotR, yTop); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(plotL, yBot); ctx.lineTo(plotR, yBot); ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // all dots (dim)
+    for (const d of seqData) {
+        const s = extToScreen(d.n, d.val);
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.beginPath(); ctx.arc(s.x, s.y, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // selected subsequence line
+    const sortedSel = [...selectedIndices].sort((a, b) => a - b);
+    if (sortedSel.length > 1) {
+        ctx.strokeStyle = INDIGO_DIM; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < sortedSel.length; i++) {
+            const d = seqData[sortedSel[i]];
+            const s = extToScreen(d.n, d.val);
+            if (i === 0) ctx.moveTo(s.x, s.y);
+            else ctx.lineTo(s.x, s.y);
+        }
+        ctx.stroke();
+    }
+
+    // selected dots (glow)
+    for (const idx of sortedSel) {
+        const d = seqData[idx];
+        const s = extToScreen(d.n, d.val);
+        // glow
+        ctx.shadowColor = INDIGO;
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = INDIGO;
+        ctx.beginPath(); ctx.arc(s.x, s.y, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    // axis labels
+    ctx.font = '12px Georgia'; ctx.fillStyle = MUTED;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('n', (plotL + plotR) / 2, plotB + 20);
+
+    // info
+    updateExtractInfo();
+}
+
+function updateExtractInfo() {
+    const info = document.getElementById('extractInfo');
+    const sortedSel = [...selectedIndices].sort((a, b) => a - b);
+    if (sortedSel.length === 0) {
+        info.innerHTML = '<span style="color:' + MUTED + '">Click on dots to select a subsequence, or use auto-extract.</span>';
+        return;
+    }
+    const vals = sortedSel.map(i => seqData[i].val);
+    const last5 = vals.slice(-5).map(v => v.toFixed(4)).join(', ');
+    // estimate limit from last few terms
+    const tail = vals.slice(-Math.min(10, vals.length));
+    const est = tail.reduce((a, b) => a + b, 0) / tail.length;
+    info.innerHTML =
+        '<span style="color:' + INDIGO + '">Subsequence:</span> ' + sortedSel.length + ' terms selected' +
+        '  |  Last values: ' + last5 +
+        '  |  <span style="color:' + GREEN + '">Estimated limit: ' + est.toFixed(6) + '</span>';
+}
+
+/* ── click on extract canvas to select dots ── */
+function getCanvasXY(cvs, e) {
+    const r = cvs.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - r.left) * (cvs.width / r.width), y: (clientY - r.top) * (cvs.height / r.height) };
+}
+
+function handleExtractClick(e) {
+    if (autoExtracting) return;
+    e.preventDefault();
+    const p = getCanvasXY(extCvs, e);
+    let bestIdx = -1, bestDist = 200; // 200 sq px threshold
+    for (let i = 0; i < seqData.length; i++) {
+        const s = extToScreen(seqData[i].n, seqData[i].val);
+        const dx = s.x - p.x, dy = s.y - p.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < bestDist) { bestDist = d2; bestIdx = i; }
+    }
+    if (bestIdx >= 0) {
+        const pos = selectedIndices.indexOf(bestIdx);
+        if (pos >= 0) selectedIndices.splice(pos, 1);
+        else selectedIndices.push(bestIdx);
+        drawExtractCanvas();
+    }
+}
+
+extCvs.addEventListener('click', handleExtractClick);
+extCvs.addEventListener('touchstart', handleExtractClick, { passive: false });
+
+/* ── auto-extract by bisection ── */
+document.getElementById('autoExtractBtn').addEventListener('click', () => {
+    if (autoExtracting) return;
+    autoExtracting = true;
+    selectedIndices = [];
+    autoIntervals = [];
+    autoAnimStep = -1;
+
+    // compute actual bounds
+    let lo = Infinity, hi = -Infinity;
+    for (const d of seqData) {
+        if (d.val < lo) lo = d.val;
+        if (d.val > hi) hi = d.val;
+    }
+
+    // bisection: pick half with more points, select one term from that half
+    let currentLo = lo, currentHi = hi;
+    let remaining = seqData.map((d, i) => i); // indices into seqData
+    const maxSteps = 12;
+
+    for (let step = 0; step < maxSteps; step++) {
+        const mid = (currentLo + currentHi) / 2;
+        const lower = remaining.filter(i => seqData[i].val >= currentLo && seqData[i].val <= mid);
+        const upper = remaining.filter(i => seqData[i].val > mid && seqData[i].val <= currentHi);
+
+        let chosen, chosenHalf;
+        if (lower.length >= upper.length) {
+            chosen = lower;
+            chosenHalf = 'lower';
+            currentHi = mid;
+        } else {
+            chosen = upper;
+            chosenHalf = 'upper';
+            currentLo = mid;
+        }
+
+        // select the first term in the chosen half that comes after all previously selected
+        const lastN = selectedIndices.length > 0 ? Math.max(...selectedIndices) : -1;
+        const candidates = chosen.filter(i => i > lastN);
+        let pick = -1;
+        if (candidates.length > 0) pick = candidates[0];
+        else if (chosen.length > 0) pick = chosen[0];
+
+        remaining = chosen;
+        autoIntervals.push({
+            lo: currentLo,
+            hi: currentHi,
+            chosenIdx: pick,
+            count: chosen.length,
+            half: chosenHalf
+        });
+
+        if (pick >= 0) selectedIndices.push(pick);
+        if (remaining.length <= 1) break;
+    }
+
+    // animate step by step
+    autoAnimStep = 0;
+    const stepsDiv = document.getElementById('extractSteps');
+    stepsDiv.innerHTML = '';
+    drawExtractCanvas();
+
+    let stepIdx = 0;
+    autoAnimTimer = setInterval(() => {
+        if (stepIdx >= autoIntervals.length) {
+            clearInterval(autoAnimTimer);
+            autoExtracting = false;
+            // final info
+            const sortedSel = [...selectedIndices].sort((a, b) => a - b);
+            const vals = sortedSel.map(i => seqData[i].val);
+            const tail = vals.slice(-Math.min(6, vals.length));
+            const est = tail.reduce((a, b) => a + b, 0) / tail.length;
+            stepsDiv.innerHTML += '<div style="color:' + GREEN + ';margin-top:6px">Subsequence converges to approximately ' + est.toFixed(6) +
+                ' | Final interval width: ' + (autoIntervals[autoIntervals.length - 1].hi - autoIntervals[autoIntervals.length - 1].lo).toExponential(3) + '</div>';
+            return;
+        }
+        autoAnimStep = stepIdx;
+        const iv = autoIntervals[stepIdx];
+        const pickedVal = iv.chosenIdx >= 0 ? seqData[iv.chosenIdx].val.toFixed(4) : '(none)';
+        stepsDiv.innerHTML +=
+            '<div><span style="color:' + INDIGO + '">Step ' + (stepIdx + 1) + ':</span> ' +
+            'Interval [' + iv.lo.toFixed(4) + ', ' + iv.hi.toFixed(4) + ']' +
+            '  |  Width: ' + (iv.hi - iv.lo).toFixed(4) +
+            '  |  Chose ' + iv.half + ' half (' + iv.count + ' terms)' +
+            '  |  Picked a_' + (iv.chosenIdx >= 0 ? iv.chosenIdx : '?') + ' = ' + pickedVal + '</div>';
+        drawExtractCanvas();
+        stepIdx++;
+    }, 800);
+});
+
+document.getElementById('clearSubseqBtn').addEventListener('click', () => {
+    if (autoAnimTimer) clearInterval(autoAnimTimer);
+    autoExtracting = false;
+    selectedIndices = [];
+    autoIntervals = [];
+    autoAnimStep = -1;
+    document.getElementById('extractSteps').innerHTML = '';
+    drawExtractCanvas();
+});
+
+
+/* ── Section 3: Proof — Animated Bisection ── */
+const prfCvs = document.getElementById('proofCanvas');
+const prfCtx = prfCvs.getContext('2d');
+const PW = prfCvs.width, PH = prfCvs.height;
+const prfMargin = { left: 55, right: 130, top: 25, bottom: 35 };
+
+let proofIntervals = [];    // {lo, hi, chosenIdx, lowerCount, upperCount}
+let proofSubseq = [];       // indices into seqData
+let proofStep = 0;
+let proofLo, proofHi;
+let proofRemaining = [];
+let proofAutoTimer = null;
+
+function prfToScreen(n, val) {
+    const plotW = PW - prfMargin.left - prfMargin.right;
+    const plotH = PH - prfMargin.top - prfMargin.bottom;
+    const x = prfMargin.left + (n / (numTerms - 1)) * plotW;
+    const y = prfMargin.top + (1 - (val - seqInf) / (seqSup - seqInf)) * plotH;
+    return { x, y };
+}
+
+function resetProof() {
+    if (proofAutoTimer) clearInterval(proofAutoTimer);
+    proofIntervals = [];
+    proofSubseq = [];
+    proofStep = 0;
+    // compute bounds
+    let lo = Infinity, hi = -Infinity;
+    for (const d of seqData) {
+        if (d.val < lo) lo = d.val;
+        if (d.val > hi) hi = d.val;
+    }
+    proofLo = lo; proofHi = hi;
+    proofRemaining = seqData.map((d, i) => i);
+    document.getElementById('proofSteps').innerHTML = '';
+    drawProofCanvas();
+}
+
+function proofDoStep() {
+    if (proofRemaining.length <= 1) return false;
+    const mid = (proofLo + proofHi) / 2;
+    const lower = proofRemaining.filter(i => seqData[i].val >= proofLo && seqData[i].val <= mid);
+    const upper = proofRemaining.filter(i => seqData[i].val > mid && seqData[i].val <= proofHi);
+
+    let chosen, chosenHalf;
+    if (lower.length >= upper.length) {
+        chosen = lower; chosenHalf = 'lower';
+    } else {
+        chosen = upper; chosenHalf = 'upper';
+    }
+
+    const lowerCount = lower.length;
+    const upperCount = upper.length;
+
+    if (chosenHalf === 'lower') proofHi = mid;
+    else proofLo = mid;
+
+    // pick a term
+    const lastN = proofSubseq.length > 0 ? Math.max(...proofSubseq) : -1;
+    const candidates = chosen.filter(i => i > lastN);
+    let pick = candidates.length > 0 ? candidates[0] : (chosen.length > 0 ? chosen[0] : -1);
+
+    proofRemaining = chosen;
+
+    proofIntervals.push({
+        lo: proofLo, hi: proofHi,
+        chosenIdx: pick,
+        lowerCount, upperCount,
+        half: chosenHalf
+    });
+
+    if (pick >= 0) proofSubseq.push(pick);
+    proofStep++;
+
+    // update steps display
+    const stepsDiv = document.getElementById('proofSteps');
+    const iv = proofIntervals[proofIntervals.length - 1];
+    const pickedVal = pick >= 0 ? seqData[pick].val.toFixed(4) : '---';
+    stepsDiv.innerHTML +=
+        '<div><span style="color:' + INDIGO + '">Step ' + proofStep + ':</span> ' +
+        '[' + iv.lo.toFixed(4) + ', ' + iv.hi.toFixed(4) + ']' +
+        '  |  Width: ' + (iv.hi - iv.lo).toFixed(4) +
+        '  |  Lower: ' + iv.lowerCount + ', Upper: ' + iv.upperCount +
+        '  |  Chose ' + iv.half +
+        '  |  a_{' + (pick >= 0 ? pick : '?') + '} = ' + pickedVal + '</div>';
+    stepsDiv.scrollTop = stepsDiv.scrollHeight;
+
+    drawProofCanvas();
+    return proofRemaining.length > 1;
+}
+
+function drawProofCanvas() {
+    const ctx = prfCtx;
+    ctx.clearRect(0, 0, PW, PH);
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, PW, PH);
+
+    const plotL = prfMargin.left, plotR = PW - prfMargin.right;
+    const plotT = prfMargin.top, plotB = PH - prfMargin.bottom;
+
+    // axes
+    ctx.strokeStyle = AXIS; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(plotL, plotT); ctx.lineTo(plotL, plotB); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(plotL, plotB); ctx.lineTo(plotR, plotB); ctx.stroke();
+
+    // y ticks
+    ctx.font = '10px Courier New'; ctx.fillStyle = MUTED; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const yRange = seqSup - seqInf;
+    const yStep = niceStep(yRange, 6);
+    const yStart = Math.ceil(seqInf / yStep) * yStep;
+    for (let v = yStart; v <= seqSup; v += yStep) {
+        const s = prfToScreen(0, v);
+        if (s.y < plotT + 5 || s.y > plotB - 5) continue;
+        ctx.fillText(v.toFixed(2), plotL - 6, s.y);
+    }
+
+    // draw nested interval bands on y-axis (right side)
+    const bandX = plotR + 8;
+    const bandW = 20;
+    for (let i = 0; i < proofIntervals.length; i++) {
+        const iv = proofIntervals[i];
+        const yTop = prfToScreen(0, iv.hi).y;
+        const yBot = prfToScreen(0, iv.lo).y;
+        const alpha = 0.08 + 0.08 * (i / Math.max(proofIntervals.length - 1, 1));
+        ctx.fillStyle = 'rgba(129,140,248,' + alpha + ')';
+        ctx.fillRect(bandX + i * 3, yTop, bandW - i * 2, yBot - yTop);
+        ctx.strokeStyle = 'rgba(129,140,248,' + (0.2 + 0.06 * i) + ')';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(bandX + i * 3, yTop, bandW - i * 2, yBot - yTop);
+    }
+
+    // current interval band on the main plot
+    if (proofIntervals.length > 0) {
+        const last = proofIntervals[proofIntervals.length - 1];
+        const yTop = prfToScreen(0, last.hi).y;
+        const yBot = prfToScreen(0, last.lo).y;
+        ctx.fillStyle = 'rgba(129,140,248,0.06)';
+        ctx.fillRect(plotL, yTop, plotR - plotL, yBot - yTop);
+        ctx.setLineDash([4, 3]);
+        ctx.strokeStyle = INDIGO_DIM; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(plotL, yTop); ctx.lineTo(plotR, yTop); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(plotL, yBot); ctx.lineTo(plotR, yBot); ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // all dots (very dim)
+    for (const d of seqData) {
+        const s = prfToScreen(d.n, d.val);
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.beginPath(); ctx.arc(s.x, s.y, 2, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // subsequence connecting line
+    if (proofSubseq.length > 1) {
+        ctx.strokeStyle = INDIGO_DIM; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < proofSubseq.length; i++) {
+            const d = seqData[proofSubseq[i]];
+            const s = prfToScreen(d.n, d.val);
+            if (i === 0) ctx.moveTo(s.x, s.y);
+            else ctx.lineTo(s.x, s.y);
+        }
+        ctx.stroke();
+    }
+
+    // subsequence dots (glow)
+    for (let i = 0; i < proofSubseq.length; i++) {
+        const d = seqData[proofSubseq[i]];
+        const s = prfToScreen(d.n, d.val);
+        ctx.shadowColor = INDIGO; ctx.shadowBlur = 10;
+        ctx.fillStyle = INDIGO;
+        ctx.beginPath(); ctx.arc(s.x, s.y, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        // step label
+        ctx.font = '9px Courier New'; ctx.fillStyle = INDIGO; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText('k=' + (i + 1), s.x, s.y - 7);
+    }
+
+    // axis labels
+    ctx.font = '12px Georgia'; ctx.fillStyle = MUTED;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('n', (plotL + plotR) / 2, plotB + 20);
+
+    // label for nested intervals column
+    ctx.save();
+    ctx.translate(PW - 15, (plotT + plotB) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.font = '10px Georgia'; ctx.fillStyle = MUTED;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('Nested intervals', 0, 0);
+    ctx.restore();
+}
+
+document.getElementById('proofStepBtn').addEventListener('click', () => {
+    proofDoStep();
+});
+
+document.getElementById('proofAutoBtn').addEventListener('click', () => {
+    if (proofAutoTimer) return;
+    const maxAuto = 10;
+    let count = 0;
+    proofAutoTimer = setInterval(() => {
+        const canContinue = proofDoStep();
+        count++;
+        if (!canContinue || count >= maxAuto) {
+            clearInterval(proofAutoTimer);
+            proofAutoTimer = null;
+            // final summary
+            if (proofSubseq.length > 0) {
+                const vals = proofSubseq.map(i => seqData[i].val);
+                const tail = vals.slice(-Math.min(6, vals.length));
+                const est = tail.reduce((a, b) => a + b, 0) / tail.length;
+                const stepsDiv = document.getElementById('proofSteps');
+                stepsDiv.innerHTML += '<div style="color:' + GREEN + ';margin-top:6px">Converges to approximately ' + est.toFixed(6) +
+                    ' | Interval width after ' + proofStep + ' steps: ' + (proofIntervals.length > 0 ?
+                    (proofIntervals[proofIntervals.length - 1].hi - proofIntervals[proofIntervals.length - 1].lo).toExponential(3) : '---') + '</div>';
+                stepsDiv.scrollTop = stepsDiv.scrollHeight;
+            }
+        }
+    }, 800);
+});
+
+document.getElementById('proofResetBtn').addEventListener('click', () => {
+    resetProof();
+});
+
+
+/* ── Section 4: Why Boundedness Matters ── */
+const bndCvs = document.getElementById('boundCanvas');
+const bndCtx = bndCvs.getContext('2d');
+const BW2 = bndCvs.width, BH = bndCvs.height;
+const bndMargin = { left: 55, right: 20, top: 25, bottom: 35 };
+
+const boundModes = [
+    { label: 'Bounded: sin(n)', fn: n => Math.sin(n), bounded: true },
+    { label: 'Unbounded: a_n = n', fn: n => n, bounded: false },
+    { label: 'Unbounded: (-1)^n * n', fn: n => (n % 2 === 0 ? 1 : -1) * n, bounded: false }
+];
+let boundMode = 0;
+
+function renderBoundBtns() {
+    const c = document.getElementById('boundBtns');
+    c.innerHTML = boundModes.map((m, i) =>
+        '<button class="btn' + (i === boundMode ? ' active' : '') + '" data-bi="' + i + '">' + m.label + '</button>'
+    ).join('');
+    c.querySelectorAll('.btn').forEach(b => b.addEventListener('click', () => {
+        boundMode = parseInt(b.dataset.bi);
+        renderBoundBtns();
+        drawBoundCanvas();
+    }));
+}
+
+function drawBoundCanvas() {
+    const ctx = bndCtx;
+    ctx.clearRect(0, 0, BW2, BH);
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, BW2, BH);
+
+    const plotL = bndMargin.left, plotR = BW2 - bndMargin.right;
+    const plotT = bndMargin.top, plotB = BH - bndMargin.bottom;
+
+    const m = boundModes[boundMode];
+    const N = 80;
+    const pts = [];
+    let lo = Infinity, hi = -Infinity;
+    for (let n = 0; n < N; n++) {
+        const v = m.fn(n);
+        pts.push({ n, val: v });
+        if (v < lo) lo = v;
+        if (v > hi) hi = v;
+    }
+    const pad = (hi - lo) * 0.08 || 1;
+    lo -= pad; hi += pad;
+
+    function bToScreen(n, val) {
+        const x = plotL + (n / (N - 1)) * (plotR - plotL);
+        const y = plotT + (1 - (val - lo) / (hi - lo)) * (plotB - plotT);
+        return { x, y };
+    }
+
+    // axes
+    ctx.strokeStyle = AXIS; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(plotL, plotT); ctx.lineTo(plotL, plotB); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(plotL, plotB); ctx.lineTo(plotR, plotB); ctx.stroke();
+
+    // y ticks
+    ctx.font = '10px Courier New'; ctx.fillStyle = MUTED; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const yRange = hi - lo;
+    const ys = niceStep(yRange, 5);
+    for (let v = Math.ceil(lo / ys) * ys; v <= hi; v += ys) {
+        const s = bToScreen(0, v);
+        if (s.y < plotT + 5 || s.y > plotB - 5) continue;
+        ctx.fillText(v.toFixed(1), plotL - 6, s.y);
+        ctx.strokeStyle = GRID; ctx.lineWidth = 0.5;
+        ctx.beginPath(); ctx.moveTo(plotL, s.y); ctx.lineTo(plotR, s.y); ctx.stroke();
+    }
+
+    if (m.bounded) {
+        // draw bounding lines
+        let actualSup = -Infinity, actualInf = Infinity;
+        for (const p of pts) { if (p.val > actualSup) actualSup = p.val; if (p.val < actualInf) actualInf = p.val; }
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = 'rgba(46,204,113,0.5)'; ctx.lineWidth = 1.5;
+        const supS = bToScreen(0, actualSup);
+        const infS = bToScreen(0, actualInf);
+        ctx.beginPath(); ctx.moveTo(plotL, supS.y); ctx.lineTo(plotR, supS.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(plotL, infS.y); ctx.lineTo(plotR, infS.y); ctx.stroke();
+        ctx.setLineDash([]);
+        // fill bounded region
+        ctx.fillStyle = 'rgba(46,204,113,0.04)';
+        ctx.fillRect(plotL, supS.y, plotR - plotL, infS.y - supS.y);
+
+        // dots
+        for (const p of pts) {
+            const s = bToScreen(p.n, p.val);
+            ctx.fillStyle = GREEN;
+            ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, Math.PI * 2); ctx.fill();
+        }
+
+        document.getElementById('boundInfo').innerHTML =
+            '<span style="color:' + GREEN + '">Bounded:</span> All terms stay within [' +
+            actualInf.toFixed(3) + ', ' + actualSup.toFixed(3) +
+            ']. Bolzano-Weierstrass guarantees a convergent subsequence exists.';
+    } else {
+        // unbounded — draw arrow showing escape
+        // dots
+        for (const p of pts) {
+            const s = bToScreen(p.n, p.val);
+            // clamp to canvas
+            const sy = Math.max(plotT, Math.min(plotB, s.y));
+            const escaped = s.y < plotT || s.y > plotB;
+            ctx.fillStyle = escaped ? 'rgba(239,68,68,0.3)' : RED;
+            ctx.beginPath(); ctx.arc(s.x, sy, 3, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // annotation: arrow going up or oscillating out
+        ctx.font = '11px Georgia'; ctx.fillStyle = RED;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        if (boundMode === 1) {
+            // a_n = n — draw upward arrow
+            ctx.save();
+            ctx.strokeStyle = 'rgba(239,68,68,0.5)'; ctx.lineWidth = 2;
+            const midX = (plotL + plotR) / 2;
+            ctx.beginPath(); ctx.moveTo(midX, plotB - 20); ctx.lineTo(midX, plotT + 10); ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(midX, plotT + 10);
+            ctx.lineTo(midX - 6, plotT + 20);
+            ctx.moveTo(midX, plotT + 10);
+            ctx.lineTo(midX + 6, plotT + 20);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        document.getElementById('boundInfo').innerHTML =
+            '<span style="color:' + RED + '">Unbounded:</span> Terms escape to infinity. ' +
+            'No convergent subsequence can exist &mdash; Bolzano-Weierstrass requires boundedness. ' +
+            'Boundedness is essential: without it, terms can escape to infinity.';
+    }
+
+    // axis labels
+    ctx.font = '12px Georgia'; ctx.fillStyle = MUTED;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('n', (plotL + plotR) / 2, plotB + 20);
+}
+
+
+/* ── Section 5: BW in R^2 ── */
+const bw2Cvs = document.getElementById('bw2dCanvas');
+const bw2Ctx = bw2Cvs.getContext('2d');
+const B2W = bw2Cvs.width, B2H = bw2Cvs.height;
+
+let pts2d = [];
+let subseq2d = [];
+let boxes2d = [];
+let bw2dAnimStep = -1;
+let bw2dTimer = null;
+
+function generate2dPoints() {
+    pts2d = [];
+    for (let i = 0; i < 200; i++) {
+        pts2d.push({ x: Math.random(), y: Math.random() });
+    }
+    subseq2d = [];
+    boxes2d = [];
+    bw2dAnimStep = -1;
+    if (bw2dTimer) clearInterval(bw2dTimer);
+}
+
+function bw2dToScreen(px, py) {
+    const margin = 30;
+    const plotW = B2W - 2 * margin;
+    const plotH = B2H - 2 * margin;
+    return { x: margin + px * plotW, y: margin + (1 - py) * plotH };
+}
+
+function drawBw2d() {
+    const ctx = bw2Ctx;
+    ctx.clearRect(0, 0, B2W, B2H);
+    ctx.fillStyle = BG; ctx.fillRect(0, 0, B2W, B2H);
+
+    const margin = 30;
+    const plotW = B2W - 2 * margin;
+    const plotH = B2H - 2 * margin;
+
+    // bounding box
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+    ctx.strokeRect(margin, margin, plotW, plotH);
+
+    // nested boxes
+    for (let i = 0; i < boxes2d.length && i <= bw2dAnimStep; i++) {
+        const b = boxes2d[i];
+        const tl = bw2dToScreen(b.xLo, b.yHi);
+        const br = bw2dToScreen(b.xHi, b.yLo);
+        const alpha = 0.06 + 0.06 * (i / Math.max(boxes2d.length - 1, 1));
+        ctx.fillStyle = 'rgba(129,140,248,' + alpha + ')';
+        ctx.fillRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
+        ctx.strokeStyle = 'rgba(129,140,248,' + (0.15 + 0.08 * i) + ')';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
+    }
+
+    // all dots
+    for (const p of pts2d) {
+        const s = bw2dToScreen(p.x, p.y);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.beginPath(); ctx.arc(s.x, s.y, 2, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // subsequence line
+    if (subseq2d.length > 1) {
+        ctx.strokeStyle = INDIGO_DIM; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < subseq2d.length; i++) {
+            const p = pts2d[subseq2d[i]];
+            const s = bw2dToScreen(p.x, p.y);
+            if (i === 0) ctx.moveTo(s.x, s.y);
+            else ctx.lineTo(s.x, s.y);
+        }
+        ctx.stroke();
+    }
+
+    // subsequence dots
+    for (const idx of subseq2d) {
+        const p = pts2d[idx];
+        const s = bw2dToScreen(p.x, p.y);
+        ctx.shadowColor = INDIGO; ctx.shadowBlur = 8;
+        ctx.fillStyle = INDIGO;
+        ctx.beginPath(); ctx.arc(s.x, s.y, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    // axis labels
+    ctx.font = '10px Georgia'; ctx.fillStyle = MUTED;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('x', B2W / 2, B2H - 12);
+    ctx.save();
+    ctx.translate(10, B2H / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('y', 0, 0);
+    ctx.restore();
+}
+
+function runBw2d() {
+    generate2dPoints();
+    subseq2d = [];
+    boxes2d = [];
+
+    // nested-squares bisection in 2D
+    let xLo = 0, xHi = 1, yLo = 0, yHi = 1;
+    let remaining = pts2d.map((_, i) => i);
+    const maxSteps = 8;
+
+    for (let step = 0; step < maxSteps; step++) {
+        const xMid = (xLo + xHi) / 2;
+        const yMid = (yLo + yHi) / 2;
+
+        // split into 4 quadrants, pick the one with most points
+        const quads = [
+            { xL: xLo, xH: xMid, yL: yLo, yH: yMid },
+            { xL: xMid, xH: xHi, yL: yLo, yH: yMid },
+            { xL: xLo, xH: xMid, yL: yMid, yH: yHi },
+            { xL: xMid, xH: xHi, yL: yMid, yH: yHi }
+        ];
+
+        let bestQ = 0, bestCount = 0;
+        const quadPts = [[], [], [], []];
+        for (const idx of remaining) {
+            const p = pts2d[idx];
+            for (let q = 0; q < 4; q++) {
+                const qd = quads[q];
+                if (p.x >= qd.xL && p.x <= qd.xH && p.y >= qd.yL && p.y <= qd.yH) {
+                    quadPts[q].push(idx);
+                    break;
+                }
+            }
+        }
+        for (let q = 0; q < 4; q++) {
+            if (quadPts[q].length > bestCount) {
+                bestCount = quadPts[q].length;
+                bestQ = q;
+            }
+        }
+
+        xLo = quads[bestQ].xL; xHi = quads[bestQ].xH;
+        yLo = quads[bestQ].yL; yHi = quads[bestQ].yH;
+        remaining = quadPts[bestQ];
+
+        // pick a subsequence point
+        const lastIdx = subseq2d.length > 0 ? Math.max(...subseq2d) : -1;
+        const candidates = remaining.filter(i => i > lastIdx);
+        const pick = candidates.length > 0 ? candidates[0] : (remaining.length > 0 ? remaining[0] : -1);
+        if (pick >= 0) subseq2d.push(pick);
+
+        boxes2d.push({ xLo, xHi, yLo, yHi });
+        if (remaining.length <= 1) break;
+    }
+
+    // animate
+    bw2dAnimStep = -1;
+    drawBw2d();
+    let si = 0;
+    bw2dTimer = setInterval(() => {
+        bw2dAnimStep = si;
+        drawBw2d();
+        si++;
+        if (si >= boxes2d.length) {
+            clearInterval(bw2dTimer);
+            bw2dTimer = null;
+            // info
+            if (subseq2d.length > 0) {
+                const tail = subseq2d.slice(-Math.min(4, subseq2d.length));
+                const avgX = tail.map(i => pts2d[i].x).reduce((a, b) => a + b, 0) / tail.length;
+                const avgY = tail.map(i => pts2d[i].y).reduce((a, b) => a + b, 0) / tail.length;
+                document.getElementById('bw2dInfo').innerHTML =
+                    '<span style="color:' + INDIGO + '">2D BW:</span> Extracted ' + subseq2d.length +
+                    ' points converging near (' + avgX.toFixed(4) + ', ' + avgY.toFixed(4) + ')' +
+                    '  |  Final box: [' + boxes2d[boxes2d.length - 1].xLo.toFixed(3) + ',' +
+                    boxes2d[boxes2d.length - 1].xHi.toFixed(3) + '] x [' +
+                    boxes2d[boxes2d.length - 1].yLo.toFixed(3) + ',' +
+                    boxes2d[boxes2d.length - 1].yHi.toFixed(3) + ']';
+            }
+        }
+    }, 600);
+}
+
+// run on load
+runBw2d();
+
+// click to re-run
+bw2Cvs.addEventListener('click', runBw2d);
+bw2Cvs.addEventListener('touchstart', e => { e.preventDefault(); runBw2d(); }, { passive: false });
+
+
+/* ── Initialise everything ── */
+generateSequence();
+renderSeqBtns();
+drawSeqCanvas();
+drawExtractCanvas();
+resetProof();
+renderBoundBtns();
+drawBoundCanvas();
+
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

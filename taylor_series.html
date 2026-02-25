@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Taylor Series</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fb923c}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.05em;font-weight:400;color:#fb923c;margin-bottom:10px}
+
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:20px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+
+        .controls{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+        .slider-group{flex:1;min-width:200px}
+        .slider-group label{font-size:0.82em;color:#808098;display:block;margin-bottom:4px}
+        .slider-group input[type=range]{width:100%;accent-color:#fb923c}
+        .n-display{font-size:1.6em;color:#fb923c;min-width:140px;text-align:center}
+
+        .play-btn{background:rgba(251,146,60,0.13);border:1px solid rgba(251,146,60,0.4);color:#fb923c;padding:7px 20px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .play-btn:hover{background:rgba(251,146,60,0.22)}
+
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+        .fn-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .fn-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .fn-btn.active{background:rgba(251,146,60,0.13);border-color:rgba(251,146,60,0.4);color:#fb923c}
+
+        .series-display{font-family:'Courier New',monospace;font-size:0.88em;line-height:1.8;color:#808098;overflow-x:auto;white-space:nowrap;padding:4px 0}
+        .series-display .active-term{color:#60a5fa}
+        .series-display .inactive-term{color:#404058}
+
+        .error-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:0.88em;color:#a0a0b8}
+        .error-row .val{color:#fb923c}
+
+        .row{display:flex;gap:20px;flex-wrap:wrap}
+        .row .left{flex:1 1 580px;min-width:300px}
+        .row .right{flex:0 0 300px;min-width:260px}
+
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px}
+        .explain-name{color:#fb923c;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+
+        .coeff-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:0.82em}
+        .coeff-table th{padding:4px 8px;text-align:center;font-weight:400;color:#fb923c;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.9em}
+        .coeff-table td{padding:3px 8px;text-align:center;font-family:'Courier New',monospace;color:#a0a0b8;font-size:0.9em}
+        .coeff-table tr.hl td{color:#60a5fa}
+
+        .legend{font-size:0.78em;color:#606078;margin-top:6px}
+        .legend span{margin-right:14px}
+        .leg-orange{color:#fb923c}
+        .leg-blue{color:#60a5fa}
+        .leg-red{color:rgba(239,68,68,0.6)}
+
+        @media(max-width:768px){.row .right{flex:1 1 100%}.n-display{min-width:100px;font-size:1.2em}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Taylor Series</h1>
+    <p class="subtitle">Approximate any function with polynomials &mdash; watch them converge</p>
+
+    <!-- Main graph -->
+    <div class="panel" style="padding:16px">
+        <canvas id="mainCanvas" width="700" height="400"></canvas>
+        <div class="legend">
+            <span class="leg-orange">-- f(x) original</span>
+            <span class="leg-blue">-- T&#x2099;(x) polynomial</span>
+            <span class="leg-red">-- error region</span>
+        </div>
+    </div>
+
+    <!-- Terms slider -->
+    <div class="panel">
+        <div class="controls">
+            <div class="n-display" id="nDisplay">n = 0 terms</div>
+            <div class="slider-group">
+                <label>Number of terms (n)</label>
+                <input type="range" id="nSlider" min="0" max="20" value="0">
+            </div>
+            <button class="play-btn" id="playBtn">Play</button>
+        </div>
+    </div>
+
+    <!-- Function selector -->
+    <div class="panel">
+        <h2>Function</h2>
+        <div class="btn-row" id="fnBtns"></div>
+    </div>
+
+    <!-- Series display -->
+    <div class="panel">
+        <h2>Series Expansion</h2>
+        <div class="series-display" id="seriesDisp"></div>
+        <div style="overflow-x:auto">
+            <table class="coeff-table" id="coeffTable"></table>
+        </div>
+    </div>
+
+    <!-- Error and expansion point -->
+    <div class="row">
+        <div class="left">
+            <div class="panel">
+                <h2>Error at a Point</h2>
+                <div class="controls" style="margin-bottom:0">
+                    <div class="slider-group">
+                        <label>Evaluation point x = <span id="xVal">1.00</span></label>
+                        <input type="range" id="xSlider" min="-5" max="5" step="0.05" value="1">
+                    </div>
+                </div>
+                <div class="error-row" id="errorRow" style="margin-top:10px"></div>
+            </div>
+            <div class="panel">
+                <h2>Expansion Point</h2>
+                <div class="controls" style="margin-bottom:0">
+                    <div class="slider-group">
+                        <label>a = <span id="aVal">0.00</span></label>
+                        <input type="range" id="aSlider" min="-3" max="3" step="0.1" value="0">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="right">
+            <!-- Convergence plot -->
+            <div class="panel" style="padding:14px">
+                <h2>Convergence (log error vs n)</h2>
+                <canvas id="convCanvas" width="280" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Insight -->
+    <div class="explain">
+        <div class="explain-name" id="eName">Taylor's Theorem</div>
+        <div class="explain-text" id="eText"></div>
+    </div>
+</div>
+
+<script>
+/* ---- Function definitions ---- */
+const FUNCS = [
+    {
+        label: "e\u02E3", name: "Exponential e\u02E3",
+        f: x => Math.exp(x),
+        /* coefficients at general a: f^(k)(a)/k! = e^a / k! */
+        coeff: (k, a) => Math.exp(a) / factorial(k),
+        radius: Infinity,
+        xRange: [-4, 4], yRange: [-1, 10],
+        insight: "The exponential function has the most beautiful Taylor series: e\u02E3 = 1 + x + x\u00B2/2! + x\u00B3/3! + \u2026 It converges for ALL x, no matter how large. At x = 1, it gives e = 1 + 1 + 1/2 + 1/6 + 1/24 + \u2026 \u2248 2.71828.",
+        terms: ["1","x","x\u00B2/2!","x\u00B3/3!","x\u2074/4!","x\u2075/5!","x\u2076/6!","x\u2077/7!"]
+    },
+    {
+        label: "sin(x)", name: "Sine function",
+        f: x => Math.sin(x),
+        coeff: (k, a) => sinDeriv(k, a) / factorial(k),
+        radius: Infinity,
+        xRange: [-8, 8], yRange: [-2, 2],
+        insight: "The sine and cosine series converge everywhere. Notice that sin(x) uses only odd powers and cos(x) uses only even powers \u2014 reflecting their odd and even symmetry. The alternating signs cause cancellation that keeps the sum bounded.",
+        terms: ["0","x","0","-x\u00B3/3!","0","x\u2075/5!","0","-x\u2077/7!"]
+    },
+    {
+        label: "cos(x)", name: "Cosine function",
+        f: x => Math.cos(x),
+        coeff: (k, a) => cosDeriv(k, a) / factorial(k),
+        radius: Infinity,
+        xRange: [-8, 8], yRange: [-2, 2],
+        insight: "The sine and cosine series converge everywhere. Notice that sin(x) uses only odd powers and cos(x) uses only even powers \u2014 reflecting their odd and even symmetry. Euler connected these to the exponential: e^(ix) = cos(x) + i sin(x).",
+        terms: ["1","0","-x\u00B2/2!","0","x\u2074/4!","0","-x\u2076/6!","0"]
+    },
+    {
+        label: "ln(1+x)", name: "Natural logarithm ln(1+x)",
+        f: x => Math.log(1 + x),
+        coeff: (k, a) => lnCoeff(k, a),
+        radius: 1, radiusFrom0: true,
+        xRange: [-2, 4], yRange: [-3, 3],
+        insight: "This series only converges for -1 < x \u2264 1. Beyond x = 1, the polynomial approximation diverges wildly. The radius of convergence is 1, determined by the singularity at x = -1 where ln(0) is undefined.",
+        terms: ["0","x","-x\u00B2/2","x\u00B3/3","-x\u2074/4","x\u2075/5","-x\u2076/6","x\u2077/7"]
+    },
+    {
+        label: "1/(1-x)", name: "Geometric series 1/(1-x)",
+        f: x => 1 / (1 - x),
+        coeff: (k, a) => geoCoeff(k, a),
+        radius: 1, radiusFrom0: true,
+        xRange: [-3, 3], yRange: [-5, 10],
+        insight: "The geometric series 1 + x + x\u00B2 + x\u00B3 + \u2026 = 1/(1-x) is the simplest Taylor series and the foundation of many others. It converges only for |x| < 1. The singularity at x = 1 creates a wall the polynomial cannot cross.",
+        terms: ["1","x","x\u00B2","x\u00B3","x\u2074","x\u2075","x\u2076","x\u2077"]
+    },
+    {
+        label: "arctan(x)", name: "Inverse tangent arctan(x)",
+        f: x => Math.atan(x),
+        coeff: (k, a) => atanCoeff(k, a),
+        radius: 1, radiusFrom0: true,
+        xRange: [-4, 4], yRange: [-2.5, 2.5],
+        insight: "The arctan series converges for |x| \u2264 1. At x = 1 it gives the famous Leibniz formula: \u03C0/4 = 1 - 1/3 + 1/5 - 1/7 + \u2026 This converges very slowly \u2014 you need thousands of terms for a few digits of \u03C0.",
+        terms: ["0","x","0","-x\u00B3/3","0","x\u2075/5","0","-x\u2077/7"]
+    }
+];
+
+let curFn = 0, curN = 0, curA = 0, curX = 1, playing = false, playTimer = null;
+
+/* ---- Math helpers ---- */
+const _factCache = [1];
+function factorial(n) {
+    if (n <= 0) return 1;
+    if (_factCache[n]) return _factCache[n];
+    for (let i = _factCache.length; i <= n; i++) _factCache[i] = _factCache[i-1] * i;
+    return _factCache[n];
+}
+
+function sinDeriv(k, a) {
+    /* k-th derivative of sin at a: sin(a + k*pi/2) */
+    return Math.sin(a + k * Math.PI / 2);
+}
+function cosDeriv(k, a) {
+    return Math.cos(a + k * Math.PI / 2);
+}
+function lnCoeff(k, a) {
+    /* k-th derivative of ln(1+x) at x=a is (-1)^(k-1) * (k-1)! / (1+a)^k for k>=1 */
+    if (k === 0) return Math.log(1 + a);
+    return Math.pow(-1, k - 1) / (k * Math.pow(1 + a, k));
+}
+function geoCoeff(k, a) {
+    /* k-th derivative of 1/(1-x) at a is k! / (1-a)^(k+1), so coeff = 1/(1-a)^(k+1) */
+    return 1 / Math.pow(1 - a, k + 1);
+}
+function atanCoeff(k, a) {
+    /* Numerical differentiation for general a, analytic for a=0 */
+    if (Math.abs(a) < 1e-12) {
+        if (k % 2 === 0) return 0;
+        const m = (k - 1) / 2;
+        return Math.pow(-1, m) / k;
+    }
+    return nthDerivAt(x => Math.atan(x), k, a) / factorial(k);
+}
+
+/* Numerical derivative via finite differences (for arctan at non-zero a) */
+function nthDerivAt(f, n, a) {
+    if (n === 0) return f(a);
+    const h = 0.001;
+    let coeffs = [1];
+    for (let i = 0; i < n; i++) {
+        const next = [coeffs[0]];
+        for (let j = 1; j < coeffs.length; j++) next.push(coeffs[j] - coeffs[j-1]);
+        next.push(-coeffs[coeffs.length-1]);
+        coeffs = next;
+    }
+    let sum = 0;
+    for (let j = 0; j < coeffs.length; j++) {
+        sum += coeffs[j] * f(a + (n/2 - j) * h);
+    }
+    return sum / Math.pow(h, n);
+}
+
+/* Evaluate Taylor polynomial of degree n centered at a */
+function taylorEval(fn, n, a, x) {
+    let sum = 0, term = 1; /* term = (x-a)^k */
+    const d = x - a;
+    for (let k = 0; k <= n; k++) {
+        const c = fn.coeff(k, a);
+        sum += c * term;
+        if (!isFinite(sum)) return sum;
+        term *= d;
+    }
+    return sum;
+}
+
+/* ---- Canvas drawing ---- */
+const mainCvs = document.getElementById("mainCanvas");
+const mainCtx = mainCvs.getContext("2d");
+const MW = mainCvs.width, MH = mainCvs.height;
+
+const convCvs = document.getElementById("convCanvas");
+const convCtx = convCvs.getContext("2d");
+const CW = convCvs.width, CH = convCvs.height;
+
+function mapX(x, xMin, xMax, w) { return (x - xMin) / (xMax - xMin) * w; }
+function mapY(y, yMin, yMax, h) { return h - (y - yMin) / (yMax - yMin) * h; }
+
+function drawMain() {
+    const fn = FUNCS[curFn];
+    const a = curA;
+    /* Determine view range, centered on a */
+    let xMin = fn.xRange[0] + a, xMax = fn.xRange[1] + a;
+    let yMin = fn.yRange[0], yMax = fn.yRange[1];
+    const pad = 40;
+
+    mainCtx.clearRect(0, 0, MW, MH);
+    mainCtx.fillStyle = "#0a0a1a";
+    mainCtx.fillRect(0, 0, MW, MH);
+
+    const gw = MW - 2 * pad, gh = MH - 2 * pad;
+    const mx = x => pad + mapX(x, xMin, xMax, gw);
+    const my = y => pad + mapY(y, yMin, yMax, gh);
+
+    /* Grid */
+    mainCtx.strokeStyle = "rgba(255,255,255,0.04)";
+    mainCtx.lineWidth = 1;
+    for (let gx = Math.ceil(xMin); gx <= Math.floor(xMax); gx++) {
+        mainCtx.beginPath(); mainCtx.moveTo(mx(gx), pad); mainCtx.lineTo(mx(gx), pad + gh); mainCtx.stroke();
+    }
+    for (let gy = Math.ceil(yMin); gy <= Math.floor(yMax); gy++) {
+        mainCtx.beginPath(); mainCtx.moveTo(pad, my(gy)); mainCtx.lineTo(pad + gw, my(gy)); mainCtx.stroke();
+    }
+
+    /* Axes */
+    mainCtx.strokeStyle = "rgba(255,255,255,0.15)";
+    mainCtx.lineWidth = 1;
+    if (xMin <= 0 && xMax >= 0) { mainCtx.beginPath(); mainCtx.moveTo(mx(0), pad); mainCtx.lineTo(mx(0), pad+gh); mainCtx.stroke(); }
+    if (yMin <= 0 && yMax >= 0) { mainCtx.beginPath(); mainCtx.moveTo(pad, my(0)); mainCtx.lineTo(pad+gw, my(0)); mainCtx.stroke(); }
+
+    /* Axis labels */
+    mainCtx.font = "11px Georgia"; mainCtx.fillStyle = "#606078"; mainCtx.textAlign = "center";
+    for (let gx = Math.ceil(xMin); gx <= Math.floor(xMax); gx++) {
+        if (gx === 0) continue;
+        mainCtx.fillText(gx, mx(gx), pad + gh + 14);
+    }
+    mainCtx.textAlign = "right"; mainCtx.textBaseline = "middle";
+    for (let gy = Math.ceil(yMin); gy <= Math.floor(yMax); gy++) {
+        if (gy === 0) continue;
+        mainCtx.fillText(gy, pad - 6, my(gy));
+    }
+
+    const N = 500;
+    const dx = (xMax - xMin) / N;
+
+    /* Compute f(x) and T_n(x) at sample points */
+    const fPts = [], tPts = [];
+    for (let i = 0; i <= N; i++) {
+        const x = xMin + i * dx;
+        let fv = fn.f(x);
+        let tv = taylorEval(fn, curN, a, x);
+        fPts.push({ x, y: fv });
+        tPts.push({ x, y: tv });
+    }
+
+    /* Error shading */
+    mainCtx.save();
+    mainCtx.beginPath();
+    mainCtx.rect(pad, pad, gw, gh);
+    mainCtx.clip();
+    for (let i = 0; i < N; i++) {
+        const fv = fPts[i].y, tv = tPts[i].y;
+        if (!isFinite(fv) || !isFinite(tv)) continue;
+        const err = Math.abs(fv - tv);
+        if (err > 0.05) {
+            const alpha = Math.min(0.25, err * 0.04);
+            const xp = mx(fPts[i].x);
+            const y1c = Math.max(pad, Math.min(pad + gh, my(fv)));
+            const y2c = Math.max(pad, Math.min(pad + gh, my(tv)));
+            mainCtx.fillStyle = `rgba(239,68,68,${alpha})`;
+            mainCtx.fillRect(xp, Math.min(y1c, y2c), Math.max(2, gw/N), Math.max(1, Math.abs(y2c - y1c)));
+        }
+    }
+
+    /* Radius of convergence lines */
+    if (fn.radius !== Infinity && fn.radiusFrom0) {
+        mainCtx.setLineDash([6, 4]);
+        mainCtx.strokeStyle = "rgba(239,68,68,0.35)";
+        mainCtx.lineWidth = 1;
+        const rLeft = a - fn.radius, rRight = a + fn.radius;
+        if (rLeft >= xMin && rLeft <= xMax) {
+            mainCtx.beginPath(); mainCtx.moveTo(mx(rLeft), pad); mainCtx.lineTo(mx(rLeft), pad+gh); mainCtx.stroke();
+        }
+        if (rRight >= xMin && rRight <= xMax) {
+            mainCtx.beginPath(); mainCtx.moveTo(mx(rRight), pad); mainCtx.lineTo(mx(rRight), pad+gh); mainCtx.stroke();
+        }
+        mainCtx.setLineDash([]);
+        /* Labels */
+        mainCtx.font = "10px Georgia"; mainCtx.fillStyle = "rgba(239,68,68,0.5)"; mainCtx.textAlign = "center";
+        if (rLeft >= xMin && rLeft <= xMax) mainCtx.fillText("R = " + fn.radius, mx(rLeft), pad - 4);
+        if (rRight >= xMin && rRight <= xMax) mainCtx.fillText("R = " + fn.radius, mx(rRight), pad - 4);
+    }
+
+    /* Expansion point line */
+    mainCtx.setLineDash([4, 4]);
+    mainCtx.strokeStyle = "rgba(251,146,60,0.3)";
+    mainCtx.lineWidth = 1;
+    mainCtx.beginPath(); mainCtx.moveTo(mx(a), pad); mainCtx.lineTo(mx(a), pad+gh); mainCtx.stroke();
+    mainCtx.setLineDash([]);
+    mainCtx.font = "11px Georgia"; mainCtx.fillStyle = "#fb923c"; mainCtx.textAlign = "center";
+    mainCtx.fillText("a = " + a.toFixed(1), mx(a), pad + gh + 26);
+
+    /* Draw f(x) */
+    mainCtx.strokeStyle = "#fb923c";
+    mainCtx.lineWidth = 2.5;
+    mainCtx.beginPath();
+    let started = false;
+    for (const p of fPts) {
+        const py = my(p.y);
+        if (!isFinite(p.y) || py < pad - 50 || py > pad + gh + 50) { started = false; continue; }
+        if (!started) { mainCtx.moveTo(mx(p.x), py); started = true; }
+        else mainCtx.lineTo(mx(p.x), py);
+    }
+    mainCtx.stroke();
+
+    /* Draw T_n(x) */
+    mainCtx.strokeStyle = "#60a5fa";
+    mainCtx.lineWidth = 2;
+    mainCtx.beginPath();
+    started = false;
+    for (const p of tPts) {
+        const py = my(p.y);
+        if (!isFinite(p.y) || py < pad - 200 || py > pad + gh + 200) { started = false; continue; }
+        const cpy = Math.max(pad - 5, Math.min(pad + gh + 5, py));
+        if (!started) { mainCtx.moveTo(mx(p.x), cpy); started = true; }
+        else mainCtx.lineTo(mx(p.x), cpy);
+    }
+    mainCtx.stroke();
+    mainCtx.restore();
+
+    /* Labels */
+    mainCtx.font = "13px Georgia"; mainCtx.textAlign = "left";
+    mainCtx.fillStyle = "#fb923c"; mainCtx.fillText("f(x) = " + fn.label, pad + 6, pad + 16);
+    mainCtx.fillStyle = "#60a5fa"; mainCtx.fillText("T\u2099(x), n = " + curN, pad + 6, pad + 32);
+}
+
+function drawConvergence() {
+    const fn = FUNCS[curFn];
+    const a = curA, x = curX;
+    const pad = 32;
+
+    convCtx.clearRect(0, 0, CW, CH);
+    convCtx.fillStyle = "#0a0a1a";
+    convCtx.fillRect(0, 0, CW, CH);
+
+    const gw = CW - 2 * pad, gh = CH - 2 * pad;
+    const fv = fn.f(x);
+
+    /* Compute errors for n = 0..20 */
+    const errs = [];
+    let minLog = 0, maxLog = 2;
+    for (let n = 0; n <= 20; n++) {
+        const tv = taylorEval(fn, n, a, x);
+        const err = Math.abs(fv - tv);
+        const le = err > 1e-16 ? Math.log10(err) : -16;
+        errs.push(le);
+        if (le < minLog) minLog = le;
+        if (le > maxLog) maxLog = le;
+    }
+    minLog = Math.min(minLog - 1, -16);
+    maxLog = Math.max(maxLog + 1, 2);
+
+    const mx = n => pad + (n / 20) * gw;
+    const my = v => pad + (1 - (v - minLog) / (maxLog - minLog)) * gh;
+
+    /* Grid */
+    convCtx.strokeStyle = "rgba(255,255,255,0.04)";
+    convCtx.lineWidth = 1;
+    for (let gy = Math.ceil(minLog); gy <= Math.floor(maxLog); gy += 2) {
+        convCtx.beginPath(); convCtx.moveTo(pad, my(gy)); convCtx.lineTo(pad + gw, my(gy)); convCtx.stroke();
+    }
+
+    /* Axes */
+    convCtx.strokeStyle = "rgba(255,255,255,0.12)";
+    convCtx.beginPath(); convCtx.moveTo(pad, pad); convCtx.lineTo(pad, pad + gh); convCtx.lineTo(pad + gw, pad + gh); convCtx.stroke();
+
+    /* Labels */
+    convCtx.font = "9px Georgia"; convCtx.fillStyle = "#606078"; convCtx.textAlign = "center";
+    for (let n = 0; n <= 20; n += 5) convCtx.fillText(n, mx(n), pad + gh + 12);
+    convCtx.textAlign = "right";
+    for (let gy = Math.ceil(minLog); gy <= Math.floor(maxLog); gy += 4) {
+        convCtx.fillText("10^" + gy, pad - 4, my(gy) + 3);
+    }
+    convCtx.fillStyle = "#606078"; convCtx.textAlign = "center";
+    convCtx.fillText("n", pad + gw / 2, pad + gh + 22);
+
+    /* Plot error line */
+    convCtx.strokeStyle = "#60a5fa";
+    convCtx.lineWidth = 1.5;
+    convCtx.beginPath();
+    for (let n = 0; n <= 20; n++) {
+        const py = Math.max(pad, Math.min(pad + gh, my(errs[n])));
+        if (n === 0) convCtx.moveTo(mx(n), py);
+        else convCtx.lineTo(mx(n), py);
+    }
+    convCtx.stroke();
+
+    /* Dots */
+    for (let n = 0; n <= 20; n++) {
+        const py = Math.max(pad, Math.min(pad + gh, my(errs[n])));
+        convCtx.beginPath();
+        convCtx.arc(mx(n), py, n === curN ? 4 : 2, 0, Math.PI * 2);
+        convCtx.fillStyle = n === curN ? "#fb923c" : "#60a5fa";
+        convCtx.fill();
+    }
+}
+
+/* ---- Series display ---- */
+function updateSeries() {
+    const fn = FUNCS[curFn];
+    const a = curA;
+    const maxShow = Math.min(20, 8);
+    let html = "";
+    for (let k = 0; k <= maxShow; k++) {
+        const c = fn.coeff(k, a);
+        const cls = k <= curN ? "active-term" : "inactive-term";
+        let termStr;
+        if (Math.abs(a) < 1e-12) {
+            /* Centered at 0: use preset labels if available */
+            if (fn.terms && k < fn.terms.length) {
+                termStr = fn.terms[k];
+            } else {
+                termStr = fmtCoeff(c) + "x" + sup(k);
+            }
+        } else {
+            termStr = fmtCoeff(c) + "(x-" + a.toFixed(1) + ")" + sup(k);
+        }
+        if (k > 0) html += " <span class='" + cls + "'>+ </span>";
+        html += "<span class='" + cls + "'>" + termStr + "</span>";
+    }
+    html += " <span class='inactive-term'>+ ...</span>";
+    document.getElementById("seriesDisp").innerHTML = html;
+
+    /* Coefficient table */
+    let thtml = "<tr><th>k</th><th>Coefficient</th><th>Value at x</th></tr>";
+    const x = curX;
+    const maxRows = Math.min(curN + 1, 10);
+    for (let k = 0; k < maxRows; k++) {
+        const c = fn.coeff(k, a);
+        const termVal = c * Math.pow(x - a, k);
+        const hl = k <= curN ? " class='hl'" : "";
+        thtml += "<tr" + hl + "><td>" + k + "</td><td>" + c.toFixed(6) + "</td><td>" + termVal.toFixed(6) + "</td></tr>";
+    }
+    if (curN >= 10) thtml += "<tr><td colspan='3' style='color:#606078'>...</td></tr>";
+    document.getElementById("coeffTable").innerHTML = thtml;
+}
+
+function fmtCoeff(c) {
+    if (Math.abs(c) < 1e-14) return "0";
+    if (Math.abs(c - 1) < 1e-10) return "";
+    if (Math.abs(c + 1) < 1e-10) return "-";
+    return c.toFixed(4);
+}
+
+function sup(n) {
+    if (n === 0) return "\u2070";
+    if (n === 1) return "\u00B9";
+    const digits = { "0":"\u2070","1":"\u00B9","2":"\u00B2","3":"\u00B3","4":"\u2074","5":"\u2075","6":"\u2076","7":"\u2077","8":"\u2078","9":"\u2079" };
+    return String(n).split("").map(d => digits[d] || d).join("");
+}
+
+/* ---- Error display ---- */
+function updateError() {
+    const fn = FUNCS[curFn];
+    const a = curA, x = curX;
+    const fv = fn.f(x);
+    const tv = taylorEval(fn, curN, a, x);
+    const err = Math.abs(fv - tv);
+    let status = "";
+    if (fn.radius !== Infinity && fn.radiusFrom0 && Math.abs(x - a) > fn.radius + 0.01) {
+        status = " (outside radius of convergence!)";
+    }
+    document.getElementById("errorRow").innerHTML =
+        "At x = <span class='val'>" + x.toFixed(2) + "</span>: " +
+        "f(x) = <span class='val'>" + (isFinite(fv) ? fv.toFixed(6) : "undefined") + "</span>, " +
+        "T\u2099(x) = <span class='val'>" + (isFinite(tv) ? tv.toFixed(6) : "diverges") + "</span>, " +
+        "Error = <span class='val'>" + (isFinite(err) ? err.toExponential(2) : "diverges") + "</span>" + status;
+}
+
+/* ---- Insight ---- */
+const defaultInsight = "Taylor's theorem (Brook Taylor, 1715) shows that smooth functions can be written as infinite polynomials. This transforms calculus into algebra \u2014 we can add, multiply, and manipulate infinite series to discover truths about functions that would be impossible to see otherwise.";
+
+function updateInsight() {
+    const fn = FUNCS[curFn];
+    document.getElementById("eName").textContent = fn.name;
+    document.getElementById("eText").textContent = fn.insight || defaultInsight;
+}
+
+/* ---- Build buttons ---- */
+function buildButtons() {
+    const container = document.getElementById("fnBtns");
+    let html = "";
+    FUNCS.forEach((fn, i) => {
+        html += "<button class='fn-btn" + (i === curFn ? " active" : "") + "' data-i='" + i + "'>" + fn.label + "</button>";
+    });
+    container.innerHTML = html;
+    container.querySelectorAll(".fn-btn").forEach(b => {
+        b.addEventListener("click", () => {
+            curFn = parseInt(b.dataset.i);
+            curA = 0;
+            document.getElementById("aSlider").value = 0;
+            document.getElementById("aVal").textContent = "0.00";
+            refresh();
+            buildButtons();
+        });
+    });
+}
+
+/* ---- Refresh all ---- */
+function refresh() {
+    document.getElementById("nDisplay").textContent = "n = " + curN + " term" + (curN !== 1 ? "s" : "");
+    document.getElementById("xVal").textContent = curX.toFixed(2);
+    document.getElementById("aVal").textContent = curA.toFixed(2);
+    drawMain();
+    drawConvergence();
+    updateSeries();
+    updateError();
+    updateInsight();
+}
+
+/* ---- Event listeners ---- */
+document.getElementById("nSlider").addEventListener("input", e => {
+    curN = parseInt(e.target.value);
+    refresh();
+});
+
+document.getElementById("xSlider").addEventListener("input", e => {
+    curX = parseFloat(e.target.value);
+    refresh();
+});
+
+document.getElementById("aSlider").addEventListener("input", e => {
+    curA = parseFloat(e.target.value);
+    refresh();
+});
+
+document.getElementById("playBtn").addEventListener("click", () => {
+    if (playing) {
+        clearInterval(playTimer);
+        playing = false;
+        document.getElementById("playBtn").textContent = "Play";
+        return;
+    }
+    playing = true;
+    document.getElementById("playBtn").textContent = "Stop";
+    curN = 0;
+    document.getElementById("nSlider").value = 0;
+    refresh();
+    playTimer = setInterval(() => {
+        curN++;
+        if (curN > 20) {
+            clearInterval(playTimer);
+            playing = false;
+            document.getElementById("playBtn").textContent = "Play";
+            return;
+        }
+        document.getElementById("nSlider").value = curN;
+        refresh();
+    }, 300);
+});
+
+/* ---- Init ---- */
+buildButtons();
+refresh();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

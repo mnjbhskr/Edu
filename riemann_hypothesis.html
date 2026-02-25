@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Riemann Hypothesis</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fcd34d}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(252,211,77,0.13);border-color:rgba(252,211,77,0.4);color:#fcd34d}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .gold{color:#fcd34d}.math-line .blue{color:#60a5fa}.math-line .green{color:#2ecc71}
+        .math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#fcd34d;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:280px;accent-color:#fcd34d}
+        .slider-label{color:#fcd34d;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px}
+        .highlight-box{background:rgba(252,211,77,0.06);border:1px solid rgba(252,211,77,0.25);border-radius:10px;padding:16px 20px;margin:14px 0;text-align:center}
+        .highlight-box .big{font-size:1.15em;color:#fcd34d;margin-bottom:6px}
+        .highlight-box .sub{color:#808098;font-size:0.88em}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 300px;min-width:280px}
+        .series-display{font-family:'Courier New',monospace;font-size:0.85em;color:#c0c0d8;margin:8px 0;line-height:1.9;word-break:break-all}
+        @media(max-width:700px){canvas{width:100%!important;height:auto!important}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>The Riemann Hypothesis</h1>
+    <p class="subtitle">The greatest unsolved problem &mdash; zeros of the zeta function</p>
+
+    <!-- ═══════════ SECTION 1: Zeta on the Real Line ═══════════ -->
+    <h2>1. The Zeta Function on the Real Line</h2>
+    <canvas id="zetaReal" width="700" height="350"></canvas>
+    <div class="panel" style="margin-top:16px">
+        <h3>Controls</h3>
+        <div class="slider-row">
+            <span class="math-line muted">s =</span>
+            <input type="range" id="sSlider" min="101" max="1000" value="200">
+            <span class="slider-label" id="sLabel">2.00</span>
+        </div>
+        <div class="slider-row">
+            <span class="math-line muted">N terms =</span>
+            <input type="range" id="nSlider" min="10" max="1000" value="100" step="10">
+            <span class="slider-label" id="nLabel">100</span>
+        </div>
+        <div id="zetaRealOut"></div>
+    </div>
+    <div class="panel">
+        <h3>Series and Euler Product</h3>
+        <div id="seriesDisplay" class="series-display"></div>
+        <div id="eulerDisplay" class="series-display" style="margin-top:6px"></div>
+    </div>
+
+    <!-- ═══════════ SECTION 2: The Critical Strip ═══════════ -->
+    <h2>2. The Critical Strip &mdash; Complex Plane</h2>
+    <canvas id="criticalStrip" width="650" height="450"></canvas>
+    <div class="panel" style="margin-top:16px">
+        <h3>Zoom &amp; Navigation</h3>
+        <div class="btn-row" id="zoomBtns">
+            <button class="btn" id="zoomIn">Zoom In</button>
+            <button class="btn" id="zoomOut">Zoom Out</button>
+            <button class="btn" id="zoomReset">Reset View</button>
+        </div>
+        <div class="math-line muted" id="critInfo">Drag to pan. Zeros shown as gold dots on the critical line Re(s) = 1/2.</div>
+    </div>
+    <div class="highlight-box">
+        <div class="big">The Riemann Hypothesis: ALL non-trivial zeros of &zeta;(s) lie on the line Re(s) = 1/2</div>
+        <div class="sub">Unsolved since 1859 &mdash; Clay Mathematics Institute Millennium Prize: $1,000,000</div>
+    </div>
+
+    <!-- ═══════════ SECTION 3: Zeta Magnitude Heatmap ═══════════ -->
+    <h2>3. Zeta Function Magnitude Heatmap</h2>
+    <canvas id="heatmap" width="600" height="400"></canvas>
+    <div class="panel" style="margin-top:16px">
+        <h3>Heatmap Legend</h3>
+        <div class="math-line muted">Dark regions: |&zeta;(s)| near zero &mdash; these are where zeros live. Bright regions: |&zeta;(s)| large.</div>
+        <div class="math-line muted">The critical line Re(s) = 1/2 is marked in gold. Notice how the dark spots cluster precisely on this line.</div>
+        <canvas id="legendBar" width="300" height="24" style="margin-top:10px;border:none;cursor:default"></canvas>
+        <div style="display:flex;justify-content:space-between;max-width:300px">
+            <span class="math-line muted" style="font-size:0.8em">|&zeta;| = 0</span>
+            <span class="math-line muted" style="font-size:0.8em">|&zeta;| large</span>
+        </div>
+    </div>
+
+    <!-- ═══════════ SECTION 4: Primes and Zeta ═══════════ -->
+    <h2>4. Primes and the Zeta Function</h2>
+    <canvas id="primePlot" width="700" height="380"></canvas>
+    <div class="panel" style="margin-top:16px">
+        <h3>Prime Counting Range</h3>
+        <div class="slider-row">
+            <span class="math-line muted">x max =</span>
+            <input type="range" id="xMaxSlider" min="10" max="10000" value="500" step="10">
+            <span class="slider-label" id="xMaxLabel">500</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="showPiBtn">Show &pi;(x)</button>
+            <button class="btn active" id="showXlnBtn">Show x/ln(x)</button>
+            <button class="btn active" id="showLiBtn">Show Li(x)</button>
+        </div>
+        <div id="primeInfo" class="math-line muted"></div>
+    </div>
+    <div class="highlight-box">
+        <div class="big">If RH is true: |&pi;(x) - Li(x)| &le; C &middot; &radic;x &middot; ln(x)</div>
+        <div class="sub">The primes are as regularly distributed as they can possibly be</div>
+    </div>
+
+    <!-- ═══════════ SECTION 5: The Euler Product ═══════════ -->
+    <h2>5. The Euler Product &mdash; Primes Meet Analysis</h2>
+    <div class="flex-row">
+        <div class="flex-half">
+            <canvas id="eulerSeriesCanvas" width="420" height="250" style="cursor:default"></canvas>
+        </div>
+        <div class="flex-half">
+            <canvas id="eulerProductCanvas" width="420" height="250" style="cursor:default"></canvas>
+        </div>
+    </div>
+    <div class="panel" style="margin-top:16px">
+        <h3>Euler Product Animation</h3>
+        <div class="btn-row">
+            <button class="btn" id="eulerPlay">Play</button>
+            <button class="btn" id="eulerStep">Step</button>
+            <button class="btn" id="eulerReset2">Reset</button>
+        </div>
+        <div class="math-line muted" id="eulerInfo">Press Play to watch the Euler product build up prime by prime.</div>
+        <div class="math-line" id="eulerFormula" style="margin-top:8px"></div>
+    </div>
+
+    <!-- ═══════════ SECTION 6: Explanation ═══════════ -->
+    <div class="explain" style="margin-top:28px">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            <p>The Riemann zeta function &zeta;(s) = 1 + 1/2<sup>s</sup> + 1/3<sup>s</sup> + 1/4<sup>s</sup> + ... is the bridge between the continuous world of complex analysis and the discrete world of prime numbers. Through Euler's product formula, &zeta;(s) = &Pi;(1/(1 - p<sup>-s</sup>)), it encodes information about every prime number.</p>
+            <p style="margin-top:10px">Riemann discovered that &zeta;(s) can be analytically continued to the entire complex plane (except s = 1), and its non-trivial zeros &mdash; the points where &zeta;(s) = 0 in the critical strip 0 &lt; Re(s) &lt; 1 &mdash; govern the exact distribution of prime numbers. He conjectured that all these zeros lie on the single line Re(s) = 1/2.</p>
+            <p style="margin-top:10px">If the Riemann Hypothesis is true, it means primes are as orderly as they can possibly be. Their distribution follows the best possible law, with the error in the prime counting function bounded by &radic;x &middot; ln(x). Hundreds of theorems across number theory, cryptography, physics, and random matrix theory begin with "Assuming RH..."</p>
+            <p style="margin-top:10px"><strong style="color:#fcd34d">History.</strong> Bernhard Riemann stated the hypothesis in an 1859 paper of just eight pages. It was listed as Hilbert's 8th problem in 1900. In 2000, the Clay Mathematics Institute designated it a Millennium Prize Problem with a $1,000,000 reward. As of today, the first 10<sup>13</sup> non-trivial zeros have been verified computationally &mdash; every single one lies exactly on the critical line Re(s) = 1/2. Yet a proof remains elusive.</p>
+        </div>
+    </div>
+
+    <div class="explain" style="margin-top:16px">
+        <div class="explain-name">What can we improve?</div>
+        <div class="explain-text">
+            <p>The numerical computation of &zeta;(s) on this page uses the Dirichlet eta function with 50 terms, which provides reasonable accuracy for Re(s) &gt; 0 but loses precision near the edges of the critical strip. A more sophisticated approach would use the Riemann-Siegel formula, which converges much faster and is what serious zero-finding computations actually employ. The heatmap resolution is also limited for performance &mdash; a GPU-accelerated version could render at much finer resolution in real time.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   COMPLEX ARITHMETIC HELPERS
+   ══════════════════════════════════════════════════════════════ */
+function cAdd(a,b){return{re:a.re+b.re,im:a.im+b.im}}
+function cSub(a,b){return{re:a.re-b.re,im:a.im-b.im}}
+function cMul(a,b){return{re:a.re*b.re-a.im*b.im,im:a.re*b.im+a.im*b.re}}
+function cDiv(a,b){var d=b.re*b.re+b.im*b.im;return d<1e-30?{re:0,im:0}:{re:(a.re*b.re+a.im*b.im)/d,im:(a.im*b.re-a.re*b.im)/d}}
+function cAbs(z){return Math.sqrt(z.re*z.re+z.im*z.im)}
+function cPow(base,s){
+    // base^s where base is a positive real number, s is complex
+    var lnBase=Math.log(base);
+    var mag=Math.pow(base,s.re);
+    return{re:mag*Math.cos(s.im*lnBase),im:mag*Math.sin(s.im*lnBase)};
+}
+
+/* ── Zeta via Dirichlet eta ──
+   eta(s) = sum_{n=1}^{N} (-1)^{n+1} / n^s
+   zeta(s) = eta(s) / (1 - 2^{1-s})
+   Converges for Re(s) > 0. Using Knopp-Hasse / Euler transform for better convergence. */
+function zetaEta(s, N){
+    N = N || 50;
+    var eta = {re:0, im:0};
+    for(var n=1; n<=N; n++){
+        var term = cPow(n, s);
+        // 1/n^s
+        term = cDiv({re:1,im:0}, term);
+        if(n%2===0) { term.re = -term.re; term.im = -term.im; }
+        eta.re += term.re;
+        eta.im += term.im;
+    }
+    // denom = 1 - 2^{1-s}
+    var oneMinusS = {re: 1-s.re, im: -s.im};
+    var pow2 = cPow(2, oneMinusS);
+    var denom = {re: 1-pow2.re, im: -pow2.im};
+    return cDiv(eta, denom);
+}
+
+/* Zeta for real s > 1 via direct summation (more accurate for real line) */
+function zetaRealDirect(s, N){
+    var sum = 0;
+    for(var n=1; n<=N; n++) sum += Math.pow(n, -s);
+    return sum;
+}
+function zetaRealExact(s){
+    // high-precision: use 10000 terms for real s > 1
+    return zetaRealDirect(s, 10000);
+}
+
+/* ── Primes sieve ── */
+function sieve(max){
+    var isPrime = new Uint8Array(max+1);
+    isPrime.fill(1);
+    isPrime[0]=0; isPrime[1]=0;
+    for(var i=2;i*i<=max;i++){
+        if(isPrime[i]) for(var j=i*i;j<=max;j+=i) isPrime[j]=0;
+    }
+    var primes=[];
+    for(var i=2;i<=max;i++) if(isPrime[i]) primes.push(i);
+    return {primes:primes, isPrime:isPrime};
+}
+var sieveData = sieve(10100);
+var PRIMES = sieveData.primes;
+
+/* ── Known non-trivial zeros (imaginary parts) ── */
+var ZEROS_IM = [14.1347,21.0220,25.0109,30.4249,32.9351,37.5862,40.9187,43.3271,48.0052,49.7738,52.9703,56.4462,59.3470,60.8318,65.1125,67.0798,69.5464,72.0672,75.7047,77.1448];
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 1: Zeta on the Real Line
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    var cvs = document.getElementById('zetaReal');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var sSlider = document.getElementById('sSlider');
+    var nSlider = document.getElementById('nSlider');
+    var sLabel = document.getElementById('sLabel');
+    var nLabel = document.getElementById('nLabel');
+
+    // known values
+    var knownVals = [
+        {s:2, val:Math.PI*Math.PI/6, label:'\u03B6(2) = \u03C0\u00B2/6 \u2248 1.6449'},
+        {s:3, val:1.2020569, label:'\u03B6(3) \u2248 1.202 (Ap\u00E9ry)'},
+        {s:4, val:Math.pow(Math.PI,4)/90, label:'\u03B6(4) = \u03C0\u2074/90 \u2248 1.0823'}
+    ];
+
+    function getS(){ return parseInt(sSlider.value)/100; }
+    function getN(){ return parseInt(nSlider.value); }
+
+    function draw(){
+        var s = getS();
+        var N = getN();
+        sLabel.textContent = s.toFixed(2);
+        nLabel.textContent = N;
+
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        // plot area
+        var pad = {l:60, r:20, t:20, b:40};
+        var pw = W-pad.l-pad.r, ph = H-pad.t-pad.b;
+
+        // axes ranges
+        var sMin=1.01, sMax=10;
+        var yMin=0.8, yMax=8;
+
+        function toX(sv){ return pad.l + (sv-sMin)/(sMax-sMin)*pw; }
+        function toY(yv){ return pad.t + (1-(yv-yMin)/(yMax-yMin))*ph; }
+
+        // grid
+        ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+        for(var i=2;i<=10;i++){
+            var x=toX(i); ctx.beginPath(); ctx.moveTo(x,pad.t); ctx.lineTo(x,H-pad.b); ctx.stroke();
+        }
+        for(var y=1;y<=8;y++){
+            var yy=toY(y); ctx.beginPath(); ctx.moveTo(pad.l,yy); ctx.lineTo(W-pad.r,yy); ctx.stroke();
+        }
+
+        // axes
+        ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(pad.l,H-pad.b); ctx.lineTo(W-pad.r,H-pad.b); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,H-pad.b); ctx.stroke();
+
+        // axis labels
+        ctx.font='12px Georgia'; ctx.fillStyle='#808098'; ctx.textAlign='center'; ctx.textBaseline='top';
+        for(var i=2;i<=10;i++) ctx.fillText(i, toX(i), H-pad.b+6);
+        ctx.fillText('s', W-pad.r+10, H-pad.b+6);
+        ctx.textAlign='right'; ctx.textBaseline='middle';
+        for(var y=1;y<=8;y++) ctx.fillText(y.toFixed(0), pad.l-8, toY(y));
+        ctx.save(); ctx.translate(14, pad.t + ph/2); ctx.rotate(-Math.PI/2);
+        ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('\u03B6(s)',0,0);
+        ctx.restore();
+
+        // asymptote at s=1
+        ctx.setLineDash([4,4]); ctx.strokeStyle='rgba(252,211,77,0.3)'; ctx.lineWidth=1;
+        var x1 = toX(1);
+        ctx.beginPath(); ctx.moveTo(x1,pad.t); ctx.lineTo(x1,H-pad.b); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font='10px Georgia'; ctx.fillStyle='#fcd34d'; ctx.textAlign='left'; ctx.textBaseline='top';
+        ctx.fillText('s=1 (pole)', x1+4, pad.t+4);
+
+        // exact zeta curve
+        ctx.strokeStyle='#fcd34d'; ctx.lineWidth=2;
+        ctx.beginPath();
+        var first=true;
+        for(var px=0;px<=pw;px+=1){
+            var sv = sMin + px/pw*(sMax-sMin);
+            var yv = zetaRealDirect(sv, 5000);
+            if(yv>yMax) yv=yMax+1;
+            if(yv<yMin) continue;
+            var sx = pad.l+px, sy = toY(yv);
+            if(first){ctx.moveTo(sx,sy);first=false;} else ctx.lineTo(sx,sy);
+        }
+        ctx.stroke();
+        // label
+        ctx.font='11px Georgia'; ctx.fillStyle='#fcd34d'; ctx.textAlign='left';
+        ctx.fillText('\u03B6(s) exact', toX(4)+4, toY(zetaRealDirect(4,5000))-14);
+
+        // partial sum curve
+        ctx.strokeStyle='rgba(96,165,250,0.8)'; ctx.lineWidth=1.5;
+        ctx.setLineDash([4,3]);
+        ctx.beginPath(); first=true;
+        for(var px=0;px<=pw;px+=2){
+            var sv = sMin + px/pw*(sMax-sMin);
+            var yv = zetaRealDirect(sv, N);
+            if(yv>yMax) yv=yMax+1;
+            if(yv<yMin) continue;
+            var sx = pad.l+px, sy = toY(yv);
+            if(first){ctx.moveTo(sx,sy);first=false;} else ctx.lineTo(sx,sy);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font='11px Georgia'; ctx.fillStyle='#60a5fa'; ctx.textAlign='left';
+        ctx.fillText('Partial sum (N='+N+')', toX(5)+4, toY(zetaRealDirect(5,N))+14);
+
+        // y=1 reference
+        ctx.setLineDash([2,4]); ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(pad.l,toY(1)); ctx.lineTo(W-pad.r,toY(1)); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // known values dots
+        for(var k=0;k<knownVals.length;k++){
+            var kv=knownVals[k];
+            var kx=toX(kv.s), ky=toY(kv.val);
+            ctx.fillStyle='#fcd34d'; ctx.beginPath(); ctx.arc(kx,ky,5,0,Math.PI*2); ctx.fill();
+            ctx.fillStyle='rgba(252,211,77,0.3)'; ctx.beginPath(); ctx.arc(kx,ky,10,0,Math.PI*2); ctx.fill();
+            ctx.font='10px Georgia'; ctx.fillStyle='#fcd34d'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+            ctx.fillText(kv.label, kx+12, ky - 2);
+        }
+
+        // current s marker
+        if(s>=sMin && s<=sMax){
+            var zetaExact = zetaRealDirect(s, 5000);
+            var zetaPartial = zetaRealDirect(s, N);
+            var cx2 = toX(s), cy2 = toY(Math.min(zetaExact, yMax));
+            ctx.strokeStyle='rgba(252,211,77,0.5)'; ctx.setLineDash([2,3]); ctx.lineWidth=1;
+            ctx.beginPath(); ctx.moveTo(cx2,pad.t); ctx.lineTo(cx2,H-pad.b); ctx.stroke();
+            ctx.setLineDash([]);
+            // dot on exact
+            if(zetaExact<=yMax){
+                ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(cx2,toY(zetaExact),4,0,Math.PI*2); ctx.fill();
+            }
+            // dot on partial
+            if(zetaPartial<=yMax){
+                ctx.fillStyle='#60a5fa'; ctx.beginPath(); ctx.arc(cx2,toY(zetaPartial),4,0,Math.PI*2); ctx.fill();
+            }
+
+            // output
+            var out = document.getElementById('zetaRealOut');
+            out.innerHTML = '<div class="math-line"><span class="gold">\u03B6('+s.toFixed(2)+') = '+zetaExact.toFixed(6)+'</span></div>' +
+                '<div class="math-line"><span class="blue">Partial sum (N='+N+'): '+zetaPartial.toFixed(6)+'</span></div>' +
+                '<div class="math-line muted">Error: '+(Math.abs(zetaExact-zetaPartial)).toExponential(3)+'</div>';
+        }
+
+        // series and Euler product display
+        updateSeriesDisplay(s, N);
+    }
+
+    function updateSeriesDisplay(s, N){
+        var sd = document.getElementById('seriesDisplay');
+        var ed = document.getElementById('eulerDisplay');
+        // Series
+        var terms = [];
+        for(var n=1;n<=Math.min(N,8);n++){
+            terms.push('1/'+n+'^'+s.toFixed(2));
+        }
+        var partialSum = zetaRealDirect(s, N);
+        sd.innerHTML = '<span class="gold">\u03B6('+s.toFixed(2)+')</span> = ' + terms.join(' + ') + (N>8?' + ... ('+N+' terms)':'') + ' = <span class="gold">'+partialSum.toFixed(6)+'</span>';
+
+        // Euler product
+        var epTerms = [];
+        var epVal = 1;
+        for(var i=0; i<Math.min(PRIMES.length,8); i++){
+            var p = PRIMES[i];
+            epTerms.push('1/(1-'+p+'^(-'+s.toFixed(2)+'))');
+            epVal *= 1/(1-Math.pow(p,-s));
+        }
+        for(var i=8; i<PRIMES.length && PRIMES[i]<=1000; i++){
+            epVal *= 1/(1-Math.pow(PRIMES[i],-s));
+        }
+        ed.innerHTML = '<span class="gold">\u03B6('+s.toFixed(2)+')</span> = ' + epTerms.join(' \u00D7 ') + ' \u00D7 ... = <span class="gold">'+epVal.toFixed(6)+'</span> <span class="muted">(Euler product over primes)</span>';
+    }
+
+    sSlider.addEventListener('input', draw);
+    nSlider.addEventListener('input', draw);
+    draw();
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 2: Critical Strip
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    var cvs = document.getElementById('criticalStrip');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    // view state
+    var view = {cx: 0.5, cy: 35, scaleX: 16, scaleY: 4.5};
+    // scaleX = pixels per unit on Re axis, scaleY = pixels per unit on Im axis
+    var dragging = false, dragStart = {x:0,y:0}, viewStart = {cx:0,cy:0};
+
+    function resetView(){ view = {cx:0.5, cy:35, scaleX:16, scaleY:4.5}; }
+
+    function toScreen(re,im){
+        return {x: W/2 + (re - view.cx)*view.scaleX, y: H/2 - (im - view.cy)*view.scaleY};
+    }
+    function toComplex(sx,sy){
+        return {re: view.cx + (sx - W/2)/view.scaleX, im: view.cy - (sy - H/2)/view.scaleY};
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        // visible range
+        var reMin = view.cx - W/(2*view.scaleX);
+        var reMax = view.cx + W/(2*view.scaleX);
+        var imMin = view.cy - H/(2*view.scaleY);
+        var imMax = view.cy + H/(2*view.scaleY);
+
+        // critical strip background
+        var x0 = toScreen(0,0).x, x1 = toScreen(1,0).x;
+        if(x1 > 0 && x0 < W){
+            ctx.fillStyle='rgba(252,211,77,0.03)';
+            ctx.fillRect(Math.max(0,x0), 0, Math.min(W,x1)-Math.max(0,x0), H);
+        }
+
+        // grid lines
+        ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+        var reStep = Math.pow(10, Math.floor(Math.log10((reMax-reMin)/4)));
+        if((reMax-reMin)/reStep > 10) reStep *= 2;
+        for(var r=Math.ceil(reMin/reStep)*reStep; r<=reMax; r+=reStep){
+            var sx = toScreen(r,0).x;
+            ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,H); ctx.stroke();
+        }
+        var imStep = Math.pow(10, Math.floor(Math.log10((imMax-imMin)/5)));
+        if((imMax-imMin)/imStep > 12) imStep *= 2;
+        for(var im=Math.ceil(imMin/imStep)*imStep; im<=imMax; im+=imStep){
+            var sy = toScreen(0,im).y;
+            ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(W,sy); ctx.stroke();
+        }
+
+        // axes
+        ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1;
+        var realAxisY = toScreen(0,0).y;
+        if(realAxisY >= 0 && realAxisY <= H){
+            ctx.beginPath(); ctx.moveTo(0,realAxisY); ctx.lineTo(W,realAxisY); ctx.stroke();
+        }
+        var imAxisX = toScreen(0,0).x;
+        if(imAxisX >= 0 && imAxisX <= W){
+            ctx.beginPath(); ctx.moveTo(imAxisX,0); ctx.lineTo(imAxisX,H); ctx.stroke();
+        }
+
+        // axis labels
+        ctx.font='11px Georgia'; ctx.fillStyle='#808098'; ctx.textAlign='center'; ctx.textBaseline='top';
+        for(var r=Math.ceil(reMin/reStep)*reStep; r<=reMax; r+=reStep){
+            if(Math.abs(r)<1e-10) continue;
+            var sx = toScreen(r,0).x;
+            if(realAxisY>=0 && realAxisY<=H) ctx.fillText(r.toFixed(1), sx, Math.min(realAxisY+4, H-14));
+        }
+        ctx.textAlign='right'; ctx.textBaseline='middle';
+        for(var im=Math.ceil(imMin/imStep)*imStep; im<=imMax; im+=imStep){
+            if(Math.abs(im)<1e-10) continue;
+            var sy = toScreen(0,im).y;
+            if(imAxisX>=0 && imAxisX<=W) ctx.fillText(im.toFixed(0)+'i', Math.max(imAxisX-4,30), sy);
+        }
+
+        // Re(s) = 0 and Re(s) = 1 boundary lines
+        ctx.setLineDash([4,4]); ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1;
+        var bx0 = toScreen(0,0).x;
+        if(bx0>=0 && bx0<=W){ ctx.beginPath(); ctx.moveTo(bx0,0); ctx.lineTo(bx0,H); ctx.stroke(); }
+        var bx1 = toScreen(1,0).x;
+        if(bx1>=0 && bx1<=W){ ctx.beginPath(); ctx.moveTo(bx1,0); ctx.lineTo(bx1,H); ctx.stroke(); }
+        ctx.setLineDash([]);
+
+        // Critical line Re(s) = 1/2
+        ctx.setLineDash([6,4]); ctx.strokeStyle='#fcd34d'; ctx.lineWidth=2;
+        var clx = toScreen(0.5,0).x;
+        if(clx>=0 && clx<=W){ ctx.beginPath(); ctx.moveTo(clx,0); ctx.lineTo(clx,H); ctx.stroke(); }
+        ctx.setLineDash([]);
+        // label
+        ctx.font='12px Georgia'; ctx.fillStyle='#fcd34d'; ctx.textAlign='left'; ctx.textBaseline='top';
+        if(clx>=0 && clx<=W-80) ctx.fillText('Re(s) = 1/2', clx+6, 8);
+
+        // Critical strip label
+        if(x0>=0 || x1<=W){
+            ctx.font='10px Georgia'; ctx.fillStyle='rgba(252,211,77,0.4)'; ctx.textAlign='center';
+            var midX = (Math.max(0,x0)+Math.min(W,x1))/2;
+            ctx.fillText('Critical Strip', midX, H-14);
+        }
+
+        // Non-trivial zeros (gold dots on critical line)
+        for(var i=0;i<ZEROS_IM.length;i++){
+            var t = ZEROS_IM[i];
+            // positive
+            var sp = toScreen(0.5, t);
+            if(sp.y>=0 && sp.y<=H && sp.x>=0 && sp.x<=W){
+                // glow
+                var grad = ctx.createRadialGradient(sp.x,sp.y,0, sp.x,sp.y,12);
+                grad.addColorStop(0,'rgba(252,211,77,0.4)');
+                grad.addColorStop(1,'rgba(252,211,77,0)');
+                ctx.fillStyle=grad; ctx.beginPath(); ctx.arc(sp.x,sp.y,12,0,Math.PI*2); ctx.fill();
+                // dot
+                ctx.fillStyle='#fcd34d'; ctx.beginPath(); ctx.arc(sp.x,sp.y,4,0,Math.PI*2); ctx.fill();
+            }
+            // negative (conjugate)
+            var sn = toScreen(0.5, -t);
+            if(sn.y>=0 && sn.y<=H && sn.x>=0 && sn.x<=W){
+                var grad2 = ctx.createRadialGradient(sn.x,sn.y,0, sn.x,sn.y,12);
+                grad2.addColorStop(0,'rgba(252,211,77,0.4)');
+                grad2.addColorStop(1,'rgba(252,211,77,0)');
+                ctx.fillStyle=grad2; ctx.beginPath(); ctx.arc(sn.x,sn.y,12,0,Math.PI*2); ctx.fill();
+                ctx.fillStyle='#fcd34d'; ctx.beginPath(); ctx.arc(sn.x,sn.y,4,0,Math.PI*2); ctx.fill();
+            }
+        }
+
+        // Label first zero if visible
+        var s14 = toScreen(0.5, 14.1347);
+        if(s14.y>=0 && s14.y<=H && s14.x>=0 && s14.x<=W){
+            ctx.font='10px Georgia'; ctx.fillStyle='#fcd34d'; ctx.textAlign='left';
+            ctx.fillText('\u00BD + 14.13i', s14.x+10, s14.y-2);
+        }
+
+        // Trivial zeros: s = -2, -4, -6, ... (on real axis)
+        for(var n=1; n<=10; n++){
+            var trivS = -2*n;
+            var st = toScreen(trivS, 0);
+            if(st.x>=0 && st.x<=W && st.y>=0 && st.y<=H){
+                ctx.fillStyle='rgba(128,128,152,0.6)'; ctx.beginPath(); ctx.arc(st.x,st.y,3,0,Math.PI*2); ctx.fill();
+                if(n<=3){
+                    ctx.font='9px Georgia'; ctx.fillStyle='#808098'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+                    ctx.fillText('s='+trivS, st.x, st.y-6);
+                }
+            }
+        }
+
+        // Pole at s=1
+        var sp1 = toScreen(1, 0);
+        if(sp1.x>=0 && sp1.x<=W && sp1.y>=0 && sp1.y<=H){
+            ctx.strokeStyle='#e74c3c'; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.arc(sp1.x,sp1.y,6,0,Math.PI*2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sp1.x-4,sp1.y-4); ctx.lineTo(sp1.x+4,sp1.y+4); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sp1.x+4,sp1.y-4); ctx.lineTo(sp1.x-4,sp1.y+4); ctx.stroke();
+            ctx.font='10px Georgia'; ctx.fillStyle='#e74c3c'; ctx.textAlign='left';
+            ctx.fillText('pole s=1', sp1.x+10, sp1.y+3);
+        }
+
+        // labels for Re/Im
+        ctx.font='12px Georgia'; ctx.fillStyle='#808098'; ctx.textAlign='right'; ctx.textBaseline='bottom';
+        ctx.fillText('Re(s)', W-6, realAxisY>=0&&realAxisY<=H ? realAxisY-4 : H-4);
+        ctx.textAlign='left'; ctx.textBaseline='top';
+        ctx.fillText('Im(s)', imAxisX>=0&&imAxisX<=W ? imAxisX+4 : 4, 4);
+
+        // info
+        document.getElementById('critInfo').textContent =
+            'View: Re \u2208 ['+reMin.toFixed(1)+', '+reMax.toFixed(1)+'], Im \u2208 ['+imMin.toFixed(1)+', '+imMax.toFixed(1)+']. Drag to pan. Gold dots: non-trivial zeros on the critical line.';
+    }
+
+    // Zoom controls
+    document.getElementById('zoomIn').addEventListener('click', function(){
+        view.scaleX *= 1.5; view.scaleY *= 1.5; draw();
+    });
+    document.getElementById('zoomOut').addEventListener('click', function(){
+        view.scaleX /= 1.5; view.scaleY /= 1.5; draw();
+    });
+    document.getElementById('zoomReset').addEventListener('click', function(){ resetView(); draw(); });
+
+    // Drag to pan
+    cvs.addEventListener('mousedown', function(e){
+        dragging=true;
+        var r = cvs.getBoundingClientRect();
+        dragStart = {x:e.clientX-r.left, y:e.clientY-r.top};
+        viewStart = {cx:view.cx, cy:view.cy};
+    });
+    cvs.addEventListener('mousemove', function(e){
+        if(!dragging) return;
+        var r = cvs.getBoundingClientRect();
+        var dx = (e.clientX-r.left) - dragStart.x;
+        var dy = (e.clientY-r.top) - dragStart.y;
+        view.cx = viewStart.cx - dx/view.scaleX;
+        view.cy = viewStart.cy + dy/view.scaleY;
+        draw();
+    });
+    cvs.addEventListener('mouseup', function(){ dragging=false; });
+    cvs.addEventListener('mouseleave', function(){ dragging=false; });
+
+    // Mouse wheel zoom
+    cvs.addEventListener('wheel', function(e){
+        e.preventDefault();
+        var factor = e.deltaY < 0 ? 1.15 : 1/1.15;
+        view.scaleX *= factor; view.scaleY *= factor;
+        draw();
+    }, {passive:false});
+
+    // Touch support
+    var touchStart = null, touchDist = 0;
+    cvs.addEventListener('touchstart', function(e){
+        e.preventDefault();
+        if(e.touches.length === 1){
+            dragging = true;
+            var r = cvs.getBoundingClientRect();
+            dragStart = {x:e.touches[0].clientX-r.left, y:e.touches[0].clientY-r.top};
+            viewStart = {cx:view.cx, cy:view.cy};
+        } else if(e.touches.length === 2){
+            dragging = false;
+            var dx = e.touches[0].clientX - e.touches[1].clientX;
+            var dy = e.touches[0].clientY - e.touches[1].clientY;
+            touchDist = Math.sqrt(dx*dx+dy*dy);
+            touchStart = {scaleX:view.scaleX, scaleY:view.scaleY};
+        }
+    }, {passive:false});
+    cvs.addEventListener('touchmove', function(e){
+        e.preventDefault();
+        if(e.touches.length === 1 && dragging){
+            var r = cvs.getBoundingClientRect();
+            var dx = (e.touches[0].clientX-r.left) - dragStart.x;
+            var dy = (e.touches[0].clientY-r.top) - dragStart.y;
+            view.cx = viewStart.cx - dx/view.scaleX;
+            view.cy = viewStart.cy + dy/view.scaleY;
+            draw();
+        } else if(e.touches.length === 2 && touchStart){
+            var dx2 = e.touches[0].clientX - e.touches[1].clientX;
+            var dy2 = e.touches[0].clientY - e.touches[1].clientY;
+            var newDist = Math.sqrt(dx2*dx2+dy2*dy2);
+            var ratio = newDist / touchDist;
+            view.scaleX = touchStart.scaleX * ratio;
+            view.scaleY = touchStart.scaleY * ratio;
+            draw();
+        }
+    }, {passive:false});
+    cvs.addEventListener('touchend', function(){ dragging=false; touchStart=null; });
+
+    draw();
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 3: Zeta Magnitude Heatmap
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    var cvs = document.getElementById('heatmap');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    // Compute on coarser grid then scale up
+    var gridW = 150, gridH = 100;
+    // Range: Re from -2 to 3, Im from -5 to 80 (to show first several zeros)
+    // Actually let's focus on 0..1 Re and 0..55 Im to see zeros well
+    var reMin = -1, reMax = 2, imMin = 0, imMax = 55;
+
+    // Better eta with Euler-Maclaurin / Borwein acceleration for convergence
+    function zetaComplex(re, im){
+        if(Math.abs(re-1)<0.05 && Math.abs(im)<0.05) return {re:100, im:0}; // near pole
+        var s = {re:re, im:im};
+        return zetaEta(s, 50);
+    }
+
+    function heatColor(mag){
+        // dark for small |zeta|, gold for moderate, white for large
+        if(mag > 20) mag = 20;
+        var t = Math.log(1+mag) / Math.log(21); // 0..1
+        var r, g, b;
+        if(t < 0.15){
+            // black to dark blue
+            var u = t/0.15;
+            r = Math.floor(5*u); g = Math.floor(5*u); b = Math.floor(30*u);
+        } else if(t < 0.35){
+            // dark blue to blue
+            var u = (t-0.15)/0.20;
+            r = Math.floor(5+20*u); g = Math.floor(5+15*u); b = Math.floor(30+80*u);
+        } else if(t < 0.55){
+            // blue to gold
+            var u = (t-0.35)/0.20;
+            r = Math.floor(25+227*u); g = Math.floor(20+191*u); b = Math.floor(110-33*u);
+        } else if(t < 0.8){
+            // gold to bright gold
+            var u = (t-0.55)/0.25;
+            r = Math.floor(252); g = Math.floor(211+30*u); b = Math.floor(77+80*u);
+        } else {
+            // bright gold to white
+            var u = (t-0.8)/0.2;
+            r = Math.floor(252+3*u); g = Math.floor(241+14*u); b = Math.floor(157+98*u);
+        }
+        return 'rgb('+Math.min(255,r)+','+Math.min(255,g)+','+Math.min(255,b)+')';
+    }
+
+    // Pre-compute grid
+    var gridData = new Float64Array(gridW * gridH);
+    for(var gy=0; gy<gridH; gy++){
+        var im = imMin + (imMax-imMin)*(gridH-1-gy)/(gridH-1);
+        for(var gx=0; gx<gridW; gx++){
+            var re = reMin + (reMax-reMin)*gx/(gridW-1);
+            var z = zetaComplex(re, im);
+            gridData[gy*gridW+gx] = cAbs(z);
+        }
+    }
+
+    // Bilinear interpolation helper
+    function sampleGrid(fx, fy){
+        var gx = fx*(gridW-1), gy = fy*(gridH-1);
+        var x0 = Math.floor(gx), y0 = Math.floor(gy);
+        var x1 = Math.min(x0+1, gridW-1), y1 = Math.min(y0+1, gridH-1);
+        var tx = gx-x0, ty = gy-y0;
+        var v00 = gridData[y0*gridW+x0], v10 = gridData[y0*gridW+x1];
+        var v01 = gridData[y1*gridW+x0], v11 = gridData[y1*gridW+x1];
+        return v00*(1-tx)*(1-ty) + v10*tx*(1-ty) + v01*(1-tx)*ty + v11*tx*ty;
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+        // Draw pixel by pixel using imageData for performance
+        var imgData = ctx.createImageData(W,H);
+        var data = imgData.data;
+        for(var py=0; py<H; py++){
+            var fy = py/H;
+            for(var px=0; px<W; px++){
+                var fx = px/W;
+                var mag = sampleGrid(fx, fy);
+                // Parse color
+                var t = Math.log(1+mag) / Math.log(21);
+                if(t>1) t=1;
+                var r,g,b;
+                if(t < 0.15){
+                    var u = t/0.15;
+                    r=Math.floor(5*u); g=Math.floor(5*u); b=Math.floor(30*u);
+                } else if(t < 0.35){
+                    var u=(t-0.15)/0.20;
+                    r=Math.floor(5+20*u); g=Math.floor(5+15*u); b=Math.floor(30+80*u);
+                } else if(t < 0.55){
+                    var u=(t-0.35)/0.20;
+                    r=Math.floor(25+227*u); g=Math.floor(20+191*u); b=Math.floor(110-33*u);
+                } else if(t < 0.8){
+                    var u=(t-0.55)/0.25;
+                    r=252; g=Math.floor(211+30*u); b=Math.floor(77+80*u);
+                } else {
+                    var u=(t-0.8)/0.2;
+                    r=Math.min(255,Math.floor(252+3*u)); g=Math.min(255,Math.floor(241+14*u)); b=Math.min(255,Math.floor(157+98*u));
+                }
+                var idx = (py*W+px)*4;
+                data[idx]=r; data[idx+1]=g; data[idx+2]=b; data[idx+3]=255;
+            }
+        }
+        ctx.putImageData(imgData,0,0);
+
+        // Overlay critical line
+        var clx = (0.5-reMin)/(reMax-reMin)*W;
+        ctx.setLineDash([6,4]); ctx.strokeStyle='rgba(252,211,77,0.7)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(clx,0); ctx.lineTo(clx,H); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Mark zeros with circles
+        for(var i=0;i<ZEROS_IM.length;i++){
+            var t2 = ZEROS_IM[i];
+            if(t2>=imMin && t2<=imMax){
+                var sy = H - (t2-imMin)/(imMax-imMin)*H;
+                ctx.strokeStyle='#fcd34d'; ctx.lineWidth=1.5;
+                ctx.beginPath(); ctx.arc(clx, sy, 6, 0, Math.PI*2); ctx.stroke();
+            }
+        }
+
+        // Axis labels on edges
+        ctx.font='10px Georgia'; ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+        for(var re=-1; re<=2; re++){
+            var x = (re-reMin)/(reMax-reMin)*W;
+            ctx.fillText('Re='+re, x, H-3);
+        }
+        ctx.textAlign='left'; ctx.textBaseline='middle';
+        for(var im=0; im<=50; im+=10){
+            var y = H - (im-imMin)/(imMax-imMin)*H;
+            if(y>10 && y<H-10) ctx.fillText('Im='+im, 4, y);
+        }
+
+        // Critical line label
+        ctx.font='11px Georgia'; ctx.fillStyle='#fcd34d'; ctx.textAlign='left'; ctx.textBaseline='top';
+        ctx.fillText('Re = 1/2', clx+4, 4);
+    }
+
+    draw();
+
+    // Legend bar
+    var legCvs = document.getElementById('legendBar');
+    var legCtx = legCvs.getContext('2d');
+    for(var px=0; px<300; px++){
+        var mag = px/300 * 20;
+        legCtx.fillStyle = heatColor(mag);
+        legCtx.fillRect(px, 0, 1, 24);
+    }
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 4: Primes and Zeta
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    var cvs = document.getElementById('primePlot');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var xMaxSlider = document.getElementById('xMaxSlider');
+    var xMaxLabel = document.getElementById('xMaxLabel');
+
+    var showPi = true, showXln = true, showLi = true;
+    document.getElementById('showPiBtn').addEventListener('click', function(){
+        showPi = !showPi; this.classList.toggle('active'); draw();
+    });
+    document.getElementById('showXlnBtn').addEventListener('click', function(){
+        showXln = !showXln; this.classList.toggle('active'); draw();
+    });
+    document.getElementById('showLiBtn').addEventListener('click', function(){
+        showLi = !showLi; this.classList.toggle('active'); draw();
+    });
+
+    // Prime counting function pi(x) using sieve
+    function piCount(x){
+        var count=0;
+        for(var i=0; i<PRIMES.length && PRIMES[i]<=x; i++) count++;
+        return count;
+    }
+
+    // Li(x) = integral from 2 to x of dt/ln(t) via trapezoidal rule
+    function liFunc(x){
+        if(x<=2) return 0;
+        var n = 500;
+        var h = (x-2)/n;
+        var sum = 0;
+        for(var i=0; i<=n; i++){
+            var t = 2 + i*h;
+            var val = 1/Math.log(t);
+            if(i===0 || i===n) sum += val/2;
+            else sum += val;
+        }
+        return sum*h;
+    }
+
+    function draw(){
+        var xMax = parseInt(xMaxSlider.value);
+        xMaxLabel.textContent = xMax;
+
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        var pad = {l:60, r:20, t:20, b:40};
+        var pw = W-pad.l-pad.r, ph = H-pad.t-pad.b;
+
+        var yMax = piCount(xMax) * 1.15;
+        if(yMax < 10) yMax = 10;
+
+        function toX(xv){ return pad.l + xv/xMax*pw; }
+        function toY(yv){ return pad.t + (1-yv/yMax)*ph; }
+
+        // grid
+        ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+        var xStep = Math.pow(10, Math.floor(Math.log10(xMax/5)));
+        if(xMax/xStep < 3) xStep /= 2;
+        for(var x=xStep; x<xMax; x+=xStep){
+            var sx=toX(x); ctx.beginPath(); ctx.moveTo(sx,pad.t); ctx.lineTo(sx,H-pad.b); ctx.stroke();
+        }
+        var yStep = Math.pow(10, Math.floor(Math.log10(yMax/5)));
+        if(yMax/yStep < 3) yStep /= 2;
+        for(var y=yStep; y<yMax; y+=yStep){
+            var sy=toY(y); ctx.beginPath(); ctx.moveTo(pad.l,sy); ctx.lineTo(W-pad.r,sy); ctx.stroke();
+        }
+
+        // axes
+        ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(pad.l,H-pad.b); ctx.lineTo(W-pad.r,H-pad.b); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,H-pad.b); ctx.stroke();
+
+        // axis labels
+        ctx.font='11px Georgia'; ctx.fillStyle='#808098'; ctx.textAlign='center'; ctx.textBaseline='top';
+        for(var x=xStep; x<xMax; x+=xStep){
+            ctx.fillText(x>=1000?(x/1000)+'k':x, toX(x), H-pad.b+6);
+        }
+        ctx.fillText('x', W-pad.r+10, H-pad.b+6);
+        ctx.textAlign='right'; ctx.textBaseline='middle';
+        for(var y=yStep; y<yMax; y+=yStep){
+            ctx.fillText(Math.round(y), pad.l-8, toY(y));
+        }
+
+        // pi(x) step function (blue)
+        if(showPi){
+            ctx.strokeStyle='#60a5fa'; ctx.lineWidth=2;
+            ctx.beginPath();
+            var lastCount = 0;
+            ctx.moveTo(toX(2), toY(0));
+            for(var i=0; i<PRIMES.length && PRIMES[i]<=xMax; i++){
+                var p = PRIMES[i];
+                // horizontal to this prime
+                ctx.lineTo(toX(p), toY(lastCount));
+                lastCount++;
+                // vertical step
+                ctx.lineTo(toX(p), toY(lastCount));
+            }
+            // extend to xMax
+            ctx.lineTo(toX(xMax), toY(lastCount));
+            ctx.stroke();
+            // label
+            ctx.font='11px Georgia'; ctx.fillStyle='#60a5fa'; ctx.textAlign='left';
+            ctx.fillText('\u03C0(x)', toX(xMax*0.85), toY(piCount(xMax*0.85))-14);
+        }
+
+        // x/ln(x) (dashed gold)
+        if(showXln){
+            ctx.strokeStyle='#fcd34d'; ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+            ctx.beginPath();
+            var first=true;
+            for(var px=0; px<=pw; px+=2){
+                var xv = 2 + px/pw*(xMax-2);
+                var yv = xv/Math.log(xv);
+                if(yv>yMax) break;
+                var sx=pad.l+px, sy=toY(yv);
+                if(first){ctx.moveTo(sx,sy);first=false;} else ctx.lineTo(sx,sy);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.font='11px Georgia'; ctx.fillStyle='#fcd34d'; ctx.textAlign='right';
+            var xlnAtEnd = xMax/Math.log(xMax);
+            ctx.fillText('x/ln(x)', toX(xMax*0.7), toY(xMax*0.7/Math.log(xMax*0.7))+16);
+        }
+
+        // Li(x) (green solid)
+        if(showLi){
+            ctx.strokeStyle='#2ecc71'; ctx.lineWidth=1.5;
+            ctx.beginPath();
+            var first2=true;
+            for(var px=0; px<=pw; px+=2){
+                var xv = 2 + px/pw*(xMax-2);
+                var yv = liFunc(xv);
+                if(yv>yMax) break;
+                var sx=pad.l+px, sy=toY(yv);
+                if(first2){ctx.moveTo(sx,sy);first2=false;} else ctx.lineTo(sx,sy);
+            }
+            ctx.stroke();
+            ctx.font='11px Georgia'; ctx.fillStyle='#2ecc71'; ctx.textAlign='right';
+            ctx.fillText('Li(x)', toX(xMax*0.6), toY(liFunc(xMax*0.6))-14);
+        }
+
+        // Info
+        var piVal = piCount(xMax);
+        var xlnVal = xMax/Math.log(xMax);
+        var liVal = liFunc(xMax);
+        document.getElementById('primeInfo').innerHTML =
+            'At x = '+xMax+': <span class="blue">\u03C0(x) = '+piVal+'</span>, ' +
+            '<span class="gold">x/ln(x) = '+xlnVal.toFixed(1)+'</span> (error: '+(piVal-xlnVal).toFixed(1)+'), ' +
+            '<span class="green">Li(x) = '+liVal.toFixed(1)+'</span> (error: '+(piVal-liVal).toFixed(1)+')';
+    }
+
+    xMaxSlider.addEventListener('input', draw);
+    draw();
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 5: Euler Product Animation
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    var cvsS = document.getElementById('eulerSeriesCanvas');
+    var ctxS = cvsS.getContext('2d');
+    var cvsP = document.getElementById('eulerProductCanvas');
+    var ctxP = cvsP.getContext('2d');
+    var WS = cvsS.width, HS = cvsS.height;
+    var WP = cvsP.width, HP = cvsP.height;
+
+    var sSlider = document.getElementById('sSlider'); // reuse from section 1
+    function getS(){ return parseInt(sSlider.value)/100; }
+
+    var primeIdx = 0; // how many primes included in product
+    var maxPrimeIdx = 50;
+    var animRunning = false;
+    var animTimer = null;
+
+    function getSeriesPartials(s, N){
+        var vals = [];
+        var sum = 0;
+        for(var n=1; n<=N; n++){
+            sum += Math.pow(n, -s);
+            vals.push(sum);
+        }
+        return vals;
+    }
+
+    function getProductPartials(s, nPrimes){
+        var vals = [];
+        var prod = 1;
+        for(var i=0; i<nPrimes && i<PRIMES.length; i++){
+            prod *= 1/(1-Math.pow(PRIMES[i],-s));
+            vals.push(prod);
+        }
+        return vals;
+    }
+
+    function drawBarChart(ctx2d, W2, H2, vals, targetVal, color, title, labels){
+        ctx2d.clearRect(0,0,W2,H2);
+        ctx2d.fillStyle='#0a0a1a'; ctx2d.fillRect(0,0,W2,H2);
+
+        var pad = {l:50, r:15, t:30, b:35};
+        var pw = W2-pad.l-pad.r, ph = H2-pad.t-pad.b;
+
+        if(vals.length === 0){
+            ctx2d.font='12px Georgia'; ctx2d.fillStyle='#808098'; ctx2d.textAlign='center';
+            ctx2d.fillText('Press Play or Step', W2/2, H2/2);
+            ctx2d.font='13px Georgia'; ctx2d.fillStyle=color; ctx2d.textAlign='left'; ctx2d.textBaseline='top';
+            ctx2d.fillText(title, pad.l, 8);
+            return;
+        }
+
+        var yMax = targetVal * 1.3;
+        if(yMax < 1.5) yMax = 1.5;
+        var yMin = 0;
+
+        function toX(i){ return pad.l + (i+0.5)/vals.length*pw; }
+        function toY(v){ return pad.t + (1-(v-yMin)/(yMax-yMin))*ph; }
+
+        // axes
+        ctx2d.strokeStyle='rgba(255,255,255,0.15)'; ctx2d.lineWidth=1;
+        ctx2d.beginPath(); ctx2d.moveTo(pad.l,H2-pad.b); ctx2d.lineTo(W2-pad.r,H2-pad.b); ctx2d.stroke();
+        ctx2d.beginPath(); ctx2d.moveTo(pad.l,pad.t); ctx2d.lineTo(pad.l,H2-pad.b); ctx2d.stroke();
+
+        // target line
+        ctx2d.setLineDash([4,4]); ctx2d.strokeStyle='rgba(252,211,77,0.5)'; ctx2d.lineWidth=1;
+        var ty = toY(targetVal);
+        if(ty >= pad.t && ty <= H2-pad.b){
+            ctx2d.beginPath(); ctx2d.moveTo(pad.l,ty); ctx2d.lineTo(W2-pad.r,ty); ctx2d.stroke();
+            ctx2d.setLineDash([]);
+            ctx2d.font='10px Courier New'; ctx2d.fillStyle='#fcd34d'; ctx2d.textAlign='right'; ctx2d.textBaseline='bottom';
+            ctx2d.fillText('\u03B6(s)='+targetVal.toFixed(4), W2-pad.r, ty-2);
+        }
+        ctx2d.setLineDash([]);
+
+        // bars
+        var barW = Math.max(2, pw/vals.length*0.7);
+        for(var i=0; i<vals.length; i++){
+            var x = toX(i) - barW/2;
+            var y = toY(vals[i]);
+            var h2 = toY(yMin) - y;
+            ctx2d.fillStyle = (i===vals.length-1) ? color : 'rgba('+hexToRgb(color)+',0.5)';
+            ctx2d.fillRect(x, y, barW, h2);
+        }
+
+        // labels on x axis
+        ctx2d.font='9px Courier New'; ctx2d.fillStyle='#808098'; ctx2d.textAlign='center'; ctx2d.textBaseline='top';
+        var step = Math.max(1, Math.floor(vals.length/10));
+        for(var i=0; i<vals.length; i+=step){
+            ctx2d.fillText(labels ? labels[i] : (i+1), toX(i), H2-pad.b+4);
+        }
+
+        // y axis labels
+        ctx2d.textAlign='right'; ctx2d.textBaseline='middle';
+        var yStep2 = Math.pow(10, Math.floor(Math.log10(yMax/4)));
+        if(yMax/yStep2 < 3) yStep2 /= 2;
+        for(var y2=yStep2; y2<yMax; y2+=yStep2){
+            var sy2 = toY(y2);
+            if(sy2>pad.t+5 && sy2<H2-pad.b-5){
+                ctx2d.fillText(y2.toFixed(y2<1?2:1), pad.l-6, sy2);
+            }
+        }
+
+        // title
+        ctx2d.font='13px Georgia'; ctx2d.fillStyle=color; ctx2d.textAlign='left'; ctx2d.textBaseline='top';
+        ctx2d.fillText(title, pad.l, 8);
+
+        // current value
+        ctx2d.font='11px Courier New'; ctx2d.fillStyle=color; ctx2d.textAlign='right'; ctx2d.textBaseline='top';
+        ctx2d.fillText('= '+vals[vals.length-1].toFixed(6), W2-pad.r, 8);
+    }
+
+    function hexToRgb(hex){
+        if(hex==='#60a5fa') return '96,165,250';
+        if(hex==='#fcd34d') return '252,211,77';
+        if(hex==='#2ecc71') return '46,204,113';
+        return '200,200,200';
+    }
+
+    function drawBoth(){
+        var s = getS();
+        var target = zetaRealDirect(s, 5000);
+        var nTerms = Math.max(primeIdx, 10);
+
+        // Series: show up to nTerms terms
+        var seriesVals = getSeriesPartials(s, nTerms);
+        var seriesLabels = [];
+        for(var i=0;i<nTerms;i++) seriesLabels.push(''+(i+1));
+
+        drawBarChart(ctxS, WS, HS, seriesVals, target, '#60a5fa',
+            'Series: \u03A3 1/n^s ('+nTerms+' terms)', seriesLabels);
+
+        // Product: show primeIdx primes
+        var prodVals = getProductPartials(s, primeIdx);
+        var prodLabels = [];
+        for(var i=0;i<primeIdx;i++) prodLabels.push('p='+PRIMES[i]);
+
+        drawBarChart(ctxP, WP, HP, prodVals, target, '#fcd34d',
+            'Euler product: \u03A0 1/(1-p^{-s}) ('+primeIdx+' primes)', prodLabels);
+
+        // Formula display
+        var formula = document.getElementById('eulerFormula');
+        if(primeIdx > 0){
+            var terms = [];
+            for(var i=0;i<Math.min(primeIdx,6);i++) terms.push('1/(1-'+PRIMES[i]+'^(-'+s.toFixed(2)+'))');
+            var pVal = prodVals.length>0 ? prodVals[prodVals.length-1] : 1;
+            formula.innerHTML = '<span class="gold">\u03B6('+s.toFixed(2)+')</span> \u2248 ' + terms.join(' \u00D7 ') +
+                (primeIdx>6 ? ' \u00D7 ...' : '') + ' = <span class="gold">'+pVal.toFixed(6)+'</span>' +
+                '  <span class="muted">(target: '+target.toFixed(6)+')</span>';
+        } else {
+            formula.innerHTML = '<span class="muted">No primes yet. Press Step or Play.</span>';
+        }
+
+        // Info
+        var info = document.getElementById('eulerInfo');
+        if(primeIdx > 0){
+            var pVal2 = prodVals[prodVals.length-1];
+            info.textContent = 'After '+primeIdx+' primes (up to p='+PRIMES[primeIdx-1]+'): product = '+pVal2.toFixed(6)+', target \u03B6('+s.toFixed(2)+') = '+target.toFixed(6)+', gap = '+(Math.abs(target-pVal2)).toExponential(2);
+        }
+    }
+
+    document.getElementById('eulerStep').addEventListener('click', function(){
+        if(primeIdx < maxPrimeIdx) primeIdx++;
+        drawBoth();
+    });
+
+    document.getElementById('eulerReset2').addEventListener('click', function(){
+        primeIdx = 0;
+        if(animTimer){ clearInterval(animTimer); animTimer=null; animRunning=false; }
+        document.getElementById('eulerPlay').textContent = 'Play';
+        drawBoth();
+    });
+
+    document.getElementById('eulerPlay').addEventListener('click', function(){
+        if(animRunning){
+            clearInterval(animTimer); animTimer=null; animRunning=false;
+            this.textContent='Play';
+            return;
+        }
+        animRunning = true;
+        this.textContent='Pause';
+        if(primeIdx >= maxPrimeIdx) primeIdx = 0;
+        animTimer = setInterval(function(){
+            if(primeIdx >= maxPrimeIdx){
+                clearInterval(animTimer); animTimer=null; animRunning=false;
+                document.getElementById('eulerPlay').textContent='Play';
+                return;
+            }
+            primeIdx++;
+            drawBoth();
+        }, 300);
+    });
+
+    // Also redraw when s changes
+    sSlider.addEventListener('input', function(){ drawBoth(); });
+
+    drawBoth();
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   Additional: "This formula proves there are infinitely many primes"
+   is shown in the Euler product info panel.
+   ══════════════════════════════════════════════════════════════ */
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

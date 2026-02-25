@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conic Sections</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#f87171}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .main-row{display:flex;gap:28px;margin-bottom:20px;flex-wrap:wrap}
+        .cone-panel{flex:0 0 350px}
+        .curve-panel{flex:1 1 400px;min-width:320px}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .slider-row{display:flex;align-items:center;gap:12px;margin:10px 0}
+        .slider-row label{font-size:0.85em;color:#a0a0b8;min-width:90px}
+        .slider-row input[type=range]{flex:1;accent-color:#f87171}
+        .slider-row .val{font-size:0.88em;color:#f87171;min-width:60px;text-align:right;font-family:'Courier New',monospace}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+        .cbtn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .cbtn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .cbtn.active{background:rgba(248,113,113,0.13);border-color:rgba(248,113,113,0.4);color:#f87171}
+        .ecc-bar{height:14px;border-radius:7px;margin:6px 0 4px;display:flex;overflow:hidden;position:relative}
+        .ecc-bar div{height:100%}
+        .ecc-marker{position:absolute;top:-2px;width:3px;height:18px;background:#fff;border-radius:2px;transition:left 0.15s}
+        .ecc-labels{display:flex;font-size:0.7em;color:#606078;justify-content:space-between}
+        .props{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .props .eq{color:#f87171;font-family:'Courier New',monospace;font-size:1em;margin:6px 0}
+        .props .desc{color:#a0a0b8;font-size:0.88em;line-height:1.7}
+        .props .app{color:#606078;font-size:0.82em;font-style:italic;margin-top:6px}
+        .fd-info{font-size:0.82em;color:#808098;margin-top:8px;min-height:1.4em}
+        .fd-info span{color:#fbbf24}
+        .insight{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px}
+        .insight .main-text{color:#a0a0b8;font-size:0.88em;line-height:1.75;margin-bottom:10px}
+        .insight .curve-text{color:#808098;font-size:0.85em;line-height:1.65}
+        .insight .curve-text strong{color:#f87171;font-weight:400}
+        .type-label{font-size:1em;color:#f87171;font-weight:400;margin:2px 0 6px}
+        @media(max-width:768px){.cone-panel{flex:1 1 100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Conic Sections</h1>
+    <p class="subtitle">Slice a cone and discover ellipses, parabolas, and hyperbolas</p>
+
+    <div class="main-row">
+        <div class="cone-panel">
+            <canvas id="coneCanvas" width="350" height="400"></canvas>
+            <div class="slider-row">
+                <label>Slice Angle</label>
+                <input type="range" id="angleSlider" min="0" max="100" value="0" step="1">
+                <span class="val" id="angleVal">0</span>
+            </div>
+        </div>
+        <div class="curve-panel">
+            <canvas id="curveCanvas" width="400" height="400"></canvas>
+            <div class="fd-info" id="fdInfo">Drag the point on the curve to explore the focus&ndash;directrix property.</div>
+        </div>
+    </div>
+
+    <div class="btn-row">
+        <button class="cbtn active" data-type="circle">Circle</button>
+        <button class="cbtn" data-type="ellipse">Ellipse</button>
+        <button class="cbtn" data-type="parabola">Parabola</button>
+        <button class="cbtn" data-type="hyperbola">Hyperbola</button>
+    </div>
+
+    <div class="panel" style="margin-bottom:20px">
+        <h3>Eccentricity</h3>
+        <div class="slider-row">
+            <label>e =</label>
+            <input type="range" id="eccSlider" min="0" max="250" value="0" step="1">
+            <span class="val" id="eccVal">0.00</span>
+        </div>
+        <div class="type-label" id="eccType">Circle</div>
+        <div style="position:relative">
+            <div class="ecc-bar">
+                <div style="flex:1;background:rgba(46,204,113,0.3)"></div>
+                <div style="flex:99;background:rgba(96,165,250,0.2)"></div>
+                <div style="flex:1;background:rgba(251,191,36,0.4)"></div>
+                <div style="flex:149;background:rgba(248,113,113,0.18)"></div>
+                <div class="ecc-marker" id="eccMarker"></div>
+            </div>
+            <div class="ecc-labels"><span>0 circle</span><span>1 parabola</span><span>2.5 hyperbola</span></div>
+        </div>
+    </div>
+
+    <div class="props" id="propsPanel"></div>
+
+    <div class="insight">
+        <div class="main-text">The conic sections were studied by Apollonius of Perga (c. 200 BCE), but their true importance emerged 1,800 years later when Kepler discovered that planets orbit in ellipses. Newton then proved that all orbits under inverse-square gravity are conic sections.</div>
+        <div class="curve-text" id="insightText"></div>
+    </div>
+</div>
+
+<script>
+const CORAL='#f87171',GOLD='#fbbf24',MUTED='#808098';
+const coneC=document.getElementById('coneCanvas'),coneCtx=coneC.getContext('2d');
+const curveC=document.getElementById('curveCanvas'),curveCtx=curveC.getContext('2d');
+const CW=coneC.width,CH=coneC.height,RW=curveC.width,RH=curveC.height;
+
+let ecc=0,sliceAngle=0,isDragging=false,dragT=0.8;
+
+const insights={
+    circle:'The most symmetric curve \u2014 every point at equal distance from the centre.',
+    ellipse:'Kepler\u2019s first law: planets orbit the Sun in ellipses with the Sun at one focus.',
+    parabola:'The boundary case \u2014 the orbit of a comet that will never return.',
+    hyperbola:'The path of a spacecraft that escapes a planet\u2019s gravity with energy to spare.'
+};
+const props={
+    circle:{eq:'\u2009x\u00b2 + y\u00b2 = r\u00b2',
+        desc:'All points equidistant from the centre. Eccentricity = 0.',
+        app:'Wheels, orbits of equal energy, ripples on still water.'},
+    ellipse:{eq:'\u2009x\u00b2/a\u00b2 + y\u00b2/b\u00b2 = 1',
+        desc:'Sum of distances to two foci is constant. 0 < e < 1. Foci at (\u00b1c, 0) where c\u00b2 = a\u00b2 \u2212 b\u00b2.',
+        app:'Planetary orbits, whispering galleries, elliptical gears.'},
+    parabola:{eq:'\u2009y\u00b2 = 4px',
+        desc:'Each point equidistant from focus and directrix. e = 1. The shape of satellite dishes, headlights, and projectile paths.',
+        app:'Satellite dishes, headlight reflectors, projectile trajectories.'},
+    hyperbola:{eq:'\u2009x\u00b2/a\u00b2 \u2212 y\u00b2/b\u00b2 = 1',
+        desc:'Difference of distances to two foci is constant. e > 1. Asymptotes: y = \u00b1(b/a)x.',
+        app:'GPS navigation (hyperbolic trilateration), Rutherford scattering, sonic booms.'}
+};
+
+function curveType(e){return e<0.001?'circle':e<0.999?'ellipse':e<1.001?'parabola':'hyperbola';}
+
+function sliceToEcc(a){
+    if(a<=0)return 0;
+    if(a<=45)return a/45;
+    return 1+(a-45)/55*1.5;
+}
+function eccToSlice(e){
+    if(e<=0)return 0;
+    if(e<=1)return e*45;
+    return 45+(e-1)/1.5*55;
+}
+
+/* ===== CONE CANVAS ===== */
+function drawCone(){
+    const ctx=coneCtx;
+    ctx.clearRect(0,0,CW,CH);
+    const cx=CW/2,apexY=CH*0.48,topY=CH*0.07,botY=CH*0.89;
+    const bw=115,eh=20; // base half-width, ellipse height
+
+    // Gradient fill for depth
+    const grd=ctx.createLinearGradient(cx-bw,0,cx+bw,0);
+    grd.addColorStop(0,'rgba(255,255,255,0.008)');
+    grd.addColorStop(0.5,'rgba(255,255,255,0.035)');
+    grd.addColorStop(1,'rgba(255,255,255,0.008)');
+
+    // Lower cone fill
+    ctx.fillStyle=grd;
+    ctx.beginPath();ctx.moveTo(cx,apexY);
+    ctx.lineTo(cx-bw,botY);ctx.ellipse(cx,botY,bw,eh,0,Math.PI,0,true);
+    ctx.lineTo(cx,apexY);ctx.fill();
+    // Upper cone fill
+    ctx.beginPath();ctx.moveTo(cx,apexY);
+    ctx.lineTo(cx-bw,topY);ctx.ellipse(cx,topY,bw,eh,0,Math.PI,Math.PI*2,false);
+    ctx.lineTo(cx,apexY);ctx.fill();
+
+    // Edges
+    ctx.strokeStyle='rgba(255,255,255,0.22)';ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(cx-bw,topY);ctx.lineTo(cx,apexY);ctx.lineTo(cx+bw,topY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx-bw,botY);ctx.lineTo(cx,apexY);ctx.lineTo(cx+bw,botY);ctx.stroke();
+    // Base ellipses
+    ctx.beginPath();ctx.ellipse(cx,topY,bw,eh,0,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(cx,botY,bw,eh,0,0,Math.PI*2);ctx.stroke();
+
+    // Slicing plane
+    const coneH=botY-apexY;
+    const midY=apexY+coneH*0.45;
+    const planeW=140;
+    const rad=sliceAngle*(Math.PI/180)*0.88;
+    const dy=Math.sin(rad)*planeW;
+    const x1=cx-planeW,y1=midY+dy;
+    const x2=cx+planeW,y2=midY-dy;
+
+    // Plane band
+    ctx.save();ctx.globalAlpha=0.12;ctx.fillStyle=CORAL;
+    ctx.beginPath();
+    ctx.moveTo(x1,y1-14);ctx.lineTo(x2,y2-14);ctx.lineTo(x2,y2+14);ctx.lineTo(x1,y1+14);
+    ctx.closePath();ctx.fill();ctx.restore();
+    // Plane line
+    ctx.strokeStyle=CORAL;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+
+    // Intersection highlight on cone surface
+    // Left edge: apex -> (cx-bw, botY), Right edge: apex -> (cx+bw, botY)
+    function planeYAtX(x){return y1+(y2-y1)*(x-x1)/(x2-x1);}
+
+    // Find left/right intersection with cone edges
+    let iL=null,iR=null;
+    // Left edge parameterised: x=cx-bw*t, y=apexY+coneH*t for t in [0,1]
+    for(let t=0.02;t<0.98;t+=0.002){
+        const ex=cx-bw*t, ey=apexY+coneH*t;
+        if(Math.abs(planeYAtX(ex)-ey)<2.5){iL={x:ex,y:ey};break;}
+    }
+    for(let t=0.02;t<0.98;t+=0.002){
+        const ex=cx+bw*t, ey=apexY+coneH*t;
+        if(Math.abs(planeYAtX(ex)-ey)<2.5){iR={x:ex,y:ey};break;}
+    }
+    // For steep angles (hyperbola), plane may also hit the upper cone
+    let iUL=null,iUR=null;
+    const upperH=apexY-topY;
+    for(let t=0.02;t<0.98;t+=0.002){
+        const ex=cx-bw*t, ey=apexY-upperH*t;
+        if(Math.abs(planeYAtX(ex)-ey)<2.5){iUL={x:ex,y:ey};break;}
+    }
+    for(let t=0.02;t<0.98;t+=0.002){
+        const ex=cx+bw*t, ey=apexY-upperH*t;
+        if(Math.abs(planeYAtX(ex)-ey)<2.5){iUR={x:ex,y:ey};break;}
+    }
+
+    ctx.strokeStyle=CORAL;ctx.lineWidth=3;ctx.lineCap='round';
+    if(iL&&iR){
+        // Draw intersection arc on lower cone
+        const mx=(iL.x+iR.x)/2,my=(iL.y+iR.y)/2;
+        const bulge=Math.abs(iR.x-iL.x)*0.15;
+        ctx.beginPath();ctx.moveTo(iL.x,iL.y);
+        ctx.quadraticCurveTo(mx,my+bulge,iR.x,iR.y);ctx.stroke();
+    }
+    if(iUL&&iUR){
+        // Upper cone intersection (hyperbola second branch)
+        const mx=(iUL.x+iUR.x)/2,my=(iUL.y+iUR.y)/2;
+        const bulge=Math.abs(iUR.x-iUL.x)*0.15;
+        ctx.beginPath();ctx.moveTo(iUL.x,iUL.y);
+        ctx.quadraticCurveTo(mx,my-bulge,iUR.x,iUR.y);ctx.stroke();
+    }
+
+    // Label
+    const ct=curveType(ecc);
+    ctx.font='15px Georgia';ctx.fillStyle=CORAL;ctx.textAlign='center';
+    ctx.fillText(ct.charAt(0).toUpperCase()+ct.slice(1),cx,CH-14);
+    ctx.font='11px Georgia';ctx.fillStyle='rgba(255,255,255,0.2)';
+    ctx.fillText('e = '+ecc.toFixed(2),cx,CH-32);
+}
+
+/* ===== CURVE CANVAS ===== */
+function drawCurve(){
+    const ctx=curveCtx;
+    ctx.clearRect(0,0,RW,RH);
+    const cx=RW/2,cy=RH/2,ct=curveType(ecc);
+
+    // Grid
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+    for(let i=-4;i<=4;i++){
+        ctx.beginPath();ctx.moveTo(cx+i*50,0);ctx.lineTo(cx+i*50,RH);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(0,cy+i*50);ctx.lineTo(RW,cy+i*50);ctx.stroke();
+    }
+    ctx.strokeStyle='rgba(255,255,255,0.1)';
+    ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(RW,cy);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx,0);ctx.lineTo(cx,RH);ctx.stroke();
+
+    if(ct==='circle') drawCircle(ctx,cx,cy);
+    else if(ct==='ellipse') drawEllipse(ctx,cx,cy);
+    else if(ct==='parabola') drawParabola(ctx,cx,cy);
+    else drawHyperbola(ctx,cx,cy);
+
+    ctx.font='13px Georgia';ctx.fillStyle=CORAL;ctx.textAlign='left';
+    ctx.fillText('e = '+ecc.toFixed(3),10,20);
+    ctx.fillText(ct.charAt(0).toUpperCase()+ct.slice(1),10,38);
+}
+
+function dot(ctx,x,y,col,lbl){
+    ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill();
+    if(lbl){ctx.font='11px Georgia';ctx.fillStyle=col;ctx.textAlign='center';ctx.fillText(lbl,x,y-10);}
+}
+function dragDot(ctx,x,y){
+    ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();
+}
+
+/* --- Circle --- */
+function drawCircle(ctx,cx,cy){
+    const r=120;
+    ctx.strokeStyle=CORAL;ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+    dot(ctx,cx,cy,GOLD,'Centre');
+    // Drag point
+    const px=cx+r*Math.cos(dragT),py=cy-r*Math.sin(dragT);
+    ctx.strokeStyle='rgba(251,191,36,0.45)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(px,py);ctx.stroke();
+    dragDot(ctx,px,py);
+    updateFD('circle',r,0,0);
+}
+
+/* --- Ellipse --- */
+function drawEllipse(ctx,cx,cy){
+    const a=140,b=a*Math.sqrt(1-ecc*ecc),c=a*ecc;
+    ctx.strokeStyle=CORAL;ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.ellipse(cx,cy,a,b,0,0,Math.PI*2);ctx.stroke();
+    dot(ctx,cx-c,cy,GOLD,'F\u2081');dot(ctx,cx+c,cy,GOLD,'F\u2082');
+    dot(ctx,cx,cy,'rgba(255,255,255,0.35)','C');
+    // Directrices
+    const dx=a/ecc;
+    if(cx+dx<RW+20){
+        ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(128,128,152,0.35)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(cx+dx,20);ctx.lineTo(cx+dx,RH-20);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(cx-dx,20);ctx.lineTo(cx-dx,RH-20);ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font='10px Georgia';ctx.fillStyle=MUTED;ctx.textAlign='center';
+        ctx.fillText('directrix',cx+dx,RH-10);
+    }
+    // Drag point
+    const px=cx+a*Math.cos(dragT),py=cy-b*Math.sin(dragT);
+    const d1=Math.hypot(px-(cx+c),py-cy),d2=Math.hypot(px-(cx-c),py-cy);
+    ctx.strokeStyle='rgba(251,191,36,0.35)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cx+c,cy);ctx.lineTo(px,py);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx-c,cy);ctx.lineTo(px,py);ctx.stroke();
+    if(cx+dx<RW+20){
+        ctx.strokeStyle='rgba(128,128,152,0.35)';
+        ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(cx+dx,py);ctx.stroke();
+    }
+    dragDot(ctx,px,py);
+    const dFoc=d1,dDir=Math.abs(cx+dx-px);
+    updateFD('ellipse',dFoc,dDir,dDir>0.5?dFoc/dDir:ecc);
+}
+
+/* --- Parabola --- */
+function drawParabola(ctx,cx,cy){
+    const p=55;
+    ctx.strokeStyle=CORAL;ctx.lineWidth=2.5;
+    ctx.beginPath();
+    for(let i=-180;i<=180;i++){
+        const y=i,x=y*y/(4*p);
+        const sx=cx+x,sy=cy-y;
+        if(i===-180)ctx.moveTo(sx,sy);else ctx.lineTo(sx,sy);
+    }
+    ctx.stroke();
+    dot(ctx,cx+p,cy,GOLD,'Focus');
+    dot(ctx,cx,cy,'rgba(255,255,255,0.35)','V');
+    // Directrix
+    ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(128,128,152,0.35)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cx-p,20);ctx.lineTo(cx-p,RH-20);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font='10px Georgia';ctx.fillStyle=MUTED;ctx.textAlign='center';
+    ctx.fillText('directrix',cx-p,RH-10);
+    // Drag point
+    const yd=Math.tan(dragT)*p*3.2;
+    const xd=yd*yd/(4*p);
+    const px=cx+xd,py=cy-yd;
+    const dFoc=Math.hypot(px-(cx+p),py-cy);
+    const dDir=Math.abs(px-(cx-p));
+    ctx.strokeStyle='rgba(251,191,36,0.35)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cx+p,cy);ctx.lineTo(px,py);ctx.stroke();
+    ctx.strokeStyle='rgba(128,128,152,0.35)';
+    ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(cx-p,py);ctx.stroke();
+    dragDot(ctx,px,py);
+    updateFD('parabola',dFoc,dDir,dDir>0.5?dFoc/dDir:1);
+}
+
+/* --- Hyperbola --- */
+function drawHyperbola(ctx,cx,cy){
+    const a=70,b=a*Math.sqrt(ecc*ecc-1),c=a*ecc;
+    const slope=b/a;
+    // Asymptotes
+    ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,cy+slope*cx);ctx.lineTo(RW,cy-slope*(RW-cx));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,cy-slope*cx);ctx.lineTo(RW,cy+slope*(RW-cx));ctx.stroke();
+    ctx.setLineDash([]);
+    // Branches
+    ctx.strokeStyle=CORAL;ctx.lineWidth=2.5;
+    for(const s of[-1,1]){
+        ctx.beginPath();let on=false;
+        for(let t=-3;t<=3;t+=0.015){
+            const x=a*Math.cosh(t)*s,y=b*Math.sinh(t);
+            const sx=cx+x,sy=cy-y;
+            if(sx<-20||sx>RW+20||sy<-20||sy>RH+20){on=false;continue;}
+            if(!on){ctx.moveTo(sx,sy);on=true;}else ctx.lineTo(sx,sy);
+        }
+        ctx.stroke();
+    }
+    dot(ctx,cx-c,cy,GOLD,'F\u2081');dot(ctx,cx+c,cy,GOLD,'F\u2082');
+    dot(ctx,cx,cy,'rgba(255,255,255,0.35)','C');
+    // Directrices
+    const dx=a/ecc;
+    ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(128,128,152,0.35)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cx+dx,20);ctx.lineTo(cx+dx,RH-20);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx-dx,20);ctx.lineTo(cx-dx,RH-20);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font='10px Georgia';ctx.fillStyle=MUTED;ctx.textAlign='center';
+    ctx.fillText('directrix',cx+dx,RH-10);
+    // Asymptote label
+    ctx.font='10px Georgia';ctx.fillStyle='rgba(255,255,255,0.15)';ctx.textAlign='right';
+    ctx.fillText('asymptote',RW-8,cy-slope*(RW/2-30)+14);
+    // Drag point (right branch)
+    const clamped=Math.max(-2.2,Math.min(2.2,dragT));
+    const px=cx+a*Math.cosh(clamped),py=cy-b*Math.sinh(clamped);
+    if(px>5&&px<RW-5&&py>5&&py<RH-5){
+        const dFoc=Math.hypot(px-(cx+c),py-cy);
+        ctx.strokeStyle='rgba(251,191,36,0.35)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(cx+c,cy);ctx.lineTo(px,py);ctx.stroke();
+        const dDir=Math.abs(px-(cx+dx));
+        ctx.strokeStyle='rgba(128,128,152,0.35)';
+        ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(cx+dx,py);ctx.stroke();
+        dragDot(ctx,px,py);
+        updateFD('hyperbola',dFoc,dDir,dDir>0.5?dFoc/dDir:ecc);
+    }
+}
+
+function updateFD(type,dF,dD,ratio){
+    const el=document.getElementById('fdInfo');
+    if(type==='circle'){
+        el.innerHTML='Distance to centre: <span>'+dF.toFixed(1)+'</span> \u2014 constant for all points. Drag the point around the curve.';
+    }else{
+        el.innerHTML='Dist to focus: <span>'+dF.toFixed(1)+'</span> &nbsp;|&nbsp; Dist to directrix: <span>'+dD.toFixed(1)+'</span> &nbsp;|&nbsp; Ratio: <span>'+ratio.toFixed(3)+'</span> = e &nbsp; Drag the point.';
+    }
+}
+
+/* ===== UI SYNC ===== */
+function updateProps(){
+    const ct=curveType(ecc),p=props[ct];
+    document.getElementById('propsPanel').innerHTML=
+        '<div class="eq">'+p.eq+'</div><div class="desc">'+p.desc+'</div><div class="app">'+p.app+'</div>';
+    document.getElementById('insightText').innerHTML=
+        '<strong>'+ct.charAt(0).toUpperCase()+ct.slice(1)+':</strong> '+insights[ct];
+}
+
+function updateButtons(){
+    const ct=curveType(ecc);
+    document.querySelectorAll('.cbtn').forEach(b=>b.classList.toggle('active',b.dataset.type===ct));
+}
+
+function updateEccMarker(){
+    document.getElementById('eccMarker').style.left='calc('+(ecc/2.5*100)+'% - 1.5px)';
+    document.getElementById('eccVal').textContent=ecc.toFixed(2);
+    const ct=curveType(ecc);
+    document.getElementById('eccType').textContent=ct.charAt(0).toUpperCase()+ct.slice(1);
+}
+
+function setEcc(e){
+    ecc=Math.max(0,Math.min(2.5,e));
+    sliceAngle=eccToSlice(ecc);
+    document.getElementById('angleSlider').value=sliceAngle;
+    document.getElementById('angleVal').textContent=Math.round(sliceAngle);
+    document.getElementById('eccSlider').value=Math.round(ecc*100);
+    updateEccMarker();updateButtons();updateProps();
+    drawCone();drawCurve();
+}
+
+/* ===== EVENTS ===== */
+document.getElementById('angleSlider').addEventListener('input',function(){
+    sliceAngle=+this.value;
+    document.getElementById('angleVal').textContent=Math.round(sliceAngle);
+    ecc=sliceToEcc(sliceAngle);
+    document.getElementById('eccSlider').value=Math.round(ecc*100);
+    updateEccMarker();updateButtons();updateProps();drawCone();drawCurve();
+});
+
+document.getElementById('eccSlider').addEventListener('input',function(){
+    setEcc(+this.value/100);
+});
+
+document.querySelectorAll('.cbtn').forEach(b=>{
+    b.addEventListener('click',function(){
+        animateEcc({circle:0,ellipse:0.6,parabola:1.0,hyperbola:1.6}[this.dataset.type]);
+    });
+});
+
+let anim=null;
+function animateEcc(target){
+    if(anim)cancelAnimationFrame(anim);
+    const s=ecc,dur=400,t0=performance.now();
+    (function step(ts){
+        const p=Math.min(1,(ts-t0)/dur);
+        const ease=p<0.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+        setEcc(s+(target-s)*ease);
+        if(p<1)anim=requestAnimationFrame(step);
+    })(t0);
+}
+
+/* ===== DRAG ===== */
+curveC.addEventListener('mousedown',function(e){isDragging=true;doDrag(e);});
+curveC.addEventListener('mousemove',function(e){if(isDragging)doDrag(e);});
+window.addEventListener('mouseup',function(){isDragging=false;});
+curveC.addEventListener('touchstart',function(e){isDragging=true;doDrag(e.touches[0]);e.preventDefault();},{passive:false});
+curveC.addEventListener('touchmove',function(e){if(isDragging){doDrag(e.touches[0]);e.preventDefault();}},{passive:false});
+curveC.addEventListener('touchend',function(){isDragging=false;});
+
+function doDrag(ev){
+    const r=curveC.getBoundingClientRect();
+    const mx=(ev.clientX-r.left)*RW/r.width,my=(ev.clientY-r.top)*RH/r.height;
+    const cx=RW/2,cy=RH/2,ct=curveType(ecc);
+    if(ct==='circle'||ct==='ellipse'){
+        dragT=Math.atan2(-(my-cy),mx-cx);
+    }else if(ct==='parabola'){
+        dragT=Math.atan(-(my-cy)/(55*3.2));
+    }else{
+        const a=70,b=a*Math.sqrt(ecc*ecc-1);
+        dragT=Math.asinh(-(my-cy)/b);
+        dragT=Math.max(-2.2,Math.min(2.2,dragT));
+    }
+    drawCurve();
+}
+curveC.style.cursor='pointer';
+
+setEcc(0);
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

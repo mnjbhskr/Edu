@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truth Tables & Logical Connectives</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#c084fc}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+
+        .main-row{display:flex;gap:28px;margin-bottom:28px;flex-wrap:wrap}
+        .venn-panel{flex:0 0 420px}
+        .venn-panel canvas{max-width:100%;height:auto}
+        .table-panel{flex:1 1 260px;min-width:260px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+
+        .tt-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 0;overflow:hidden}
+        .tt-card h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;padding:0 16px;margin-bottom:10px}
+        table{border-collapse:collapse;width:100%}
+        th{padding:6px 16px;text-align:center;font-weight:400;font-size:0.88em;color:#c084fc;border-bottom:1px solid rgba(255,255,255,0.08)}
+        td{padding:5px 16px;text-align:center;font-size:1.05em;font-family:'Courier New',monospace;transition:background 0.15s}
+        tr.trow:hover{background:rgba(192,132,252,0.06);cursor:pointer}
+        .tv{color:#2ecc71}.fv{color:rgba(231,76,60,0.45)}
+        .equiv-note{padding:10px 16px 0;font-size:0.82em;color:#808098}
+        .equiv-note span{color:#c084fc;cursor:pointer}
+        .equiv-note span:hover{text-decoration:underline}
+
+        .groups{margin-bottom:24px}
+        .group{margin-bottom:14px}
+        .group-label{font-size:0.72em;color:#606078;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+        .expr-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .expr-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .expr-btn.active{background:rgba(192,132,252,0.13);border-color:rgba(192,132,252,0.4);color:#c084fc}
+
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px}
+        .explain-name{color:#c084fc;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+
+        @media(max-width:768px){.venn-panel{flex:1 1 100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Truth Tables &amp; Logical Connectives</h1>
+    <p class="subtitle">AND, OR, NOT, implication &mdash; build the language of reasoning</p>
+
+    <div class="main-row">
+        <div class="venn-panel"><canvas id="venn" width="420" height="340"></canvas></div>
+        <div class="table-panel">
+            <div class="tt-card">
+                <h3>Truth Table</h3>
+                <div id="ttBody"></div>
+                <div class="equiv-note" id="equivNote"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="groups" id="btnGroups"></div>
+    <div class="explain"><div class="explain-name" id="eName"></div><div class="explain-text" id="eText"></div></div>
+</div>
+
+<script>
+const E=[
+  {l:"P \u2227 Q",name:"Conjunction (AND)",v:2,fn:(p,q)=>p&&q,g:"basic",
+   ex:"True only when BOTH P and Q are true. The fundamental building block \u2014 both conditions must hold simultaneously."},
+  {l:"P \u2228 Q",name:"Disjunction (OR)",v:2,fn:(p,q)=>p||q,g:"basic",
+   ex:"True when AT LEAST ONE of P or Q is true (inclusive). Unlike everyday English \u2018or\u2019, this includes the case where both are true."},
+  {l:"\u00ACP",name:"Negation (NOT)",v:2,fn:(p,q)=>!p,g:"basic",
+   ex:"Flips the truth value \u2014 true becomes false and vice versa. Notice the result is independent of Q; the entire Q-column is irrelevant."},
+  {l:"P \u2192 Q",name:"Implication (IF\u2026THEN)",v:2,fn:(p,q)=>!p||q,g:"basic",
+   ex:"False ONLY when P is true and Q is false. \u2018If P then Q\u2019 \u2014 a promise is broken only when the hypothesis holds but the conclusion fails. Vacuously true when P is false.",
+   eq:"\u00ACP \u2228 Q",eqN:"Material conditional"},
+  {l:"P \u2194 Q",name:"Biconditional (IFF)",v:2,fn:(p,q)=>p===q,g:"basic",
+   ex:"True when P and Q have the SAME truth value \u2014 both true or both false. \u2018P if and only if Q\u2019 means they are logically equivalent.",
+   eq:"(P\u2192Q) \u2227 (Q\u2192P)",eqN:"Mutual implication"},
+  {l:"P \u2295 Q",name:"Exclusive OR (XOR)",v:2,fn:(p,q)=>p!==q,g:"basic",
+   ex:"True when EXACTLY ONE of P or Q is true, but not both. This is the \u2018or\u2019 of everyday speech (\u2018tea or coffee?\u2019). It is the negation of the biconditional."},
+
+  {l:"\u00AC(P \u2227 Q)",name:"De Morgan\u2019s Law I",v:2,fn:(p,q)=>!(p&&q),g:"laws",
+   ex:"NOT (P AND Q) is equivalent to (NOT P) OR (NOT Q). Negating a conjunction produces a disjunction of negations. One of the most important transformation rules in logic.",
+   eq:"\u00ACP \u2228 \u00ACQ",eqN:"De Morgan\u2019s Law"},
+  {l:"\u00AC(P \u2228 Q)",name:"De Morgan\u2019s Law II",v:2,fn:(p,q)=>!(p||q),g:"laws",
+   ex:"NOT (P OR Q) is equivalent to (NOT P) AND (NOT Q). Negating a disjunction produces a conjunction of negations. The dual of De Morgan\u2019s first law.",
+   eq:"\u00ACP \u2227 \u00ACQ",eqN:"De Morgan\u2019s Law"},
+  {l:"\u00ACQ \u2192 \u00ACP",name:"Contrapositive",v:2,fn:(p,q)=>q||!p,g:"laws",
+   ex:"If NOT Q then NOT P \u2014 the contrapositive of P \u2192 Q. An implication is ALWAYS equivalent to its contrapositive. Compare with P \u2192 Q \u2014 the truth tables are identical!",
+   eq:"P \u2192 Q",eqN:"Contrapositive equivalence"},
+  {l:"Q \u2192 P",name:"Converse",v:2,fn:(p,q)=>!q||p,g:"laws",
+   ex:"If Q then P \u2014 the converse of P \u2192 Q. WARNING: the converse is NOT equivalent to the original implication! Compare P \u2192 Q and Q \u2192 P \u2014 rows 2 and 3 differ."},
+
+  {l:"P \u2228 \u00ACP",name:"Tautology (Excluded Middle)",v:2,fn:()=>true,g:"special",
+   ex:"Always true regardless of P. Every proposition is either true or false \u2014 no middle ground. The Venn diagram fills completely because this can never be false."},
+  {l:"P \u2227 \u00ACP",name:"Contradiction",v:2,fn:()=>false,g:"special",
+   ex:"Always false \u2014 nothing can be both true and false simultaneously. The Venn diagram is empty. This impossibility is the engine behind proof by contradiction."},
+  {l:"\u00AC(P \u2192 Q)",name:"Negation of Implication",v:2,fn:(p,q)=>p&&!q,g:"special",
+   ex:"To disprove \u2018If P then Q\u2019 you must find P true AND Q false. This is P \u2227 \u00ACQ \u2014 the only row where the implication fails.",
+   eq:"P \u2227 \u00ACQ",eqN:"Negated implication"},
+
+  {l:"P \u2227 (Q \u2228 R)",name:"Distributive Law",v:3,fn:(p,q,r)=>p&&(q||r),g:"three",
+   ex:"AND distributes over OR, just as multiplication distributes over addition. P \u2227 (Q \u2228 R) \u2261 (P \u2227 Q) \u2228 (P \u2227 R). Compare the Venn diagrams \u2014 they are identical.",
+   eq:"(P\u2227Q) \u2228 (P\u2227R)",eqN:"Distributive Law"},
+  {l:"(P\u2227Q) \u2228 (P\u2227R)",name:"Distributed Form",v:3,fn:(p,q,r)=>(p&&q)||(p&&r),g:"three",
+   ex:"The expanded form of P \u2227 (Q \u2228 R). Compare with the factored form \u2014 identical Venn diagrams prove the equivalence visually.",
+   eq:"P \u2227 (Q \u2228 R)",eqN:"Distributive Law"},
+];
+
+const GL={basic:"Basic Connectives",laws:"Logical Laws",special:"Special",three:"Three Variables"};
+
+let cur=0, hoverVals=null;
+const cvs=document.getElementById("venn"),ctx=cvs.getContext("2d"),W=cvs.width,H=cvs.height;
+
+function drawVenn(){
+    const e=E[cur],nv=e.v;
+    let circles;
+    if(nv===2){
+        circles=[
+            {cx:W*.38,cy:H*.52,r:H*.32,label:"P",lx:W*.19,ly:H*.52},
+            {cx:W*.62,cy:H*.52,r:H*.32,label:"Q",lx:W*.81,ly:H*.52},
+        ];
+    }else{
+        circles=[
+            {cx:W*.40,cy:H*.38,r:H*.28,label:"P",lx:W*.22,ly:H*.22},
+            {cx:W*.60,cy:H*.38,r:H*.28,label:"Q",lx:W*.78,ly:H*.22},
+            {cx:W*.50,cy:H*.62,r:H*.28,label:"R",lx:W*.50,ly:H*.92},
+        ];
+    }
+    circles.forEach(c=>c.r2=c.r*c.r);
+    const nRows=nv===2?4:8;
+    let nTrue=0;
+    for(let i=0;i<nRows;i++){
+        const P=!(i>>(nv-1)&1),Q=!(i>>(nv-2)&1),R=nv===3?!(i&1):false;
+        if(e.fn(P,Q,R))nTrue++;
+    }
+    const img=ctx.createImageData(W,H),d=img.data;
+    for(let y=0;y<H;y++){
+        for(let x=0;x<W;x++){
+            const idx=(y*W+x)*4;
+            const dx0=x-circles[0].cx,dy0=y-circles[0].cy;
+            const dx1=x-circles[1].cx,dy1=y-circles[1].cy;
+            const inP=dx0*dx0+dy0*dy0<=circles[0].r2;
+            const inQ=dx1*dx1+dy1*dy1<=circles[1].r2;
+            let inR=false;
+            if(nv===3){const dx2=x-circles[2].cx,dy2=y-circles[2].cy;inR=dx2*dx2+dy2*dy2<=circles[2].r2;}
+            const inAny=inP||inQ||inR;
+            const result=e.fn(inP,inQ,inR);
+            let bright=1;
+            if(hoverVals){
+                const m=(inP===hoverVals.P)&&(inQ===hoverVals.Q)&&(nv<3||inR===hoverVals.R);
+                bright=m?1.7:0.3;
+            }
+            if(result){
+                d[idx]=168;d[idx+1]=85;d[idx+2]=247;
+                d[idx+3]=Math.min(255,Math.round(105*bright));
+            }else if(inAny){
+                d[idx]=22;d[idx+1]=22;d[idx+2]=40;
+                d[idx+3]=Math.min(255,Math.round(180*(hoverVals?(bright>1?1:0.5):1)));
+            }else{
+                d[idx]=14;d[idx+1]=14;d[idx+2]=28;d[idx+3]=255;
+            }
+        }
+    }
+    ctx.putImageData(img,0,0);
+    ctx.strokeStyle="rgba(255,255,255,0.35)";ctx.lineWidth=1.5;
+    for(const c of circles){ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);ctx.stroke();}
+    ctx.font="22px Georgia";ctx.fillStyle="rgba(255,255,255,0.6)";ctx.textAlign="center";ctx.textBaseline="middle";
+    for(const c of circles)ctx.fillText(c.label,c.lx,c.ly);
+    ctx.font="15px Georgia";ctx.fillStyle="#c084fc";ctx.textAlign="left";ctx.textBaseline="top";
+    ctx.fillText(e.l,12,10);
+    ctx.font="11px Georgia";ctx.fillStyle="#606078";
+    ctx.fillText(nTrue+" of "+nRows+" true",12,30);
+    ctx.textAlign="right";ctx.fillText("U (Universe)",W-10,10);
+}
+
+function renderTable(){
+    const e=E[cur],nv=e.v,nRows=nv===2?4:8;
+    let html="<table><tr><th>P</th><th>Q</th>";
+    if(nv===3)html+="<th>R</th>";
+    html+="<th>"+e.l+"</th></tr>";
+    for(let i=0;i<nRows;i++){
+        const P=!(i>>(nv-1)&1),Q=!(i>>(nv-2)&1),R=nv===3?!(i&1):false;
+        const res=e.fn(P,Q,R);
+        const vals=JSON.stringify({P,Q,R});
+        html+='<tr class="trow" data-vals=\''+vals+"'>";
+        html+="<td class='"+(P?"tv":"fv")+"'>"+(P?"T":"F")+"</td>";
+        html+="<td class='"+(Q?"tv":"fv")+"'>"+(Q?"T":"F")+"</td>";
+        if(nv===3)html+="<td class='"+(R?"tv":"fv")+"'>"+(R?"T":"F")+"</td>";
+        html+="<td class='"+(res?"tv":"fv")+"'>"+(res?"T":"F")+"</td></tr>";
+    }
+    html+="</table>";
+    document.getElementById("ttBody").innerHTML=html;
+    const en=document.getElementById("equivNote");
+    if(e.eq){
+        en.innerHTML="\u2261 <span id='eqLink'>"+e.eq+"</span>  ("+e.eqN+")";
+        document.getElementById("eqLink").onclick=()=>{
+            const t=E.findIndex(x=>x.l===e.eq);if(t>=0)select(t);
+        };
+    }else en.innerHTML="";
+    document.querySelectorAll(".trow").forEach(row=>{
+        row.addEventListener("mouseenter",()=>{hoverVals=JSON.parse(row.dataset.vals);drawVenn();});
+        row.addEventListener("mouseleave",()=>{hoverVals=null;drawVenn();});
+    });
+}
+
+function renderButtons(){
+    const container=document.getElementById("btnGroups");
+    const groups={};
+    E.forEach((e,i)=>{if(!groups[e.g])groups[e.g]=[];groups[e.g].push(i);});
+    let html="";
+    for(const[g,idxs]of Object.entries(groups)){
+        html+='<div class="group"><div class="group-label">'+(GL[g]||g)+'</div><div class="btn-row">';
+        for(const i of idxs)
+            html+="<button class='expr-btn"+(i===cur?" active":"")+"' data-i='"+i+"'>"+E[i].l+"</button>";
+        html+="</div></div>";
+    }
+    container.innerHTML=html;
+    container.querySelectorAll(".expr-btn").forEach(b=>{
+        b.addEventListener("click",()=>select(parseInt(b.dataset.i)));
+    });
+}
+
+function renderExplain(){
+    document.getElementById("eName").textContent=E[cur].name;
+    document.getElementById("eText").textContent=E[cur].ex;
+}
+
+function select(idx){cur=idx;hoverVals=null;drawVenn();renderTable();renderButtons();renderExplain();}
+select(0);
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

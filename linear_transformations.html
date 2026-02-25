@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Transformations</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#22d3ee}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(34,211,238,0.13);border-color:rgba(34,211,238,0.4);color:#22d3ee}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .green{color:#2ecc71}
+        .math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#22d3ee;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#22d3ee}
+        .slider-label{color:#22d3ee;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 300px;min-width:280px}
+        .matrix-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-width:200px;margin:10px 0}
+        .matrix-grid input{background:rgba(255,255,255,0.04);border:1px solid rgba(34,211,238,0.3);border-radius:4px;color:#22d3ee;font-family:'Courier New',monospace;font-size:1em;padding:6px 8px;text-align:center;width:100%}
+        .matrix-grid input:focus{outline:none;border-color:rgba(34,211,238,0.7);background:rgba(34,211,238,0.06)}
+        .matrix-bracket{display:flex;align-items:center;gap:4px}
+        .bracket{color:#808098;font-size:2.8em;font-weight:100;line-height:1}
+        .props-grid{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-family:'Courier New',monospace;font-size:0.9em}
+        .prop-label{color:#808098}
+        .prop-value{color:#c0c0d8}
+        .comp-matrices{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+        .comp-result{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:14px;text-align:center}
+        .comp-result .label{font-size:0.85em;color:#808098;margin-bottom:6px}
+        .comp-result .matrix-display{font-family:'Courier New',monospace;font-size:0.95em;color:#c0c0d8;line-height:1.8}
+        .neq-badge{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:4px 12px;border-radius:6px;font-size:0.85em;display:inline-block;margin-top:8px}
+        .eq-badge{background:rgba(34,211,238,0.1);border:1px solid rgba(34,211,238,0.3);color:#22d3ee;padding:4px 12px;border-radius:6px;font-size:0.85em;display:inline-block;margin-top:8px}
+        .mini-canvas-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px}
+        .mini-canvas-col{text-align:center}
+        .mini-canvas-col .label{color:#808098;font-size:0.82em;margin-bottom:6px}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}.matrix-grid{max-width:160px}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Linear Transformations</h1>
+    <p class="subtitle">Rotation, reflection, shear &mdash; see matrices as actions on space</p>
+
+    <!-- Section 1: Main Transformation Canvas -->
+    <canvas id="mainCanvas" width="650" height="500"></canvas>
+
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+        <button class="btn" id="playBtn">Play</button>
+        <button class="btn" id="resetBtn">Reset</button>
+        <span class="math-line muted" id="animLabel" style="margin-left:8px">t = 0.00</span>
+    </div>
+
+    <!-- Section 2: Matrix Input & Presets -->
+    <h2>Transformation Matrix</h2>
+    <div class="panel">
+        <h3>2 &times; 2 Matrix</h3>
+        <div class="matrix-bracket">
+            <span class="bracket">[</span>
+            <div class="matrix-grid" id="matrixInputs">
+                <input type="number" id="ma" value="1" step="0.1">
+                <input type="number" id="mb" value="0" step="0.1">
+                <input type="number" id="mc" value="0" step="0.1">
+                <input type="number" id="md" value="1" step="0.1">
+            </div>
+            <span class="bracket">]</span>
+        </div>
+
+        <h3 style="margin-top:16px">Preset Transformations</h3>
+        <div class="btn-row" id="presetBtns"></div>
+
+        <h3 style="margin-top:16px">Rotation Angle</h3>
+        <div class="slider-row">
+            <span class="math-line muted">&theta; =</span>
+            <input type="range" id="rotSlider" min="0" max="360" value="0" step="1">
+            <span class="slider-label" id="rotLabel">0&deg;</span>
+        </div>
+    </div>
+
+    <!-- Section 3: Matrix Properties -->
+    <h2>Matrix Properties</h2>
+    <div class="panel" id="propsPanel">
+        <h3>Computed Properties</h3>
+        <div class="props-grid" id="propsGrid"></div>
+    </div>
+
+    <!-- Section 4: Composition of Transformations -->
+    <h2>Composition of Transformations</h2>
+    <div class="panel">
+        <h3>Matrix A</h3>
+        <div class="btn-row" id="compABtns"></div>
+        <h3>Matrix B</h3>
+        <div class="btn-row" id="compBBtns"></div>
+
+        <div class="comp-matrices" id="compResults"></div>
+        <div id="compCommBadge"></div>
+
+        <div style="margin-top:12px">
+            <button class="btn" id="compAnimBtn">Animate A then B vs B then A</button>
+        </div>
+        <div class="mini-canvas-row">
+            <div class="mini-canvas-col">
+                <div class="label">Apply A then B (= BA)</div>
+                <canvas id="compCanvasAB" width="300" height="250" style="cursor:default"></canvas>
+            </div>
+            <div class="mini-canvas-col">
+                <div class="label">Apply B then A (= AB)</div>
+                <canvas id="compCanvasBA" width="300" height="250" style="cursor:default"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 5: Explanation -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            Every linear transformation of the plane is completely determined by where it sends the two basis vectors e<sub>1</sub> = (1, 0) and e<sub>2</sub> = (0, 1). Those images are exactly the columns of the transformation matrix. To find where any vector v goes, we simply compute Av &mdash; the matrix encodes the entire transformation.
+            <br><br>
+            The determinant measures how the transformation scales area. If det(A) &gt; 0, orientation is preserved (the transformed "F" reads normally). If det(A) &lt; 0, the transformation reverses orientation (the "F" appears mirrored). If det(A) = 0, the transformation collapses the plane onto a line or a point &mdash; information is lost, and the transformation cannot be undone.
+            <br><br>
+            Composition of transformations corresponds to matrix multiplication, and the order matters: applying A then B is the matrix BA (not AB). This non-commutativity is one of the deepest features of linear algebra and is why, for instance, rotating then reflecting differs from reflecting then rotating.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   LINEAR TRANSFORMATIONS - Interactive Visualisation
+   ============================================================ */
+
+/* -- constants -- */
+const ACCENT = '#22d3ee';
+const ACCENT_DIM = 'rgba(34,211,238,0.3)';
+const ACCENT_FILL = 'rgba(34,211,238,0.08)';
+const E1_COLOR = '#22d3ee';
+const E2_COLOR = '#fbbf24';
+const GRID_ORIG = 'rgba(255,255,255,0.04)';
+const GRID_TRANS = 'rgba(34,211,238,0.08)';
+const ANIM_DURATION = 1000; // ms
+
+/* -- state -- */
+let matrix = {a:1, b:0, c:0, d:1}; // target matrix
+let animT = 1; // interpolation parameter 0..1
+let animRunning = false;
+let animStart = 0;
+
+/* -- F shape vertices -- */
+const F_SHAPE = [
+    [0.2,0.2],[0.2,0.8],[0.5,0.8],[0.5,0.6],
+    [0.35,0.6],[0.35,0.5],[0.45,0.5],[0.45,0.35],
+    [0.35,0.35],[0.35,0.2]
+];
+
+/* -- main canvas setup -- */
+const cvs = document.getElementById('mainCanvas');
+const ctx = cvs.getContext('2d');
+const W = cvs.width, H = cvs.height;
+const SCALE = 50; // pixels per unit
+const ox = W / 2, oy = H / 2;
+
+function toScreen(x, y) {
+    return { x: ox + x * SCALE, y: oy - y * SCALE };
+}
+
+/* -- interpolated matrix at time t -- */
+function interpMatrix(t) {
+    return {
+        a: 1 + t * (matrix.a - 1),
+        b: t * matrix.b,
+        c: t * matrix.c,
+        d: 1 + t * (matrix.d - 1)
+    };
+}
+
+/* -- transform a point by matrix m -- */
+function transformPt(m, x, y) {
+    return { x: m.a * x + m.b * y, y: m.c * x + m.d * y };
+}
+
+/* ============================================================
+   DRAWING - Main Canvas
+   ============================================================ */
+
+function drawMain() {
+    const t = animT;
+    const m = interpMatrix(t);
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(0, 0, W, H);
+
+    /* -- original grid (faint) -- */
+    ctx.strokeStyle = GRID_ORIG;
+    ctx.lineWidth = 1;
+    for (let i = -6; i <= 6; i++) {
+        // vertical
+        let p1 = toScreen(i, -6), p2 = toScreen(i, 6);
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+        // horizontal
+        p1 = toScreen(-6, i); p2 = toScreen(6, i);
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    }
+
+    /* -- axes (original) -- */
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+
+    /* -- tick labels -- */
+    ctx.font = '10px Georgia';
+    ctx.fillStyle = '#505068';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let i = -6; i <= 6; i++) {
+        if (i === 0) continue;
+        ctx.fillText(i, ox + i * SCALE, oy + 4);
+    }
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = -5; i <= 5; i++) {
+        if (i === 0) continue;
+        ctx.fillText(i, ox - 6, oy - i * SCALE);
+    }
+
+    /* -- transformed grid -- */
+    ctx.strokeStyle = GRID_TRANS;
+    ctx.lineWidth = 1;
+    for (let i = -6; i <= 6; i++) {
+        // transformed vertical lines: x=i, y varies from -6 to 6
+        ctx.beginPath();
+        for (let j = -60; j <= 60; j++) {
+            const yy = j / 10;
+            const tp = transformPt(m, i, yy);
+            const sp = toScreen(tp.x, tp.y);
+            if (j === -60) ctx.moveTo(sp.x, sp.y);
+            else ctx.lineTo(sp.x, sp.y);
+        }
+        ctx.stroke();
+        // transformed horizontal lines: y=i, x varies from -6 to 6
+        ctx.beginPath();
+        for (let j = -60; j <= 60; j++) {
+            const xx = j / 10;
+            const tp = transformPt(m, xx, i);
+            const sp = toScreen(tp.x, tp.y);
+            if (j === -60) ctx.moveTo(sp.x, sp.y);
+            else ctx.lineTo(sp.x, sp.y);
+        }
+        ctx.stroke();
+    }
+
+    /* -- transformed axes (stronger) -- */
+    ctx.strokeStyle = 'rgba(34,211,238,0.15)';
+    ctx.lineWidth = 1.5;
+    // x-axis transformed
+    ctx.beginPath();
+    for (let j = -60; j <= 60; j++) {
+        const xx = j / 10;
+        const tp = transformPt(m, xx, 0);
+        const sp = toScreen(tp.x, tp.y);
+        if (j === -60) ctx.moveTo(sp.x, sp.y); else ctx.lineTo(sp.x, sp.y);
+    }
+    ctx.stroke();
+    // y-axis transformed
+    ctx.beginPath();
+    for (let j = -60; j <= 60; j++) {
+        const yy = j / 10;
+        const tp = transformPt(m, 0, yy);
+        const sp = toScreen(tp.x, tp.y);
+        if (j === -60) ctx.moveTo(sp.x, sp.y); else ctx.lineTo(sp.x, sp.y);
+    }
+    ctx.stroke();
+
+    /* -- original unit square (faint) -- */
+    ctx.fillStyle = 'rgba(255,255,255,0.02)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    const sq0 = [[0,0],[1,0],[1,1],[0,1]];
+    ctx.beginPath();
+    sq0.forEach((p, i) => {
+        const sp = toScreen(p[0], p[1]);
+        if (i === 0) ctx.moveTo(sp.x, sp.y); else ctx.lineTo(sp.x, sp.y);
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    /* -- transformed unit square -- */
+    ctx.fillStyle = ACCENT_FILL;
+    ctx.strokeStyle = ACCENT_DIM;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    sq0.forEach((p, i) => {
+        const tp = transformPt(m, p[0], p[1]);
+        const sp = toScreen(tp.x, tp.y);
+        if (i === 0) ctx.moveTo(sp.x, sp.y); else ctx.lineTo(sp.x, sp.y);
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    /* -- original F shape (faint) -- */
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    F_SHAPE.forEach((p, i) => {
+        const sp = toScreen(p[0], p[1]);
+        if (i === 0) ctx.moveTo(sp.x, sp.y); else ctx.lineTo(sp.x, sp.y);
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    /* -- transformed F shape -- */
+    ctx.fillStyle = 'rgba(34,211,238,0.12)';
+    ctx.strokeStyle = ACCENT;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    F_SHAPE.forEach((p, i) => {
+        const tp = transformPt(m, p[0], p[1]);
+        const sp = toScreen(tp.x, tp.y);
+        if (i === 0) ctx.moveTo(sp.x, sp.y); else ctx.lineTo(sp.x, sp.y);
+    });
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    /* -- basis vectors e1 and e2 (original, faint) -- */
+    drawArrow(ctx, 0, 0, 1, 0, 'rgba(34,211,238,0.2)', 1.5);
+    drawArrow(ctx, 0, 0, 0, 1, 'rgba(251,191,36,0.2)', 1.5);
+
+    /* -- transformed basis vectors -- */
+    const te1 = transformPt(m, 1, 0);
+    const te2 = transformPt(m, 0, 1);
+    drawArrow(ctx, 0, 0, te1.x, te1.y, E1_COLOR, 2.5);
+    drawArrow(ctx, 0, 0, te2.x, te2.y, E2_COLOR, 2.5);
+
+    /* -- basis vector labels -- */
+    const se1 = toScreen(te1.x, te1.y);
+    ctx.font = '13px Georgia';
+    ctx.fillStyle = E1_COLOR;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('e\u2081\u2032', se1.x + 8, se1.y - 8);
+
+    const se2 = toScreen(te2.x, te2.y);
+    ctx.fillStyle = E2_COLOR;
+    ctx.fillText('e\u2082\u2032', se2.x + 8, se2.y - 8);
+
+    /* -- coordinate labels for transformed basis -- */
+    ctx.font = '10px "Courier New"';
+    ctx.fillStyle = E1_COLOR;
+    ctx.globalAlpha = 0.7;
+    ctx.fillText('(' + te1.x.toFixed(2) + ', ' + te1.y.toFixed(2) + ')', se1.x + 8, se1.y + 6);
+    ctx.fillStyle = E2_COLOR;
+    const se2lbl = toScreen(te2.x, te2.y);
+    ctx.fillText('(' + te2.x.toFixed(2) + ', ' + te2.y.toFixed(2) + ')', se2lbl.x + 8, se2lbl.y + 6);
+    ctx.globalAlpha = 1;
+
+    /* -- origin dot -- */
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(ox, oy, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* -- axis labels -- */
+    ctx.font = '14px Georgia';
+    ctx.fillStyle = '#808098';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('x', W - 20, oy - 6);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('y', ox + 8, 6);
+
+    /* -- animation label -- */
+    document.getElementById('animLabel').textContent = 't = ' + t.toFixed(2);
+}
+
+function drawArrow(context, x0, y0, x1, y1, color, lw) {
+    const s0 = toScreen(x0, y0);
+    const s1 = toScreen(x1, y1);
+    context.strokeStyle = color;
+    context.lineWidth = lw;
+    context.lineCap = 'round';
+    context.beginPath();
+    context.moveTo(s0.x, s0.y);
+    context.lineTo(s1.x, s1.y);
+    context.stroke();
+    // arrowhead
+    const ang = Math.atan2(s1.y - s0.y, s1.x - s0.x);
+    const hl = 10;
+    context.fillStyle = color;
+    context.beginPath();
+    context.moveTo(s1.x, s1.y);
+    context.lineTo(s1.x - hl * Math.cos(ang - 0.3), s1.y - hl * Math.sin(ang - 0.3));
+    context.lineTo(s1.x - hl * Math.cos(ang + 0.3), s1.y - hl * Math.sin(ang + 0.3));
+    context.closePath();
+    context.fill();
+}
+
+/* ============================================================
+   ANIMATION
+   ============================================================ */
+
+function animationLoop(now) {
+    if (!animRunning) return;
+    let elapsed = now - animStart;
+    animT = Math.min(elapsed / ANIM_DURATION, 1);
+    // ease in-out
+    animT = animT < 0.5 ? 2 * animT * animT : 1 - Math.pow(-2 * animT + 2, 2) / 2;
+    drawMain();
+    updateProperties();
+    if (animT >= 1) {
+        animT = 1;
+        animRunning = false;
+        drawMain();
+        updateProperties();
+        return;
+    }
+    requestAnimationFrame(animationLoop);
+}
+
+document.getElementById('playBtn').addEventListener('click', () => {
+    if (animRunning) return;
+    animT = 0;
+    animRunning = true;
+    animStart = performance.now();
+    requestAnimationFrame(animationLoop);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+    animRunning = false;
+    animT = 0;
+    drawMain();
+    updateProperties();
+});
+
+/* ============================================================
+   MATRIX INPUT
+   ============================================================ */
+
+const inputA = document.getElementById('ma');
+const inputB = document.getElementById('mb');
+const inputC = document.getElementById('mc');
+const inputD = document.getElementById('md');
+
+function readMatrixInputs() {
+    matrix.a = parseFloat(inputA.value) || 0;
+    matrix.b = parseFloat(inputB.value) || 0;
+    matrix.c = parseFloat(inputC.value) || 0;
+    matrix.d = parseFloat(inputD.value) || 0;
+}
+
+function setMatrixInputs(a, b, c, d) {
+    inputA.value = Math.round(a * 10000) / 10000;
+    inputB.value = Math.round(b * 10000) / 10000;
+    inputC.value = Math.round(c * 10000) / 10000;
+    inputD.value = Math.round(d * 10000) / 10000;
+    matrix = {a, b, c, d};
+}
+
+function onMatrixChange() {
+    readMatrixInputs();
+    animT = 1;
+    animRunning = false;
+    drawMain();
+    updateProperties();
+}
+
+[inputA, inputB, inputC, inputD].forEach(inp => {
+    inp.addEventListener('input', onMatrixChange);
+});
+
+/* ============================================================
+   PRESETS
+   ============================================================ */
+
+const cos45 = Math.cos(Math.PI / 4);
+const sin45 = Math.sin(Math.PI / 4);
+
+const presets = [
+    { label: 'Rotation 45\u00B0',   a: cos45, b: -sin45, c: sin45, d: cos45 },
+    { label: 'Rotation 90\u00B0',   a: 0, b: -1, c: 1, d: 0 },
+    { label: 'Reflect x-axis',      a: 1, b: 0, c: 0, d: -1 },
+    { label: 'Reflect y = x',       a: 0, b: 1, c: 1, d: 0 },
+    { label: 'Shear',               a: 1, b: 1, c: 0, d: 1 },
+    { label: 'Scale (2x, 0.5y)',    a: 2, b: 0, c: 0, d: 0.5 },
+    { label: 'Project onto x',      a: 1, b: 0, c: 0, d: 0 },
+    { label: 'Squeeze',             a: 2, b: 0, c: 0, d: 0.5 },
+];
+
+function renderPresetBtns(containerId, callback) {
+    const c = document.getElementById(containerId);
+    c.innerHTML = presets.map((p, i) =>
+        '<button class="btn" data-pi="' + i + '">' + p.label + '</button>'
+    ).join('');
+    c.querySelectorAll('.btn').forEach(b => b.addEventListener('click', () => {
+        const p = presets[parseInt(b.dataset.pi)];
+        callback(p);
+    }));
+}
+
+renderPresetBtns('presetBtns', (p) => {
+    setMatrixInputs(p.a, p.b, p.c, p.d);
+    // update rotation slider if this is a rotation
+    const angle = Math.atan2(p.c, p.a) * 180 / Math.PI;
+    if (Math.abs(p.a - Math.cos(angle * Math.PI / 180)) < 0.001 &&
+        Math.abs(p.b + Math.sin(angle * Math.PI / 180)) < 0.001) {
+        document.getElementById('rotSlider').value = (angle + 360) % 360;
+        document.getElementById('rotLabel').textContent = Math.round((angle + 360) % 360) + '\u00B0';
+    }
+    // trigger animation
+    animT = 0;
+    animRunning = true;
+    animStart = performance.now();
+    requestAnimationFrame(animationLoop);
+    updateProperties();
+});
+
+/* ============================================================
+   ROTATION SLIDER
+   ============================================================ */
+
+const rotSlider = document.getElementById('rotSlider');
+const rotLabel = document.getElementById('rotLabel');
+
+rotSlider.addEventListener('input', () => {
+    const deg = parseFloat(rotSlider.value);
+    rotLabel.textContent = Math.round(deg) + '\u00B0';
+    const rad = deg * Math.PI / 180;
+    setMatrixInputs(Math.cos(rad), -Math.sin(rad), Math.sin(rad), Math.cos(rad));
+    animT = 1;
+    animRunning = false;
+    drawMain();
+    updateProperties();
+});
+
+/* ============================================================
+   MATRIX PROPERTIES
+   ============================================================ */
+
+function updateProperties() {
+    const m = interpMatrix(animT);
+    const det = m.a * m.d - m.b * m.c;
+    const trace = m.a + m.d;
+
+    // eigenvalues: solutions of lambda^2 - trace*lambda + det = 0
+    const disc = trace * trace - 4 * det;
+    let eigenStr;
+    if (Math.abs(disc) < 1e-10) {
+        eigenStr = '<span style="color:#22d3ee">' + (trace / 2).toFixed(4) + '</span> (repeated)';
+    } else if (disc > 0) {
+        const l1 = (trace + Math.sqrt(disc)) / 2;
+        const l2 = (trace - Math.sqrt(disc)) / 2;
+        eigenStr = '<span style="color:#22d3ee">' + l1.toFixed(4) + '</span>, <span style="color:#22d3ee">' + l2.toFixed(4) + '</span>';
+    } else {
+        const realPart = trace / 2;
+        const imagPart = Math.sqrt(-disc) / 2;
+        eigenStr = '<span style="color:#22d3ee">' + realPart.toFixed(4) + ' &pm; ' + imagPart.toFixed(4) + 'i</span>';
+    }
+
+    // classify type
+    let typeStr = classifyTransformation(m);
+
+    // determinant color
+    let detColor;
+    if (Math.abs(det) < 1e-10) detColor = '#808098';
+    else if (det > 0) detColor = '#2ecc71';
+    else detColor = '#ef4444';
+
+    let detInterp;
+    if (Math.abs(det) < 1e-10) detInterp = 'collapses dimension (singular)';
+    else if (det > 0) detInterp = 'preserves orientation, area scale = ' + Math.abs(det).toFixed(4);
+    else detInterp = 'reverses orientation, area scale = ' + Math.abs(det).toFixed(4);
+
+    const grid = document.getElementById('propsGrid');
+    grid.innerHTML =
+        '<span class="prop-label">Determinant:</span>' +
+        '<span class="prop-value"><span style="color:' + detColor + '">' + det.toFixed(4) + '</span> &mdash; ' + detInterp + '</span>' +
+        '<span class="prop-label">Trace:</span>' +
+        '<span class="prop-value">' + trace.toFixed(4) + '</span>' +
+        '<span class="prop-label">Eigenvalues:</span>' +
+        '<span class="prop-value">' + eigenStr + '</span>' +
+        '<span class="prop-label">Type:</span>' +
+        '<span class="prop-value" style="color:#22d3ee">' + typeStr + '</span>';
+}
+
+function classifyTransformation(m) {
+    const det = m.a * m.d - m.b * m.c;
+    const trace = m.a + m.d;
+    const isIdentity = Math.abs(m.a - 1) < 0.01 && Math.abs(m.b) < 0.01 &&
+                        Math.abs(m.c) < 0.01 && Math.abs(m.d - 1) < 0.01;
+    if (isIdentity) return 'Identity';
+
+    // rotation: det=1, a=d=cos, b=-c=sin
+    if (Math.abs(det - 1) < 0.02 && Math.abs(m.a - m.d) < 0.02 && Math.abs(m.b + m.c) < 0.02) {
+        const angle = Math.atan2(m.c, m.a) * 180 / Math.PI;
+        return 'Rotation (' + Math.round(angle) + '\u00B0)';
+    }
+    // reflection: det=-1, A^2=I, symmetric
+    if (Math.abs(det + 1) < 0.02) {
+        const a2 = m.a*m.a + m.b*m.c;
+        const d2 = m.d*m.d + m.b*m.c;
+        if (Math.abs(a2 - 1) < 0.02 && Math.abs(d2 - 1) < 0.02) return 'Reflection';
+    }
+    // projection: A^2 = A
+    const p = {a: m.a*m.a + m.b*m.c, b: m.a*m.b + m.b*m.d,
+               c: m.c*m.a + m.d*m.c, d: m.c*m.b + m.d*m.d};
+    if (Math.abs(p.a - m.a) < 0.02 && Math.abs(p.b - m.b) < 0.02 &&
+        Math.abs(p.c - m.c) < 0.02 && Math.abs(p.d - m.d) < 0.02) return 'Projection';
+    // shear: det=1, one diagonal is identity-like
+    if (Math.abs(det - 1) < 0.02) {
+        if ((Math.abs(m.a - 1) < 0.02 && Math.abs(m.d - 1) < 0.02) &&
+            (Math.abs(m.b) > 0.02 || Math.abs(m.c) > 0.02)) return 'Shear';
+    }
+    // scaling: diagonal, no off-diagonal
+    if (Math.abs(m.b) < 0.02 && Math.abs(m.c) < 0.02) return 'Scaling';
+
+    return 'General linear';
+}
+
+/* ============================================================
+   COMPOSITION OF TRANSFORMATIONS
+   ============================================================ */
+
+let compA = {a: 0, b: -1, c: 1, d: 0}; // rotation 90
+let compB = {a: 1, b: 0, c: 0, d: -1}; // reflect x-axis
+
+function matMul(m1, m2) {
+    return {
+        a: m1.a * m2.a + m1.b * m2.c,
+        b: m1.a * m2.b + m1.b * m2.d,
+        c: m1.c * m2.a + m1.d * m2.c,
+        d: m1.c * m2.b + m1.d * m2.d
+    };
+}
+
+function fmtMat(m) {
+    return '[' + m.a.toFixed(2) + ', ' + m.b.toFixed(2) + '; ' +
+           m.c.toFixed(2) + ', ' + m.d.toFixed(2) + ']';
+}
+
+function fmtMatHtml(m) {
+    return '<div>[' + m.a.toFixed(2) + ' &ensp; ' + m.b.toFixed(2) + ']</div>' +
+           '<div>[' + m.c.toFixed(2) + ' &ensp; ' + m.d.toFixed(2) + ']</div>';
+}
+
+function matricesEqual(m1, m2) {
+    return Math.abs(m1.a - m2.a) < 0.001 && Math.abs(m1.b - m2.b) < 0.001 &&
+           Math.abs(m1.c - m2.c) < 0.001 && Math.abs(m1.d - m2.d) < 0.001;
+}
+
+function updateComposition() {
+    const ab = matMul(compA, compB);
+    const ba = matMul(compB, compA);
+    const eq = matricesEqual(ab, ba);
+
+    const results = document.getElementById('compResults');
+    results.innerHTML =
+        '<div class="comp-result">' +
+            '<div class="label">A</div>' +
+            '<div class="matrix-display">' + fmtMatHtml(compA) + '</div>' +
+        '</div>' +
+        '<div style="color:#808098;align-self:center;font-size:1.2em">&times;</div>' +
+        '<div class="comp-result">' +
+            '<div class="label">B</div>' +
+            '<div class="matrix-display">' + fmtMatHtml(compB) + '</div>' +
+        '</div>' +
+        '<div style="color:#808098;align-self:center;font-size:1.2em">=</div>' +
+        '<div class="comp-result">' +
+            '<div class="label">AB</div>' +
+            '<div class="matrix-display">' + fmtMatHtml(ab) + '</div>' +
+        '</div>' +
+        '<div style="width:100%"></div>' +
+        '<div class="comp-result">' +
+            '<div class="label">BA</div>' +
+            '<div class="matrix-display">' + fmtMatHtml(ba) + '</div>' +
+        '</div>';
+
+    const badge = document.getElementById('compCommBadge');
+    if (eq) {
+        badge.innerHTML = '<span class="eq-badge">AB = BA (commutative for these matrices)</span>';
+    } else {
+        badge.innerHTML = '<span class="neq-badge">AB &ne; BA &mdash; order matters!</span>';
+    }
+}
+
+// Composition preset buttons
+renderPresetBtns('compABtns', (p) => {
+    compA = {a: p.a, b: p.b, c: p.c, d: p.d};
+    updateComposition();
+});
+
+renderPresetBtns('compBBtns', (p) => {
+    compB = {a: p.a, b: p.b, c: p.c, d: p.d};
+    updateComposition();
+});
+
+/* ============================================================
+   MINI CANVAS DRAWING
+   ============================================================ */
+
+function drawMiniCanvas(canvasId, matrixFn, t) {
+    const c = document.getElementById(canvasId);
+    const cx = c.getContext('2d');
+    const w = c.width, h = c.height;
+    const sc = 35; // pixels per unit for mini canvas
+    const mox = w / 2, moy = h / 2;
+
+    function mToScreen(x, y) {
+        return {x: mox + x * sc, y: moy - y * sc};
+    }
+
+    const m = matrixFn(t);
+
+    cx.clearRect(0, 0, w, h);
+    cx.fillStyle = '#0a0a1a';
+    cx.fillRect(0, 0, w, h);
+
+    // grid original
+    cx.strokeStyle = GRID_ORIG;
+    cx.lineWidth = 1;
+    for (let i = -4; i <= 4; i++) {
+        let p1 = mToScreen(i, -4), p2 = mToScreen(i, 4);
+        cx.beginPath(); cx.moveTo(p1.x, p1.y); cx.lineTo(p2.x, p2.y); cx.stroke();
+        p1 = mToScreen(-4, i); p2 = mToScreen(4, i);
+        cx.beginPath(); cx.moveTo(p1.x, p1.y); cx.lineTo(p2.x, p2.y); cx.stroke();
+    }
+
+    // axes
+    cx.strokeStyle = 'rgba(255,255,255,0.12)';
+    cx.lineWidth = 1;
+    cx.beginPath(); cx.moveTo(0, moy); cx.lineTo(w, moy); cx.stroke();
+    cx.beginPath(); cx.moveTo(mox, 0); cx.lineTo(mox, h); cx.stroke();
+
+    // transformed grid
+    cx.strokeStyle = GRID_TRANS;
+    cx.lineWidth = 1;
+    for (let i = -4; i <= 4; i++) {
+        cx.beginPath();
+        for (let j = -40; j <= 40; j++) {
+            const yy = j / 10;
+            const tp = transformPt(m, i, yy);
+            const sp = mToScreen(tp.x, tp.y);
+            if (j === -40) cx.moveTo(sp.x, sp.y); else cx.lineTo(sp.x, sp.y);
+        }
+        cx.stroke();
+        cx.beginPath();
+        for (let j = -40; j <= 40; j++) {
+            const xx = j / 10;
+            const tp = transformPt(m, xx, i);
+            const sp = mToScreen(tp.x, tp.y);
+            if (j === -40) cx.moveTo(sp.x, sp.y); else cx.lineTo(sp.x, sp.y);
+        }
+        cx.stroke();
+    }
+
+    // transformed unit square
+    cx.fillStyle = ACCENT_FILL;
+    cx.strokeStyle = ACCENT_DIM;
+    cx.lineWidth = 1.5;
+    const sq = [[0,0],[1,0],[1,1],[0,1]];
+    cx.beginPath();
+    sq.forEach((p, i) => {
+        const tp = transformPt(m, p[0], p[1]);
+        const sp = mToScreen(tp.x, tp.y);
+        if (i === 0) cx.moveTo(sp.x, sp.y); else cx.lineTo(sp.x, sp.y);
+    });
+    cx.closePath();
+    cx.fill();
+    cx.stroke();
+
+    // transformed F
+    cx.fillStyle = 'rgba(34,211,238,0.12)';
+    cx.strokeStyle = ACCENT;
+    cx.lineWidth = 1.5;
+    cx.beginPath();
+    F_SHAPE.forEach((p, i) => {
+        const tp = transformPt(m, p[0], p[1]);
+        const sp = mToScreen(tp.x, tp.y);
+        if (i === 0) cx.moveTo(sp.x, sp.y); else cx.lineTo(sp.x, sp.y);
+    });
+    cx.closePath();
+    cx.fill();
+    cx.stroke();
+
+    // basis vectors
+    const te1 = transformPt(m, 1, 0);
+    const te2 = transformPt(m, 0, 1);
+    // e1
+    const se1s = mToScreen(0, 0), se1e = mToScreen(te1.x, te1.y);
+    cx.strokeStyle = E1_COLOR; cx.lineWidth = 2; cx.lineCap = 'round';
+    cx.beginPath(); cx.moveTo(se1s.x, se1s.y); cx.lineTo(se1e.x, se1e.y); cx.stroke();
+    // e2
+    const se2s = mToScreen(0, 0), se2e = mToScreen(te2.x, te2.y);
+    cx.strokeStyle = E2_COLOR;
+    cx.beginPath(); cx.moveTo(se2s.x, se2s.y); cx.lineTo(se2e.x, se2e.y); cx.stroke();
+
+    // origin
+    cx.fillStyle = '#fff';
+    cx.beginPath(); cx.arc(mox, moy, 2, 0, Math.PI * 2); cx.fill();
+}
+
+/* ============================================================
+   COMPOSITION ANIMATION
+   ============================================================ */
+
+let compAnimRunning = false;
+
+document.getElementById('compAnimBtn').addEventListener('click', () => {
+    if (compAnimRunning) return;
+    compAnimRunning = true;
+
+    const duration = 2000; // total duration: 1s for first, 1s for second
+    const t0 = performance.now();
+
+    function compAnimStep(now) {
+        const elapsed = now - t0;
+        const totalT = Math.min(elapsed / duration, 1);
+
+        // AB canvas: first apply A (t: 0..0.5), then B on top (t: 0.5..1)
+        // so at time totalT, for "A then B" = BA:
+        //   phase 1: interpolate I -> A (totalT in [0, 0.5])
+        //   phase 2: interpolate A -> BA (totalT in [0.5, 1])
+
+        function abMatrixFn(totalT) {
+            if (totalT <= 0.5) {
+                const t = totalT * 2; // 0..1
+                const et = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
+                return {
+                    a: 1 + et * (compA.a - 1),
+                    b: et * compA.b,
+                    c: et * compA.c,
+                    d: 1 + et * (compA.d - 1)
+                };
+            } else {
+                const t = (totalT - 0.5) * 2; // 0..1
+                const et = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
+                const ba = matMul(compB, compA);
+                return {
+                    a: compA.a + et * (ba.a - compA.a),
+                    b: compA.b + et * (ba.b - compA.b),
+                    c: compA.c + et * (ba.c - compA.c),
+                    d: compA.d + et * (ba.d - compA.d)
+                };
+            }
+        }
+
+        // BA canvas: first apply B, then A = AB
+        function baMatrixFn(totalT) {
+            if (totalT <= 0.5) {
+                const t = totalT * 2;
+                const et = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
+                return {
+                    a: 1 + et * (compB.a - 1),
+                    b: et * compB.b,
+                    c: et * compB.c,
+                    d: 1 + et * (compB.d - 1)
+                };
+            } else {
+                const t = (totalT - 0.5) * 2;
+                const et = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
+                const ab = matMul(compA, compB);
+                return {
+                    a: compB.a + et * (ab.a - compB.a),
+                    b: compB.b + et * (ab.b - compB.b),
+                    c: compB.c + et * (ab.c - compB.c),
+                    d: compB.d + et * (ab.d - compB.d)
+                };
+            }
+        }
+
+        drawMiniCanvas('compCanvasAB', () => abMatrixFn(totalT), 1);
+        drawMiniCanvas('compCanvasBA', () => baMatrixFn(totalT), 1);
+
+        if (totalT < 1) {
+            requestAnimationFrame(compAnimStep);
+        } else {
+            compAnimRunning = false;
+        }
+    }
+
+    requestAnimationFrame(compAnimStep);
+});
+
+/* ============================================================
+   INITIAL RENDER
+   ============================================================ */
+
+drawMain();
+updateProperties();
+updateComposition();
+
+// draw initial mini canvases
+drawMiniCanvas('compCanvasAB', () => matMul(compB, compA), 1);
+drawMiniCanvas('compCanvasBA', () => matMul(compA, compB), 1);
+
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

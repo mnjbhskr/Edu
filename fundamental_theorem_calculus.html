@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fundamental Theorem of Calculus</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fb923c}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:20px}
+        .panel h2{font-size:1.05em;font-weight:400;color:#fb923c;margin-bottom:12px}
+        .panel h3{font-size:0.8em;font-weight:400;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);margin-bottom:4px;max-width:100%;height:auto}
+        .controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+        .controls label{font-size:0.85em;color:#808098}
+        .controls input[type=range]{flex:1;min-width:120px;accent-color:#fb923c}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(251,146,60,0.13);border-color:rgba(251,146,60,0.4);color:#fb923c}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+        .val{color:#fb923c;font-family:'Courier New',monospace;font-size:0.95em}
+        .val-blue{color:#60a5fa;font-family:'Courier New',monospace;font-size:0.95em}
+        .muted{color:#808098;font-size:0.88em}
+        .formula{color:#c8c8d8;font-size:0.95em;margin:6px 0;line-height:1.8}
+        .formula .accent{color:#fb923c}
+        .formula .blue{color:#60a5fa}
+        .match{color:#2ecc71;font-weight:bold}
+        .two-col{display:flex;gap:20px;flex-wrap:wrap}
+        .two-col>div{flex:1;min-width:280px}
+        .insight{background:rgba(251,146,60,0.04);border:1px solid rgba(251,146,60,0.12);border-radius:10px;padding:20px 24px;margin-bottom:20px}
+        .insight p{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .insight .highlight{color:#fb923c}
+        .graph-label{font-size:0.78em;color:#606078;text-align:center;margin-bottom:14px}
+        .speed-controls{display:flex;align-items:center;gap:6px}
+        .speed-controls .btn{padding:3px 9px;font-size:0.78em}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Fundamental Theorem of Calculus</h1>
+    <p class="subtitle">The bridge connecting derivatives and integrals</p>
+
+    <div class="panel">
+        <h3>Function</h3>
+        <div class="btn-row" id="fnBtns"></div>
+        <canvas id="cvTop" width="700" height="250"></canvas>
+        <div class="graph-label" id="topLabel">f(x) &mdash; the original function</div>
+        <canvas id="cvBot" width="700" height="250"></canvas>
+        <div class="graph-label" id="botLabel">F(x) &mdash; the accumulation function (integral)</div>
+        <div class="controls">
+            <label>x =&nbsp;<span class="val" id="xVal">1.00</span></label>
+            <input type="range" id="xSlider" min="0" max="1000" value="500">
+            <button class="btn" id="playBtn">Play</button>
+            <div class="speed-controls">
+                <button class="btn speed" data-s="0.5">0.5x</button>
+                <button class="btn speed active" data-s="1">1x</button>
+                <button class="btn speed" data-s="2">2x</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel" id="ftc2Panel">
+        <h2>FTC Part 2: Evaluating Definite Integrals</h2>
+        <div id="ftc2Body"></div>
+    </div>
+
+    <div class="panel">
+        <h2>Inverse Operations</h2>
+        <div class="two-col">
+            <div>
+                <p class="formula"><span class="accent">Integrate then differentiate:</span></p>
+                <p class="formula">d/dx [&int;<sub>a</sub><sup>x</sup> f(t) dt] = f(x)</p>
+                <p class="muted">Integration builds an area function; differentiating it recovers the original f(x). The integral "remembers" f, and the derivative "reads it back."</p>
+            </div>
+            <div>
+                <p class="formula"><span class="accent">Differentiate then integrate:</span></p>
+                <p class="formula">&int;<sub>a</sub><sup>x</sup> f'(t) dt = f(x) &minus; f(a)</p>
+                <p class="muted">Taking the derivative first, then integrating, recovers f up to the constant f(a). Like multiplication and division, these operations undo each other.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Riemann Sum Comparison</h2>
+        <div class="controls">
+            <label>Rectangles: <span class="val" id="nVal">20</span></label>
+            <input type="range" id="nSlider" min="5" max="100" value="20">
+            <div class="btn-row">
+                <button class="btn rtype active" data-t="left">Left</button>
+                <button class="btn rtype" data-t="mid">Midpoint</button>
+                <button class="btn rtype" data-t="right">Right</button>
+            </div>
+        </div>
+        <canvas id="cvRiem" width="700" height="220"></canvas>
+        <p class="formula" id="riemInfo"></p>
+    </div>
+
+    <div class="insight">
+        <p>The Fundamental Theorem of Calculus (Newton and Leibniz, c. 1670) is arguably the most important theorem in mathematics. It reveals that differentiation (finding rates of change) and integration (finding areas) are inverse operations &mdash; two sides of the same coin. This single insight unified two branches of mathematics that had developed separately for millennia.</p>
+        <p style="margin-top:10px" id="animInsight"><span class="highlight">Move the slider or press Play.</span> Watch the shaded area grow. Its rate of growth at any point x is exactly f(x) &mdash; the height of the curve. This is FTC Part 1: F'(x) = f(x).</p>
+    </div>
+</div>
+
+<script>
+const FUNCS = [
+    { label:"f(x) = x",   f:x=>x,        F:x=>x*x/2,         Fstr:"x\u00B2/2",   fstr:"x",   a:0, b:4 },
+    { label:"f(x) = x\u00B2",  f:x=>x*x,     F:x=>x*x*x/3,       Fstr:"x\u00B3/3",   fstr:"x\u00B2", a:0, b:3 },
+    { label:"f(x) = sin(x)", f:Math.sin,   F:x=>1-Math.cos(x), Fstr:"\u2212cos(x)+1", fstr:"sin(x)", a:0, b:2*Math.PI },
+    { label:"f(x) = cos(x)", f:Math.cos,   F:Math.sin,          Fstr:"sin(x)",     fstr:"cos(x)", a:0, b:2*Math.PI },
+    { label:"f(x) = e\u02E3",  f:Math.exp,   F:x=>Math.exp(x)-1, Fstr:"e\u02E3\u22121", fstr:"e\u02E3", a:0, b:3 },
+    { label:"f(x) = 1/x", f:x=>1/x,      F:x=>Math.log(x)-Math.log(0.5), Fstr:"ln(x)\u2212ln(a)", fstr:"1/x", a:0.5, b:5 },
+];
+
+let curFn = 0, curX = 0.5, playing = false, speed = 1, animId = null;
+let nRect = 20, rType = "left";
+
+const $=id=>document.getElementById(id);
+const cvT=$("cvTop"), cvB=$("cvBot"), cvR=$("cvRiem");
+let ctxT, ctxB, ctxR;
+const W=700, HT=250, HB=250, HR=220;
+
+function fn(){ return FUNCS[curFn]; }
+function xWorld(){ const g=fn(); return g.a + curX*(g.b - g.a); }
+
+/* Numerical integration using composite trapezoidal rule */
+function integrate(f, a, b, n){
+    if(b<=a) return 0;
+    const h=(b-a)/n; let s=0.5*(f(a)+f(b));
+    for(let i=1;i<n;i++) s+=f(a+i*h);
+    return s*h;
+}
+
+/* Compute F(x) at many points for plotting */
+function computeF(g, nPts){
+    const pts=[]; const h=(g.b-g.a)/(nPts-1);
+    let acc=0;
+    pts.push({x:g.a, y:0});
+    for(let i=1;i<nPts;i++){
+        const x0=g.a+(i-1)*h, x1=g.a+i*h;
+        acc+=0.5*(g.f(x0)+g.f(x1))*(x1-x0);
+        pts.push({x:x1, y:acc});
+    }
+    return pts;
+}
+
+/* Axis helpers */
+function axisRange(vals, pad){
+    let mn=Infinity, mx=-Infinity;
+    for(const v of vals){if(v<mn)mn=v;if(v>mx)mx=v;}
+    const r=mx-mn||1; return {min:mn-r*pad, max:mx+r*pad};
+}
+
+function drawAxes(ctx, w, h, xr, yr, accent){
+    ctx.strokeStyle="rgba(255,255,255,0.08)"; ctx.lineWidth=1;
+    /* y=0 line */
+    if(yr.min<0 && yr.max>0){
+        const y0=h-((0-yr.min)/(yr.max-yr.min))*h;
+        ctx.beginPath(); ctx.moveTo(0,y0); ctx.lineTo(w,y0); ctx.stroke();
+    }
+    /* x=0 line */
+    if(xr.min<0 && xr.max>0){
+        const x0=((0-xr.min)/(xr.max-xr.min))*w;
+        ctx.beginPath(); ctx.moveTo(x0,0); ctx.lineTo(x0,h); ctx.stroke();
+    }
+    /* tick labels */
+    ctx.fillStyle="#505068"; ctx.font="10px Georgia"; ctx.textBaseline="top";
+    const nTicks=6;
+    for(let i=0;i<=nTicks;i++){
+        const xv=xr.min+i*(xr.max-xr.min)/nTicks;
+        const px=(i/nTicks)*w;
+        ctx.textAlign="center";
+        ctx.fillText(xv.toFixed(1), px, h-13);
+    }
+}
+
+function toCanvas(x, y, w, h, xr, yr){
+    return { px: (x-xr.min)/(xr.max-xr.min)*w, py: h - (y-yr.min)/(yr.max-yr.min)*h };
+}
+
+/* ---- Top graph: f(x) with shaded area ---- */
+function drawTop(){
+    const g=fn(), ctx=ctxT, w=W, h=HT;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle="#0a0a1a"; ctx.fillRect(0,0,w,h);
+
+    const nPts=300, xs=[], ys=[];
+    for(let i=0;i<nPts;i++){
+        const x=g.a+i*(g.b-g.a)/(nPts-1);
+        xs.push(x); ys.push(g.f(x));
+    }
+    const xr={min:g.a-(g.b-g.a)*0.05, max:g.b+(g.b-g.a)*0.05};
+    const yr=axisRange(ys, 0.15);
+    drawAxes(ctx, w, h, xr, yr, "#fb923c");
+
+    const xCur=xWorld();
+
+    /* Shaded area from a to xCur */
+    ctx.beginPath();
+    let started=false;
+    const y0line=h-((0-yr.min)/(yr.max-yr.min))*h;
+    for(let i=0;i<nPts;i++){
+        if(xs[i]>xCur+0.001) break;
+        const p=toCanvas(xs[i], ys[i], w, h, xr, yr);
+        if(!started){ctx.moveTo(p.px, Math.min(Math.max(y0line,0),h)); started=true;}
+        ctx.lineTo(p.px, p.py);
+    }
+    const pEnd=toCanvas(xCur, g.f(xCur), w, h, xr, yr);
+    ctx.lineTo(pEnd.px, pEnd.py);
+    ctx.lineTo(pEnd.px, Math.min(Math.max(y0line,0),h));
+    ctx.closePath();
+    ctx.fillStyle="rgba(251,146,60,0.18)";
+    ctx.fill();
+
+    /* f(x) curve */
+    ctx.beginPath();
+    for(let i=0;i<nPts;i++){
+        const p=toCanvas(xs[i], ys[i], w, h, xr, yr);
+        i===0?ctx.moveTo(p.px,p.py):ctx.lineTo(p.px,p.py);
+    }
+    ctx.strokeStyle="#fb923c"; ctx.lineWidth=2; ctx.stroke();
+
+    /* Dashed line at a */
+    const pa=toCanvas(g.a, 0, w, h, xr, yr);
+    ctx.setLineDash([4,4]); ctx.strokeStyle="rgba(251,146,60,0.4)"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pa.px,0); ctx.lineTo(pa.px,h); ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* Dashed line at current x */
+    ctx.setLineDash([4,4]); ctx.strokeStyle="rgba(255,255,255,0.2)"; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pEnd.px,0); ctx.lineTo(pEnd.px,h); ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* Dot at current f(x) */
+    ctx.beginPath(); ctx.arc(pEnd.px, pEnd.py, 5, 0, Math.PI*2);
+    ctx.fillStyle="#fb923c"; ctx.fill();
+    ctx.strokeStyle="#0a0a1a"; ctx.lineWidth=1.5; ctx.stroke();
+
+    /* Labels */
+    const areaVal=integrate(g.f, g.a, xCur, 200);
+    ctx.font="12px Georgia"; ctx.fillStyle="#fb923c"; ctx.textAlign="left"; ctx.textBaseline="top";
+    ctx.fillText("f(x) = " + g.fstr, 8, 8);
+    ctx.fillStyle="rgba(251,146,60,0.8)"; ctx.font="11px Georgia";
+    const areaStr = "Area = F("+xCur.toFixed(2)+") = \u222B f(t)dt = "+areaVal.toFixed(4);
+    ctx.fillText(areaStr, 8, 26);
+    ctx.fillStyle="#e0e0e0"; ctx.textAlign="right";
+    ctx.fillText("f("+xCur.toFixed(2)+") = "+g.f(xCur).toFixed(4), w-8, 8);
+    ctx.fillStyle="#606078"; ctx.font="10px Georgia"; ctx.textAlign="left";
+    ctx.fillText("a = "+g.a.toFixed(1), pa.px+4, 4);
+}
+
+/* ---- Bottom graph: F(x) with tangent ---- */
+function drawBot(){
+    const g=fn(), ctx=ctxB, w=W, h=HB;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle="#0a0a1a"; ctx.fillRect(0,0,w,h);
+
+    const nPts=300;
+    const Fpts=computeF(g, nPts);
+    const xs=Fpts.map(p=>p.x), ys=Fpts.map(p=>p.y);
+    const xr={min:g.a-(g.b-g.a)*0.05, max:g.b+(g.b-g.a)*0.05};
+    const yr=axisRange(ys, 0.15);
+    drawAxes(ctx, w, h, xr, yr, "#60a5fa");
+
+    /* F(x) curve */
+    ctx.beginPath();
+    for(let i=0;i<nPts;i++){
+        const p=toCanvas(xs[i], ys[i], w, h, xr, yr);
+        i===0?ctx.moveTo(p.px,p.py):ctx.lineTo(p.px,p.py);
+    }
+    ctx.strokeStyle="#60a5fa"; ctx.lineWidth=2; ctx.stroke();
+
+    const xCur=xWorld();
+    const Fcur=integrate(g.f, g.a, xCur, 200);
+    const hh=0.0001;
+    const Fplus=integrate(g.f, g.a, xCur+hh, 200);
+    const Fminus=integrate(g.f, g.a, Math.max(g.a,xCur-hh), 200);
+    const slope=(Fplus-Fminus)/(xCur+hh-Math.max(g.a,xCur-hh));
+
+    /* Tangent line */
+    const tLen=(g.b-g.a)*0.15;
+    const tx0=xCur-tLen, ty0=Fcur-slope*tLen;
+    const tx1=xCur+tLen, ty1=Fcur+slope*tLen;
+    const pt0=toCanvas(tx0,ty0,w,h,xr,yr), pt1=toCanvas(tx1,ty1,w,h,xr,yr);
+    ctx.beginPath(); ctx.moveTo(pt0.px,pt0.py); ctx.lineTo(pt1.px,pt1.py);
+    ctx.strokeStyle="rgba(251,146,60,0.7)"; ctx.lineWidth=1.5; ctx.stroke();
+
+    /* Dot at (x, F(x)) */
+    const pCur=toCanvas(xCur, Fcur, w, h, xr, yr);
+    ctx.beginPath(); ctx.arc(pCur.px, pCur.py, 5, 0, Math.PI*2);
+    ctx.fillStyle="#60a5fa"; ctx.fill();
+    ctx.strokeStyle="#0a0a1a"; ctx.lineWidth=1.5; ctx.stroke();
+
+    /* Labels */
+    ctx.font="12px Georgia"; ctx.fillStyle="#60a5fa"; ctx.textAlign="left"; ctx.textBaseline="top";
+    ctx.fillText("F(x) = \u222B f(t)dt   [antiderivative: "+g.Fstr+"]", 8, 8);
+    ctx.font="11px Georgia"; ctx.fillStyle="rgba(251,146,60,0.9)";
+    ctx.fillText("F'("+xCur.toFixed(2)+") = slope = "+slope.toFixed(4)+" = f("+xCur.toFixed(2)+")", 8, 26);
+    ctx.fillStyle="#e0e0e0"; ctx.textAlign="right"; ctx.font="11px Georgia";
+    ctx.fillText("F("+xCur.toFixed(2)+") = "+Fcur.toFixed(4), w-8, 8);
+
+    /* Verify label */
+    ctx.fillStyle="#2ecc71"; ctx.font="10px Georgia"; ctx.textAlign="right";
+    const diff=Math.abs(slope - g.f(xCur));
+    if(diff<0.05) ctx.fillText("F'(x) = f(x)  [verified]", w-8, 24);
+}
+
+/* ---- Riemann sum graph ---- */
+function drawRiem(){
+    const g=fn(), ctx=ctxR, w=W, h=HR;
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle="#0a0a1a"; ctx.fillRect(0,0,w,h);
+
+    const nPts=300, xs=[], ys=[];
+    for(let i=0;i<nPts;i++){
+        const x=g.a+i*(g.b-g.a)/(nPts-1);
+        xs.push(x); ys.push(g.f(x));
+    }
+    const xr={min:g.a-(g.b-g.a)*0.05, max:g.b+(g.b-g.a)*0.05};
+    const yr=axisRange(ys, 0.15);
+    drawAxes(ctx, w, h, xr, yr, "#fb923c");
+
+    const y0line=h-((0-yr.min)/(yr.max-yr.min))*h;
+
+    /* Riemann rectangles */
+    const dx=(g.b-g.a)/nRect;
+    let rieSum=0;
+    for(let i=0;i<nRect;i++){
+        const xl=g.a+i*dx;
+        let sx;
+        if(rType==="left") sx=xl;
+        else if(rType==="right") sx=xl+dx;
+        else sx=xl+dx/2;
+        const fv=g.f(sx);
+        rieSum+=fv*dx;
+        const pL=toCanvas(xl, 0, w, h, xr, yr);
+        const pR=toCanvas(xl+dx, 0, w, h, xr, yr);
+        const pTop=toCanvas(sx, fv, w, h, xr, yr);
+        const rw=pR.px-pL.px;
+        const rh=Math.abs(pTop.py-y0line);
+        const ry=fv>=0?pTop.py:y0line;
+        ctx.fillStyle=fv>=0?"rgba(251,146,60,0.15)":"rgba(231,76,60,0.15)";
+        ctx.fillRect(pL.px, ry, rw, rh);
+        ctx.strokeStyle=fv>=0?"rgba(251,146,60,0.4)":"rgba(231,76,60,0.4)";
+        ctx.lineWidth=0.8;
+        ctx.strokeRect(pL.px, ry, rw, rh);
+    }
+
+    /* f(x) curve */
+    ctx.beginPath();
+    for(let i=0;i<nPts;i++){
+        const p=toCanvas(xs[i], ys[i], w, h, xr, yr);
+        i===0?ctx.moveTo(p.px,p.py):ctx.lineTo(p.px,p.py);
+    }
+    ctx.strokeStyle="#fb923c"; ctx.lineWidth=2; ctx.stroke();
+
+    const exact=integrate(g.f, g.a, g.b, 1000);
+    const err=Math.abs(rieSum-exact);
+    const info=$("riemInfo");
+    info.innerHTML='Riemann sum (n=<span class="val">'+nRect+'</span>) = <span class="val">'+rieSum.toFixed(6)+'</span>, '
+        +'Exact integral = <span class="val">'+exact.toFixed(6)+'</span>, '
+        +'Error = <span class="val" style="color:'+(err<0.01?'#2ecc71':'#fb923c')+'">'+err.toFixed(6)+'</span>';
+}
+
+/* ---- FTC Part 2 panel ---- */
+function drawFTC2(){
+    const g=fn();
+    const Fa=g.F(g.a), Fb=g.F(g.b);
+    /* Because our F is the analytical antiderivative shifted by constant, we need the definite integral */
+    /* F(b)-F(a) for the known antiderivative */
+    const exact=Fb-Fa;
+    const numerical=integrate(g.f, g.a, g.b, 1000);
+    const match=Math.abs(exact-numerical)<0.001;
+    let html='<p class="formula">'
+        +'<span class="accent">&int;</span><sub>'+g.a.toFixed(1)+'</sub><sup>'+g.b.toFixed(1)+'</sup> '+g.fstr+' dx = F('+g.b.toFixed(1)+') &minus; F('+g.a.toFixed(1)+')</p>'
+        +'<p class="formula">F(x) = '+g.Fstr+'</p>'
+        +'<p class="formula">F('+g.b.toFixed(1)+') = <span class="val">'+Fb.toFixed(6)+'</span></p>'
+        +'<p class="formula">F('+g.a.toFixed(1)+') = <span class="val">'+Fa.toFixed(6)+'</span></p>'
+        +'<p class="formula">F(b) &minus; F(a) = <span class="val">'+exact.toFixed(6)+'</span></p>'
+        +'<p class="formula">Numerical integral (trapezoidal, n=1000) = <span class="val-blue">'+numerical.toFixed(6)+'</span></p>'
+        +'<p class="formula '+(match?'match':'')+'">'+(match?'They match!':'')+'</p>'
+        +'<p class="muted" style="margin-top:8px">Instead of computing infinite Riemann sums, we just evaluate the antiderivative at two points and subtract.</p>';
+    $("ftc2Body").innerHTML=html;
+}
+
+/* ---- Function selector buttons ---- */
+function renderFnBtns(){
+    let html='';
+    FUNCS.forEach((f,i)=>{
+        html+='<button class="btn'+(i===curFn?' active':'')+'" data-fn="'+i+'">'+f.label+'</button>';
+    });
+    $("fnBtns").innerHTML=html;
+    $("fnBtns").querySelectorAll(".btn").forEach(b=>{
+        b.addEventListener("click",()=>{ curFn=parseInt(b.dataset.fn); curX=0.5; updateSlider(); renderAll(); });
+    });
+}
+
+function updateSlider(){
+    $("xSlider").value=Math.round(curX*1000);
+    $("xVal").textContent=xWorld().toFixed(2);
+}
+
+function renderAll(){
+    renderFnBtns();
+    drawTop();
+    drawBot();
+    drawRiem();
+    drawFTC2();
+}
+
+/* ---- Slider ---- */
+$("xSlider").addEventListener("input",e=>{
+    curX=parseInt(e.target.value)/1000;
+    $("xVal").textContent=xWorld().toFixed(2);
+    drawTop(); drawBot();
+});
+
+/* ---- Play / animate ---- */
+let lastTime=0;
+function animate(ts){
+    if(!playing) return;
+    if(!lastTime) lastTime=ts;
+    const dt=(ts-lastTime)/1000;
+    lastTime=ts;
+    curX+=dt*speed*0.15;
+    if(curX>1){ curX=1; playing=false; $("playBtn").textContent="Play"; }
+    updateSlider();
+    drawTop(); drawBot();
+    if(playing) animId=requestAnimationFrame(animate);
+}
+
+$("playBtn").addEventListener("click",()=>{
+    if(playing){ playing=false; $("playBtn").textContent="Play"; return; }
+    if(curX>=0.99) curX=0;
+    playing=true; lastTime=0;
+    $("playBtn").textContent="Pause";
+    animId=requestAnimationFrame(animate);
+});
+
+document.querySelectorAll(".speed").forEach(b=>{
+    b.addEventListener("click",()=>{
+        speed=parseFloat(b.dataset.s);
+        document.querySelectorAll(".speed").forEach(s=>s.classList.remove("active"));
+        b.classList.add("active");
+    });
+});
+
+/* ---- Riemann controls ---- */
+$("nSlider").addEventListener("input",e=>{
+    nRect=parseInt(e.target.value);
+    $("nVal").textContent=nRect;
+    drawRiem();
+});
+
+document.querySelectorAll(".rtype").forEach(b=>{
+    b.addEventListener("click",()=>{
+        rType=b.dataset.t;
+        document.querySelectorAll(".rtype").forEach(s=>s.classList.remove("active"));
+        b.classList.add("active");
+        drawRiem();
+    });
+});
+
+/* ---- HiDPI canvas scaling ---- */
+function scaleCanvas(canvas, w, h){
+    const dpr=window.devicePixelRatio||1;
+    canvas.width=w*dpr; canvas.height=h*dpr;
+    canvas.style.width=w+"px"; canvas.style.height=h+"px";
+    const c=canvas.getContext("2d");
+    c.scale(dpr,dpr);
+    return c;
+}
+ctxT=scaleCanvas(cvT,W,HT);
+ctxB=scaleCanvas(cvB,W,HB);
+ctxR=scaleCanvas(cvR,W,HR);
+
+/* ---- Init ---- */
+renderAll();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

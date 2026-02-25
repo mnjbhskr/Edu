@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Number Line</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fbbf24}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);
+            cursor:grab;width:100%;height:auto}
+        canvas:active{cursor:grabbing}
+
+        .toggle-row{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+        .toggle-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);
+            color:#b0b0c4;padding:7px 18px;border-radius:6px;cursor:pointer;
+            font-family:Georgia,serif;font-size:0.95em;transition:all 0.2s}
+        .toggle-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .toggle-btn.active-N{background:rgba(46,204,113,0.13);border-color:rgba(46,204,113,0.4);
+            color:#2ecc71;box-shadow:0 0 8px rgba(46,204,113,0.15)}
+        .toggle-btn.active-Z{background:rgba(59,130,246,0.13);border-color:rgba(59,130,246,0.4);
+            color:#3b82f6;box-shadow:0 0 8px rgba(59,130,246,0.15)}
+        .toggle-btn.active-Q{background:rgba(249,115,22,0.13);border-color:rgba(249,115,22,0.4);
+            color:#f97316;box-shadow:0 0 8px rgba(249,115,22,0.15)}
+        .toggle-btn.active-R{background:rgba(251,191,36,0.13);border-color:rgba(251,191,36,0.4);
+            color:#fbbf24;box-shadow:0 0 8px rgba(251,191,36,0.15)}
+        .toggle-btn.active-C{background:rgba(192,132,252,0.13);border-color:rgba(192,132,252,0.4);
+            color:#c084fc;box-shadow:0 0 8px rgba(192,132,252,0.15)}
+
+        .cards-row{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+        .const-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);
+            border-radius:10px;padding:10px 16px;cursor:pointer;transition:all 0.2s;
+            min-width:90px;text-align:center}
+        .const-card:hover{background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.3)}
+        .const-card .symbol{color:#fbbf24;font-size:1.15em;margin-bottom:2px}
+        .const-card .value{color:#808098;font-size:0.78em}
+        .const-card .desc{color:#606078;font-size:0.7em;margin-top:2px}
+        .const-card.hidden{display:none}
+
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);
+            border-radius:10px;padding:20px 24px;margin-bottom:18px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;
+            letter-spacing:1px;margin-bottom:10px}
+        .panel-name{color:#fbbf24;font-size:1.05em;margin-bottom:6px}
+        .panel-text{color:#a0a0b8;font-size:0.88em;line-height:1.75}
+        .hierarchy{color:#606078;font-size:0.92em;margin-top:12px;text-align:center;letter-spacing:2px}
+        .hierarchy .hl{color:#fbbf24;font-weight:700}
+
+        .props-grid{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+        .prop-tag{font-size:0.75em;padding:3px 10px;border-radius:4px;
+            background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);color:#808098}
+        .prop-tag.yes{border-color:rgba(46,204,113,0.3);color:#2ecc71}
+        .prop-tag.no{border-color:rgba(231,76,60,0.2);color:rgba(231,76,60,0.5)}
+
+        @media(max-width:768px){
+            .container{padding:16px 12px}
+            .cards-row{gap:6px}
+            .const-card{min-width:72px;padding:8px 10px}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>The Number Line</h1>
+    <p class="subtitle">From counting to complex &mdash; zoom through the families of numbers</p>
+
+    <canvas id="cv" width="904" height="400"></canvas>
+
+    <div class="toggle-row" id="toggles"></div>
+    <div class="cards-row" id="cards"></div>
+
+    <div class="panel" id="propsPanel">
+        <h3>Properties</h3>
+        <div class="panel-name" id="pName"></div>
+        <div class="panel-text" id="pText"></div>
+        <div class="props-grid" id="pTags"></div>
+        <div class="hierarchy" id="pHier"></div>
+    </div>
+
+    <div class="panel" id="insightPanel">
+        <h3>Insight</h3>
+        <div class="panel-text" id="iText"></div>
+    </div>
+</div>
+
+<script>
+/* ---- Setup ---- */
+const cvs = document.getElementById("cv");
+const ctx = cvs.getContext("2d");
+const W = cvs.width, H = cvs.height;
+
+/* ---- State ---- */
+let cx = 0, cy = 0;            /* canvas-space offset (pan) */
+let zoom = 40;                  /* pixels per unit */
+let dragging = false, dragX = 0, dragY = 0, dragCX = 0, dragCY = 0;
+
+const families = { N: true, Z: false, Q: false, R: false, C: false };
+const COL = { N: "#2ecc71", Z: "#3b82f6", Q: "#f97316", R: "#fbbf24", C: "#c084fc" };
+
+/* ---- Data ---- */
+const SPECIALS = [
+    { sym: "\u03C0",  val: Math.PI,            approx: "3.14159...", desc: "ratio of circumference to diameter" },
+    { sym: "e",       val: Math.E,             approx: "2.71828...", desc: "base of natural logarithm" },
+    { sym: "\u221A2", val: Math.SQRT2,         approx: "1.41421...", desc: "diagonal of unit square, first known irrational" },
+    { sym: "\u03C6",  val: (1+Math.sqrt(5))/2, approx: "1.61803...", desc: "golden ratio" },
+    { sym: "0",       val: 0,                  approx: "0",          desc: "the additive identity" },
+    { sym: "i",       val: null,               approx: "0 + 1i",    desc: "the imaginary unit", complex: true }
+];
+
+const COMPLEX_PTS = [
+    { re: 0, im: 1,  label: "i" },
+    { re: 0, im: -1, label: "\u2212i" },
+    { re: -1, im: 0, label: "\u22121 = e^(i\u03C0)" },
+    { re: 1,  im: 1, label: "1 + i" },
+    { re: 1,  im: 0, label: "1" },
+    { re: 0,  im: 0, label: "0" }
+];
+
+const INFO = {
+    N: { name: "\u2115 Natural Numbers",
+         text: "Countable. Closed under addition and multiplication. The foundation \u2014 everything starts with counting.",
+         props: [["Countable","yes"],["Dense","no"],["Complete","no"],["+ \u00D7","yes"],["\u2212 \u00F7","no"]] },
+    Z: { name: "\u2124 Integers",
+         text: "Countable. Closed under addition, subtraction, multiplication. Adding negatives lets us subtract freely.",
+         props: [["Countable","yes"],["Dense","no"],["Complete","no"],["+ \u2212 \u00D7","yes"],["\u00F7","no"]] },
+    Q: { name: "\u211A Rationals",
+         text: "Countable (surprisingly!). Dense \u2014 between any two rationals lies another. Closed under all four operations (except \u00F70). But has \u2018holes\u2019 where irrationals live.",
+         props: [["Countable","yes"],["Dense","yes"],["Complete","no"],["+ \u2212 \u00D7 \u00F7","yes"]] },
+    R: { name: "\u211D Reals",
+         text: "Uncountable! Complete \u2014 no holes. The continuum. Contains both rationals and irrationals. |\u211D| > |\u211A| even though both are infinite.",
+         props: [["Uncountable","yes"],["Dense","yes"],["Complete","yes"],["+ \u2212 \u00D7 \u00F7","yes"]] },
+    C: { name: "\u2102 Complex Numbers",
+         text: "Algebraically closed \u2014 every polynomial has a root here. The Fundamental Theorem of Algebra guarantees it. Two-dimensional: every complex number is a + bi.",
+         props: [["Uncountable","yes"],["Algebraically Closed","yes"],["+ \u2212 \u00D7 \u00F7","yes"],["Ordered","no"]] }
+};
+
+/* ---- Coordinate transforms ---- */
+function w2s(wx, wy) { return [W/2 + cx + wx*zoom, H/2 + cy - wy*zoom]; }
+function s2w(sx, sy) { return [(sx - W/2 - cx)/zoom, -(sy - H/2 - cy)/zoom]; }
+
+/* ---- Utilities ---- */
+function gcd(a, b) { while (b) { [a, b] = [b, a % b]; } return a; }
+
+function tooClose(arr, v, minDist) {
+    for (const x of arr) if (Math.abs(x - v) < minDist) return true;
+    return false;
+}
+
+function niceStep(ppu) {
+    const steps = [0.001,0.002,0.005, 0.01,0.02,0.05, 0.1,0.2,0.5,
+                   1,2,5, 10,20,50, 100,200,500, 1000];
+    for (const s of steps) if (s * ppu >= 60) return s;
+    return 1000;
+}
+
+function drawStar(x, y, r, pts) {
+    ctx.beginPath();
+    for (let i = 0; i < pts * 2; i++) {
+        const a = Math.PI/2 + Math.PI * i / pts;
+        const d = i % 2 === 0 ? r : r * 0.45;
+        const px = x + Math.cos(a) * d, py = y - Math.sin(a) * d;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath(); ctx.fill();
+}
+
+/* ============================================================
+   DRAWING  —  1-D Number Line
+   ============================================================ */
+function drawNumberLine() {
+    ctx.fillStyle = "#111122"; ctx.fillRect(0, 0, W, H);
+
+    /* Axis */
+    const [, ay] = w2s(0, 0);
+    const axY = Math.max(30, Math.min(H - 30, ay));
+    ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, axY); ctx.lineTo(W, axY); ctx.stroke();
+
+    /* Tick marks and labels */
+    const step = niceStep(zoom);
+    const [wl] = s2w(0, 0), [wr] = s2w(W, 0);
+    const lo = Math.floor(wl / step) * step;
+    const hi = Math.ceil(wr / step) * step;
+
+    ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.font = "11px Georgia";
+    for (let v = lo; v <= hi + step * 0.5; v += step) {
+        const sv = Math.round(v / step) * step;
+        const [sx] = w2s(sv, 0);
+        if (sx < -10 || sx > W + 10) continue;
+        ctx.strokeStyle = "rgba(255,255,255,0.15)";
+        ctx.beginPath(); ctx.moveTo(sx, axY - 5); ctx.lineTo(sx, axY + 5); ctx.stroke();
+        ctx.fillStyle = "#808098";
+        const dp = Math.max(0, -Math.floor(Math.log10(step)));
+        const lbl = Math.abs(sv) < 1e-9 ? "0" : (Number.isInteger(sv) ? String(sv) : sv.toFixed(dp));
+        ctx.fillText(lbl, sx, axY + 8);
+    }
+
+    /* Arrow heads at ends */
+    ctx.fillStyle = "rgba(255,255,255,0.25)";
+    ctx.beginPath(); ctx.moveTo(W - 2, axY); ctx.lineTo(W - 10, axY - 4); ctx.lineTo(W - 10, axY + 4); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(2, axY); ctx.lineTo(10, axY - 4); ctx.lineTo(10, axY + 4); ctx.fill();
+
+    /* ---- Reals band ---- */
+    if (families.R) {
+        ctx.fillStyle = "rgba(251,191,36,0.06)";
+        ctx.fillRect(0, axY - 14, W, 28);
+    }
+
+    /* ---- Rationals ---- */
+    if (families.Q) {
+        const maxDen = Math.min(Math.max(2, Math.floor(zoom / 6)), 80);
+        const usedX = [];
+        for (let d = 2; d <= maxDen; d++) {
+            for (let n = Math.floor(wl * d); n <= Math.ceil(wr * d); n++) {
+                if (gcd(Math.abs(n), d) !== 1) continue;
+                const val = n / d;
+                const [sx] = w2s(val, 0);
+                if (sx < 0 || sx > W) continue;
+                if (tooClose(usedX, sx, 12)) continue;
+                usedX.push(sx);
+                const r = Math.max(1.5, 4 - d * 0.12);
+                ctx.fillStyle = COL.Q;
+                ctx.globalAlpha = Math.max(0.25, 1 - d / maxDen * 0.7);
+                ctx.beginPath(); ctx.arc(sx, axY, r, 0, Math.PI * 2); ctx.fill();
+                if (d <= 6 && zoom > 18) {
+                    ctx.font = "9px Georgia"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+                    ctx.fillText(n + "/" + d, sx, axY - 7);
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+    }
+
+    /* ---- Integers (negative only if N also on) ---- */
+    if (families.Z) {
+        for (let v = Math.floor(wl); v <= Math.ceil(wr); v++) {
+            if (v >= 0 && families.N) continue;           /* naturals draw these */
+            const [sx] = w2s(v, 0);
+            if (sx < 0 || sx > W) continue;
+            ctx.fillStyle = COL.Z;
+            ctx.beginPath(); ctx.arc(sx, axY, 4.5, 0, Math.PI * 2); ctx.fill();
+            if (zoom > 15) {
+                ctx.font = "10px Georgia"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+                ctx.fillStyle = COL.Z; ctx.fillText(String(v), sx, axY - 8);
+            }
+        }
+    }
+
+    /* ---- Naturals ---- */
+    if (families.N) {
+        for (let v = Math.max(0, Math.floor(wl)); v <= Math.ceil(wr); v++) {
+            const [sx] = w2s(v, 0);
+            if (sx < 0 || sx > W) continue;
+            ctx.fillStyle = COL.N;
+            ctx.beginPath(); ctx.arc(sx, axY, 4.5, 0, Math.PI * 2); ctx.fill();
+            if (zoom > 15) {
+                ctx.font = "10px Georgia"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+                ctx.fillStyle = COL.N; ctx.fillText(String(v), sx, axY - 8);
+            }
+        }
+    }
+
+    /* ---- Special irrationals ---- */
+    if (families.R) {
+        const irr = [
+            { v: Math.PI,            l: "\u03C0" },
+            { v: Math.E,             l: "e" },
+            { v: Math.SQRT2,         l: "\u221A2" },
+            { v: (1+Math.sqrt(5))/2, l: "\u03C6" }
+        ];
+        const usedLabels = [];
+        irr.forEach(s => {
+            const [sx] = w2s(s.v, 0);
+            if (sx < 5 || sx > W - 5) return;
+            if (tooClose(usedLabels, sx, 70)) return;
+            usedLabels.push(sx);
+            ctx.fillStyle = COL.R;
+            drawStar(sx, axY, 7, 5);
+            ctx.font = "12px Georgia"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+            ctx.fillStyle = COL.R;
+            ctx.fillText(s.l + " \u2248 " + s.v.toFixed(5), sx, axY - 12);
+        });
+    }
+
+    /* Zoom indicator */
+    ctx.font = "11px Georgia"; ctx.fillStyle = "#606078";
+    ctx.textAlign = "right"; ctx.textBaseline = "top";
+    ctx.fillText("Zoom: " + zoom.toFixed(zoom < 10 ? 1 : 0) + "x", W - 12, 12);
+
+    /* Hint */
+    ctx.textAlign = "left";
+    ctx.fillText("Scroll to zoom \u00B7 Drag to pan", 12, 12);
+}
+
+/* ============================================================
+   DRAWING  —  2-D Complex Plane
+   ============================================================ */
+function drawComplexPlane() {
+    ctx.fillStyle = "#111122"; ctx.fillRect(0, 0, W, H);
+    const step = niceStep(zoom);
+    const [wl, wt] = s2w(0, 0), [wr, wb] = s2w(W, H);
+
+    /* Grid lines */
+    ctx.strokeStyle = "rgba(255,255,255,0.05)"; ctx.lineWidth = 0.5;
+    for (let v = Math.floor(wl/step)*step; v <= wr + step*0.5; v += step) {
+        const [sx] = w2s(v, 0);
+        ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke();
+    }
+    for (let v = Math.floor(wb/step)*step; v <= wt + step*0.5; v += step) {
+        const [, sy] = w2s(0, v);
+        ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
+    }
+
+    /* Real and imaginary axes */
+    const [ox, oy] = w2s(0, 0);
+    ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+
+    /* Tick labels on real axis */
+    ctx.font = "11px Georgia"; ctx.fillStyle = "#808098";
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    const dp = Math.max(0, -Math.floor(Math.log10(step)));
+    for (let v = Math.floor(wl/step)*step; v <= wr + step*0.5; v += step) {
+        const sv = Math.round(v / step) * step;
+        if (Math.abs(sv) < 1e-9) continue;
+        const [sx] = w2s(sv, 0);
+        if (sx < 10 || sx > W - 10) continue;
+        ctx.fillText(Number.isInteger(sv) ? String(sv) : sv.toFixed(dp), sx, oy + 6);
+    }
+
+    /* Tick labels on imaginary axis */
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (let v = Math.floor(wb/step)*step; v <= wt + step*0.5; v += step) {
+        const sv = Math.round(v / step) * step;
+        if (Math.abs(sv) < 1e-9) continue;
+        const [, sy] = w2s(0, sv);
+        if (sy < 10 || sy > H - 10) continue;
+        const lbl = (Number.isInteger(sv) ? String(sv) : sv.toFixed(dp)) + "i";
+        ctx.fillText(lbl, ox - 6, sy);
+    }
+
+    /* Axis titles */
+    ctx.font = "13px Georgia"; ctx.fillStyle = "#808098";
+    ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText("Re", W - 24, oy + 6);
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    ctx.fillText("Im", ox + 8, 14);
+
+    /* Unit circle (dashed) */
+    ctx.strokeStyle = "rgba(192,132,252,0.35)"; ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.arc(ox, oy, zoom, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    /* Label the unit circle */
+    const ucLabelAngle = Math.PI / 6;
+    const ucx = ox + zoom * Math.cos(ucLabelAngle);
+    const ucy = oy - zoom * Math.sin(ucLabelAngle);
+    ctx.font = "10px Georgia"; ctx.fillStyle = "rgba(192,132,252,0.5)";
+    ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+    ctx.fillText("|z| = 1", ucx + 5, ucy - 3);
+
+    /* Special complex points */
+    COMPLEX_PTS.forEach(p => {
+        const [sx, sy] = w2s(p.re, p.im);
+        if (sx < -20 || sx > W + 20 || sy < -20 || sy > H + 20) return;
+        ctx.fillStyle = COL.C;
+        ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI * 2); ctx.fill();
+        /* White ring */
+        ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI * 2); ctx.stroke();
+        /* Label */
+        ctx.font = "12px Georgia"; ctx.fillStyle = COL.C;
+        ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+        ctx.fillText(p.label, sx + 8, sy - 4);
+    });
+
+    /* Zoom indicator */
+    ctx.font = "11px Georgia"; ctx.fillStyle = "#606078";
+    ctx.textAlign = "right"; ctx.textBaseline = "top";
+    ctx.fillText("Zoom: " + zoom.toFixed(zoom < 10 ? 1 : 0) + "x  [\u2102 plane]", W - 12, 12);
+    ctx.textAlign = "left";
+    ctx.fillText("Scroll to zoom \u00B7 Drag to pan", 12, 12);
+}
+
+/* ============================================================
+   UI RENDERING
+   ============================================================ */
+function renderToggles() {
+    const el = document.getElementById("toggles");
+    const labels = {
+        N: "\u2115 Natural", Z: "\u2124 Integer", Q: "\u211A Rational",
+        R: "\u211D Real", C: "\u2102 Complex"
+    };
+    let h = "";
+    for (const k of ["N","Z","Q","R","C"])
+        h += "<button class='toggle-btn" + (families[k] ? " active-" + k : "")
+           + "' data-f='" + k + "'>" + labels[k] + "</button>";
+    el.innerHTML = h;
+    el.querySelectorAll(".toggle-btn").forEach(b => {
+        b.addEventListener("click", () => {
+            families[b.dataset.f] = !families[b.dataset.f];
+            renderToggles(); renderCards(); renderProps();
+        });
+    });
+}
+
+function renderCards() {
+    const el = document.getElementById("cards");
+    let h = "";
+    SPECIALS.forEach((s, i) => {
+        const hide = s.complex && !families.C;
+        h += "<div class='const-card" + (hide ? " hidden" : "") + "' data-i='" + i + "'>"
+           + "<div class='symbol'>" + s.sym + "</div>"
+           + "<div class='value'>" + s.approx + "</div>"
+           + "<div class='desc'>" + s.desc + "</div></div>";
+    });
+    el.innerHTML = h;
+    el.querySelectorAll(".const-card").forEach(cd => {
+        cd.addEventListener("click", () => {
+            const s = SPECIALS[parseInt(cd.dataset.i)];
+            if (s.complex) {
+                if (!families.C) { families.C = true; renderToggles(); renderCards(); renderProps(); }
+                zoom = 80; cx = 0; cy = 0;     /* center origin for complex plane */
+            } else {
+                zoom = 80;
+                cx = W/2 - (W/2 + s.val * zoom);  /* center the value */
+                cy = 0;
+            }
+        });
+    });
+}
+
+function renderProps() {
+    const active = ["N","Z","Q","R","C"].filter(k => families[k]);
+    const key = active.length ? active[active.length - 1] : "N";
+    const info = INFO[key];
+
+    document.getElementById("pName").textContent = info.name;
+    document.getElementById("pText").textContent = info.text;
+
+    let tags = "";
+    info.props.forEach(([label, cls]) => {
+        tags += "<span class='prop-tag " + cls + "'>" + label + "</span>";
+    });
+    document.getElementById("pTags").innerHTML = tags;
+
+    /* Containment hierarchy with active families highlighted */
+    const chain = ["\u2115","\u2124","\u211A","\u211D","\u2102"];
+    const keys  = ["N","Z","Q","R","C"];
+    let hier = "";
+    chain.forEach((s, i) => {
+        hier += families[keys[i]] ? "<span class='hl'>" + s + "</span>" : s;
+        if (i < chain.length - 1) hier += " \u2282 ";
+    });
+    document.getElementById("pHier").innerHTML = hier;
+
+    renderInsight();
+}
+
+function renderInsight() {
+    let txt;
+    if (families.C) {
+        txt = "The complex plane unifies algebra and geometry. Multiplication by i is a 90\u00B0 rotation. "
+            + "Every polynomial equation has solutions here.";
+    } else if (families.Q && zoom > 120) {
+        txt = "No matter how far you zoom in, there are always more rationals between any two points. "
+            + "Yet the rationals have \u2018measure zero\u2019 \u2014 almost every point on the line is irrational.";
+    } else if (families.R) {
+        txt = "The real line is complete \u2014 every convergent sequence has a limit, and every bounded set "
+            + "has a supremum. Between the rationals lurk uncountably many irrationals: \u221A2, \u03C0, e, "
+            + "and infinitely more.";
+    } else {
+        txt = "The number line is humanity\u2019s most fundamental mathematical construction. Starting with "
+            + "counting (\u2115), each extension solves a new problem: subtraction needs \u2124, division "
+            + "needs \u211A, limits need \u211D, and algebra needs \u2102.";
+    }
+    document.getElementById("iText").textContent = txt;
+}
+
+/* ============================================================
+   INTERACTION  —  Mouse
+   ============================================================ */
+cvs.addEventListener("mousedown", e => {
+    dragging = true;
+    dragX = e.clientX; dragY = e.clientY;
+    dragCX = cx; dragCY = cy;
+});
+window.addEventListener("mousemove", e => {
+    if (!dragging) return;
+    cx = dragCX + (e.clientX - dragX);
+    if (families.C) cy = dragCY + (e.clientY - dragY);
+});
+window.addEventListener("mouseup", () => { dragging = false; });
+
+cvs.addEventListener("wheel", e => {
+    e.preventDefault();
+    const mx = e.offsetX, my = e.offsetY;
+    const [wx, wy] = s2w(mx, my);
+    const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+    zoom = Math.max(0.5, Math.min(1000, zoom * factor));
+    /* Keep the world point under the mouse fixed */
+    cx = mx - W/2 - wx * zoom;
+    if (families.C) cy = my - H/2 + wy * zoom;
+    renderInsight();
+}, { passive: false });
+
+/* ============================================================
+   INTERACTION  —  Touch (pinch-to-zoom, drag-to-pan)
+   ============================================================ */
+let touches = [], lastPinchDist = 0;
+
+cvs.addEventListener("touchstart", e => {
+    e.preventDefault();
+    touches = [...e.touches];
+    if (touches.length === 1) {
+        dragging = true;
+        dragX = touches[0].clientX; dragY = touches[0].clientY;
+        dragCX = cx; dragCY = cy;
+    } else if (touches.length === 2) {
+        lastPinchDist = Math.hypot(touches[1].clientX - touches[0].clientX,
+                                    touches[1].clientY - touches[0].clientY);
+    }
+}, { passive: false });
+
+cvs.addEventListener("touchmove", e => {
+    e.preventDefault();
+    const t = [...e.touches];
+    if (t.length === 1 && dragging) {
+        cx = dragCX + (t[0].clientX - dragX);
+        if (families.C) cy = dragCY + (t[0].clientY - dragY);
+    } else if (t.length === 2) {
+        const dist = Math.hypot(t[1].clientX - t[0].clientX, t[1].clientY - t[0].clientY);
+        if (lastPinchDist > 0) {
+            const factor = dist / lastPinchDist;
+            zoom = Math.max(0.5, Math.min(1000, zoom * factor));
+        }
+        lastPinchDist = dist;
+    }
+}, { passive: false });
+
+cvs.addEventListener("touchend", e => {
+    dragging = false; lastPinchDist = 0;
+    touches = [...e.touches];
+});
+
+/* ============================================================
+   ANIMATION LOOP
+   ============================================================ */
+function frame() {
+    if (families.C) drawComplexPlane();
+    else drawNumberLine();
+    requestAnimationFrame(frame);
+}
+
+/* ---- Init ---- */
+renderToggles(); renderCards(); renderProps();
+frame();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

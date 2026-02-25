@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complex Numbers</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#60a5fa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(96,165,250,0.13);border-color:rgba(96,165,250,0.4);color:#60a5fa}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .blue{color:#60a5fa}.math-line .gold{color:#fbbf24}.math-line .green{color:#2ecc71}
+        .math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#60a5fa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .powers-grid{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0}
+        .power-step{text-align:center;padding:6px 14px;border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;transition:all 0.25s}
+        .power-step.active{background:rgba(96,165,250,0.15);color:#60a5fa}
+        .power-step .val{color:#808098;font-size:0.82em}
+        .roots-list{font-family:'Courier New',monospace;font-size:0.85em;color:#c0c0d8;margin-top:10px;line-height:2}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#60a5fa}
+        .slider-label{color:#60a5fa;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 300px;min-width:280px}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Complex Numbers</h1>
+    <p class="subtitle">The complex plane &mdash; multiplication as rotation</p>
+
+    <canvas id="plane" width="540" height="540"></canvas>
+
+    <div class="panel" style="margin-top:20px">
+        <h3>Operation</h3>
+        <div class="btn-row" id="opBtns"></div>
+        <div id="mathOut"></div>
+    </div>
+
+    <div class="panel">
+        <h3>Preset Examples</h3>
+        <div class="btn-row" id="presetBtns"></div>
+    </div>
+
+    <div class="flex-row">
+        <div class="flex-half">
+            <h2>Powers of i</h2>
+            <div class="panel">
+                <div class="powers-grid" id="powersGrid"></div>
+                <div style="margin-top:12px">
+                    <button class="btn" id="powBtn">Multiply by i</button>
+                    <span class="math-line muted" id="powLabel" style="margin-left:12px"></span>
+                </div>
+                <canvas id="powCanvas" width="220" height="220" style="margin-top:14px;cursor:default"></canvas>
+            </div>
+        </div>
+        <div class="flex-half">
+            <h2>Roots of Unity</h2>
+            <div class="panel">
+                <div class="slider-row">
+                    <span class="math-line muted">n =</span>
+                    <input type="range" id="rootN" min="2" max="12" value="5">
+                    <span class="slider-label" id="rootNLabel">5</span>
+                </div>
+                <canvas id="rootCanvas" width="220" height="220" style="cursor:default"></canvas>
+                <div class="roots-list" id="rootsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="explain">
+        <div class="explain-name" id="eName">Geometric Viewpoint</div>
+        <div class="explain-text" id="eText">Complex numbers were invented to solve equations like x&sup2; + 1 = 0, but they turned out to encode geometry: addition is translation, multiplication is rotation and scaling. This geometric viewpoint, pioneered by Gauss and Argand around 1800, transformed mathematics.</div>
+    </div>
+</div>
+
+<script>
+/* ── state ── */
+let z1={x:2,y:1}, z2={x:0,y:1};
+let mode='mul'; // mul, add, div
+let drag=null; // 'z1','z2', or null
+const cvs=document.getElementById('plane'), ctx=cvs.getContext('2d');
+const W=cvs.width, H=cvs.height;
+const scale=60; // pixels per unit
+let origin={x:W/2, y:H/2};
+
+/* ── helpers ── */
+function toScreen(re,im){return{x:origin.x+re*scale, y:origin.y-im*scale};}
+function toComplex(sx,sy){return{x:(sx-origin.x)/scale, y:-(sy-origin.y)/scale};}
+function cMul(a,b){return{x:a.x*b.x-a.y*b.y, y:a.x*b.y+a.y*b.x};}
+function cDiv(a,b){const d=b.x*b.x+b.y*b.y;return d<1e-12?{x:0,y:0}:{x:(a.x*b.x+a.y*b.y)/d, y:(a.y*b.x-a.x*b.y)/d};}
+function cAdd(a,b){return{x:a.x+b.x, y:a.y+b.y};}
+function cMag(z){return Math.sqrt(z.x*z.x+z.y*z.y);}
+function cArg(z){return Math.atan2(z.y,z.x);}
+function fmtRect(z){
+    const a=Math.round(z.x*1000)/1000, b=Math.round(z.y*1000)/1000;
+    if(Math.abs(b)<0.001) return a.toFixed(2);
+    if(Math.abs(a)<0.001) return (b===1?'':b===-1?'-':b.toFixed(2))+'i';
+    return a.toFixed(2)+(b>=0?' + ':' - ')+((Math.abs(b)===1?'':Math.abs(b).toFixed(2)))+'i';
+}
+function fmtPolar(z){
+    const r=cMag(z), th=cArg(z)*180/Math.PI;
+    return r.toFixed(2)+'\u2220'+Math.round(th)+'\u00B0';
+}
+function fmtExp(z){
+    const r=cMag(z), th=cArg(z);
+    return r.toFixed(2)+'e^(i'+th.toFixed(2)+')';
+}
+
+/* ── draw main plane ── */
+function drawPlane(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    const halfW=W/(2*scale), halfH=H/(2*scale);
+    // grid
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+    for(let i=Math.ceil(-halfW);i<=Math.floor(halfW);i++){
+        const sx=origin.x+i*scale;
+        ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,H);ctx.stroke();
+    }
+    for(let i=Math.ceil(-halfH);i<=Math.floor(halfH);i++){
+        const sy=origin.y-i*scale;
+        ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(W,sy);ctx.stroke();
+    }
+    // axes
+    ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(0,origin.y);ctx.lineTo(W,origin.y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(origin.x,0);ctx.lineTo(origin.x,H);ctx.stroke();
+    // axis labels
+    ctx.font='14px Georgia';ctx.fillStyle='#808098';ctx.textAlign='left';ctx.textBaseline='bottom';
+    ctx.fillText('Re',W-26,origin.y-6);
+    ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillText('Im',origin.x+8,6);
+    // tick labels
+    ctx.font='10px Georgia';ctx.fillStyle='#505068';ctx.textAlign='center';ctx.textBaseline='top';
+    for(let i=Math.ceil(-halfW);i<=Math.floor(halfW);i++){
+        if(i===0) continue;
+        ctx.fillText(i,origin.x+i*scale,origin.y+4);
+    }
+    ctx.textAlign='right';ctx.textBaseline='middle';
+    for(let i=Math.ceil(-halfH);i<=Math.floor(halfH);i++){
+        if(i===0) continue;
+        ctx.fillText(i+'i',origin.x-6,origin.y-i*scale);
+    }
+    // unit circle
+    ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(origin.x,origin.y,scale,0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);
+
+    // compute result
+    let result;
+    if(mode==='mul') result=cMul(z1,z2);
+    else if(mode==='add') result=cAdd(z1,z2);
+    else result=cDiv(z1,z2);
+
+    // addition parallelogram
+    if(mode==='add'){
+        const s1=toScreen(z1.x,z1.y), s2=toScreen(z2.x,z2.y), sr=toScreen(result.x,result.y);
+        ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(s1.x,s1.y);ctx.lineTo(sr.x,sr.y);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(s2.x,s2.y);ctx.lineTo(sr.x,sr.y);ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    // projections (dashed)
+    drawProjection(z1,'rgba(96,165,250,0.2)');
+    drawProjection(z2,'rgba(251,191,36,0.2)');
+    drawProjection(result, mode==='mul'?'rgba(46,204,113,0.2)':mode==='add'?'rgba(46,204,113,0.2)':'rgba(46,204,113,0.2)');
+
+    // angle arcs for multiply/divide
+    if(mode==='mul'||mode==='div'){
+        const th1=cArg(z1), th2=cArg(z2), thr=cArg(result);
+        drawArc(th1,'rgba(96,165,250,0.35)',22);
+        drawArc(th2,'rgba(251,191,36,0.35)',30);
+        drawArc(thr,'rgba(46,204,113,0.45)',38);
+    }
+
+    // vectors
+    drawArrow(z1,'#60a5fa',2);
+    drawArrow(z2,'#fbbf24',2);
+    drawArrow(result,'#2ecc71',2);
+
+    // point dots + labels
+    drawPoint(z1,'#60a5fa','z\u2081');
+    drawPoint(z2,'#fbbf24','z\u2082');
+    const rlabel=mode==='mul'?'z\u2081z\u2082':mode==='add'?'z\u2081+z\u2082':'z\u2081/z\u2082';
+    drawPoint(result,'#2ecc71',rlabel);
+
+    // coordinate labels
+    drawCoordLabel(z1,'#60a5fa',-14);
+    drawCoordLabel(z2,'#fbbf24',-14);
+    drawCoordLabel(result,'#2ecc71',14);
+
+    updateMathOut(result);
+    updateInsight();
+}
+
+function drawProjection(z,color){
+    const s=toScreen(z.x,z.y), ox=toScreen(z.x,0), oy=toScreen(0,z.y);
+    ctx.setLineDash([2,3]);ctx.strokeStyle=color;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(ox.x,ox.y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(oy.x,oy.y);ctx.stroke();
+    ctx.setLineDash([]);
+}
+
+function drawArrow(z,color,lw){
+    const s=toScreen(z.x,z.y);
+    ctx.strokeStyle=color;ctx.lineWidth=lw;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(origin.x,origin.y);ctx.lineTo(s.x,s.y);ctx.stroke();
+    // arrowhead
+    const ang=Math.atan2(s.y-origin.y,s.x-origin.x);
+    const hl=10;
+    ctx.fillStyle=color;ctx.beginPath();
+    ctx.moveTo(s.x,s.y);
+    ctx.lineTo(s.x-hl*Math.cos(ang-0.3),s.y-hl*Math.sin(ang-0.3));
+    ctx.lineTo(s.x-hl*Math.cos(ang+0.3),s.y-hl*Math.sin(ang+0.3));
+    ctx.closePath();ctx.fill();
+}
+
+function drawPoint(z,color,label){
+    const s=toScreen(z.x,z.y);
+    ctx.fillStyle=color;ctx.beginPath();ctx.arc(s.x,s.y,5,0,Math.PI*2);ctx.fill();
+    ctx.font='13px Georgia';ctx.fillStyle=color;ctx.textAlign='left';ctx.textBaseline='bottom';
+    ctx.fillText(label,s.x+8,s.y-8);
+}
+
+function drawCoordLabel(z,color,yOff){
+    const s=toScreen(z.x,z.y);
+    ctx.font='10px Courier New';ctx.fillStyle=color;ctx.globalAlpha=0.7;
+    ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillText(fmtRect(z),s.x+8,s.y+yOff);
+    ctx.globalAlpha=1;
+}
+
+function drawArc(angle,color,radius){
+    if(Math.abs(angle)<0.01) return;
+    const start=angle>0?0:angle;
+    const end=angle>0?angle:0;
+    ctx.strokeStyle=color;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(origin.x,origin.y,radius,-end,-start);ctx.stroke();
+}
+
+/* ── math output ── */
+function updateMathOut(result){
+    const d=document.getElementById('mathOut');
+    const m1=cMag(z1), m2=cMag(z2), mr=cMag(result);
+    const a1=cArg(z1)*180/Math.PI, a2=cArg(z2)*180/Math.PI, ar=cArg(result)*180/Math.PI;
+    let html='<div class="math-line"><span class="blue">z\u2081 = '+fmtRect(z1)+' = '+fmtPolar(z1)+'</span></div>';
+    html+='<div class="math-line"><span class="gold">z\u2082 = '+fmtRect(z2)+' = '+fmtPolar(z2)+'</span></div>';
+    html+='<hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:8px 0">';
+    if(mode==='mul'){
+        html+='<div class="math-line"><span class="green">z\u2081 \u00D7 z\u2082 = '+fmtRect(result)+' = '+fmtPolar(result)+'</span></div>';
+        html+='<div class="math-line muted">|z\u2081| \u00D7 |z\u2082| = '+m1.toFixed(2)+' \u00D7 '+m2.toFixed(2)+' = '+mr.toFixed(2)+' = |z\u2081z\u2082|</div>';
+        html+='<div class="math-line muted">arg(z\u2081) + arg(z\u2082) = '+Math.round(a1)+'\u00B0 + '+Math.round(a2)+'\u00B0 = '+Math.round(ar)+'\u00B0 = arg(z\u2081z\u2082)</div>';
+    } else if(mode==='add'){
+        html+='<div class="math-line"><span class="green">z\u2081 + z\u2082 = '+fmtRect(result)+'</span></div>';
+        html+='<div class="math-line muted">Real: '+z1.x.toFixed(2)+' + '+z2.x.toFixed(2)+' = '+result.x.toFixed(2)+'</div>';
+        html+='<div class="math-line muted">Imag: '+z1.y.toFixed(2)+' + '+z2.y.toFixed(2)+' = '+result.y.toFixed(2)+'</div>';
+    } else {
+        html+='<div class="math-line"><span class="green">z\u2081 / z\u2082 = '+fmtRect(result)+' = '+fmtPolar(result)+'</span></div>';
+        html+='<div class="math-line muted">|z\u2081| / |z\u2082| = '+m1.toFixed(2)+' / '+m2.toFixed(2)+' = '+mr.toFixed(2)+' = |z\u2081/z\u2082|</div>';
+        html+='<div class="math-line muted">arg(z\u2081) - arg(z\u2082) = '+Math.round(a1)+'\u00B0 - '+Math.round(a2)+'\u00B0 = '+Math.round(ar)+'\u00B0 = arg(z\u2081/z\u2082)</div>';
+    }
+    html+='<hr style="border:none;border-top:1px solid rgba(255,255,255,0.06);margin:8px 0">';
+    html+='<div class="math-line muted">|z\u2081| = '+m1.toFixed(3)+'&emsp;arg(z\u2081) = '+a1.toFixed(1)+'\u00B0&emsp;'+fmtExp(z1)+'</div>';
+    html+='<div class="math-line muted">|z\u2082| = '+m2.toFixed(3)+'&emsp;arg(z\u2082) = '+a2.toFixed(1)+'\u00B0&emsp;'+fmtExp(z2)+'</div>';
+    d.innerHTML=html;
+}
+
+/* ── insight panel ── */
+function updateInsight(){
+    const en=document.getElementById('eName'), et=document.getElementById('eText');
+    if(mode==='mul'){
+        en.textContent='Multiplication as Rotation';
+        et.textContent='Multiplying by z\u2082 rotates the plane by arg(z\u2082) and scales distances by |z\u2082|. This is why complex multiplication preserves angles \u2014 it is a conformal mapping. The magnitudes multiply, and the arguments add.';
+    } else if(mode==='add'){
+        en.textContent='Addition as Translation';
+        et.textContent='Adding two complex numbers is vector addition: slide the tip of z\u2081 by z\u2082. The parallelogram law shows this visually \u2014 the diagonal of the parallelogram formed by z\u2081 and z\u2082 is their sum.';
+    } else {
+        en.textContent='Division as Inverse Rotation';
+        et.textContent='Dividing z\u2081 by z\u2082 rotates by the negative of arg(z\u2082) and scales by the reciprocal of |z\u2082|. The magnitude ratio is |z\u2081|/|z\u2082| and the argument is arg(z\u2081) - arg(z\u2082).';
+    }
+}
+
+/* ── operation buttons ── */
+const ops=[{id:'mul',label:'Multiply'},{id:'add',label:'Add'},{id:'div',label:'Divide'}];
+function renderOpBtns(){
+    const c=document.getElementById('opBtns');
+    c.innerHTML=ops.map(o=>'<button class="btn'+(o.id===mode?' active':'')+'" data-op="'+o.id+'">'+o.label+'</button>').join('');
+    c.querySelectorAll('.btn').forEach(b=>b.addEventListener('click',()=>{
+        mode=b.dataset.op;renderOpBtns();drawPlane();
+    }));
+}
+renderOpBtns();
+
+/* ── presets ── */
+const presets=[
+    {label:'Multiply by i', z1:{x:2,y:1}, z2:{x:0,y:1}, m:'mul'},
+    {label:'Multiply by -1', z1:{x:2,y:1}, z2:{x:-1,y:0}, m:'mul'},
+    {label:'Rotate 45\u00B0', z1:{x:2,y:0}, z2:{x:Math.SQRT1_2,y:Math.SQRT1_2}, m:'mul'},
+    {label:'\u221Ai', z1:{x:Math.SQRT1_2,y:Math.SQRT1_2}, z2:{x:Math.SQRT1_2,y:Math.SQRT1_2}, m:'mul'},
+    {label:'Cube roots of 1', z1:{x:-0.5,y:Math.sqrt(3)/2}, z2:{x:-0.5,y:-Math.sqrt(3)/2}, m:'mul'},
+];
+(function renderPresets(){
+    const c=document.getElementById('presetBtns');
+    c.innerHTML=presets.map((p,i)=>'<button class="btn" data-pi="'+i+'">'+p.label+'</button>').join('');
+    c.querySelectorAll('.btn').forEach(b=>b.addEventListener('click',()=>{
+        const p=presets[parseInt(b.dataset.pi)];
+        z1={...p.z1};z2={...p.z2};mode=p.m;renderOpBtns();drawPlane();
+    }));
+})();
+
+/* ── dragging on main canvas ── */
+function getCanvasXY(e){
+    const r=cvs.getBoundingClientRect();
+    return{x:(e.clientX-r.left)*(W/r.width), y:(e.clientY-r.top)*(H/r.height)};
+}
+function dist2(a,b){return(a.x-b.x)**2+(a.y-b.y)**2;}
+
+cvs.addEventListener('mousedown',e=>{
+    const p=getCanvasXY(e);
+    const s1=toScreen(z1.x,z1.y), s2=toScreen(z2.x,z2.y);
+    if(dist2(p,s1)<400) drag='z1';
+    else if(dist2(p,s2)<400) drag='z2';
+    else drag=null;
+});
+cvs.addEventListener('mousemove',e=>{
+    if(!drag) return;
+    const p=getCanvasXY(e);
+    const c=toComplex(p.x,p.y);
+    // snap to nearest 0.1
+    c.x=Math.round(c.x*10)/10;
+    c.y=Math.round(c.y*10)/10;
+    if(drag==='z1'){z1.x=c.x;z1.y=c.y;}
+    else{z2.x=c.x;z2.y=c.y;}
+    drawPlane();
+});
+cvs.addEventListener('mouseup',()=>{drag=null;});
+cvs.addEventListener('mouseleave',()=>{drag=null;});
+
+// touch support
+cvs.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    const t=e.touches[0];
+    const r=cvs.getBoundingClientRect();
+    const p={x:(t.clientX-r.left)*(W/r.width), y:(t.clientY-r.top)*(H/r.height)};
+    const s1=toScreen(z1.x,z1.y), s2=toScreen(z2.x,z2.y);
+    if(dist2(p,s1)<600) drag='z1';
+    else if(dist2(p,s2)<600) drag='z2';
+},{passive:false});
+cvs.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    if(!drag) return;
+    const t=e.touches[0];
+    const r=cvs.getBoundingClientRect();
+    const p={x:(t.clientX-r.left)*(W/r.width), y:(t.clientY-r.top)*(H/r.height)};
+    const c=toComplex(p.x,p.y);
+    c.x=Math.round(c.x*10)/10;c.y=Math.round(c.y*10)/10;
+    if(drag==='z1'){z1.x=c.x;z1.y=c.y;}else{z2.x=c.x;z2.y=c.y;}
+    drawPlane();
+},{passive:false});
+cvs.addEventListener('touchend',()=>{drag=null;});
+
+/* ── powers of i ── */
+let powIdx=0;
+const powVals=[{re:1,im:0,label:'1'},{re:0,im:1,label:'i'},{re:-1,im:0,label:'-1'},{re:0,im:-1,label:'-i'}];
+const powLabels=['i\u2070 = 1','i\u00B9 = i','i\u00B2 = -1','i\u00B3 = -i'];
+
+function renderPowers(){
+    const g=document.getElementById('powersGrid');
+    g.innerHTML=powLabels.map((l,i)=>{
+        const cls=i===powIdx?' active':'';
+        return '<div class="power-step'+cls+'">'+l+'</div>';
+    }).join('<div style="color:#505068">\u2192</div>');
+    document.getElementById('powLabel').textContent='Currently at i^'+powIdx+' = '+powVals[powIdx].label;
+    drawPowCanvas();
+}
+
+function drawPowCanvas(){
+    const c=document.getElementById('powCanvas'),cx=c.getContext('2d');
+    const w=c.width, h=c.height, ctr={x:w/2,y:h/2}, r=80;
+    cx.clearRect(0,0,w,h);cx.fillStyle='#0a0a1a';cx.fillRect(0,0,w,h);
+    // axes
+    cx.strokeStyle='rgba(255,255,255,0.12)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(0,ctr.y);cx.lineTo(w,ctr.y);cx.stroke();
+    cx.beginPath();cx.moveTo(ctr.x,0);cx.lineTo(ctr.x,h);cx.stroke();
+    // unit circle
+    cx.setLineDash([3,3]);cx.strokeStyle='rgba(255,255,255,0.1)';
+    cx.beginPath();cx.arc(ctr.x,ctr.y,r,0,Math.PI*2);cx.stroke();
+    cx.setLineDash([]);
+    // four positions
+    const positions=[{x:r,y:0},{x:0,y:-r},{x:-r,y:0},{x:0,y:r}];
+    const labels=['1','i','-1','-i'];
+    for(let i=0;i<4;i++){
+        const px=ctr.x+positions[i].x, py=ctr.y+positions[i].y;
+        cx.fillStyle=i===powIdx?'#60a5fa':'rgba(255,255,255,0.2)';
+        cx.beginPath();cx.arc(px,py,i===powIdx?6:4,0,Math.PI*2);cx.fill();
+        cx.font='12px Georgia';cx.fillStyle=i===powIdx?'#60a5fa':'#606078';
+        cx.textAlign=i===0?'left':i===2?'right':'center';
+        cx.textBaseline=i===1?'bottom':i===3?'top':'middle';
+        const ox=i===0?10:i===2?-10:0, oy=i===1?-10:i===3?10:0;
+        cx.fillText(labels[i],px+ox,py+oy);
+    }
+    // vector to current
+    const cp=positions[powIdx];
+    cx.strokeStyle='#60a5fa';cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(ctr.x,ctr.y);cx.lineTo(ctr.x+cp.x,ctr.y+cp.y);cx.stroke();
+    // arrowhead
+    const ang=Math.atan2(cp.y,cp.x);
+    cx.fillStyle='#60a5fa';cx.beginPath();
+    cx.moveTo(ctr.x+cp.x,ctr.y+cp.y);
+    cx.lineTo(ctr.x+cp.x-8*Math.cos(ang-0.35),ctr.y+cp.y-8*Math.sin(ang-0.35));
+    cx.lineTo(ctr.x+cp.x-8*Math.cos(ang+0.35),ctr.y+cp.y-8*Math.sin(ang+0.35));
+    cx.closePath();cx.fill();
+    // arc
+    if(powIdx>0){
+        cx.strokeStyle='rgba(96,165,250,0.4)';cx.lineWidth=1.5;
+        cx.beginPath();cx.arc(ctr.x,ctr.y,28,0,-powIdx*Math.PI/2,true);cx.stroke();
+    }
+    // labels
+    cx.font='10px Georgia';cx.fillStyle='#808098';
+    cx.textAlign='left';cx.textBaseline='bottom';cx.fillText('Re',w-20,ctr.y-4);
+    cx.textAlign='left';cx.textBaseline='top';cx.fillText('Im',ctr.x+4,4);
+}
+
+let powAnimating=false;
+document.getElementById('powBtn').addEventListener('click',()=>{
+    if(powAnimating) return;
+    const fromIdx=powIdx;
+    const toIdx=(powIdx+1)%4;
+    powAnimating=true;
+    const startAngle=-fromIdx*Math.PI/2;
+    const endAngle=startAngle-Math.PI/2; // always rotate 90 deg counterclockwise
+    const duration=350;
+    const t0=performance.now();
+    function animStep(now){
+        let frac=(now-t0)/duration;
+        if(frac>=1){frac=1;powIdx=toIdx;powAnimating=false;renderPowers();return;}
+        // interpolate the vector angle
+        const ang=startAngle+(endAngle-startAngle)*frac;
+        const c=document.getElementById('powCanvas'),cx=c.getContext('2d');
+        const w=c.width,h=c.height,ctr={x:w/2,y:h/2},r=80;
+        cx.clearRect(0,0,w,h);cx.fillStyle='#0a0a1a';cx.fillRect(0,0,w,h);
+        cx.strokeStyle='rgba(255,255,255,0.12)';cx.lineWidth=1;
+        cx.beginPath();cx.moveTo(0,ctr.y);cx.lineTo(w,ctr.y);cx.stroke();
+        cx.beginPath();cx.moveTo(ctr.x,0);cx.lineTo(ctr.x,h);cx.stroke();
+        cx.setLineDash([3,3]);cx.strokeStyle='rgba(255,255,255,0.1)';
+        cx.beginPath();cx.arc(ctr.x,ctr.y,r,0,Math.PI*2);cx.stroke();
+        cx.setLineDash([]);
+        const positions=[{x:r,y:0},{x:0,y:-r},{x:-r,y:0},{x:0,y:r}];
+        const labels=['1','i','-1','-i'];
+        for(let i=0;i<4;i++){
+            const px=ctr.x+positions[i].x,py=ctr.y+positions[i].y;
+            cx.fillStyle='rgba(255,255,255,0.2)';
+            cx.beginPath();cx.arc(px,py,4,0,Math.PI*2);cx.fill();
+            cx.font='12px Georgia';cx.fillStyle='#606078';
+            cx.textAlign=i===0?'left':i===2?'right':'center';
+            cx.textBaseline=i===1?'bottom':i===3?'top':'middle';
+            const ox=i===0?10:i===2?-10:0,oy=i===1?-10:i===3?10:0;
+            cx.fillText(labels[i],px+ox,py+oy);
+        }
+        // animated vector
+        const vx=r*Math.cos(ang),vy=r*Math.sin(ang);
+        cx.strokeStyle='#60a5fa';cx.lineWidth=2;
+        cx.beginPath();cx.moveTo(ctr.x,ctr.y);cx.lineTo(ctr.x+vx,ctr.y+vy);cx.stroke();
+        const aa=Math.atan2(vy,vx);
+        cx.fillStyle='#60a5fa';cx.beginPath();
+        cx.moveTo(ctr.x+vx,ctr.y+vy);
+        cx.lineTo(ctr.x+vx-8*Math.cos(aa-0.35),ctr.y+vy-8*Math.sin(aa-0.35));
+        cx.lineTo(ctr.x+vx-8*Math.cos(aa+0.35),ctr.y+vy-8*Math.sin(aa+0.35));
+        cx.closePath();cx.fill();
+        // dot at tip
+        cx.beginPath();cx.arc(ctr.x+vx,ctr.y+vy,6,0,Math.PI*2);cx.fill();
+        cx.font='10px Georgia';cx.fillStyle='#808098';
+        cx.textAlign='left';cx.textBaseline='bottom';cx.fillText('Re',w-20,ctr.y-4);
+        cx.textAlign='left';cx.textBaseline='top';cx.fillText('Im',ctr.x+4,4);
+        requestAnimationFrame(animStep);
+    }
+    requestAnimationFrame(animStep);
+});
+renderPowers();
+
+/* ── roots of unity ── */
+const rootSlider=document.getElementById('rootN');
+const rootLabel=document.getElementById('rootNLabel');
+
+function drawRoots(){
+    const n=parseInt(rootSlider.value);
+    rootLabel.textContent=n;
+    const c=document.getElementById('rootCanvas'),cx=c.getContext('2d');
+    const w=c.width,h=c.height,ctr={x:w/2,y:h/2},r=85;
+    cx.clearRect(0,0,w,h);cx.fillStyle='#0a0a1a';cx.fillRect(0,0,w,h);
+    // axes
+    cx.strokeStyle='rgba(255,255,255,0.12)';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(0,ctr.y);cx.lineTo(w,ctr.y);cx.stroke();
+    cx.beginPath();cx.moveTo(ctr.x,0);cx.lineTo(ctr.x,h);cx.stroke();
+    // unit circle
+    cx.setLineDash([3,3]);cx.strokeStyle='rgba(255,255,255,0.1)';
+    cx.beginPath();cx.arc(ctr.x,ctr.y,r,0,Math.PI*2);cx.stroke();
+    cx.setLineDash([]);
+    // roots
+    const roots=[];
+    for(let k=0;k<n;k++){
+        const th=2*Math.PI*k/n;
+        roots.push({re:Math.cos(th),im:Math.sin(th),th});
+    }
+    // polygon
+    cx.strokeStyle='rgba(96,165,250,0.35)';cx.lineWidth=1.5;
+    cx.beginPath();
+    for(let k=0;k<=n;k++){
+        const rt=roots[k%n];
+        const px=ctr.x+rt.re*r, py=ctr.y-rt.im*r;
+        if(k===0) cx.moveTo(px,py); else cx.lineTo(px,py);
+    }
+    cx.stroke();
+    // fill polygon lightly
+    cx.fillStyle='rgba(96,165,250,0.04)';
+    cx.beginPath();
+    for(let k=0;k<=n;k++){
+        const rt=roots[k%n];
+        const px=ctr.x+rt.re*r, py=ctr.y-rt.im*r;
+        if(k===0) cx.moveTo(px,py); else cx.lineTo(px,py);
+    }
+    cx.fill();
+    // vectors + dots
+    for(let k=0;k<n;k++){
+        const rt=roots[k];
+        const px=ctr.x+rt.re*r, py=ctr.y-rt.im*r;
+        cx.strokeStyle='rgba(96,165,250,0.2)';cx.lineWidth=1;
+        cx.beginPath();cx.moveTo(ctr.x,ctr.y);cx.lineTo(px,py);cx.stroke();
+        cx.fillStyle='#60a5fa';cx.beginPath();cx.arc(px,py,4,0,Math.PI*2);cx.fill();
+        // label
+        const lx=ctr.x+rt.re*(r+14), ly=ctr.y-rt.im*(r+14);
+        cx.font='9px Courier New';cx.fillStyle='#808098';cx.textAlign='center';cx.textBaseline='middle';
+        cx.fillText('z\u2096='+(k),lx,ly);
+    }
+    cx.font='10px Georgia';cx.fillStyle='#808098';
+    cx.textAlign='left';cx.textBaseline='bottom';cx.fillText('Re',w-20,ctr.y-4);
+    cx.textAlign='left';cx.textBaseline='top';cx.fillText('Im',ctr.x+4,4);
+    // list
+    const list=document.getElementById('rootsList');
+    let html='<div style="color:#60a5fa;font-size:0.9em;margin-bottom:4px">z^'+n+' = 1 has '+n+' roots forming a regular '+n+'-gon:</div>';
+    for(let k=0;k<n;k++){
+        const rt=roots[k];
+        const re=Math.round(rt.re*10000)/10000, im=Math.round(rt.im*10000)/10000;
+        const deg=Math.round(rt.th*180/Math.PI);
+        let rect;
+        if(Math.abs(im)<0.0001) rect=re.toFixed(2);
+        else if(Math.abs(re)<0.0001) rect=(im===1?'':im===-1?'-':im.toFixed(4))+'i';
+        else rect=re.toFixed(4)+(im>=0?' + ':' - ')+Math.abs(im).toFixed(4)+'i';
+        html+='<div>z<sub>'+k+'</sub> = '+rect+' &ensp;<span style="color:#606078">'+deg+'\u00B0</span></div>';
+    }
+    html+='<div style="color:#808098;font-size:0.85em;margin-top:8px">The n-th roots of unity are the solutions of z<sup>n</sup> = 1. They always form a regular polygon inscribed in the unit circle. Their sum is always zero.</div>';
+    list.innerHTML=html;
+}
+
+rootSlider.addEventListener('input',drawRoots);
+drawRoots();
+
+/* ── initial draw ── */
+drawPlane();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vectors &amp; Vector Spaces</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#22d3ee}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(34,211,238,0.13);border-color:rgba(34,211,238,0.4);color:#22d3ee}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .cyan{color:#22d3ee}
+        .math-line .gold{color:#fbbf24}
+        .math-line .green{color:#2ecc71}
+        .math-line .coral{color:#f87171}
+        .math-line .muted{color:#808098}
+        .math-line .white{color:#e0e0e0}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#22d3ee;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#22d3ee}
+        .slider-label{color:#22d3ee;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 300px;min-width:280px}
+        hr.sep{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:8px 0}
+        .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px}
+        @media(max-width:660px){canvas{width:100%!important;height:auto!important}.info-grid{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Vectors &amp; Vector Spaces</h1>
+    <p class="subtitle">Addition, scaling, span &mdash; the geometry of arrows</p>
+
+    <!-- ═══════════════════ SECTION 1: Interactive 2D Vector Canvas ═══════════════════ -->
+    <h2>Interactive Vectors</h2>
+    <canvas id="vecCanvas" width="600" height="500"></canvas>
+
+    <div class="panel" style="margin-top:20px">
+        <h3>Operation</h3>
+        <div class="btn-row" id="opBtns"></div>
+        <div id="scaleRow" style="display:none">
+            <div class="slider-row">
+                <span class="math-line muted">scale =</span>
+                <input type="range" id="scaleSlider" min="0.1" max="3" step="0.1" value="1.5">
+                <span class="slider-label" id="scaleLabel">1.5</span>
+            </div>
+        </div>
+        <div id="mathOut"></div>
+    </div>
+
+    <div class="panel">
+        <h3>Vector Properties</h3>
+        <div class="info-grid" id="vecProps"></div>
+    </div>
+
+    <!-- ═══════════════════ SECTION 2: Span & Linear Combinations ═══════════════════ -->
+    <h2>Span &amp; Linear Combinations</h2>
+    <canvas id="spanCanvas" width="600" height="400"></canvas>
+
+    <div class="panel" style="margin-top:20px">
+        <h3>Scalars</h3>
+        <div class="slider-row">
+            <span class="math-line muted">a =</span>
+            <input type="range" id="sliderA" min="-3" max="3" step="0.1" value="1">
+            <span class="slider-label" id="labelA">1.0</span>
+        </div>
+        <div class="slider-row">
+            <span class="math-line muted">b =</span>
+            <input type="range" id="sliderB" min="-3" max="3" step="0.1" value="1">
+            <span class="slider-label" id="labelB">1.0</span>
+        </div>
+        <div id="spanMath"></div>
+        <div class="btn-row" style="margin-top:10px">
+            <button class="btn" id="randomTarget">Random Target</button>
+            <button class="btn" id="clearTarget">Clear Target</button>
+        </div>
+        <div id="targetInfo" class="math-line muted"></div>
+    </div>
+
+    <!-- ═══════════════════ SECTION 3: Basis & Dimension ═══════════════════ -->
+    <h2>Basis &amp; Dimension</h2>
+    <div class="flex-row">
+        <div class="flex-half">
+            <div class="panel">
+                <h3>Basis Visualization</h3>
+                <canvas id="basisCanvas" width="250" height="250" style="cursor:default"></canvas>
+                <div class="btn-row" style="margin-top:12px">
+                    <button class="btn active" id="basisStd">Standard {e1, e2}</button>
+                    <button class="btn" id="basisCustom">Custom {v, w}</button>
+                </div>
+                <div id="basisMath" class="math-line" style="margin-top:8px"></div>
+            </div>
+        </div>
+        <div class="flex-half">
+            <div class="panel">
+                <h3>Dimension &amp; Coordinates</h3>
+                <div class="math-line cyan" style="font-size:1.1em;margin-bottom:8px">dim(R&sup2;) = 2</div>
+                <div class="math-line muted">Any 2 linearly independent vectors in R&sup2; form a basis. A basis provides a coordinate system: every vector can be written uniquely as a linear combination of the basis vectors.</div>
+                <hr class="sep" style="margin:12px 0">
+                <div id="coordConvert"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════ SECTION 4: Vector Operations Reference ═══════════════════ -->
+    <h2>Vector Operations</h2>
+    <div class="flex-row">
+        <div class="flex-half">
+            <div class="panel">
+                <h3>Dot Product &amp; Angle</h3>
+                <canvas id="dotCanvas" width="250" height="250" style="cursor:default"></canvas>
+                <div id="dotMath" style="margin-top:10px"></div>
+            </div>
+        </div>
+        <div class="flex-half">
+            <div class="panel">
+                <h3>Cross Product &amp; Area</h3>
+                <canvas id="crossCanvas" width="250" height="250" style="cursor:default"></canvas>
+                <div id="crossMath" style="margin-top:10px"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════ SECTION 5: Explanation ═══════════════════ -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            Vectors are not merely arrows on a page &mdash; they are elements of a <em>vector space</em>, an algebraic structure closed under addition and scalar multiplication. Two operations define the space: you can add any two vectors and scale any vector by a real number, and the result always stays within the space.
+            <br><br>
+            The <em>span</em> of a set of vectors is the collection of all their linear combinations &mdash; it tells us what part of space we can reach. When two vectors in R&sup2; are linearly independent (not collinear), their span is the entire plane: every point can be expressed as a&middot;v + b&middot;w for some scalars a and b. Such a pair forms a <em>basis</em>, and the number of vectors in any basis is the <em>dimension</em> of the space.
+            <br><br>
+            The dot product reveals the angle between vectors and measures how much one vector projects onto another. The cross product (in 2D, a scalar) gives the signed area of the parallelogram they form &mdash; it is zero precisely when the vectors are collinear. Together, these operations connect algebra to geometry and underpin everything from physics to machine learning.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   STATE
+   ══════════════════════════════════════════════════════════════ */
+let v = {x: 3, y: 1};
+let w = {x: 1, y: 2};
+let opMode = 'add'; // add, sub, scale
+let drag = null; // 'v', 'w', or null
+let dragCanvas = null;
+
+// Span section
+let scalarA = 1.0, scalarB = 1.0;
+let target = null; // {x, y} or null
+let targetHit = false;
+
+// Basis section
+let basisMode = 'standard'; // standard, custom
+
+/* ══════════════════════════════════════════════════════════════
+   CONSTANTS
+   ══════════════════════════════════════════════════════════════ */
+const SCALE = 40; // pixels per unit
+const CYAN = '#22d3ee';
+const GOLD = '#fbbf24';
+const GREEN = '#2ecc71';
+const CORAL = '#f87171';
+const WHITE = '#e0e0e0';
+
+/* ══════════════════════════════════════════════════════════════
+   CANVAS 1: Interactive Vectors
+   ══════════════════════════════════════════════════════════════ */
+const cvs1 = document.getElementById('vecCanvas');
+const ctx1 = cvs1.getContext('2d');
+const W1 = cvs1.width, H1 = cvs1.height;
+const org1 = {x: W1 / 2, y: H1 / 2};
+
+function toScreen1(vx, vy) { return {x: org1.x + vx * SCALE, y: org1.y - vy * SCALE}; }
+function toWorld1(sx, sy) { return {x: (sx - org1.x) / SCALE, y: -(sy - org1.y) / SCALE}; }
+
+function drawGrid(ctx, W, H, org, scale) {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(0, 0, W, H);
+    const halfW = W / (2 * scale), halfH = H / (2 * scale);
+    // grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    for (let i = Math.ceil(-halfW); i <= Math.floor(halfW); i++) {
+        const sx = org.x + i * scale;
+        ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke();
+    }
+    for (let i = Math.ceil(-halfH); i <= Math.floor(halfH); i++) {
+        const sy = org.y - i * scale;
+        ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
+    }
+    // axes
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, org.y); ctx.lineTo(W, org.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(org.x, 0); ctx.lineTo(org.x, H); ctx.stroke();
+    // tick labels
+    ctx.font = '10px Georgia';
+    ctx.fillStyle = '#505068';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let i = Math.ceil(-halfW); i <= Math.floor(halfW); i++) {
+        if (i === 0) continue;
+        ctx.fillText(i, org.x + i * scale, org.y + 4);
+    }
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = Math.ceil(-halfH); i <= Math.floor(halfH); i++) {
+        if (i === 0) continue;
+        ctx.fillText(i, org.x - 6, org.y - i * scale);
+    }
+    // axis labels
+    ctx.font = '13px Georgia';
+    ctx.fillStyle = '#808098';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('x', W - 20, org.y - 6);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('y', org.x + 8, 6);
+}
+
+function drawArrow(ctx, org, vx, vy, scale, color, lw, label, showComponents) {
+    const sx = org.x + vx * scale;
+    const sy = org.y - vy * scale;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(org.x, org.y);
+    ctx.lineTo(sx, sy);
+    ctx.stroke();
+    // arrowhead
+    const ang = Math.atan2(sy - org.y, sx - org.x);
+    const hl = 10;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx - hl * Math.cos(ang - 0.3), sy - hl * Math.sin(ang - 0.3));
+    ctx.lineTo(sx - hl * Math.cos(ang + 0.3), sy - hl * Math.sin(ang + 0.3));
+    ctx.closePath();
+    ctx.fill();
+    // dot
+    ctx.beginPath();
+    ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+    ctx.fill();
+    // label
+    if (label) {
+        ctx.font = '14px Georgia';
+        ctx.fillStyle = color;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(label, sx + 10, sy - 8);
+    }
+    // component display
+    if (showComponents) {
+        ctx.font = '11px Courier New';
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.8;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        const rx = Math.round(vx * 10) / 10;
+        const ry = Math.round(vy * 10) / 10;
+        ctx.fillText('(' + rx.toFixed(1) + ', ' + ry.toFixed(1) + ')', sx + 10, sy - 2);
+        ctx.globalAlpha = 1;
+    }
+}
+
+function drawDashedLine(ctx, x1, y1, x2, y2, color, lw) {
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw || 1;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+}
+
+function vecMag(vx, vy) { return Math.sqrt(vx * vx + vy * vy); }
+function vecAngle(vx, vy) { return Math.atan2(vy, vx) * 180 / Math.PI; }
+
+function drawCanvas1() {
+    drawGrid(ctx1, W1, H1, org1, SCALE);
+
+    const sv = toScreen1(v.x, v.y);
+    const sw = toScreen1(w.x, w.y);
+
+    if (opMode === 'add') {
+        // Parallelogram law
+        const rx = v.x + w.x, ry = v.y + w.y;
+        const sr = toScreen1(rx, ry);
+        // dashed parallelogram sides
+        drawDashedLine(ctx1, sv.x, sv.y, sr.x, sr.y, 'rgba(46,204,113,0.35)', 1.5);
+        drawDashedLine(ctx1, sw.x, sw.y, sr.x, sr.y, 'rgba(46,204,113,0.35)', 1.5);
+        // shaded parallelogram
+        ctx1.fillStyle = 'rgba(46,204,113,0.05)';
+        ctx1.beginPath();
+        ctx1.moveTo(org1.x, org1.y);
+        ctx1.lineTo(sv.x, sv.y);
+        ctx1.lineTo(sr.x, sr.y);
+        ctx1.lineTo(sw.x, sw.y);
+        ctx1.closePath();
+        ctx1.fill();
+        // result vector
+        drawArrow(ctx1, org1, rx, ry, SCALE, GREEN, 2.5, 'v+w', true);
+    } else if (opMode === 'sub') {
+        // Triangle construction: v - w goes from tip of w to tip of v
+        const rx = v.x - w.x, ry = v.y - w.y;
+        const sr = toScreen1(rx, ry);
+        // dashed line from w tip to v tip
+        drawDashedLine(ctx1, sw.x, sw.y, sv.x, sv.y, 'rgba(248,113,113,0.4)', 1.5);
+        // dashed from origin to result
+        // result vector
+        drawArrow(ctx1, org1, rx, ry, SCALE, CORAL, 2.5, 'v-w', true);
+    } else if (opMode === 'scale') {
+        const s = parseFloat(document.getElementById('scaleSlider').value);
+        const sx = v.x * s, sy = v.y * s;
+        // ghost of original
+        ctx1.globalAlpha = 0.25;
+        drawArrow(ctx1, org1, v.x, v.y, SCALE, CYAN, 1.5, null, false);
+        ctx1.globalAlpha = 1;
+        // scaled vector
+        drawArrow(ctx1, org1, sx, sy, SCALE, CYAN, 2.5, s.toFixed(1) + 'v', true);
+    }
+
+    // Draw v and w (v drawn over w so it's on top when they overlap)
+    if (opMode !== 'scale') {
+        drawArrow(ctx1, org1, v.x, v.y, SCALE, CYAN, 2, 'v', true);
+    } else {
+        // In scale mode still draw w normally and v as the base reference
+        drawArrow(ctx1, org1, w.x, w.y, SCALE, GOLD, 2, 'w', true);
+        // v is shown as ghost + scaled, already drawn above
+        return updateMathOut();
+    }
+    drawArrow(ctx1, org1, w.x, w.y, SCALE, GOLD, 2, 'w', true);
+    updateMathOut();
+}
+
+function updateMathOut() {
+    const d = document.getElementById('mathOut');
+    const vr = {x: Math.round(v.x * 10) / 10, y: Math.round(v.y * 10) / 10};
+    const wr = {x: Math.round(w.x * 10) / 10, y: Math.round(w.y * 10) / 10};
+    let html = '<div class="math-line"><span class="cyan">v = (' + vr.x.toFixed(1) + ', ' + vr.y.toFixed(1) + ')</span></div>';
+    html += '<div class="math-line"><span class="gold">w = (' + wr.x.toFixed(1) + ', ' + wr.y.toFixed(1) + ')</span></div>';
+    html += '<hr class="sep">';
+
+    if (opMode === 'add') {
+        const rx = (vr.x + wr.x).toFixed(1), ry = (vr.y + wr.y).toFixed(1);
+        html += '<div class="math-line"><span class="green">v + w = (' + vr.x.toFixed(1) + ' + ' + wr.x.toFixed(1) + ', ' + vr.y.toFixed(1) + ' + ' + wr.y.toFixed(1) + ') = (' + rx + ', ' + ry + ')</span></div>';
+        html += '<div class="math-line muted">The parallelogram law: the diagonal from the origin is v + w.</div>';
+    } else if (opMode === 'sub') {
+        const rx = (vr.x - wr.x).toFixed(1), ry = (vr.y - wr.y).toFixed(1);
+        html += '<div class="math-line"><span class="coral">v - w = (' + vr.x.toFixed(1) + ' - ' + wr.x.toFixed(1) + ', ' + vr.y.toFixed(1) + ' - ' + wr.y.toFixed(1) + ') = (' + rx + ', ' + ry + ')</span></div>';
+        html += '<div class="math-line muted">Subtraction: the vector from the tip of w to the tip of v.</div>';
+    } else {
+        const s = parseFloat(document.getElementById('scaleSlider').value);
+        const rx = (vr.x * s).toFixed(1), ry = (vr.y * s).toFixed(1);
+        html += '<div class="math-line"><span class="cyan">' + s.toFixed(1) + ' &middot; v = ' + s.toFixed(1) + ' &middot; (' + vr.x.toFixed(1) + ', ' + vr.y.toFixed(1) + ') = (' + rx + ', ' + ry + ')</span></div>';
+        html += '<div class="math-line muted">Scalar multiplication stretches (or shrinks) the vector without changing its direction.</div>';
+    }
+    d.innerHTML = html;
+
+    // Update properties panel
+    updateVecProps();
+}
+
+function updateVecProps() {
+    const d = document.getElementById('vecProps');
+    const vm = vecMag(v.x, v.y), wm = vecMag(w.x, w.y);
+    const va = vecAngle(v.x, v.y), wa = vecAngle(w.x, w.y);
+    let html = '';
+    html += '<div class="math-line"><span class="cyan">|v| = ' + vm.toFixed(3) + '</span></div>';
+    html += '<div class="math-line"><span class="gold">|w| = ' + wm.toFixed(3) + '</span></div>';
+    html += '<div class="math-line"><span class="cyan">angle(v) = ' + va.toFixed(1) + '\u00B0</span></div>';
+    html += '<div class="math-line"><span class="gold">angle(w) = ' + wa.toFixed(1) + '\u00B0</span></div>';
+    d.innerHTML = html;
+}
+
+/* ── Operation buttons ── */
+const ops = [{id: 'add', label: 'Add'}, {id: 'sub', label: 'Subtract'}, {id: 'scale', label: 'Scale v'}];
+function renderOpBtns() {
+    const c = document.getElementById('opBtns');
+    c.innerHTML = ops.map(o => '<button class="btn' + (o.id === opMode ? ' active' : '') + '" data-op="' + o.id + '">' + o.label + '</button>').join('');
+    c.querySelectorAll('.btn').forEach(b => b.addEventListener('click', () => {
+        opMode = b.dataset.op;
+        renderOpBtns();
+        document.getElementById('scaleRow').style.display = opMode === 'scale' ? 'block' : 'none';
+        drawCanvas1();
+    }));
+}
+renderOpBtns();
+
+document.getElementById('scaleSlider').addEventListener('input', function () {
+    document.getElementById('scaleLabel').textContent = parseFloat(this.value).toFixed(1);
+    drawCanvas1();
+});
+
+/* ── Dragging on canvas 1 ── */
+function getCanvasXY(cvs, e) {
+    const r = cvs.getBoundingClientRect();
+    return {x: (e.clientX - r.left) * (cvs.width / r.width), y: (e.clientY - r.top) * (cvs.height / r.height)};
+}
+function dist2(a, b) { return (a.x - b.x) ** 2 + (a.y - b.y) ** 2; }
+
+cvs1.addEventListener('mousedown', e => {
+    const p = getCanvasXY(cvs1, e);
+    const sv = toScreen1(v.x, v.y), sw = toScreen1(w.x, w.y);
+    if (dist2(p, sv) < 400) { drag = 'v'; dragCanvas = 'c1'; }
+    else if (dist2(p, sw) < 400) { drag = 'w'; dragCanvas = 'c1'; }
+    else { drag = null; dragCanvas = null; }
+});
+cvs1.addEventListener('mousemove', e => {
+    if (!drag || dragCanvas !== 'c1') return;
+    const p = getCanvasXY(cvs1, e);
+    const c = toWorld1(p.x, p.y);
+    c.x = Math.round(c.x * 10) / 10;
+    c.y = Math.round(c.y * 10) / 10;
+    if (drag === 'v') { v.x = c.x; v.y = c.y; }
+    else { w.x = c.x; w.y = c.y; }
+    drawAll();
+});
+cvs1.addEventListener('mouseup', () => { drag = null; dragCanvas = null; });
+cvs1.addEventListener('mouseleave', () => { if (dragCanvas === 'c1') { drag = null; dragCanvas = null; } });
+
+// Touch support for canvas 1
+cvs1.addEventListener('touchstart', e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    const r = cvs1.getBoundingClientRect();
+    const p = {x: (t.clientX - r.left) * (W1 / r.width), y: (t.clientY - r.top) * (H1 / r.height)};
+    const sv = toScreen1(v.x, v.y), sw = toScreen1(w.x, w.y);
+    if (dist2(p, sv) < 600) { drag = 'v'; dragCanvas = 'c1'; }
+    else if (dist2(p, sw) < 600) { drag = 'w'; dragCanvas = 'c1'; }
+}, {passive: false});
+cvs1.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!drag || dragCanvas !== 'c1') return;
+    const t = e.touches[0];
+    const r = cvs1.getBoundingClientRect();
+    const p = {x: (t.clientX - r.left) * (W1 / r.width), y: (t.clientY - r.top) * (H1 / r.height)};
+    const c = toWorld1(p.x, p.y);
+    c.x = Math.round(c.x * 10) / 10;
+    c.y = Math.round(c.y * 10) / 10;
+    if (drag === 'v') { v.x = c.x; v.y = c.y; }
+    else { w.x = c.x; w.y = c.y; }
+    drawAll();
+}, {passive: false});
+cvs1.addEventListener('touchend', () => { if (dragCanvas === 'c1') { drag = null; dragCanvas = null; } });
+
+
+/* ══════════════════════════════════════════════════════════════
+   CANVAS 2: Span & Linear Combinations
+   ══════════════════════════════════════════════════════════════ */
+const cvs2 = document.getElementById('spanCanvas');
+const ctx2 = cvs2.getContext('2d');
+const W2 = cvs2.width, H2 = cvs2.height;
+const org2 = {x: W2 / 2, y: H2 / 2};
+
+function toScreen2(vx, vy) { return {x: org2.x + vx * SCALE, y: org2.y - vy * SCALE}; }
+
+function areCollinear(v, w) {
+    return Math.abs(v.x * w.y - v.y * w.x) < 0.05;
+}
+
+function drawCanvas2() {
+    drawGrid(ctx2, W2, H2, org2, SCALE);
+
+    // Shade the span
+    if (areCollinear(v, w)) {
+        // Span is a line through the origin in direction of v (or w)
+        const mag = vecMag(v.x, v.y);
+        if (mag > 0.01) {
+            const nx = v.x / mag, ny = v.y / mag;
+            const len = Math.max(W2, H2);
+            const s1 = toScreen2(nx * len / SCALE * 2, ny * len / SCALE * 2);
+            const s2 = toScreen2(-nx * len / SCALE * 2, -ny * len / SCALE * 2);
+            ctx2.strokeStyle = 'rgba(34,211,238,0.25)';
+            ctx2.lineWidth = 3;
+            ctx2.beginPath();
+            ctx2.moveTo(s1.x, s1.y);
+            ctx2.lineTo(s2.x, s2.y);
+            ctx2.stroke();
+            // Thin highlight band
+            const perpX = -ny, perpY = nx;
+            const bw = 4;
+            ctx2.fillStyle = 'rgba(34,211,238,0.06)';
+            ctx2.beginPath();
+            ctx2.moveTo(s1.x + perpX * bw, s1.y - perpY * bw);
+            ctx2.lineTo(s2.x + perpX * bw, s2.y - perpY * bw);
+            ctx2.lineTo(s2.x - perpX * bw, s2.y + perpY * bw);
+            ctx2.lineTo(s1.x - perpX * bw, s1.y + perpY * bw);
+            ctx2.closePath();
+            ctx2.fill();
+        }
+    } else {
+        // Span = entire R^2 -- shade the whole canvas lightly
+        ctx2.fillStyle = 'rgba(34,211,238,0.03)';
+        ctx2.fillRect(0, 0, W2, H2);
+    }
+
+    // Draw a*v and b*w component vectors as dashed
+    const avx = scalarA * v.x, avy = scalarA * v.y;
+    const bwx = scalarB * w.x, bwy = scalarB * w.y;
+    const rx = avx + bwx, ry = avy + bwy;
+
+    // Dashed: a*v from origin
+    const sav = toScreen2(avx, avy);
+    drawDashedLine(ctx2, org2.x, org2.y, sav.x, sav.y, 'rgba(34,211,238,0.35)', 1.5);
+    // Dashed: b*w from tip of a*v
+    const sr = toScreen2(rx, ry);
+    drawDashedLine(ctx2, sav.x, sav.y, sr.x, sr.y, 'rgba(251,191,36,0.35)', 1.5);
+
+    // Draw base vectors v and w (faded)
+    ctx2.globalAlpha = 0.4;
+    drawArrow(ctx2, org2, v.x, v.y, SCALE, CYAN, 1.5, 'v', false);
+    drawArrow(ctx2, org2, w.x, w.y, SCALE, GOLD, 1.5, 'w', false);
+    ctx2.globalAlpha = 1;
+
+    // Draw result vector
+    drawArrow(ctx2, org2, rx, ry, SCALE, WHITE, 2.5, 'av+bw', false);
+
+    // Target dot
+    if (target) {
+        const st = toScreen2(target.x, target.y);
+        const dist = Math.sqrt((rx - target.x) ** 2 + (ry - target.y) ** 2);
+        targetHit = dist < 0.25;
+        ctx2.fillStyle = targetHit ? '#2ecc71' : '#f87171';
+        ctx2.beginPath();
+        ctx2.arc(st.x, st.y, targetHit ? 8 : 6, 0, Math.PI * 2);
+        ctx2.fill();
+        // pulsing ring
+        ctx2.strokeStyle = targetHit ? 'rgba(46,204,113,0.4)' : 'rgba(248,113,113,0.3)';
+        ctx2.lineWidth = 2;
+        ctx2.beginPath();
+        ctx2.arc(st.x, st.y, targetHit ? 12 : 10, 0, Math.PI * 2);
+        ctx2.stroke();
+        // label
+        ctx2.font = '11px Courier New';
+        ctx2.fillStyle = targetHit ? '#2ecc71' : '#f87171';
+        ctx2.textAlign = 'left';
+        ctx2.textBaseline = 'bottom';
+        ctx2.fillText('target (' + target.x.toFixed(1) + ', ' + target.y.toFixed(1) + ')', st.x + 12, st.y - 4);
+    }
+
+    updateSpanMath(rx, ry);
+}
+
+function updateSpanMath(rx, ry) {
+    const d = document.getElementById('spanMath');
+    let html = '<hr class="sep">';
+    html += '<div class="math-line"><span class="muted">' + scalarA.toFixed(1) + '</span> <span class="cyan">&middot; v</span> + <span class="muted">' + scalarB.toFixed(1) + '</span> <span class="gold">&middot; w</span> = <span class="white">(' + rx.toFixed(1) + ', ' + ry.toFixed(1) + ')</span></div>';
+    if (areCollinear(v, w)) {
+        html += '<div class="math-line coral">v and w are collinear &mdash; span is only a line!</div>';
+    } else {
+        html += '<div class="math-line muted">v and w are linearly independent &mdash; span(v, w) = R&sup2;</div>';
+    }
+    d.innerHTML = html;
+
+    // Target info
+    const ti = document.getElementById('targetInfo');
+    if (target) {
+        if (targetHit) {
+            ti.innerHTML = '<span style="color:#2ecc71">Hit! Target reached with a = ' + scalarA.toFixed(1) + ', b = ' + scalarB.toFixed(1) + '</span>';
+        } else {
+            const dist = Math.sqrt((rx - target.x) ** 2 + (ry - target.y) ** 2);
+            ti.textContent = 'Distance to target: ' + dist.toFixed(2) + ' — adjust a and b to reach it.';
+        }
+    } else {
+        ti.textContent = '';
+    }
+}
+
+document.getElementById('sliderA').addEventListener('input', function () {
+    scalarA = parseFloat(this.value);
+    document.getElementById('labelA').textContent = scalarA.toFixed(1);
+    drawCanvas2();
+});
+document.getElementById('sliderB').addEventListener('input', function () {
+    scalarB = parseFloat(this.value);
+    document.getElementById('labelB').textContent = scalarB.toFixed(1);
+    drawCanvas2();
+});
+
+document.getElementById('randomTarget').addEventListener('click', () => {
+    // Random target within visible canvas area (reasonable range)
+    target = {
+        x: Math.round((Math.random() * 10 - 5) * 10) / 10,
+        y: Math.round((Math.random() * 8 - 4) * 10) / 10
+    };
+    drawCanvas2();
+});
+document.getElementById('clearTarget').addEventListener('click', () => {
+    target = null;
+    targetHit = false;
+    drawCanvas2();
+});
+
+
+/* ══════════════════════════════════════════════════════════════
+   CANVAS 3: Basis & Dimension
+   ══════════════════════════════════════════════════════════════ */
+const cvs3 = document.getElementById('basisCanvas');
+const ctx3 = cvs3.getContext('2d');
+const W3 = cvs3.width, H3 = cvs3.height;
+const org3 = {x: W3 / 2, y: H3 / 2};
+const BSCALE = 35;
+
+function toScreen3(vx, vy) { return {x: org3.x + vx * BSCALE, y: org3.y - vy * BSCALE}; }
+
+function drawCanvas3() {
+    // Mini grid
+    ctx3.clearRect(0, 0, W3, H3);
+    ctx3.fillStyle = '#0a0a1a';
+    ctx3.fillRect(0, 0, W3, H3);
+    const halfW = W3 / (2 * BSCALE), halfH = H3 / (2 * BSCALE);
+    ctx3.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx3.lineWidth = 1;
+    for (let i = Math.ceil(-halfW); i <= Math.floor(halfW); i++) {
+        const sx = org3.x + i * BSCALE;
+        ctx3.beginPath(); ctx3.moveTo(sx, 0); ctx3.lineTo(sx, H3); ctx3.stroke();
+    }
+    for (let i = Math.ceil(-halfH); i <= Math.floor(halfH); i++) {
+        const sy = org3.y - i * BSCALE;
+        ctx3.beginPath(); ctx3.moveTo(0, sy); ctx3.lineTo(W3, sy); ctx3.stroke();
+    }
+    ctx3.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx3.lineWidth = 1.5;
+    ctx3.beginPath(); ctx3.moveTo(0, org3.y); ctx3.lineTo(W3, org3.y); ctx3.stroke();
+    ctx3.beginPath(); ctx3.moveTo(org3.x, 0); ctx3.lineTo(org3.x, H3); ctx3.stroke();
+
+    if (basisMode === 'standard') {
+        // e1 and e2
+        drawArrow(ctx3, org3, 1, 0, BSCALE, CYAN, 2, 'e1', false);
+        drawArrow(ctx3, org3, 0, 1, BSCALE, GOLD, 2, 'e2', false);
+        // Show a sample point
+        ctx3.globalAlpha = 0.5;
+        drawArrow(ctx3, org3, v.x, v.y, BSCALE, '#808098', 1, '', false);
+        ctx3.globalAlpha = 1;
+        // component projection
+        const sv = toScreen3(v.x, v.y);
+        const svx = toScreen3(v.x, 0);
+        const svy = toScreen3(0, v.y);
+        drawDashedLine(ctx3, sv.x, sv.y, svx.x, svx.y, 'rgba(34,211,238,0.3)', 1);
+        drawDashedLine(ctx3, sv.x, sv.y, svy.x, svy.y, 'rgba(251,191,36,0.3)', 1);
+        // label
+        ctx3.font = '10px Courier New';
+        ctx3.fillStyle = '#808098';
+        ctx3.textAlign = 'left';
+        ctx3.textBaseline = 'bottom';
+        ctx3.fillText('v = ' + v.x.toFixed(1) + 'e1 + ' + v.y.toFixed(1) + 'e2', sv.x + 6, sv.y - 6);
+    } else {
+        // Custom basis {v, w}
+        drawArrow(ctx3, org3, v.x, v.y, BSCALE, CYAN, 2, 'v', false);
+        drawArrow(ctx3, org3, w.x, w.y, BSCALE, GOLD, 2, 'w', false);
+        // Show e1 in terms of custom basis (if possible)
+        if (!areCollinear(v, w)) {
+            // Solve: a*v + b*w = e1 and a*v + b*w = e2
+            const det = v.x * w.y - v.y * w.x;
+            const a1 = (1 * w.y - 0 * w.x) / det;
+            const b1 = (v.x * 0 - v.y * 1) / det;
+            const a2 = (0 * w.y - 1 * w.x) / det;
+            const b2 = (v.x * 1 - v.y * 0) / det;
+            // Draw e1 and e2 as faded
+            ctx3.globalAlpha = 0.35;
+            drawArrow(ctx3, org3, 1, 0, BSCALE, '#808098', 1.5, 'e1', false);
+            drawArrow(ctx3, org3, 0, 1, BSCALE, '#808098', 1.5, 'e2', false);
+            ctx3.globalAlpha = 1;
+            // Show decomposition labels
+            ctx3.font = '9px Courier New';
+            ctx3.fillStyle = '#808098';
+            ctx3.textAlign = 'left';
+            ctx3.textBaseline = 'top';
+            const se1 = toScreen3(1, 0);
+            ctx3.fillText(a1.toFixed(2) + 'v + ' + b1.toFixed(2) + 'w', se1.x + 4, se1.y + 6);
+            const se2 = toScreen3(0, 1);
+            ctx3.fillText(a2.toFixed(2) + 'v + ' + b2.toFixed(2) + 'w', se2.x + 4, se2.y + 6);
+        }
+    }
+
+    updateBasisMath();
+}
+
+function updateBasisMath() {
+    const d = document.getElementById('basisMath');
+    const cd = document.getElementById('coordConvert');
+    if (basisMode === 'standard') {
+        d.innerHTML = '<span class="cyan">e1 = (1, 0)</span> &ensp; <span class="gold">e2 = (0, 1)</span>';
+        cd.innerHTML = '<div class="math-line muted">Standard coordinates of v:</div>' +
+            '<div class="math-line"><span class="cyan">v = ' + v.x.toFixed(1) + ' e1 + ' + v.y.toFixed(1) + ' e2</span></div>' +
+            '<div class="math-line"><span class="cyan">[v]<sub>std</sub> = (' + v.x.toFixed(1) + ', ' + v.y.toFixed(1) + ')</span></div>';
+    } else {
+        d.innerHTML = '<span class="cyan">b1 = v = (' + v.x.toFixed(1) + ', ' + v.y.toFixed(1) + ')</span><br><span class="gold">b2 = w = (' + w.x.toFixed(1) + ', ' + w.y.toFixed(1) + ')</span>';
+        if (areCollinear(v, w)) {
+            cd.innerHTML = '<div class="math-line coral">v and w are collinear &mdash; they do not form a basis for R&sup2;.</div>';
+        } else {
+            const det = v.x * w.y - v.y * w.x;
+            // Express e1 in custom basis
+            const a1 = (1 * w.y - 0 * w.x) / det;
+            const b1 = (v.x * 0 - v.y * 1) / det;
+            const a2 = (0 * w.y - 1 * w.x) / det;
+            const b2 = (v.x * 1 - v.y * 0) / det;
+            cd.innerHTML = '<div class="math-line muted">Change of basis (standard to custom):</div>' +
+                '<div class="math-line">e1 = <span class="cyan">' + a1.toFixed(2) + ' v</span> + <span class="gold">' + b1.toFixed(2) + ' w</span></div>' +
+                '<div class="math-line">e2 = <span class="cyan">' + a2.toFixed(2) + ' v</span> + <span class="gold">' + b2.toFixed(2) + ' w</span></div>' +
+                '<hr class="sep">' +
+                '<div class="math-line muted">Conversion formula:</div>' +
+                '<div class="math-line">[x]<sub>{v,w}</sub> = M<sup>-1</sup> [x]<sub>std</sub></div>' +
+                '<div class="math-line muted">where M = [v | w] is the matrix with v, w as columns.</div>' +
+                '<div class="math-line muted">det(M) = ' + det.toFixed(3) + (Math.abs(det) > 0.01 ? ' (invertible)' : ' (singular!)') + '</div>';
+        }
+    }
+}
+
+document.getElementById('basisStd').addEventListener('click', () => {
+    basisMode = 'standard';
+    document.getElementById('basisStd').classList.add('active');
+    document.getElementById('basisCustom').classList.remove('active');
+    drawCanvas3();
+});
+document.getElementById('basisCustom').addEventListener('click', () => {
+    basisMode = 'custom';
+    document.getElementById('basisCustom').classList.add('active');
+    document.getElementById('basisStd').classList.remove('active');
+    drawCanvas3();
+});
+
+
+/* ══════════════════════════════════════════════════════════════
+   CANVAS 4a: Dot Product
+   ══════════════════════════════════════════════════════════════ */
+const cvs4a = document.getElementById('dotCanvas');
+const ctx4a = cvs4a.getContext('2d');
+const W4a = cvs4a.width, H4a = cvs4a.height;
+const org4a = {x: W4a / 2, y: H4a / 2};
+const DSCALE = 30;
+
+function toScreen4a(vx, vy) { return {x: org4a.x + vx * DSCALE, y: org4a.y - vy * DSCALE}; }
+
+function drawCanvas4a() {
+    ctx4a.clearRect(0, 0, W4a, H4a);
+    ctx4a.fillStyle = '#0a0a1a';
+    ctx4a.fillRect(0, 0, W4a, H4a);
+    // axes
+    ctx4a.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx4a.lineWidth = 1;
+    ctx4a.beginPath(); ctx4a.moveTo(0, org4a.y); ctx4a.lineTo(W4a, org4a.y); ctx4a.stroke();
+    ctx4a.beginPath(); ctx4a.moveTo(org4a.x, 0); ctx4a.lineTo(org4a.x, H4a); ctx4a.stroke();
+
+    // Draw vectors
+    drawArrow(ctx4a, org4a, v.x, v.y, DSCALE, CYAN, 2, 'v', false);
+    drawArrow(ctx4a, org4a, w.x, w.y, DSCALE, GOLD, 2, 'w', false);
+
+    // Draw angle arc between v and w
+    const angV = Math.atan2(v.y, v.x);
+    const angW = Math.atan2(w.y, w.x);
+    const dot = v.x * w.x + v.y * w.y;
+    const magV = vecMag(v.x, v.y);
+    const magW = vecMag(w.x, w.y);
+    const isOrthogonal = Math.abs(dot) < 0.1 * magV * magW && magV > 0.1 && magW > 0.1;
+
+    if (magV > 0.1 && magW > 0.1) {
+        // Draw angle arc
+        const arcR = 25;
+        ctx4a.strokeStyle = isOrthogonal ? 'rgba(46,204,113,0.7)' : 'rgba(255,255,255,0.3)';
+        ctx4a.lineWidth = isOrthogonal ? 2.5 : 1.5;
+        // Draw arc from angV to angW (shorter path)
+        let startAng = -angV;
+        let endAng = -angW;
+        // Normalize
+        ctx4a.beginPath();
+        ctx4a.arc(org4a.x, org4a.y, arcR, startAng, endAng, startAng > endAng);
+        ctx4a.stroke();
+
+        // If orthogonal, draw the right-angle box
+        if (isOrthogonal) {
+            const boxSize = 10;
+            const midAng = (angV + angW) / 2;
+            // unit vectors
+            const uvx = v.x / magV, uvy = v.y / magV;
+            const uwx = w.x / magW, uwy = w.y / magW;
+            const p1 = toScreen4a(uvx * boxSize / DSCALE, uvy * boxSize / DSCALE);
+            const p2 = toScreen4a((uvx + uwx) * boxSize / DSCALE, (uvy + uwy) * boxSize / DSCALE);
+            const p3 = toScreen4a(uwx * boxSize / DSCALE, uwy * boxSize / DSCALE);
+            ctx4a.strokeStyle = 'rgba(46,204,113,0.5)';
+            ctx4a.lineWidth = 1.5;
+            ctx4a.beginPath();
+            ctx4a.moveTo(p1.x, p1.y);
+            ctx4a.lineTo(p2.x, p2.y);
+            ctx4a.lineTo(p3.x, p3.y);
+            ctx4a.stroke();
+        }
+
+        // Projection of w onto v
+        const projScalar = dot / (magV * magV);
+        const projX = projScalar * v.x, projY = projScalar * v.y;
+        const sp = toScreen4a(projX, projY);
+        const sw = toScreen4a(w.x, w.y);
+        drawDashedLine(ctx4a, sw.x, sw.y, sp.x, sp.y, 'rgba(255,255,255,0.15)', 1);
+        ctx4a.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx4a.beginPath();
+        ctx4a.arc(sp.x, sp.y, 3, 0, Math.PI * 2);
+        ctx4a.fill();
+    }
+
+    // Math output
+    const theta = (magV > 0.01 && magW > 0.01) ? Math.acos(Math.max(-1, Math.min(1, dot / (magV * magW)))) * 180 / Math.PI : 0;
+    const d = document.getElementById('dotMath');
+    let html = '<div class="math-line"><span class="cyan">v</span> &middot; <span class="gold">w</span> = ' + dot.toFixed(2) + '</div>';
+    html += '<div class="math-line muted">|v||w|cos(&theta;) = ' + magV.toFixed(2) + ' &times; ' + magW.toFixed(2) + ' &times; cos(' + theta.toFixed(1) + '\u00B0)</div>';
+    html += '<div class="math-line muted">&theta; = ' + theta.toFixed(1) + '\u00B0</div>';
+    if (isOrthogonal) {
+        html += '<div class="math-line green">Orthogonal! v &middot; w = 0</div>';
+    }
+    d.innerHTML = html;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   CANVAS 4b: Cross Product (2D) & Parallelogram Area
+   ══════════════════════════════════════════════════════════════ */
+const cvs4b = document.getElementById('crossCanvas');
+const ctx4b = cvs4b.getContext('2d');
+const W4b = cvs4b.width, H4b = cvs4b.height;
+const org4b = {x: W4b / 2, y: H4b / 2};
+
+function toScreen4b(vx, vy) { return {x: org4b.x + vx * DSCALE, y: org4b.y - vy * DSCALE}; }
+
+function drawCanvas4b() {
+    ctx4b.clearRect(0, 0, W4b, H4b);
+    ctx4b.fillStyle = '#0a0a1a';
+    ctx4b.fillRect(0, 0, W4b, H4b);
+    // axes
+    ctx4b.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx4b.lineWidth = 1;
+    ctx4b.beginPath(); ctx4b.moveTo(0, org4b.y); ctx4b.lineTo(W4b, org4b.y); ctx4b.stroke();
+    ctx4b.beginPath(); ctx4b.moveTo(org4b.x, 0); ctx4b.lineTo(org4b.x, H4b); ctx4b.stroke();
+
+    // Draw parallelogram
+    const sv = toScreen4b(v.x, v.y);
+    const sw = toScreen4b(w.x, w.y);
+    const svw = toScreen4b(v.x + w.x, v.y + w.y);
+
+    const cross = v.x * w.y - v.y * w.x;
+
+    // Fill parallelogram
+    const fillColor = cross >= 0 ? 'rgba(34,211,238,0.08)' : 'rgba(248,113,113,0.08)';
+    ctx4b.fillStyle = fillColor;
+    ctx4b.beginPath();
+    ctx4b.moveTo(org4b.x, org4b.y);
+    ctx4b.lineTo(sv.x, sv.y);
+    ctx4b.lineTo(svw.x, svw.y);
+    ctx4b.lineTo(sw.x, sw.y);
+    ctx4b.closePath();
+    ctx4b.fill();
+
+    // Parallelogram outline
+    const strokeColor = cross >= 0 ? 'rgba(34,211,238,0.3)' : 'rgba(248,113,113,0.3)';
+    ctx4b.strokeStyle = strokeColor;
+    ctx4b.lineWidth = 1.5;
+    ctx4b.beginPath();
+    ctx4b.moveTo(org4b.x, org4b.y);
+    ctx4b.lineTo(sv.x, sv.y);
+    ctx4b.lineTo(svw.x, svw.y);
+    ctx4b.lineTo(sw.x, sw.y);
+    ctx4b.closePath();
+    ctx4b.stroke();
+
+    // Draw vectors
+    drawArrow(ctx4b, org4b, v.x, v.y, DSCALE, CYAN, 2, 'v', false);
+    drawArrow(ctx4b, org4b, w.x, w.y, DSCALE, GOLD, 2, 'w', false);
+
+    // Area label in center of parallelogram
+    const cx = (org4b.x + sv.x + svw.x + sw.x) / 4;
+    const cy = (org4b.y + sv.y + svw.y + sw.y) / 4;
+    ctx4b.font = '12px Courier New';
+    ctx4b.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx4b.textAlign = 'center';
+    ctx4b.textBaseline = 'middle';
+    ctx4b.fillText('area = ' + Math.abs(cross).toFixed(2), cx, cy);
+
+    // Math output
+    const d = document.getElementById('crossMath');
+    let html = '<div class="math-line"><span class="cyan">v</span> &times; <span class="gold">w</span> = v<sub>x</sub>w<sub>y</sub> - v<sub>y</sub>w<sub>x</sub></div>';
+    html += '<div class="math-line muted">= ' + v.x.toFixed(1) + '&times;' + w.y.toFixed(1) + ' - ' + v.y.toFixed(1) + '&times;' + w.x.toFixed(1) + ' = <span style="color:' + (cross >= 0 ? CYAN : CORAL) + '">' + cross.toFixed(2) + '</span></div>';
+    html += '<div class="math-line muted">|v &times; w| = ' + Math.abs(cross).toFixed(2) + ' (parallelogram area)</div>';
+    if (Math.abs(cross) < 0.05) {
+        html += '<div class="math-line coral">Cross product is ~0: vectors are collinear.</div>';
+    } else {
+        html += '<div class="math-line muted">Sign: ' + (cross > 0 ? 'v is counterclockwise from w (positive orientation)' : 'v is clockwise from w (negative orientation)') + '</div>';
+    }
+    d.innerHTML = html;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   DRAW ALL — called whenever v or w changes
+   ══════════════════════════════════════════════════════════════ */
+function drawAll() {
+    drawCanvas1();
+    drawCanvas2();
+    drawCanvas3();
+    drawCanvas4a();
+    drawCanvas4b();
+}
+
+/* ── Initial draw ── */
+drawAll();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

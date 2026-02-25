@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limits &amp; Continuity</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fb923c}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.05em;font-weight:400;color:#fb923c;margin-bottom:10px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);max-width:100%;height:auto}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:20px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+        .fn-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .fn-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .fn-btn.active{background:rgba(251,146,60,0.13);border-color:rgba(251,146,60,0.4);color:#fb923c}
+        .slider-row{display:flex;align-items:center;gap:14px;margin-bottom:10px}
+        .slider-row label{min-width:28px;color:#808098;font-size:0.9em}
+        .slider-row input[type=range]{flex:1;accent-color:#fb923c}
+        .slider-row .val{min-width:52px;text-align:right;font-family:'Courier New',monospace;font-size:0.9em;color:#fb923c}
+        .status{font-size:0.9em;padding:8px 14px;border-radius:6px;margin-top:10px;font-family:'Courier New',monospace}
+        .status-ok{background:rgba(46,204,113,0.1);border:1px solid rgba(46,204,113,0.25);color:#2ecc71}
+        .status-bad{background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.25);color:#e74c3c}
+        .cont-row{display:flex;gap:12px;align-items:center;margin-bottom:6px;font-size:0.92em}
+        .check{font-family:'Courier New',monospace;font-size:1.1em;min-width:18px}
+        .pass{color:#2ecc71}.fail{color:#e74c3c}
+        .cont-result{font-size:0.95em;margin-top:8px;padding:8px 14px;border-radius:6px}
+        .game-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+        .game-btn{background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.35);color:#fb923c;padding:6px 16px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.9em;transition:all 0.2s}
+        .game-btn:hover{background:rgba(251,146,60,0.22)}
+        .sided-row{display:flex;gap:20px;flex-wrap:wrap;font-size:0.92em;margin-bottom:6px}
+        .sided-item{font-family:'Courier New',monospace}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px}
+        .explain-name{color:#fb923c;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .muted{color:#808098}
+        @media(max-width:640px){.container{padding:16px 12px}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Limits &amp; Continuity</h1>
+    <p class="subtitle">The epsilon-delta definition &mdash; the foundation of all calculus</p>
+
+    <canvas id="graph" width="700" height="400"></canvas>
+
+    <div class="panel" style="margin-top:20px">
+        <h2>Epsilon &amp; Delta Controls</h2>
+        <div class="slider-row">
+            <label>&epsilon;</label>
+            <input type="range" id="epsSlider" min="0.01" max="2" step="0.01" value="0.5">
+            <span class="val" id="epsVal">0.50</span>
+        </div>
+        <div class="slider-row">
+            <label>&delta;</label>
+            <input type="range" id="delSlider" min="0.01" max="2" step="0.01" value="0.5">
+            <span class="val" id="delVal">0.50</span>
+        </div>
+        <div class="status" id="edStatus"></div>
+    </div>
+
+    <div class="panel">
+        <h2>Function Presets</h2>
+        <div class="btn-row" id="fnBtns"></div>
+    </div>
+
+    <div class="panel">
+        <h2>The Epsilon-Delta Challenge</h2>
+        <p class="muted" style="font-size:0.88em;margin-bottom:10px">The computer picks an &epsilon;. Find a &delta; that works &mdash; so the curve stays inside the &epsilon;-band whenever it is inside the &delta;-band.</p>
+        <div class="game-row">
+            <span class="muted" id="gamePrompt">Press "New Challenge" to begin.</span>
+            <button class="game-btn" id="gameNew">New Challenge</button>
+            <button class="game-btn" id="gameCheck">Check My &delta;</button>
+        </div>
+        <div class="status" id="gameStatus" style="display:none"></div>
+    </div>
+
+    <div class="panel">
+        <h2>One-Sided Limits</h2>
+        <div class="sided-row" id="sidedInfo"></div>
+    </div>
+
+    <div class="panel">
+        <h2>Continuity at x = a</h2>
+        <div id="contChecks"></div>
+        <div class="cont-result" id="contResult"></div>
+    </div>
+
+    <div class="explain">
+        <div class="explain-name" id="eName"></div>
+        <div class="explain-text" id="eText"></div>
+    </div>
+</div>
+
+<script>
+const cvs=document.getElementById("graph"),ctx=cvs.getContext("2d"),W=cvs.width,H=cvs.height;
+
+const presets=[
+    {label:"f(x) = x\u00B2", a:2, L:4, fn:x=>x*x, hasPt:true, cont:true,
+     insight:"A simple continuous polynomial. For any \u03B5, choose \u03B4 small enough and the parabola stays within the band. Continuity is immediate: f(2) = 4 = L."},
+    {label:"f(x) = sin(x)/x", a:0, L:1, fn:x=>x===0?NaN:Math.sin(x)/x, hasPt:false, cont:false,
+     insight:"The most important limit in calculus. Even though sin(0)/0 is undefined (0/0), the ratio approaches 1 as x approaches 0. L'H\u00F4pital's rule confirms this, but geometrically it follows from the squeeze theorem: cos(x) \u2264 sin(x)/x \u2264 1."},
+    {label:"f(x) = |x|/x", a:0, L:null, fn:x=>x===0?NaN:(x>0?1:-1), hasPt:false, cont:false, leftL:-1, rightL:1,
+     insight:"A jump discontinuity. From the left, f(x) = -1; from the right, f(x) = +1. Since the one-sided limits disagree, the two-sided limit does not exist. No \u03B4 can confine the curve within any \u03B5 < 1 band."},
+    {label:"f(x) = sin(1/x)", a:0, L:null, fn:x=>x===0?NaN:Math.sin(1/x), hasPt:false, cont:false,
+     insight:"This function oscillates infinitely rapidly near 0 \u2014 no matter how small the \u03B4-band, the curve visits every value between -1 and 1. The limit simply does not exist: neither one-sided limit settles to a single value."},
+    {label:"f(x) = 1/x\u00B2", a:0, L:Infinity, fn:x=>x===0?NaN:1/(x*x), hasPt:false, cont:false,
+     insight:"An infinite limit \u2014 as x approaches 0, f(x) grows without bound. We write lim = \u221E, but technically the limit 'does not exist' as a finite number. The \u03B5-\u03B4 framework does not apply in the usual sense; instead we say for every M > 0 there exists \u03B4 > 0 such that |x| < \u03B4 implies f(x) > M."},
+    {label:"f(x) = (x\u00B2-1)/(x-1)", a:1, L:2, fn:x=>Math.abs(x-1)<1e-14?NaN:(x*x-1)/(x-1), hasPt:false, cont:false,
+     insight:"Algebraically, (x\u00B2-1)/(x-1) = x+1 for x \u2260 1, so the limit is 2. But f(1) is undefined (0/0), leaving a 'hole' in the graph. This is a removable discontinuity \u2014 we could define f(1) = 2 to make the function continuous."},
+];
+
+let cur=0, eps=0.5, del=0.5, gameActive=false, gameEps=0;
+
+/* --- Graph drawing --- */
+function getViewport(p){
+    let xMin=p.a-4, xMax=p.a+4, yMin, yMax;
+    if(p.L!==null && isFinite(p.L)){yMin=p.L-5;yMax=p.L+5;}
+    else{yMin=-5;yMax=10;}
+    if(p.label.includes("1/x\u00B2")){yMin=-2;yMax=20;}
+    if(p.label.includes("sin(1/x)")){xMin=-2;xMax=2;yMin=-2;yMax=2;}
+    if(p.label.includes("|x|/x")){xMin=-3;xMax=3;yMin=-3;yMax=3;}
+    if(p.label.includes("sin(x)/x")){xMin=-8;xMax=8;yMin=-1;yMax=2;}
+    return{xMin,xMax,yMin,yMax};
+}
+function toPixel(x,y,v){return[(x-v.xMin)/(v.xMax-v.xMin)*W,(1-(y-v.yMin)/(v.yMax-v.yMin))*H];}
+
+function draw(){
+    const p=presets[cur], v=getViewport(p);
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle="#0a0a1a";ctx.fillRect(0,0,W,H);
+
+    /* grid */
+    ctx.strokeStyle="rgba(255,255,255,0.04)";ctx.lineWidth=1;
+    for(let gx=Math.ceil(v.xMin);gx<=v.xMax;gx++){const[px]=toPixel(gx,0,v);ctx.beginPath();ctx.moveTo(px,0);ctx.lineTo(px,H);ctx.stroke();}
+    for(let gy=Math.ceil(v.yMin);gy<=v.yMax;gy++){const[,py]=toPixel(0,gy,v);ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(W,py);ctx.stroke();}
+
+    /* axes */
+    ctx.strokeStyle="rgba(255,255,255,0.2)";ctx.lineWidth=1;
+    const[ax0,ay0]=toPixel(0,v.yMin,v),[ax1,ay1]=toPixel(0,v.yMax,v);
+    ctx.beginPath();ctx.moveTo(ax0,ay0);ctx.lineTo(ax1,ay1);ctx.stroke();
+    const[bx0,by0]=toPixel(v.xMin,0,v),[bx1,by1]=toPixel(v.xMax,0,v);
+    ctx.beginPath();ctx.moveTo(bx0,by0);ctx.lineTo(bx1,by1);ctx.stroke();
+
+    /* axis labels */
+    ctx.font="11px Georgia";ctx.fillStyle="rgba(255,255,255,0.2)";ctx.textAlign="center";ctx.textBaseline="top";
+    for(let gx=Math.ceil(v.xMin);gx<=v.xMax;gx++){if(gx===0)continue;const[px,py]=toPixel(gx,0,v);ctx.fillText(gx,px,py+2);}
+    ctx.textAlign="right";ctx.textBaseline="middle";
+    for(let gy=Math.ceil(v.yMin);gy<=v.yMax;gy++){if(gy===0)continue;const[px,py]=toPixel(0,gy,v);ctx.fillText(gy,px-4,py);}
+
+    const Lfinite=p.L!==null&&isFinite(p.L);
+    const useEps=Lfinite;
+
+    /* epsilon band */
+    if(useEps){
+        const[,yTop]=toPixel(0,p.L+eps,v),[,yBot]=toPixel(0,p.L-eps,v);
+        ctx.fillStyle="rgba(251,146,60,0.08)";ctx.fillRect(0,yTop,W,yBot-yTop);
+        ctx.strokeStyle="rgba(251,146,60,0.3)";ctx.setLineDash([4,4]);ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(0,yTop);ctx.lineTo(W,yTop);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(0,yBot);ctx.lineTo(W,yBot);ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font="11px Georgia";ctx.fillStyle="rgba(251,146,60,0.6)";ctx.textAlign="left";ctx.textBaseline="bottom";
+        ctx.fillText("L+\u03B5="+(p.L+eps).toFixed(2),4,yTop-2);
+        ctx.textBaseline="top";
+        ctx.fillText("L\u2212\u03B5="+(p.L-eps).toFixed(2),4,yBot+2);
+    }
+
+    /* delta band */
+    if(useEps||p.L===null||p.L===Infinity){
+        const[dxL]=toPixel(p.a-del,0,v),[dxR]=toPixel(p.a+del,0,v);
+        ctx.fillStyle="rgba(96,165,250,0.08)";ctx.fillRect(dxL,0,dxR-dxL,H);
+        ctx.strokeStyle="rgba(96,165,250,0.3)";ctx.setLineDash([4,4]);ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(dxL,0);ctx.lineTo(dxL,H);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(dxR,0);ctx.lineTo(dxR,H);ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font="11px Georgia";ctx.fillStyle="rgba(96,165,250,0.6)";ctx.textAlign="center";ctx.textBaseline="top";
+        ctx.fillText("a\u2212\u03B4",dxL,H-14);ctx.fillText("a+\u03B4",dxR,H-14);
+    }
+
+    /* dashed lines at x=a and y=L */
+    ctx.setLineDash([6,4]);ctx.lineWidth=1;
+    const[apx]=toPixel(p.a,0,v);
+    ctx.strokeStyle="rgba(255,255,255,0.15)";ctx.beginPath();ctx.moveTo(apx,0);ctx.lineTo(apx,H);ctx.stroke();
+    if(Lfinite){const[,lpy]=toPixel(0,p.L,v);ctx.strokeStyle="rgba(255,255,255,0.15)";ctx.beginPath();ctx.moveTo(0,lpy);ctx.lineTo(W,lpy);ctx.stroke();}
+    ctx.setLineDash([]);
+
+    /* sample curve */
+    const N=2000, xs=[];
+    for(let i=0;i<=N;i++)xs.push(v.xMin+(v.xMax-v.xMin)*i/N);
+
+    /* draw curve in segments, colored by band membership */
+    function drawSegments(){
+        for(let i=0;i<xs.length-1;i++){
+            const x0=xs[i],x1=xs[i+1];
+            const y0=p.fn(x0),y1=p.fn(x1);
+            if(!isFinite(y0)||!isFinite(y1))continue;
+            if(Math.abs(y1-y0)>(v.yMax-v.yMin)*0.8)continue; /* skip discontinuity jumps */
+            const xm=(x0+x1)/2, ym=p.fn(xm);
+            const inDelta=Math.abs(xm-p.a)<del && Math.abs(xm-p.a)>1e-12;
+            let color="#fb923c";
+            if(useEps&&inDelta){
+                const inEps=Math.abs(ym-p.L)<eps;
+                color=inEps?"#2ecc71":"#e74c3c";
+            }else if((p.L===null||p.L===Infinity)&&inDelta){
+                color="#e74c3c";
+            }
+            const[px0,py0]=toPixel(x0,y0,v),[px1,py1]=toPixel(x1,y1,v);
+            if(py0<-200||py0>H+200||py1<-200||py1>H+200)continue;
+            ctx.strokeStyle=color;ctx.lineWidth=2;
+            ctx.beginPath();ctx.moveTo(px0,py0);ctx.lineTo(px1,py1);ctx.stroke();
+        }
+    }
+    drawSegments();
+
+    /* hollow circle for removable discontinuity */
+    if(!p.hasPt&&Lfinite){
+        const[cx,cy]=toPixel(p.a,p.L,v);
+        ctx.strokeStyle="#fb923c";ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx,cy,5,0,Math.PI*2);ctx.stroke();
+        ctx.fillStyle="#0a0a1a";ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fill();
+    }
+    /* solid point for continuous function */
+    if(p.hasPt&&Lfinite){
+        const[cx,cy]=toPixel(p.a,p.L,v);
+        ctx.fillStyle="#fb923c";ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fill();
+    }
+
+    /* title on canvas */
+    ctx.font="15px Georgia";ctx.fillStyle="#fb923c";ctx.textAlign="left";ctx.textBaseline="top";
+    ctx.fillText(p.label+",  a = "+p.a+(Lfinite?",  L = "+p.L:(p.L===Infinity?",  L = \u221E":",  limit DNE")),12,10);
+}
+
+/* --- Max valid delta for a given epsilon --- */
+function computeMaxDelta(p,e){
+    if(p.L===null||!isFinite(p.L))return 0;
+    let lo=0,hi=3;
+    function valid(d){
+        const steps=500;
+        for(let i=-steps;i<=steps;i++){
+            if(i===0)continue;
+            const x=p.a+d*i/steps;
+            const y=p.fn(x);
+            if(!isFinite(y))continue;
+            if(Math.abs(y-p.L)>=e)return false;
+        }
+        return true;
+    }
+    if(!valid(0.001))return 0;
+    for(let iter=0;iter<50;iter++){
+        const mid=(lo+hi)/2;
+        if(valid(mid))lo=mid;else hi=mid;
+    }
+    return lo;
+}
+
+/* --- One-sided limits (numerical) --- */
+function onesidedLimits(p){
+    const h=1e-7;
+    const fromLeft=p.fn(p.a-h), fromRight=p.fn(p.a+h);
+    return{left:fromLeft, right:fromRight};
+}
+
+/* --- UI updates --- */
+function updateStatus(){
+    const p=presets[cur], el=document.getElementById("edStatus");
+    if(p.L===null||!isFinite(p.L)){
+        if(p.L===Infinity){
+            el.className="status status-bad";
+            el.textContent="Limit is infinite \u2014 the standard \u03B5-\u03B4 definition does not apply. For every M > 0, there exists \u03B4 > 0 such that 0 < |x \u2212 a| < \u03B4 implies f(x) > M.";
+        }else{
+            el.className="status status-bad";
+            el.textContent="Limit does not exist \u2014 no \u03B4 can confine f(x) to any finite \u03B5-band.";
+        }
+        return;
+    }
+    const maxD=computeMaxDelta(p,eps);
+    if(del<=maxD+0.005){
+        el.className="status status-ok";
+        el.textContent="For \u03B5 = "+eps.toFixed(2)+", \u03B4 = "+del.toFixed(2)+" works.  Max valid \u03B4 \u2264 "+maxD.toFixed(3);
+    }else{
+        el.className="status status-bad";
+        el.textContent="For \u03B5 = "+eps.toFixed(2)+", \u03B4 = "+del.toFixed(2)+" is too large!  Need \u03B4 \u2264 "+maxD.toFixed(3);
+    }
+}
+
+function updateSided(){
+    const p=presets[cur], el=document.getElementById("sidedInfo");
+    const s=onesidedLimits(p);
+    let html="";
+    if(isFinite(s.left)){
+        html+='<span class="sided-item">lim(x\u2192'+p.a+'\u207B) = '+s.left.toFixed(4)+'</span>';
+    }else{
+        html+='<span class="sided-item">lim(x\u2192'+p.a+'\u207B) = '+(s.left>0?'+':'\u2212')+'\u221E</span>';
+    }
+    if(isFinite(s.right)){
+        html+='<span class="sided-item">lim(x\u2192'+p.a+'\u207A) = '+s.right.toFixed(4)+'</span>';
+    }else{
+        html+='<span class="sided-item">lim(x\u2192'+p.a+'\u207A) = '+(s.right>0?'+':'\u2212')+'\u221E</span>';
+    }
+    const agree=isFinite(s.left)&&isFinite(s.right)&&Math.abs(s.left-s.right)<0.001;
+    if(agree){
+        html+='<span style="color:#2ecc71;margin-left:10px">L\u207B = L\u207A \u2014 two-sided limit exists</span>';
+    }else{
+        html+='<span style="color:#e74c3c;margin-left:10px">L\u207B \u2260 L\u207A \u2014 two-sided limit does not exist</span>';
+    }
+    el.innerHTML=html;
+}
+
+function updateContinuity(){
+    const p=presets[cur], el=document.getElementById("contChecks"), res=document.getElementById("contResult");
+    const fa=p.fn(p.a), faDefined=isFinite(fa);
+    const limExists=p.L!==null&&isFinite(p.L);
+    const limEqFa=faDefined&&limExists&&Math.abs(fa-p.L)<0.001;
+    const c1=faDefined, c2=limExists, c3=limEqFa;
+    let html="";
+    html+='<div class="cont-row"><span class="check '+(c1?"pass":"fail")+'">'+(c1?"\u2713":"\u2717")+'</span> f('+p.a+') is defined'+(c1?" = "+fa.toFixed(4):"")+'</div>';
+    html+='<div class="cont-row"><span class="check '+(c2?"pass":"fail")+'">'+(c2?"\u2713":"\u2717")+'</span> lim(x\u2192'+p.a+') f(x) exists'+(c2?" = "+p.L:"")+'</div>';
+    html+='<div class="cont-row"><span class="check '+(c3?"pass":"fail")+'">'+(c3?"\u2713":"\u2717")+'</span> lim(x\u2192'+p.a+') f(x) = f('+p.a+')</div>';
+    el.innerHTML=html;
+    if(c1&&c2&&c3){
+        res.className="cont-result status-ok";
+        res.textContent="f is continuous at x = "+p.a;
+    }else{
+        let reason="";
+        if(!c1)reason="f("+p.a+") is not defined";
+        else if(!c2)reason="the limit does not exist (or is infinite)";
+        else reason="the limit ("+p.L+") does not equal f("+p.a+") = "+fa.toFixed(4);
+        res.className="cont-result status-bad";
+        res.textContent="f is NOT continuous at x = "+p.a+" \u2014 "+reason;
+    }
+}
+
+function updateInsight(){
+    const p=presets[cur];
+    document.getElementById("eName").textContent=p.label;
+    document.getElementById("eText").textContent=p.insight;
+}
+
+function renderButtons(){
+    const el=document.getElementById("fnBtns");
+    let html="";
+    presets.forEach((p,i)=>{
+        html+='<button class="fn-btn'+(i===cur?" active":"")+'" data-i="'+i+'">'+p.label+'</button>';
+    });
+    el.innerHTML=html;
+    el.querySelectorAll(".fn-btn").forEach(b=>{
+        b.addEventListener("click",()=>{cur=parseInt(b.dataset.i);gameActive=false;document.getElementById("gameStatus").style.display="none";document.getElementById("gamePrompt").textContent='Press "New Challenge" to begin.';refresh();});
+    });
+}
+
+function refresh(){
+    draw();updateStatus();updateSided();updateContinuity();updateInsight();renderButtons();
+}
+
+/* sliders */
+document.getElementById("epsSlider").addEventListener("input",function(){
+    eps=parseFloat(this.value);document.getElementById("epsVal").textContent=eps.toFixed(2);draw();updateStatus();
+});
+document.getElementById("delSlider").addEventListener("input",function(){
+    del=parseFloat(this.value);document.getElementById("delVal").textContent=del.toFixed(2);draw();updateStatus();
+});
+
+/* --- Epsilon-Delta Game --- */
+document.getElementById("gameNew").addEventListener("click",function(){
+    const p=presets[cur];
+    if(p.L===null||!isFinite(p.L)){
+        const gs=document.getElementById("gameStatus");
+        gs.style.display="block";gs.className="status status-bad";
+        gs.textContent="This function's limit does not exist (or is infinite). Pick a function with a finite limit for the challenge.";
+        return;
+    }
+    gameActive=true;
+    gameEps=Math.round((0.1+Math.random()*1.4)*100)/100;
+    eps=gameEps;
+    document.getElementById("epsSlider").value=eps;
+    document.getElementById("epsVal").textContent=eps.toFixed(2);
+    del=1.0;
+    document.getElementById("delSlider").value=del;
+    document.getElementById("delVal").textContent=del.toFixed(2);
+    document.getElementById("gamePrompt").textContent="Challenge: \u03B5 = "+gameEps.toFixed(2)+". Adjust \u03B4 so the curve stays in the \u03B5-band!";
+    document.getElementById("gameStatus").style.display="none";
+    draw();updateStatus();
+});
+
+document.getElementById("gameCheck").addEventListener("click",function(){
+    const gs=document.getElementById("gameStatus");
+    if(!gameActive){gs.style.display="block";gs.className="status status-bad";gs.textContent="Start a new challenge first!";return;}
+    const p=presets[cur];
+    const maxD=computeMaxDelta(p,gameEps);
+    gs.style.display="block";
+    if(del<=maxD+0.005){
+        gs.className="status status-ok";
+        gs.textContent="Your \u03B4 = "+del.toFixed(2)+" works! The maximum valid \u03B4 is "+maxD.toFixed(3)+".";
+    }else{
+        gs.className="status status-bad";
+        gs.textContent="Too large! \u03B4 = "+del.toFixed(2)+" lets the curve escape the \u03B5-band. Maximum valid \u03B4 is "+maxD.toFixed(3)+". Try a smaller value.";
+    }
+});
+
+/* default insight text */
+const defaultInsight="The epsilon-delta definition (Weierstrass, c. 1870) made calculus rigorous after 200 years of intuitive use. It says: for EVERY \u03B5 > 0 (no matter how small), there EXISTS a \u03B4 > 0 such that 0 < |x \u2212 a| < \u03B4 implies |f(x) \u2212 L| < \u03B5. The limit is the value you can get arbitrarily close to.";
+
+/* init */
+refresh();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

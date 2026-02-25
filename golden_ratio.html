@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Golden Ratio &amp; Fibonacci</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fcd34d}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(252,211,77,0.13);border-color:rgba(252,211,77,0.4);color:#fcd34d}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .gold{color:#fcd34d}.math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#fcd34d;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#fcd34d}
+        .slider-label{color:#fcd34d;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 300px;min-width:280px}
+        .phi-display{font-family:'Courier New',monospace;font-size:1.15em;color:#fcd34d;text-align:center;margin:12px 0;letter-spacing:1px}
+        .fib-table{width:100%;border-collapse:collapse;font-family:'Courier New',monospace;font-size:0.82em;margin-top:10px}
+        .fib-table th{color:#808098;font-weight:400;text-align:center;padding:3px 6px;border-bottom:1px solid rgba(255,255,255,0.06)}
+        .fib-table td{color:#c0c0d8;text-align:center;padding:3px 6px}
+        .fib-table td.gold-cell{color:#fcd34d}
+        .cf-level{font-family:'Courier New',monospace;font-size:0.95em;color:#c0c0d8;margin:3px 0}
+        .cf-level .gold{color:#fcd34d}
+        .convergent-row{font-family:'Courier New',monospace;font-size:0.85em;color:#c0c0d8;margin:2px 0;line-height:1.7}
+        .convergent-row .gold{color:#fcd34d}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Golden Ratio &amp; Fibonacci</h1>
+    <p class="subtitle">phi in spirals, art, and nature &mdash; the most irrational number</p>
+
+    <!-- Section 1: Golden Rectangle & Spiral -->
+    <h2>The Golden Rectangle &amp; Spiral</h2>
+    <div class="phi-display" id="phiDisplay"></div>
+    <canvas id="spiralCanvas" width="650" height="450"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div class="btn-row">
+            <button class="btn active" id="spiralReplayBtn">Reset &amp; Replay</button>
+        </div>
+        <div class="math-line"><span class="gold">x&sup2; = x + 1</span> <span class="muted">&rarr;</span> x = (1 + &radic;5) / 2 = 1.6180339887...</div>
+        <div class="math-line muted">Each rectangle subdivides into a square and a smaller golden rectangle, forever.</div>
+    </div>
+
+    <!-- Section 2: Fibonacci Sequence -->
+    <h2>Fibonacci Sequence</h2>
+    <canvas id="fibCanvas" width="700" height="300"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Number of Terms</h3>
+        <div class="slider-row">
+            <span class="math-line muted">n =</span>
+            <input type="range" id="fibSlider" min="5" max="25" value="12">
+            <span class="slider-label" id="fibSliderLabel">12</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="fibAnimBtn">Animate</button>
+        </div>
+        <div style="overflow-x:auto"><table class="fib-table" id="fibTable"></table></div>
+        <div class="math-line" style="margin-top:12px"><span class="gold">Binet's Formula:</span> F(n) = (&phi;<sup>n</sup> - &psi;<sup>n</sup>) / &radic;5, &ensp; where &psi; = (1 - &radic;5)/2</div>
+        <div class="math-line muted">For large n: F(n) &asymp; &phi;<sup>n</sup> / &radic;5</div>
+        <div id="binetVerify" class="math-line muted" style="margin-top:4px"></div>
+    </div>
+
+    <!-- Section 3: Fibonacci in Pascal's Triangle -->
+    <h2>Fibonacci in Pascal's Triangle</h2>
+    <canvas id="pascalCanvas" width="500" height="350" style="cursor:default"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div class="btn-row">
+            <button class="btn" id="pascalAnimBtn">Animate Diagonals</button>
+        </div>
+        <div class="math-line muted">The shallow diagonals of Pascal's triangle sum to Fibonacci numbers.</div>
+        <div class="math-line" id="pascalSums"></div>
+        <div class="math-line muted" style="margin-top:6px">This connects the binomial coefficients (Chapter 4) to the golden ratio (Chapter 10).</div>
+    </div>
+
+    <!-- Section 4: Phi in Geometry -->
+    <h2>Phi in Geometry</h2>
+    <div class="flex-row">
+        <div class="flex-half">
+            <div class="panel">
+                <h3>Pentagon &amp; Pentagram</h3>
+                <canvas id="pentCanvas" width="350" height="350" style="cursor:default"></canvas>
+                <div class="math-line" style="margin-top:8px"><span class="gold">diagonal / side = &phi;</span></div>
+                <div class="math-line muted">The inner pentagon creates another pentagram &mdash; infinite self-similarity at ratio 1/&phi;&sup2;.</div>
+            </div>
+        </div>
+        <div class="flex-half">
+            <div class="panel">
+                <h3>Golden Angle &amp; Phyllotaxis</h3>
+                <canvas id="sunflowerCanvas" width="300" height="300" style="cursor:default"></canvas>
+                <div class="slider-row">
+                    <span class="math-line muted">seeds =</span>
+                    <input type="range" id="sunflowerSlider" min="10" max="500" value="150">
+                    <span class="slider-label" id="sunflowerLabel">150</span>
+                </div>
+                <div class="math-line muted" style="margin-top:4px">Golden angle = 360&deg; / &phi;&sup2; &asymp; 137.508&deg;</div>
+                <div class="math-line muted">This is why sunflowers have Fibonacci numbers of spirals.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 5: The Most Irrational Number -->
+    <h2>The Most Irrational Number</h2>
+    <div class="panel">
+        <h3>Continued Fraction</h3>
+        <div id="cfDisplay"></div>
+        <div class="btn-row" style="margin-top:10px">
+            <button class="btn" id="cfAnimBtn">Animate Build-up</button>
+        </div>
+        <h3 style="margin-top:16px">Convergents</h3>
+        <div id="convergentsList"></div>
+        <canvas id="numberLineCanvas" width="500" height="80" style="margin-top:12px;cursor:default"></canvas>
+        <div class="math-line muted" style="margin-top:10px">Phi is the hardest number to approximate by fractions &mdash; its continued fraction has the slowest possible convergence (all 1s).</div>
+        <h3 style="margin-top:16px">Comparison with &pi;</h3>
+        <div class="math-line"><span class="gold">&phi;</span> = [1; 1, 1, 1, 1, 1, 1, ...] <span class="muted">&mdash; all 1s, slowest convergence</span></div>
+        <div class="math-line"><span style="color:#60a5fa">&pi;</span> = [3; 7, 15, 1, 292, 1, 1, ...] <span class="muted">&mdash; large terms, faster convergence</span></div>
+        <div class="math-line muted" style="margin-top:4px">Large continued fraction terms mean good rational approximations exist. Since &phi; has only 1s, it is the worst case.</div>
+    </div>
+
+    <!-- Section 6: Explanation -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            The golden ratio sits at the intersection of algebra (root of x&sup2; = x + 1), geometry (the pentagon and its diagonals), number theory (continued fractions with all 1s), and biology (phyllotaxis and sunflower seed packing). It is the most "badly approximable" irrational number &mdash; nature uses it precisely because of this irrationality, to avoid resonance and maximise packing efficiency.
+            <br><br>
+            The Fibonacci sequence converges to &phi; in the ratio of consecutive terms, appears in Pascal's triangle along the shallow diagonals, and provides the convergents of &phi;'s continued fraction. These connections are not coincidence: they all trace back to the same recurrence relation F(n) = F(n-1) + F(n-2), which is the discrete shadow of x&sup2; = x + 1.
+            <br><br>
+            <span style="color:#808098">Historical: known to the ancient Greeks (Euclid's Elements, Book VI), rediscovered by Fibonacci in Liber Abaci (1202) through the rabbit problem, and first called the "golden ratio" by Martin Ohm (1835). The symbol &phi; honours Phidias, the sculptor of the Parthenon.</span>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   Golden Ratio & Fibonacci — Chapter 10
+   Self-contained, no external dependencies
+   ============================================================ */
+
+const PHI = (1 + Math.sqrt(5)) / 2;
+const PSI = (1 - Math.sqrt(5)) / 2;
+const GOLDEN_ANGLE_DEG = 360 / (PHI * PHI); // ~137.508
+const GOLDEN_ANGLE_RAD = GOLDEN_ANGLE_DEG * Math.PI / 180;
+const SQUARE_COLORS = ['#fcd34d','#f59e0b','#d97706','#b45309','#92400e','#78350f'];
+
+/* ── phi display ── */
+document.getElementById('phiDisplay').textContent =
+    '\u03C6 = (1 + \u221A5) / 2 \u2248 ' + PHI.toFixed(10) + '...';
+
+/* ── Fibonacci cache ── */
+function fibArray(n) {
+    const f = [0, 1];
+    for (let i = 2; i <= n; i++) f[i] = f[i-1] + f[i-2];
+    return f;
+}
+
+/* ============================================================
+   SECTION 1: Golden Rectangle & Spiral
+   ============================================================ */
+(function() {
+    const cvs = document.getElementById('spiralCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const MAX_DEPTH = 12;
+    let animStep = 0;
+    let animating = false;
+    let animStart = 0;
+    const STEP_DURATION = 400;
+
+    function computeRects() {
+        const rects = [];
+        const margin = 30;
+        const availW = W - 2 * margin;
+        const availH = H - 2 * margin;
+        let rw, rh;
+        if (availW / availH > PHI) {
+            rh = availH; rw = rh * PHI;
+        } else {
+            rw = availW; rh = rw / PHI;
+        }
+        let x = (W - rw) / 2, y = (H - rh) / 2, w = rw, h = rh;
+
+        // Direction cycle: 0=right, 1=down, 2=left, 3=up
+        // Each step cuts a square from the given side of the remaining rectangle.
+        // The arc in each square forms a quarter-turn of the golden spiral.
+        for (let i = 0; i < MAX_DEPTH; i++) {
+            const dir = i % 4;
+            const s = Math.min(w, h); // square side = shorter dimension
+            let sq, arcCx, arcCy;
+
+            if (dir === 0) {
+                // Cut square from RIGHT side
+                sq = { x: x + w - s, y: y, s: s };
+                arcCx = x + w - s; arcCy = y + s;
+                x = x; y = y; w -= s;
+            } else if (dir === 1) {
+                // Cut square from BOTTOM
+                sq = { x: x, y: y + h - s, s: s };
+                arcCx = x; arcCy = y + h - s;
+                x = x; y = y; h -= s;
+            } else if (dir === 2) {
+                // Cut square from LEFT
+                sq = { x: x, y: y, s: s };
+                arcCx = x + s; arcCy = y;
+                x += s; y = y; w -= s;
+            } else {
+                // Cut square from TOP
+                sq = { x: x, y: y, s: s };
+                arcCx = x + s; arcCy = y + s;
+                x = x; y += s; h -= s;
+            }
+
+            // Quarter-circle arcs, each one continues the spiral
+            // dir 0 (right): arc from top-right of square going clockwise to bottom-right
+            //   center = bottom-left corner of square, sweep from -pi/2 to 0
+            // dir 1 (down): center = top-left, sweep from 0 to pi/2
+            // dir 2 (left): center = top-right, sweep from pi/2 to pi
+            // dir 3 (up): center = bottom-right, sweep from pi to 3pi/2
+            const arcStart = -Math.PI / 2 + dir * Math.PI / 2;
+            const arcEnd = arcStart + Math.PI / 2;
+
+            rects.push({
+                sq: sq,
+                arcCenter: { x: arcCx, y: arcCy },
+                arcRadius: s,
+                arcStart: arcStart,
+                arcEnd: arcEnd,
+                color: SQUARE_COLORS[i % SQUARE_COLORS.length]
+            });
+        }
+        return rects;
+    }
+
+    const rects = computeRects();
+
+    function draw(showCount) {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        const n = Math.min(showCount, rects.length);
+
+        // Draw squares
+        for (let i = 0; i < n; i++) {
+            const r = rects[i];
+            // Fill square
+            ctx.fillStyle = r.color + '18';
+            ctx.fillRect(r.sq.x, r.sq.y, r.sq.s, r.sq.s);
+            // Border
+            ctx.strokeStyle = r.color + '80';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(r.sq.x, r.sq.y, r.sq.s, r.sq.s);
+        }
+
+        // Draw spiral arcs
+        ctx.strokeStyle = '#fcd34d';
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        for (let i = 0; i < n; i++) {
+            const r = rects[i];
+            ctx.beginPath();
+            ctx.arc(r.arcCenter.x, r.arcCenter.y, r.arcRadius, r.arcStart, r.arcEnd, false);
+            ctx.stroke();
+        }
+
+        // Outer golden rectangle outline
+        if (rects.length > 0) {
+            const margin = 30;
+            const availW = W - 2 * margin;
+            const availH = H - 2 * margin;
+            let rw, rh;
+            if (availW / availH > PHI) { rh = availH; rw = rh * PHI; }
+            else { rw = availW; rh = rw / PHI; }
+            const rx = (W - rw) / 2, ry = (H - rh) / 2;
+            ctx.strokeStyle = 'rgba(252,211,77,0.3)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(rx, ry, rw, rh);
+        }
+    }
+
+    function startAnimation() {
+        animStep = 0;
+        animating = true;
+        animStart = performance.now();
+        requestAnimationFrame(animLoop);
+    }
+
+    function animLoop(now) {
+        if (!animating) return;
+        const elapsed = now - animStart;
+        const step = Math.floor(elapsed / STEP_DURATION);
+        if (step >= MAX_DEPTH) {
+            animating = false;
+            draw(MAX_DEPTH);
+            return;
+        }
+        draw(step + 1);
+        requestAnimationFrame(animLoop);
+    }
+
+    document.getElementById('spiralReplayBtn').addEventListener('click', startAnimation);
+
+    // Initial draw — show all
+    draw(MAX_DEPTH);
+})();
+
+
+/* ============================================================
+   SECTION 2: Fibonacci Sequence
+   ============================================================ */
+(function() {
+    const cvs = document.getElementById('fibCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const slider = document.getElementById('fibSlider');
+    const sliderLabel = document.getElementById('fibSliderLabel');
+    let fibAnimating = false;
+    let fibAnimCount = 0;
+    let fibAnimStart = 0;
+
+    function draw(n, showCount) {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        const f = fibArray(n);
+        const fibs = f.slice(1); // F(1) to F(n)
+        const count = Math.min(showCount, fibs.length);
+        const maxFib = Math.max(...fibs);
+
+        // Layout
+        const leftMargin = 50;
+        const rightMargin = 50;
+        const topMargin = 30;
+        const bottomMargin = 60;
+        const chartW = W - leftMargin - rightMargin;
+        const chartH = H - topMargin - bottomMargin;
+        const barW = Math.max(4, Math.min(30, (chartW / fibs.length) * 0.7));
+        const gap = (chartW - barW * fibs.length) / (fibs.length + 1);
+
+        // Y axis for bars (left)
+        const barScale = maxFib > 0 ? chartH * 0.55 / maxFib : 1;
+
+        // Axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(leftMargin, topMargin);
+        ctx.lineTo(leftMargin, H - bottomMargin);
+        ctx.lineTo(W - rightMargin, H - bottomMargin);
+        ctx.stroke();
+
+        // Bars
+        for (let i = 0; i < count; i++) {
+            const bx = leftMargin + gap + i * (barW + gap);
+            const bh = fibs[i] * barScale;
+            const by = H - bottomMargin - bh;
+            const color = SQUARE_COLORS[i % SQUARE_COLORS.length];
+            ctx.fillStyle = color + 'aa';
+            ctx.fillRect(bx, by, barW, bh);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(bx, by, barW, bh);
+
+            // Label below
+            ctx.font = '9px Courier New';
+            ctx.fillStyle = '#808098';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText(fibs[i], bx + barW / 2, H - bottomMargin + 4);
+            ctx.fillText('F(' + (i + 1) + ')', bx + barW / 2, H - bottomMargin + 16);
+        }
+
+        // Ratio line chart (F(n)/F(n-1)) — overlay on top portion
+        if (count >= 2) {
+            const ratioTop = topMargin;
+            const ratioBottom = topMargin + chartH * 0.4;
+            const ratioH = ratioBottom - ratioTop;
+            // Ratio range: ~0.5 to ~2.5
+            const rMin = 0.5, rMax = 2.5;
+            const rScale = ratioH / (rMax - rMin);
+
+            // Right Y axis label
+            ctx.font = '10px Georgia';
+            ctx.fillStyle = '#808098';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('ratio', W - rightMargin + 5, ratioTop + ratioH / 2);
+
+            // Dashed line at phi
+            const phiY = ratioBottom - (PHI - rMin) * rScale;
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = 'rgba(252,211,77,0.5)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(leftMargin, phiY);
+            ctx.lineTo(W - rightMargin, phiY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.font = '10px Courier New';
+            ctx.fillStyle = '#fcd34d';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('\u03C6 = ' + PHI.toFixed(4), W - rightMargin - 80, phiY - 3);
+
+            // Ratio points and line
+            const ratioPoints = [];
+            for (let i = 1; i < count; i++) {
+                const ratio = fibs[i] / fibs[i - 1];
+                const rx = leftMargin + gap + i * (barW + gap) + barW / 2;
+                const ry = ratioBottom - (ratio - rMin) * rScale;
+                ratioPoints.push({ x: rx, y: ry, ratio: ratio });
+            }
+
+            if (ratioPoints.length > 1) {
+                ctx.strokeStyle = '#fcd34d';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(ratioPoints[0].x, ratioPoints[0].y);
+                for (let i = 1; i < ratioPoints.length; i++) {
+                    ctx.lineTo(ratioPoints[i].x, ratioPoints[i].y);
+                }
+                ctx.stroke();
+            }
+
+            for (let i = 0; i < ratioPoints.length; i++) {
+                ctx.fillStyle = '#fcd34d';
+                ctx.beginPath();
+                ctx.arc(ratioPoints[i].x, ratioPoints[i].y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+
+    function updateTable(n) {
+        const f = fibArray(n);
+        const table = document.getElementById('fibTable');
+        let html = '<tr><th>n</th>';
+        for (let i = 1; i <= n; i++) html += '<th>' + i + '</th>';
+        html += '</tr><tr><td style="color:#808098">F(n)</td>';
+        for (let i = 1; i <= n; i++) html += '<td>' + f[i] + '</td>';
+        html += '</tr><tr><td style="color:#808098">F(n)/F(n-1)</td><td>-</td>';
+        for (let i = 2; i <= n; i++) {
+            const ratio = (f[i] / f[i-1]).toFixed(4);
+            html += '<td class="gold-cell">' + ratio + '</td>';
+        }
+        html += '</tr>';
+        table.innerHTML = html;
+
+        // Binet verification
+        const bv = document.getElementById('binetVerify');
+        const binet = Math.round(Math.pow(PHI, n) / Math.sqrt(5));
+        bv.textContent = 'Binet check: \u03C6^' + n + ' / \u221A5 \u2248 ' +
+            (Math.pow(PHI, n) / Math.sqrt(5)).toFixed(2) + ' \u2248 ' + binet +
+            ' = F(' + n + ') = ' + f[n] +
+            (binet === f[n] ? '  \u2714' : '  (rounding differs for large n)');
+    }
+
+    function fullDraw() {
+        const n = parseInt(slider.value);
+        sliderLabel.textContent = n;
+        draw(n, n);
+        updateTable(n);
+    }
+
+    function startFibAnim() {
+        const n = parseInt(slider.value);
+        fibAnimCount = 0;
+        fibAnimating = true;
+        fibAnimStart = performance.now();
+        function loop(now) {
+            if (!fibAnimating) return;
+            const step = Math.floor((now - fibAnimStart) / 300) + 1;
+            if (step > n) {
+                fibAnimating = false;
+                draw(n, n);
+                return;
+            }
+            draw(n, step);
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+    }
+
+    slider.addEventListener('input', function() {
+        fibAnimating = false;
+        fullDraw();
+    });
+    document.getElementById('fibAnimBtn').addEventListener('click', startFibAnim);
+
+    fullDraw();
+})();
+
+
+/* ============================================================
+   SECTION 3: Fibonacci in Pascal's Triangle
+   ============================================================ */
+(function() {
+    const cvs = document.getElementById('pascalCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const ROWS = 13; // rows 0..12
+    let highlightDiag = -1; // -1 = all, else 0..12
+    let animating = false;
+    let animStart = 0;
+
+    // Precompute Pascal values
+    const pascal = [];
+    for (let n = 0; n < ROWS; n++) {
+        pascal[n] = [];
+        for (let k = 0; k <= n; k++) {
+            pascal[n][k] = (k === 0 || k === n) ? 1 : pascal[n-1][k-1] + pascal[n-1][k];
+        }
+    }
+
+    // Shallow diagonals: diagonal d sums entries where n+k=const along the path
+    // Diagonal d: sum of C(d-k, k) for k = 0, 1, ... floor(d/2)
+    function diagEntries(d) {
+        const entries = [];
+        for (let k = 0; k <= Math.floor(d / 2); k++) {
+            const row = d - k;
+            entries.push({ n: row, k: k });
+        }
+        return entries;
+    }
+
+    function diagSum(d) {
+        let s = 0;
+        const entries = diagEntries(d);
+        for (const e of entries) s += pascal[e.n][e.k];
+        return s;
+    }
+
+    function draw(highlightUpTo) {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        const cellW = 36;
+        const cellH = 24;
+        const startY = 12;
+
+        // Determine which cells are highlighted
+        const highlighted = new Set();
+        if (highlightUpTo >= 0) {
+            for (let d = 0; d <= Math.min(highlightUpTo, ROWS - 1); d++) {
+                const entries = diagEntries(d);
+                for (const e of entries) {
+                    if (e.n < ROWS) highlighted.add(e.n + ',' + e.k);
+                }
+            }
+        }
+
+        // Draw cells
+        for (let n = 0; n < ROWS; n++) {
+            const rowW = (n + 1) * cellW;
+            const startX = (W - rowW) / 2 + cellW / 2;
+            for (let k = 0; k <= n; k++) {
+                const cx = startX + k * cellW;
+                const cy = startY + n * cellH + cellH / 2;
+                const key = n + ',' + k;
+                const isHL = highlighted.has(key);
+                const d = n + k;
+
+                if (isHL) {
+                    // Color by diagonal
+                    const diagColors = ['#fcd34d','#f59e0b','#d97706','#b45309','#92400e','#78350f',
+                                        '#fcd34d','#f59e0b','#d97706','#b45309','#92400e','#78350f','#fcd34d'];
+                    const color = diagColors[d % diagColors.length];
+                    ctx.fillStyle = color + '30';
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = color;
+                } else {
+                    ctx.fillStyle = '#808098';
+                }
+                ctx.font = '11px Courier New';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(pascal[n][k], cx, cy);
+            }
+        }
+
+        // Draw diagonal lines if animating
+        if (highlightUpTo >= 0) {
+            for (let d = 0; d <= Math.min(highlightUpTo, ROWS - 1); d++) {
+                const entries = diagEntries(d);
+                if (entries.length > 0 && entries[entries.length - 1].n < ROWS) {
+                    const first = entries[0];
+                    const last = entries[entries.length - 1];
+
+                    const rowW1 = (first.n + 1) * cellW;
+                    const sx1 = (W - rowW1) / 2 + cellW / 2 + first.k * cellW;
+                    const sy1 = startY + first.n * cellH + cellH / 2;
+
+                    const rowW2 = (last.n + 1) * cellW;
+                    const sx2 = (W - rowW2) / 2 + cellW / 2 + last.k * cellW;
+                    const sy2 = startY + last.n * cellH + cellH / 2;
+
+                    ctx.strokeStyle = 'rgba(252,211,77,0.15)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(sx1 - 12, sy1 - 10);
+                    ctx.lineTo(sx2 - 12, sy2 + 10);
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function updateSums(upTo) {
+        const el = document.getElementById('pascalSums');
+        let sums = [];
+        const limit = upTo >= 0 ? Math.min(upTo + 1, ROWS) : ROWS;
+        for (let d = 0; d < limit; d++) {
+            sums.push(diagSum(d));
+        }
+        el.innerHTML = '<span class="gold">Diagonal sums: </span>' +
+            sums.map((s, i) => '<span style="color:' + (i <= upTo ? '#fcd34d' : '#808098') + '">' + s + '</span>').join(', ') +
+            (limit < ROWS ? ', ...' : '');
+    }
+
+    function startAnim() {
+        if (animating) return;
+        animating = true;
+        highlightDiag = -1;
+        animStart = performance.now();
+        function loop(now) {
+            if (!animating) return;
+            const step = Math.floor((now - animStart) / 500);
+            if (step > ROWS - 1) {
+                animating = false;
+                draw(ROWS - 1);
+                updateSums(ROWS - 1);
+                return;
+            }
+            highlightDiag = step;
+            draw(step);
+            updateSums(step);
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+    }
+
+    document.getElementById('pascalAnimBtn').addEventListener('click', function() {
+        animating = false;
+        setTimeout(startAnim, 50);
+    });
+
+    // Initial: show all diagonals
+    draw(ROWS - 1);
+    updateSums(ROWS - 1);
+})();
+
+
+/* ============================================================
+   SECTION 4a: Pentagon & Pentagram
+   ============================================================ */
+(function() {
+    const cvs = document.getElementById('pentCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const cx = W / 2, cy = H / 2;
+    const R = Math.min(W, H) / 2 - 35;
+
+    function pentagonVertices(cx, cy, r, offset) {
+        const pts = [];
+        for (let k = 0; k < 5; k++) {
+            const angle = 2 * Math.PI * k / 5 - Math.PI / 2 + (offset || 0);
+            pts.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
+        }
+        return pts;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        const pts = pentagonVertices(cx, cy, R, 0);
+
+        // Pentagon edges
+        ctx.strokeStyle = 'rgba(252,211,77,0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i <= 5; i++) {
+            const p = pts[i % 5];
+            if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+
+        // Diagonals (pentagram)
+        ctx.strokeStyle = 'rgba(252,211,77,0.25)';
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 5; i++) {
+            for (let j = i + 2; j < 5; j++) {
+                if (j - i === 1 || j - i === 4) continue; // skip edges
+                ctx.beginPath();
+                ctx.moveTo(pts[i].x, pts[i].y);
+                ctx.lineTo(pts[j].x, pts[j].y);
+                ctx.stroke();
+            }
+        }
+
+        // Highlight one diagonal and one side
+        // Side: pts[0]-pts[1], Diagonal: pts[0]-pts[2]
+        const sideLen = Math.sqrt((pts[1].x - pts[0].x) ** 2 + (pts[1].y - pts[0].y) ** 2);
+        const diagLen = Math.sqrt((pts[2].x - pts[0].x) ** 2 + (pts[2].y - pts[0].y) ** 2);
+
+        // Highlight side
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[1].x, pts[1].y);
+        ctx.stroke();
+
+        // Highlight diagonal
+        ctx.strokeStyle = '#fcd34d';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        ctx.lineTo(pts[2].x, pts[2].y);
+        ctx.stroke();
+
+        // Labels
+        const sideMid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
+        const diagMid = { x: (pts[0].x + pts[2].x) / 2, y: (pts[0].y + pts[2].y) / 2 };
+
+        ctx.font = '12px Courier New';
+        ctx.fillStyle = '#f59e0b';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('side = 1', sideMid.x + 15, sideMid.y - 20);
+
+        ctx.fillStyle = '#fcd34d';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText('diag = \u03C6', diagMid.x - 30, diagMid.y + 4);
+
+        // Ratio display
+        ctx.font = '13px Courier New';
+        ctx.fillStyle = '#fcd34d';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('diag/side = ' + (diagLen / sideLen).toFixed(6) + ' = \u03C6', cx, H - 30);
+
+        // Vertex dots
+        for (let i = 0; i < 5; i++) {
+            ctx.fillStyle = '#fcd34d';
+            ctx.beginPath();
+            ctx.arc(pts[i].x, pts[i].y, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Inner pentagon (from intersections of diagonals)
+        // The inner pentagon vertices are the intersections of non-adjacent diagonals
+        // For a regular pentagon centered at (cx,cy) with circumradius R,
+        // the inner pentagon has circumradius R / (PHI * PHI)
+        const innerR = R / (PHI * PHI);
+        const innerPts = pentagonVertices(cx, cy, innerR, Math.PI / 5);
+
+        ctx.strokeStyle = 'rgba(252,211,77,0.35)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = 0; i <= 5; i++) {
+            const p = innerPts[i % 5];
+            if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+
+        // Inner pentagram diagonals
+        ctx.strokeStyle = 'rgba(252,211,77,0.12)';
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < 5; i++) {
+            for (let j = i + 2; j < 5; j++) {
+                if (j - i === 1 || j - i === 4) continue;
+                ctx.beginPath();
+                ctx.moveTo(innerPts[i].x, innerPts[i].y);
+                ctx.lineTo(innerPts[j].x, innerPts[j].y);
+                ctx.stroke();
+            }
+        }
+
+        // Second inner pentagon
+        const inner2R = innerR / (PHI * PHI);
+        const inner2Pts = pentagonVertices(cx, cy, inner2R, 0);
+        ctx.strokeStyle = 'rgba(252,211,77,0.18)';
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        for (let i = 0; i <= 5; i++) {
+            const p = inner2Pts[i % 5];
+            if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+    }
+
+    draw();
+})();
+
+
+/* ============================================================
+   SECTION 4b: Golden Angle & Sunflower Phyllotaxis
+   ============================================================ */
+(function() {
+    const cvs = document.getElementById('sunflowerCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const cx = W / 2, cy = H / 2;
+    const slider = document.getElementById('sunflowerSlider');
+    const label = document.getElementById('sunflowerLabel');
+    const maxR = Math.min(W, H) / 2 - 15;
+
+    function draw() {
+        const n = parseInt(slider.value);
+        label.textContent = n;
+
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        // Circle outline
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Golden angle line
+        const ga = GOLDEN_ANGLE_RAD;
+        ctx.strokeStyle = 'rgba(252,211,77,0.15)';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + maxR * Math.cos(-Math.PI / 2), cy + maxR * Math.sin(-Math.PI / 2));
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + maxR * Math.cos(-Math.PI / 2 + ga), cy + maxR * Math.sin(-Math.PI / 2 + ga));
+        ctx.stroke();
+
+        // Angle arc
+        ctx.strokeStyle = 'rgba(252,211,77,0.3)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 30, -Math.PI / 2, -Math.PI / 2 + ga);
+        ctx.stroke();
+        ctx.font = '9px Courier New';
+        ctx.fillStyle = '#fcd34d';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('137.5\u00B0', cx + 20, cy - 40);
+
+        // Seeds
+        const scaleFactor = maxR / Math.sqrt(n + 1);
+        for (let k = 0; k < n; k++) {
+            const r = scaleFactor * Math.sqrt(k);
+            const angle = k * GOLDEN_ANGLE_RAD;
+            const sx = cx + r * Math.cos(angle);
+            const sy = cy + r * Math.sin(angle);
+            const dotR = Math.max(1.5, Math.min(4, 3.5 - n / 200));
+
+            // Color by angle to show spirals
+            const hue = (k * GOLDEN_ANGLE_DEG) % 360;
+            const t = k / n;
+            ctx.fillStyle = `rgba(252,211,77,${0.3 + 0.7 * (1 - t)})`;
+            ctx.beginPath();
+            ctx.arc(sx, sy, dotR, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    slider.addEventListener('input', draw);
+
+    // Touch support
+    slider.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+
+    draw();
+})();
+
+
+/* ============================================================
+   SECTION 5: The Most Irrational Number
+   ============================================================ */
+(function() {
+    const cfDisplay = document.getElementById('cfDisplay');
+    const convergentsList = document.getElementById('convergentsList');
+    const nlCanvas = document.getElementById('numberLineCanvas');
+    const nlCtx = nlCanvas.getContext('2d');
+    const NLW = nlCanvas.width, NLH = nlCanvas.height;
+    const MAX_CF_LEVELS = 12;
+    let cfAnimLevel = MAX_CF_LEVELS;
+    let cfAnimating = false;
+    let cfAnimStart = 0;
+
+    // Compute convergents: p_n/q_n
+    // For phi: cf = [1; 1, 1, 1, ...]
+    // p_{-1}=1, p_0=1, p_n = p_{n-1} + p_{n-2}
+    // q_{-1}=0, q_0=1, q_n = q_{n-1} + q_{n-2}
+    function computeConvergents(levels) {
+        const conv = [];
+        let pm2 = 1, pm1 = 1; // p_{-1}=1, p_0 = a_0 = 1
+        let qm2 = 0, qm1 = 1; // q_{-1}=0, q_0 = 1
+        conv.push({ p: pm1, q: qm1, val: pm1 / qm1 });
+        for (let n = 1; n < levels; n++) {
+            const a = 1; // all 1s for phi
+            const pn = a * pm1 + pm2;
+            const qn = a * qm1 + qm2;
+            conv.push({ p: pn, q: qn, val: pn / qn });
+            pm2 = pm1; pm1 = pn;
+            qm2 = qm1; qm1 = qn;
+        }
+        return conv;
+    }
+
+    function renderCF(levels) {
+        let html = '<div class="cf-level"><span class="gold">\u03C6 = </span>';
+
+        // Build a visual continued fraction
+        if (levels <= 0) {
+            html += '<span class="gold">1</span>';
+        } else {
+            // Text representation
+            let cfText = '';
+            for (let i = 0; i < levels; i++) {
+                if (i === 0) cfText += '1 + 1/(';
+                else cfText += '1 + 1/(';
+            }
+            cfText += '1';
+            for (let i = 0; i < levels; i++) cfText += ')';
+
+            html += '<span style="color:#c0c0d8">' + cfText + '</span>';
+        }
+
+        // Compute numerical value of truncated CF
+        let val = 1;
+        for (let i = 0; i < levels; i++) {
+            val = 1 + 1 / val;
+        }
+        html += ' = <span class="gold">' + val.toFixed(8) + '</span>';
+        html += '</div>';
+
+        // Bracket notation
+        html += '<div class="cf-level" style="margin-top:6px"><span class="muted">\u03C6 = [1; ';
+        const ones = [];
+        for (let i = 0; i < Math.min(levels + 1, 10); i++) ones.push('1');
+        html += ones.join(', ');
+        if (levels + 1 > 10) html += ', ...';
+        html += ']</span></div>';
+
+        cfDisplay.innerHTML = html;
+    }
+
+    function renderConvergents(levels) {
+        const conv = computeConvergents(levels + 1);
+        let html = '';
+        for (let i = 0; i < conv.length; i++) {
+            const c = conv[i];
+            const err = Math.abs(c.val - PHI);
+            html += '<div class="convergent-row">';
+            html += '<span class="gold">' + c.p + '/' + c.q + '</span>';
+            html += ' = ' + c.val.toFixed(8);
+            html += ' <span style="color:#808098">(error: ' + err.toExponential(2) + ')</span>';
+            if (i > 0) {
+                html += ' <span style="color:#606078">&mdash; F(' + (i + 1) + ')/F(' + i + ')</span>';
+            }
+            html += '</div>';
+        }
+        convergentsList.innerHTML = html;
+    }
+
+    function drawNumberLine(levels) {
+        nlCtx.clearRect(0, 0, NLW, NLH);
+        nlCtx.fillStyle = '#0a0a1a';
+        nlCtx.fillRect(0, 0, NLW, NLH);
+
+        const conv = computeConvergents(levels + 1);
+        const margin = 40;
+        const lineY = NLH / 2;
+        const lineLeft = margin;
+        const lineRight = NLW - margin;
+        const lineW = lineRight - lineLeft;
+
+        // Range: center on phi, show +/- 0.6
+        const center = PHI;
+        const range = 0.6;
+        const xMin = center - range;
+        const xMax = center + range;
+
+        function valToX(v) {
+            return lineLeft + (v - xMin) / (xMax - xMin) * lineW;
+        }
+
+        // Number line
+        nlCtx.strokeStyle = 'rgba(255,255,255,0.15)';
+        nlCtx.lineWidth = 1;
+        nlCtx.beginPath();
+        nlCtx.moveTo(lineLeft, lineY);
+        nlCtx.lineTo(lineRight, lineY);
+        nlCtx.stroke();
+
+        // Tick marks
+        nlCtx.font = '9px Courier New';
+        nlCtx.fillStyle = '#606078';
+        nlCtx.textAlign = 'center';
+        nlCtx.textBaseline = 'top';
+        for (let v = 1.1; v <= 2.1; v += 0.1) {
+            const x = valToX(v);
+            if (x >= lineLeft && x <= lineRight) {
+                nlCtx.beginPath();
+                nlCtx.moveTo(x, lineY - 3);
+                nlCtx.lineTo(x, lineY + 3);
+                nlCtx.stroke();
+                nlCtx.fillText(v.toFixed(1), x, lineY + 6);
+            }
+        }
+
+        // Phi marker
+        const phiX = valToX(PHI);
+        nlCtx.strokeStyle = '#fcd34d';
+        nlCtx.lineWidth = 2;
+        nlCtx.beginPath();
+        nlCtx.moveTo(phiX, lineY - 18);
+        nlCtx.lineTo(phiX, lineY + 18);
+        nlCtx.stroke();
+        nlCtx.font = '11px Courier New';
+        nlCtx.fillStyle = '#fcd34d';
+        nlCtx.textBaseline = 'bottom';
+        nlCtx.fillText('\u03C6', phiX, lineY - 20);
+
+        // Convergent points — alternating above/below
+        for (let i = 0; i < conv.length; i++) {
+            const c = conv[i];
+            const x = valToX(c.val);
+            if (x < lineLeft - 5 || x > lineRight + 5) continue;
+
+            const above = (i % 2 === 0);
+            const dy = above ? -10 : 10;
+
+            nlCtx.fillStyle = (i === conv.length - 1) ? '#fcd34d' : 'rgba(252,211,77,0.6)';
+            nlCtx.beginPath();
+            nlCtx.arc(x, lineY, 3, 0, Math.PI * 2);
+            nlCtx.fill();
+
+            nlCtx.font = '8px Courier New';
+            nlCtx.fillStyle = 'rgba(252,211,77,0.7)';
+            nlCtx.textAlign = 'center';
+            nlCtx.textBaseline = above ? 'bottom' : 'top';
+            nlCtx.fillText(c.p + '/' + c.q, x, lineY + dy);
+        }
+    }
+
+    function fullRender(levels) {
+        renderCF(levels);
+        renderConvergents(levels);
+        drawNumberLine(levels);
+    }
+
+    function startCFAnim() {
+        if (cfAnimating) return;
+        cfAnimating = true;
+        cfAnimLevel = 0;
+        cfAnimStart = performance.now();
+        function loop(now) {
+            if (!cfAnimating) return;
+            const step = Math.floor((now - cfAnimStart) / 600);
+            if (step > MAX_CF_LEVELS) {
+                cfAnimating = false;
+                cfAnimLevel = MAX_CF_LEVELS;
+                fullRender(MAX_CF_LEVELS);
+                return;
+            }
+            cfAnimLevel = step;
+            fullRender(step);
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+    }
+
+    document.getElementById('cfAnimBtn').addEventListener('click', function() {
+        cfAnimating = false;
+        setTimeout(startCFAnim, 50);
+    });
+
+    // Initial render
+    fullRender(MAX_CF_LEVELS);
+})();
+
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

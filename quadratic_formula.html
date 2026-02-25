@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Quadratic Formula</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#60a5fa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#60a5fa;margin:28px 0 14px}
+
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:20px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+
+        .slider-group{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px}
+        .slider-item{flex:1 1 200px}
+        .slider-item label{font-size:0.88em;color:#808098;display:block;margin-bottom:4px}
+        .slider-item input[type=range]{width:100%;accent-color:#60a5fa}
+        .slider-val{color:#60a5fa;font-family:'Courier New',monospace;font-size:0.9em}
+
+        .equation-display{font-size:1.15em;color:#e0e0e0;margin:10px 0;font-family:'Courier New',monospace;text-align:center}
+        .equation-display .coeff{color:#60a5fa}
+
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+        .preset-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.85em;transition:all 0.2s}
+        .preset-btn:hover{background:rgba(96,165,250,0.13);border-color:rgba(96,165,250,0.4);color:#60a5fa}
+
+        .disc-box{text-align:center;padding:16px}
+        .disc-label{font-size:0.88em;color:#808098;margin-bottom:6px}
+        .disc-value{font-size:1.4em;font-weight:400;margin:6px 0}
+        .disc-message{font-size:0.92em;margin:4px 0}
+        .disc-roots{font-family:'Courier New',monospace;font-size:1em;margin-top:8px;color:#e0e0e0}
+        .disc-pos{color:#2ecc71}.disc-zero{color:#fbbf24}.disc-neg{color:#e06060}
+
+        .step-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:14px 18px;margin-bottom:10px}
+        .step-num{font-size:0.75em;color:#60a5fa;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+        .step-general{color:#808098;font-size:0.92em;margin-bottom:4px}
+        .step-actual{color:#e0e0e0;font-family:'Courier New',monospace;font-size:0.92em}
+
+        .geo-controls{text-align:center;margin:12px 0}
+        .geo-btn{background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.3);color:#60a5fa;padding:7px 20px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .geo-btn:hover{background:rgba(96,165,250,0.22)}
+
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px}
+        .explain-name{color:#60a5fa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+
+        @media(max-width:768px){.slider-group{flex-direction:column}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>The Quadratic Formula</h1>
+    <p class="subtitle">Completing the square &mdash; watch the geometry unfold</p>
+
+    <canvas id="parabola" width="900" height="400" style="max-width:100%;height:auto"></canvas>
+
+    <div class="panel" style="margin-top:20px">
+        <div class="slider-group">
+            <div class="slider-item">
+                <label>a = <span class="slider-val" id="aVal">1.0</span></label>
+                <input type="range" id="aSlider" min="-3" max="3" step="0.1" value="1">
+            </div>
+            <div class="slider-item">
+                <label>b = <span class="slider-val" id="bVal">-2.0</span></label>
+                <input type="range" id="bSlider" min="-6" max="6" step="0.1" value="-2">
+            </div>
+            <div class="slider-item">
+                <label>c = <span class="slider-val" id="cVal">-3.0</span></label>
+                <input type="range" id="cSlider" min="-5" max="5" step="0.1" value="-3">
+            </div>
+        </div>
+        <div class="equation-display" id="eqDisplay"></div>
+        <div class="btn-row">
+            <button class="preset-btn" data-a="1" data-b="0" data-c="-4">Two Real Roots</button>
+            <button class="preset-btn" data-a="1" data-b="-4" data-c="4">One Repeated Root</button>
+            <button class="preset-btn" data-a="1" data-b="0" data-c="1">No Real Roots</button>
+            <button class="preset-btn" data-a="1" data-b="-6" data-c="9">Perfect Square</button>
+            <button class="preset-btn" data-a="1" data-b="-1" data-c="-1">Golden Ratio</button>
+        </div>
+    </div>
+
+    <div class="panel disc-box" id="discBox"></div>
+
+    <h2>Completing the Square &mdash; Step by Step</h2>
+    <div id="stepsContainer"></div>
+
+    <h2>Geometric Completing the Square</h2>
+    <div class="panel" style="padding:14px;text-align:center">
+        <canvas id="geoCanvas" width="400" height="350" style="margin:0 auto"></canvas>
+        <div class="geo-controls">
+            <button class="geo-btn" id="geoBtn">Show Geometry</button>
+        </div>
+    </div>
+
+    <h2>Insight</h2>
+    <div class="explain">
+        <div class="explain-name" id="insightTitle">The Quadratic Formula</div>
+        <div class="explain-text" id="insightText"></div>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05);font-size:0.82em;color:#606078">The quadratic formula was known to Babylonian mathematicians around 2000 BCE, though they expressed it as geometric procedures rather than algebraic formulas. The discriminant b&sup2; &minus; 4ac is the key &mdash; it determines whether the parabola crosses the x-axis (real roots), touches it (repeated root), or misses it entirely (complex roots).</div>
+    </div>
+</div>
+
+<script>
+/* ---- State ---- */
+let A=1, B=-2, C=-3;
+let geoPhase=0, geoAnim=0;
+const aSlider=document.getElementById("aSlider");
+const bSlider=document.getElementById("bSlider");
+const cSlider=document.getElementById("cSlider");
+
+/* ---- Helpers ---- */
+function fmt(v,d){
+    if(d===undefined) d=2;
+    let s=Number(v).toFixed(d);
+    s=s.replace(/\.?0+$/,"");
+    if(s==="-0") s="0";
+    return s;
+}
+function fmtCoeff(v,varName,first){
+    if(Math.abs(v)<1e-9) return "";
+    let s="";
+    if(first){
+        if(Math.abs(v-1)<1e-9) s=varName;
+        else if(Math.abs(v+1)<1e-9) s="-"+varName;
+        else s=fmt(v)+varName;
+    } else {
+        let abs=Math.abs(v);
+        let sign=v>0?" + ":" - ";
+        if(Math.abs(abs-1)<1e-9) s=sign+varName;
+        else s=sign+fmt(abs)+varName;
+    }
+    return s;
+}
+function buildEquation(a,b,c){
+    let s="y = ";
+    let parts=[];
+    if(Math.abs(a)>1e-9) parts.push(fmtCoeff(a,"x\u00B2",parts.length===0));
+    if(Math.abs(b)>1e-9) parts.push(fmtCoeff(b,"x",parts.length===0));
+    if(Math.abs(c)>1e-9){
+        if(parts.length===0) parts.push(fmt(c));
+        else parts.push((c>0?" + ":" - ")+fmt(Math.abs(c)));
+    }
+    if(parts.length===0) parts.push("0");
+    return s+parts.join("");
+}
+
+/* ---- Parabola Canvas ---- */
+const pCvs=document.getElementById("parabola"),pCtx=pCvs.getContext("2d");
+const PW=pCvs.width, PH=pCvs.height;
+
+function drawParabola(){
+    const a=A,b=B,c=C;
+    pCtx.clearRect(0,0,PW,PH);
+    pCtx.fillStyle="#0a0a1a";
+    pCtx.fillRect(0,0,PW,PH);
+
+    // Compute vertex and roots
+    const disc=b*b-4*a*c;
+    const h=(Math.abs(a)>1e-9)?-b/(2*a):0;
+    const k=(Math.abs(a)>1e-9)?c-b*b/(4*a):c;
+    let r1=null,r2=null;
+    if(Math.abs(a)>1e-9 && disc>=0){
+        r1=(-b-Math.sqrt(disc))/(2*a);
+        r2=(-b+Math.sqrt(disc))/(2*a);
+    }
+
+    // Determine x range
+    let xMin=h-5, xMax=h+5;
+    if(r1!==null){
+        xMin=Math.min(xMin,Math.min(r1,r2)-1.5);
+        xMax=Math.max(xMax,Math.max(r1,r2)+1.5);
+    }
+    let xSpan=xMax-xMin;
+    if(xSpan<6){xMin=h-3;xMax=h+3;xSpan=6;}
+
+    // Compute y values to determine y range
+    let yVals=[];
+    for(let px=0;px<=PW;px++){
+        let x=xMin+(px/PW)*xSpan;
+        let y=a*x*x+b*x+c;
+        yVals.push(y);
+    }
+    let yMin=Math.min(k,-2), yMax=Math.max(k,2);
+    yMin=Math.min(yMin,...yVals.filter(v=>isFinite(v)&&Math.abs(v)<200));
+    yMax=Math.max(yMax,...yVals.filter(v=>isFinite(v)&&Math.abs(v)<200));
+    let yPad=(yMax-yMin)*0.15;
+    if(yPad<1) yPad=1;
+    yMin-=yPad; yMax+=yPad;
+    let ySpan=yMax-yMin;
+    if(ySpan<4){yMin=k-2;yMax=k+2;ySpan=4;}
+
+    function toPixel(x,y){
+        return [((x-xMin)/xSpan)*PW, PH-((y-yMin)/ySpan)*PH];
+    }
+
+    // Grid lines
+    pCtx.strokeStyle="rgba(255,255,255,0.04)";
+    pCtx.lineWidth=1;
+    let gStep=1;
+    if(xSpan>20) gStep=5;
+    if(xSpan>50) gStep=10;
+    for(let gx=Math.ceil(xMin/gStep)*gStep;gx<=xMax;gx+=gStep){
+        let[px]=toPixel(gx,0);
+        pCtx.beginPath();pCtx.moveTo(px,0);pCtx.lineTo(px,PH);pCtx.stroke();
+    }
+    let gyStep=1;
+    if(ySpan>20) gyStep=5;
+    if(ySpan>50) gyStep=10;
+    for(let gy=Math.ceil(yMin/gyStep)*gyStep;gy<=yMax;gy+=gyStep){
+        let[,py]=toPixel(0,gy);
+        pCtx.beginPath();pCtx.moveTo(0,py);pCtx.lineTo(PW,py);pCtx.stroke();
+    }
+
+    // Axes
+    pCtx.strokeStyle="rgba(255,255,255,0.2)";
+    pCtx.lineWidth=1.5;
+    // x-axis (y=0)
+    let[,yAxisPx]=toPixel(0,0);
+    if(yAxisPx>=0&&yAxisPx<=PH){
+        pCtx.beginPath();pCtx.moveTo(0,yAxisPx);pCtx.lineTo(PW,yAxisPx);pCtx.stroke();
+    }
+    // y-axis (x=0)
+    let[xAxisPx]=toPixel(0,0);
+    if(xAxisPx>=0&&xAxisPx<=PW){
+        pCtx.beginPath();pCtx.moveTo(xAxisPx,0);pCtx.lineTo(xAxisPx,PH);pCtx.stroke();
+    }
+
+    // Axis labels
+    pCtx.font="11px Georgia";pCtx.fillStyle="#606078";
+    for(let gx=Math.ceil(xMin/gStep)*gStep;gx<=xMax;gx+=gStep){
+        if(Math.abs(gx)<0.01) continue;
+        let[px]=toPixel(gx,0);
+        let ly=yAxisPx>=0&&yAxisPx<=PH?yAxisPx+14:PH-4;
+        pCtx.textAlign="center";pCtx.fillText(fmt(gx,0),px,ly);
+    }
+    for(let gy=Math.ceil(yMin/gyStep)*gyStep;gy<=yMax;gy+=gyStep){
+        if(Math.abs(gy)<0.01) continue;
+        let[,py]=toPixel(0,gy);
+        let lx=xAxisPx>=0&&xAxisPx<=PW?xAxisPx-8:8;
+        pCtx.textAlign="right";pCtx.fillText(fmt(gy,0),lx,py+4);
+    }
+
+    if(Math.abs(a)<1e-9){
+        // Degenerate: draw line y = bx + c
+        pCtx.strokeStyle="#60a5fa";pCtx.lineWidth=2;
+        pCtx.beginPath();
+        let[x0,y0]=toPixel(xMin,b*xMin+c);
+        pCtx.moveTo(x0,y0);
+        let[x1,y1]=toPixel(xMax,b*xMax+c);
+        pCtx.lineTo(x1,y1);pCtx.stroke();
+        return;
+    }
+
+    // Axis of symmetry (dashed)
+    pCtx.setLineDash([6,4]);
+    pCtx.strokeStyle="rgba(96,165,250,0.35)";pCtx.lineWidth=1;
+    let[vxPx]=toPixel(h,0);
+    pCtx.beginPath();pCtx.moveTo(vxPx,0);pCtx.lineTo(vxPx,PH);pCtx.stroke();
+    pCtx.setLineDash([]);
+
+    // Parabola curve
+    pCtx.strokeStyle="#60a5fa";pCtx.lineWidth=2.5;
+    pCtx.beginPath();
+    let started=false;
+    for(let px=0;px<=PW;px++){
+        let x=xMin+(px/PW)*xSpan;
+        let y=a*x*x+b*x+c;
+        let[sx,sy]=toPixel(x,y);
+        if(sy<-200||sy>PH+200){started=false;continue;}
+        if(!started){pCtx.moveTo(sx,sy);started=true;}
+        else pCtx.lineTo(sx,sy);
+    }
+    pCtx.stroke();
+
+    // Vertex
+    let[vPx,vPy]=toPixel(h,k);
+    pCtx.beginPath();pCtx.arc(vPx,vPy,5,0,Math.PI*2);
+    pCtx.fillStyle="#60a5fa";pCtx.fill();
+    pCtx.font="12px Georgia";pCtx.fillStyle="#60a5fa";pCtx.textAlign="left";
+    pCtx.fillText("("+fmt(h)+", "+fmt(k)+")",vPx+8,vPy-8);
+
+    // Roots
+    if(r1!==null){
+        let roots=disc>1e-9?[r1,r2]:[r1];
+        pCtx.fillStyle="#fbbf24";
+        for(let r of roots){
+            let[rx,ry]=toPixel(r,0);
+            pCtx.beginPath();pCtx.arc(rx,ry,5,0,Math.PI*2);pCtx.fill();
+            pCtx.font="12px Georgia";pCtx.textAlign="center";
+            pCtx.fillText("x = "+fmt(r),rx,ry-10);
+        }
+    }
+
+    // Label
+    pCtx.font="13px Georgia";pCtx.fillStyle="rgba(255,255,255,0.4)";
+    pCtx.textAlign="left";pCtx.fillText("y = ax\u00B2 + bx + c",10,18);
+}
+
+/* ---- Discriminant ---- */
+function updateDiscriminant(){
+    const a=A,b=B,c=C;
+    const disc=b*b-4*a*c;
+    let box=document.getElementById("discBox");
+    let cls,msg,rootsStr;
+
+    if(Math.abs(a)<1e-9){
+        box.innerHTML='<div class="disc-label">a = 0: not a quadratic equation</div>';
+        return;
+    }
+
+    if(disc>1e-9){
+        cls="disc-pos";
+        msg="Two distinct real roots";
+        let r1=(-b-Math.sqrt(disc))/(2*a), r2=(-b+Math.sqrt(disc))/(2*a);
+        rootsStr="x = "+fmt(r1,4)+"  and  x = "+fmt(r2,4);
+    } else if(disc<-1e-9){
+        cls="disc-neg";
+        msg="No real roots (two complex roots)";
+        let re=-b/(2*a), im=Math.sqrt(-disc)/Math.abs(2*a);
+        rootsStr="x = "+fmt(re,4)+" + "+fmt(im,4)+"i  and  x = "+fmt(re,4)+" - "+fmt(im,4)+"i";
+    } else {
+        cls="disc-zero";
+        msg="One repeated root (double root)";
+        let r=-b/(2*a);
+        rootsStr="x = "+fmt(r,4)+"  (double root)";
+    }
+
+    let fourAC=4*a*c;
+    let discStr=fmt(b*b,2)+(fourAC>=0?" &minus; "+fmt(fourAC,2):" + "+fmt(-fourAC,2));
+    box.innerHTML=
+        '<div class="disc-label">Discriminant</div>'+
+        '<div class="disc-value '+cls+'">&Delta; = b&sup2; &minus; 4ac = '+discStr+' = '+fmt(disc,4)+'</div>'+
+        '<div class="disc-message '+cls+'">'+msg+'</div>'+
+        '<div class="disc-roots">x = (&minus;b &plusmn; &radic;&Delta;) / 2a &rarr; '+rootsStr+'</div>';
+}
+
+/* ---- Steps ---- */
+function updateSteps(){
+    const a=A,b=B,c=C;
+    const cont=document.getElementById("stepsContainer");
+    if(Math.abs(a)<1e-9){cont.innerHTML='<div class="panel" style="color:#808098">Set a to a nonzero value to see the derivation.</div>';return;}
+
+    const ba=b/a, ca=c/a, half=b/(2*a), halfSq=half*half;
+    const rhs=halfSq-ca, disc=b*b-4*a*c;
+
+    const steps=[
+        {num:"Step 1", gen:"Start with ax&sup2; + bx + c = 0",
+         act:fmt(a)+"x&sup2; "+(b>=0?"+ ":"")+fmt(b)+"x "+(c>=0?"+ ":"")+fmt(c)+" = 0"},
+        {num:"Step 2", gen:"Divide both sides by a: x&sup2; + (b/a)x + (c/a) = 0",
+         act:"x&sup2; "+(ba>=0?"+ ":"")+fmt(ba,4)+"x "+(ca>=0?"+ ":"")+fmt(ca,4)+" = 0"},
+        {num:"Step 3", gen:"Move the constant to the right: x&sup2; + (b/a)x = &minus;(c/a)",
+         act:"x&sup2; "+(ba>=0?"+ ":"")+fmt(ba,4)+"x = "+fmt(-ca,4)},
+        {num:"Step 4", gen:"Add (b/2a)&sup2; to both sides: x&sup2; + (b/a)x + (b/2a)&sup2; = (b/2a)&sup2; &minus; c/a",
+         act:"x&sup2; "+(ba>=0?"+ ":"")+fmt(ba,4)+"x + "+fmt(halfSq,4)+" = "+fmt(rhs,4)},
+        {num:"Step 5", gen:"Factor the left as a perfect square: (x + b/2a)&sup2; = (b&sup2; &minus; 4ac) / 4a&sup2;",
+         act:"(x "+(half>=0?"+ ":"")+fmt(half,4)+")&sup2; = "+fmt(disc,4)+" / "+fmt(4*a*a,4)+" = "+fmt(disc/(4*a*a),4)},
+        {num:"Step 6", gen:"Take the square root of both sides: x + b/2a = &plusmn;&radic;(b&sup2; &minus; 4ac) / 2a",
+         act:"x "+(half>=0?"+ ":"")+fmt(half,4)+" = &plusmn;&radic;("+fmt(disc,4)+") / "+fmt(2*a,4)},
+        {num:"Step 7", gen:"Solve for x: x = (&minus;b &plusmn; &radic;(b&sup2; &minus; 4ac)) / 2a",
+         act:disc>=0?"x = ("+fmt(-b,4)+" &plusmn; "+fmt(Math.sqrt(Math.abs(disc)),4)+") / "+fmt(2*a,4)
+                     :"x = ("+fmt(-b,4)+" &plusmn; "+fmt(Math.sqrt(-disc),4)+"i) / "+fmt(2*a,4)}
+    ];
+
+    cont.innerHTML=steps.map(s=>
+        '<div class="step-card"><div class="step-num">'+s.num+'</div>'+
+        '<div class="step-general">'+s.gen+'</div>'+
+        '<div class="step-actual">'+s.act+'</div></div>'
+    ).join("");
+}
+
+/* ---- Geometric Canvas ---- */
+const gCvs=document.getElementById("geoCanvas"),gCtx=gCvs.getContext("2d");
+const GW=gCvs.width, GH=gCvs.height;
+
+function lerp(a,b,t){return a+(b-a)*Math.min(1,Math.max(0,t));}
+
+function drawGeometric(){
+    gCtx.clearRect(0,0,GW,GH);
+    gCtx.fillStyle="#0a0a1a";
+    gCtx.fillRect(0,0,GW,GH);
+
+    // We illustrate completing the square for x^2 + Bx (assuming B positive for layout, we use |B|)
+    // x^2 is a square of side x, Bx is a rectangle B wide x tall
+    // Split Bx into two rectangles each (B/2) wide, x tall
+    // Rearrange to form (x + B/2)^2 with a missing (B/2)^2 corner
+
+    const bAbs=Math.max(Math.abs(B/A),0.5); // use |b/a| for the geometric b
+    const unit=Math.min(120/Math.max(bAbs/2,1),80); // scale
+    const xSide=2; // represent x as a fixed visual length
+    const xPx=xSide*unit;
+    const halfBPx=(bAbs/2)*unit;
+
+    const t=geoAnim; // 0 to 1
+    const ox=30, oy=30;
+
+    // Phase 0: show x^2 square + bx rectangle side by side
+    // Phase 1: split bx into two halves, move them to form L-shape
+    // Phase 2: show the missing corner piece
+
+    // x^2 square - always at top-left
+    gCtx.fillStyle="rgba(96,165,250,0.2)";
+    gCtx.strokeStyle="#60a5fa";gCtx.lineWidth=1.5;
+    gCtx.fillRect(ox,oy,xPx,xPx);
+    gCtx.strokeRect(ox,oy,xPx,xPx);
+    gCtx.font="14px Georgia";gCtx.fillStyle="#60a5fa";gCtx.textAlign="center";
+    gCtx.fillText("x\u00B2",ox+xPx/2,oy+xPx/2+5);
+
+    // Label sides of x^2
+    gCtx.font="12px Georgia";gCtx.fillStyle="#808098";
+    gCtx.textAlign="center";
+    gCtx.fillText("x",ox+xPx/2,oy-6);
+    gCtx.save();gCtx.translate(ox-8,oy+xPx/2);gCtx.rotate(-Math.PI/2);
+    gCtx.fillText("x",0,0);gCtx.restore();
+
+    if(t<0.01){
+        // Phase 0: single bx rectangle to the right
+        gCtx.fillStyle="rgba(251,191,36,0.15)";
+        gCtx.strokeStyle="#fbbf24";gCtx.lineWidth=1.5;
+        let rX=ox+xPx+10, rY=oy;
+        gCtx.fillRect(rX,rY,halfBPx*2,xPx);
+        gCtx.strokeRect(rX,rY,halfBPx*2,xPx);
+        gCtx.fillStyle="#fbbf24";gCtx.font="14px Georgia";gCtx.textAlign="center";
+        let bLabel=Math.abs(B/A)===1?"x":fmt(Math.abs(B/A))+"x";
+        gCtx.fillText(bLabel,rX+halfBPx,rY+xPx/2+5);
+        gCtx.font="12px Georgia";gCtx.fillStyle="#808098";
+        gCtx.fillText(fmt(bAbs),rX+halfBPx,rY-6);
+        gCtx.fillText("x",rX+halfBPx*2+12,rY+xPx/2+4);
+
+        // Description
+        gCtx.font="13px Georgia";gCtx.fillStyle="#808098";gCtx.textAlign="center";
+        gCtx.fillText("x\u00B2 + "+fmt(bAbs)+"x  as areas",GW/2,GH-16);
+    } else {
+        // Phase 1+: split into two halves
+        // Top half: to the right of x^2 square
+        let topX=ox+xPx;
+        let topY=oy;
+        // Bottom half: below x^2 square (rotated)
+        let botX=ox;
+        let botY=oy+xPx;
+
+        // Animate from stacked position to L-shape
+        let startTopX=ox+xPx+10, startTopY=oy;
+        let startBotX=ox+xPx+10, startBotY=oy;
+
+        let curTopX=lerp(startTopX,topX,t);
+        let curTopY=lerp(startTopY,topY,t);
+        // The bottom strip: starts as lower half of the single rectangle
+        let curBotX=lerp(startBotX+halfBPx,botX,t);
+        let curBotY=lerp(startBotY,botY,t);
+
+        // First half: halfB wide, x tall (right of square)
+        gCtx.fillStyle="rgba(251,191,36,0.15)";
+        gCtx.strokeStyle="#fbbf24";gCtx.lineWidth=1.5;
+        gCtx.fillRect(curTopX,curTopY,halfBPx,xPx);
+        gCtx.strokeRect(curTopX,curTopY,halfBPx,xPx);
+        gCtx.fillStyle="#fbbf24";gCtx.font="11px Georgia";gCtx.textAlign="center";
+        gCtx.fillText(fmt(bAbs/2)+"x",curTopX+halfBPx/2,curTopY+xPx/2+4);
+
+        // Second half: x wide, halfB tall (below square) - rotated conceptually
+        gCtx.fillStyle="rgba(251,191,36,0.15)";
+        gCtx.strokeStyle="#fbbf24";
+        gCtx.fillRect(curBotX,curBotY,xPx,halfBPx);
+        gCtx.strokeRect(curBotX,curBotY,xPx,halfBPx);
+        gCtx.fillStyle="#fbbf24";gCtx.font="11px Georgia";
+        gCtx.fillText(fmt(bAbs/2)+"x",curBotX+xPx/2,curBotY+halfBPx/2+4);
+
+        // Labels on the arranged pieces
+        if(t>0.8){
+            gCtx.font="12px Georgia";gCtx.fillStyle="#808098";
+            gCtx.textAlign="center";
+            gCtx.fillText(fmt(bAbs/2),topX+halfBPx/2,oy-6);
+            gCtx.save();gCtx.translate(ox-8,botY+halfBPx/2);gCtx.rotate(-Math.PI/2);
+            gCtx.fillText(fmt(bAbs/2),0,0);gCtx.restore();
+        }
+
+        // Phase 2: show the missing corner
+        if(t>0.6){
+            let alpha=Math.min(1,(t-0.6)/0.4);
+            gCtx.fillStyle="rgba(46,204,113,"+(0.15*alpha)+")";
+            gCtx.strokeStyle="rgba(46,204,113,"+alpha+")";gCtx.lineWidth=1.5;
+            gCtx.setLineDash([4,3]);
+            gCtx.fillRect(topX,botY,halfBPx,halfBPx);
+            gCtx.strokeRect(topX,botY,halfBPx,halfBPx);
+            gCtx.setLineDash([]);
+            gCtx.fillStyle="rgba(46,204,113,"+alpha+")";gCtx.font="11px Georgia";gCtx.textAlign="center";
+            gCtx.fillText("("+fmt(bAbs/2)+")\u00B2",topX+halfBPx/2,botY+halfBPx/2+4);
+
+            // Outer square label
+            if(t>0.85){
+                let fullSide=xPx+halfBPx;
+                gCtx.strokeStyle="rgba(255,255,255,0.15)";gCtx.lineWidth=1;
+                gCtx.setLineDash([3,3]);
+                gCtx.strokeRect(ox,oy,fullSide,xPx+halfBPx);
+                gCtx.setLineDash([]);
+                gCtx.font="13px Georgia";gCtx.fillStyle="#e0e0e0";gCtx.textAlign="center";
+                gCtx.fillText("(x + "+fmt(bAbs/2)+")\u00B2",ox+fullSide/2,oy+xPx+halfBPx+20);
+
+                // Explanation text
+                gCtx.font="12px Georgia";gCtx.fillStyle="#808098";gCtx.textAlign="center";
+                gCtx.fillText("Add the green corner ("+fmt(bAbs/2)+")\u00B2 = "+fmt((bAbs/2)*(bAbs/2),4)+" to complete the square",GW/2,GH-16);
+            }
+        }
+
+        if(t<=0.6){
+            gCtx.font="13px Georgia";gCtx.fillStyle="#808098";gCtx.textAlign="center";
+            gCtx.fillText("Split "+fmt(bAbs)+"x into two equal strips of "+fmt(bAbs/2)+"x",GW/2,GH-16);
+        }
+    }
+}
+
+let geoAnimId=null;
+document.getElementById("geoBtn").addEventListener("click",function(){
+    if(geoAnim>=1){geoAnim=0;drawGeometric();this.textContent="Show Geometry";return;}
+    this.textContent="Reset";
+    let start=null;
+    function animate(ts){
+        if(!start) start=ts;
+        geoAnim=Math.min(1,(ts-start)/1800);
+        drawGeometric();
+        if(geoAnim<1) geoAnimId=requestAnimationFrame(animate);
+    }
+    if(geoAnimId) cancelAnimationFrame(geoAnimId);
+    geoAnimId=requestAnimationFrame(animate);
+});
+
+/* ---- Insight ---- */
+function updateInsight(){
+    const a=A,b=B,c=C;
+    const disc=b*b-4*a*c;
+    const title=document.getElementById("insightTitle");
+    const text=document.getElementById("insightText");
+
+    if(Math.abs(a)<1e-9){
+        title.textContent="Linear Equation";
+        text.textContent="When a = 0 this is not a quadratic but a linear equation. The quadratic formula does not apply.";
+        return;
+    }
+
+    if(disc>1e-9){
+        let r1=(-b-Math.sqrt(disc))/(2*a), r2=(-b+Math.sqrt(disc))/(2*a);
+        let dist=Math.sqrt(disc)/Math.abs(a);
+        title.textContent="Two Distinct Real Roots";
+        text.textContent="Two distinct points where the parabola crosses the x-axis. The distance between roots is \u221A\u0394 / |a| = "+fmt(dist,4)+". The vertex lies exactly halfway between the roots at x = "+fmt(-b/(2*a),4)+". Since the discriminant \u0394 = "+fmt(disc,4)+" is positive, both roots are real: x = "+fmt(r1,4)+" and x = "+fmt(r2,4)+".";
+    } else if(disc<-1e-9){
+        let re=-b/(2*a), im=Math.sqrt(-disc)/Math.abs(2*a);
+        title.textContent="No Real Roots";
+        text.textContent="The parabola does not cross the x-axis. The roots exist in the complex plane: x = "+fmt(re,4)+" \u00B1 "+fmt(im,4)+"i. These complex conjugate roots become visible in the Fundamental Theorem of Algebra. The vertex at ("+fmt(-b/(2*a),4)+", "+fmt(c-b*b/(4*a),4)+") is the closest the parabola gets to the x-axis.";
+    } else {
+        let r=-b/(2*a);
+        title.textContent="One Repeated Root (Double Root)";
+        text.textContent="The parabola just touches the x-axis at its vertex x = "+fmt(r,4)+" \u2014 a perfect tangency. The discriminant is zero, meaning the two roots have merged into one. Algebraically, the quadratic factors as a(x \u2212 "+fmt(r,4)+")\u00B2. This is the boundary between real and complex roots.";
+    }
+}
+
+/* ---- Master Update ---- */
+function update(){
+    A=parseFloat(aSlider.value);
+    B=parseFloat(bSlider.value);
+    C=parseFloat(cSlider.value);
+    document.getElementById("aVal").textContent=fmt(A,1);
+    document.getElementById("bVal").textContent=fmt(B,1);
+    document.getElementById("cVal").textContent=fmt(C,1);
+    document.getElementById("eqDisplay").innerHTML=buildEquation(A,B,C);
+    drawParabola();
+    updateDiscriminant();
+    updateSteps();
+    updateInsight();
+    drawGeometric();
+}
+
+aSlider.addEventListener("input",update);
+bSlider.addEventListener("input",update);
+cSlider.addEventListener("input",update);
+
+document.querySelectorAll(".preset-btn").forEach(btn=>{
+    btn.addEventListener("click",function(){
+        aSlider.value=this.dataset.a;
+        bSlider.value=this.dataset.b;
+        cSlider.value=this.dataset.c;
+        geoAnim=0;
+        document.getElementById("geoBtn").textContent="Show Geometry";
+        update();
+    });
+});
+
+update();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

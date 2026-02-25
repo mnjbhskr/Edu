@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Visual Discovery of Mathematics</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{
+            background:#0a0a1a;color:#e0e0e0;
+            font-family:Georgia,'Times New Roman',serif;
+            line-height:1.6;overflow-x:hidden;
+        }
+        #bgCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+        .container{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 28px}
+
+        /* ── Hero ── */
+        .hero{
+            min-height:100vh;display:flex;flex-direction:column;
+            justify-content:center;align-items:center;text-align:center;padding:60px 0;
+        }
+        .hero h1{
+            font-size:3em;font-weight:300;letter-spacing:2px;color:#fff;margin-bottom:8px;
+        }
+        .hero .subtitle{font-size:1.25em;color:#9090a8;font-style:italic;margin-bottom:36px}
+        .hero .mission{
+            max-width:680px;font-size:1.05em;color:#a0a0b4;margin-bottom:40px;line-height:1.85;
+        }
+        .hero .quote{
+            max-width:560px;font-size:0.92em;color:#707088;font-style:italic;margin-bottom:44px;
+        }
+        .stats-bar{display:flex;gap:48px;margin-bottom:48px}
+        .stat .number{font-size:2.4em;font-weight:300;color:#fbbf24}
+        .stat .label{font-size:0.78em;color:#707080;text-transform:uppercase;letter-spacing:1.5px}
+        .scroll-hint{color:#505060;font-size:0.88em;animation:bob 2.5s ease-in-out infinite}
+        @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+
+        /* ── Guide ── */
+        .guide{
+            text-align:center;padding:32px 0 48px;color:#808098;font-size:0.92em;
+            border-bottom:1px solid rgba(255,255,255,0.04);margin-bottom:56px;
+        }
+        .guide span.live-dot{
+            display:inline-block;width:8px;height:8px;border-radius:50%;
+            background:#2ecc71;margin:0 4px;vertical-align:middle;
+        }
+
+        /* ── Chapter ── */
+        .chapter{margin-bottom:64px}
+        .chapter-header{
+            display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+            margin-bottom:20px;padding-bottom:12px;
+            border-bottom:1px solid rgba(255,255,255,0.05);
+        }
+        .chapter-icon{font-size:1.5em;line-height:1;opacity:0.7}
+        .chapter-num{font-size:0.82em;color:#505068;letter-spacing:1px;text-transform:uppercase}
+        .chapter-title{font-size:1.4em;font-weight:400;color:#fff}
+        .chapter-subtitle{font-size:0.9em;color:#707088;font-style:italic;margin-left:auto}
+
+        /* ── Topic Cards ── */
+        .topics-grid{
+            display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;
+        }
+        .topic-card{
+            background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.055);
+            border-radius:10px;padding:18px 20px;transition:all 0.3s ease;
+            position:relative;cursor:default;border-left:3px solid transparent;
+        }
+        .topic-card.live{cursor:pointer}
+        .topic-card.live:hover{
+            background:rgba(255,255,255,0.055);
+            border-color:rgba(255,255,255,0.1);
+            transform:translateY(-2px);
+            box-shadow:0 4px 24px var(--glow,rgba(255,255,255,0.03));
+        }
+        .topic-card.live{border-left-color:var(--accent,#2ecc71)}
+        .card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+        .badge{
+            font-size:0.65em;text-transform:uppercase;letter-spacing:1.2px;
+            padding:2px 8px;border-radius:4px;font-family:system-ui,sans-serif;
+        }
+        .badge.live{background:rgba(46,204,113,0.12);color:#2ecc71}
+        .badge.soon{background:rgba(100,100,120,0.12);color:#707080}
+        .difficulty{display:flex;gap:3px}
+        .difficulty .dot{
+            width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.1);
+        }
+        .difficulty .dot.filled{background:rgba(251,191,36,0.55)}
+        .topic-title{font-size:1em;color:#e0e0ef;margin-bottom:5px}
+        .topic-desc{font-size:0.82em;color:#707088;line-height:1.55}
+        .topic-card.visited .topic-title::after{content:' \2713';color:#2ecc71;font-size:0.8em}
+
+        /* ── Appendix ── */
+        .appendix{margin-bottom:64px}
+        .appendix-header{
+            font-size:1.1em;color:#909098;margin-bottom:16px;padding-bottom:8px;
+            border-bottom:1px solid rgba(255,255,255,0.04);
+        }
+
+        /* ── Footer ── */
+        footer{
+            text-align:center;padding:56px 0 36px;color:#505060;font-size:0.82em;
+            border-top:1px solid rgba(255,255,255,0.03);
+        }
+        footer .heart{color:#e94560}
+
+        /* ── Responsive ── */
+        @media(max-width:768px){
+            .hero h1{font-size:2em}
+            .stats-bar{gap:28px}
+            .stat .number{font-size:1.8em}
+            .topics-grid{grid-template-columns:1fr}
+            .chapter-subtitle{margin-left:0;flex-basis:100%}
+        }
+    </style>
+</head>
+<body>
+<canvas id="bgCanvas"></canvas>
+<div class="container">
+
+    <header class="hero">
+        <h1>A Visual Discovery of Mathematics</h1>
+        <p class="subtitle">An interactive journey through 2,500 years of human thought</p>
+        <p class="mission">
+            Mathematics is the foundation of all science, yet too often it is taught as
+            rules to memorise rather than ideas to discover. This collection of interactive
+            visualisations invites you to see, touch, and explore the great theorems &mdash;
+            from Euclid's geometry to Euler's identity &mdash; and build genuine intuition
+            for the most powerful language humanity has ever created.
+        </p>
+        <p class="quote">
+            &ldquo;The book of nature is written in the language of mathematics.&rdquo;
+            &mdash; Galileo Galilei
+        </p>
+        <div class="stats-bar">
+            <div class="stat"><div class="number" id="nLive">0</div><div class="label">Live</div></div>
+            <div class="stat"><div class="number" id="nTotal">0</div><div class="label">Planned</div></div>
+            <div class="stat"><div class="number" id="nChapters">0</div><div class="label">Chapters</div></div>
+        </div>
+        <div class="scroll-hint">Scroll to explore</div>
+    </header>
+
+    <div class="guide">
+        Topics marked <span class="live-dot"></span> <strong style="color:#2ecc71">Live</strong>
+        are ready to explore &mdash; click to open. More are being built.
+    </div>
+
+    <main id="chaptersContainer"></main>
+
+    <section class="appendix" id="appendixContainer"></section>
+
+    <footer>
+        <p>Built with <span class="heart">love</span> for mathematics education</p>
+        <p style="margin-top:6px">Every student deserves to see the beauty of mathematics</p>
+    </footer>
+
+</div>
+
+<script>
+/* ================================================================
+   DATA — 10 chapters, ~50 topics
+   ================================================================ */
+const chapters = [
+    {
+        title: "Logic & Proof",
+        subtitle: "The grammar of mathematics",
+        icon: "\u21D2",
+        color: "#c084fc",
+        topics: [
+            { title: "Truth Tables & Logical Connectives",
+              desc: "AND, OR, NOT, implication \u2014 build the language of reasoning",
+              file: "truth_tables.html", difficulty: 1 },
+            { title: "Proof by Contradiction",
+              desc: "Why \u221A2 cannot be a fraction \u2014 the first shocking proof",
+              file: "proof_by_contradiction.html", difficulty: 1 },
+            { title: "Mathematical Induction",
+              desc: "The domino principle \u2014 prove it for one, prove it for all",
+              file: "mathematical_induction.html", difficulty: 2 },
+        ]
+    },
+    {
+        title: "Numbers",
+        subtitle: "From counting to infinity",
+        icon: "\u2115",
+        color: "#fbbf24",
+        topics: [
+            { title: "The Number Line",
+              desc: "From counting to complex \u2014 zoom through the families of numbers",
+              file: "number_line.html", difficulty: 1 },
+            { title: "Prime Numbers & the Sieve of Eratosthenes",
+              desc: "The atoms of arithmetic \u2014 watch them emerge",
+              file: "prime_sieve.html", difficulty: 1 },
+            { title: "Fundamental Theorem of Arithmetic",
+              desc: "Every integer is a unique product of primes \u2014 factor trees in action",
+              file: "fundamental_theorem_arithmetic.html", difficulty: 1 },
+            { title: "Infinity & Cantor\u2019s Diagonal",
+              desc: "Not all infinities are equal \u2014 the most mind-bending proof",
+              file: "cantors_diagonal.html", difficulty: 2 },
+        ]
+    },
+    {
+        title: "Geometry",
+        subtitle: "Euclid\u2019s gift to the world",
+        icon: "\u25B3",
+        color: "#f87171",
+        topics: [
+            { title: "Euclid\u2019s Axioms & Constructions",
+              desc: "Build geometry from five postulates with compass and straightedge",
+              file: "euclids_axioms.html", difficulty: 1 },
+            { title: "Pythagorean Theorem",
+              desc: "The most famous theorem \u2014 see why a\u00B2 + b\u00B2 = c\u00B2",
+              file: "pythagoras_proof.html", difficulty: 1 },
+            { title: "Thales\u2019 Theorem & Circle Theorems",
+              desc: "Inscribed angles, tangent lines, and the power of a point",
+              file: "circle_theorems.html", difficulty: 1 },
+            { title: "Conic Sections",
+              desc: "Slice a cone and discover ellipses, parabolas, and hyperbolas",
+              file: "conic_sections.html", difficulty: 2 },
+            { title: "Non-Euclidean Geometry",
+              desc: "What happens when parallel lines meet \u2014 curved spaces revealed",
+              file: "non_euclidean_geometry.html", difficulty: 3 },
+            { title: "Euler\u2019s Polyhedron Formula",
+              desc: "V \u2212 E + F = 2 for every convex polyhedron \u2014 build and verify",
+              file: "eulers_polyhedron.html", difficulty: 2 },
+        ]
+    },
+    {
+        title: "Algebra",
+        subtitle: "The art of the unknown",
+        icon: "\u03C7",
+        color: "#60a5fa",
+        topics: [
+            { title: "Quadratic Formula",
+              desc: "Completing the square \u2014 watch the geometry unfold",
+              file: "quadratic_formula.html", difficulty: 1 },
+            { title: "Binomial Theorem & Pascal\u2019s Triangle",
+              desc: "Expand (a+b)\u207F and discover hidden patterns",
+              file: "binomial_theorem.html", difficulty: 1 },
+            { title: "Complex Numbers",
+              desc: "The complex plane \u2014 multiplication as rotation",
+              file: "complex_numbers.html", difficulty: 2 },
+            { title: "Fundamental Theorem of Algebra",
+              desc: "Every polynomial has a root \u2014 watch the winding number prove it",
+              file: "fundamental_theorem_algebra.html", difficulty: 3 },
+            { title: "Polynomial Roots & Factoring",
+              desc: "Vieta\u2019s formulas and root-coefficient relationships",
+              file: "polynomial_roots.html", difficulty: 2 },
+        ]
+    },
+    {
+        title: "Trigonometry & Waves",
+        subtitle: "The mathematics of oscillation",
+        icon: "\u223F",
+        color: "#34d399",
+        topics: [
+            { title: "Circles to Waves",
+              desc: "How circular motion creates sine and cosine",
+              file: "circle_to_waves.html", difficulty: 1 },
+            { title: "Trigonometric Identities",
+              desc: "Why sin\u00B2 + cos\u00B2 = 1 and other visual proofs",
+              file: "trig_identities.html", difficulty: 1 },
+            { title: "Law of Sines & Cosines",
+              desc: "Solve any triangle \u2014 animated constructions",
+              file: "law_of_sines_cosines.html", difficulty: 1 },
+            { title: "Fourier Transform",
+              desc: "Decompose any signal into pure frequencies",
+              file: "fourier_transform.html", difficulty: 3 },
+        ]
+    },
+    {
+        title: "Calculus",
+        subtitle: "The mathematics of change",
+        icon: "\u222B",
+        color: "#fb923c",
+        topics: [
+            { title: "Limits & Continuity",
+              desc: "The epsilon-delta definition \u2014 the foundation of all calculus",
+              file: "limits_continuity.html", difficulty: 2 },
+            { title: "Derivatives",
+              desc: "The mathematics of instantaneous change",
+              file: "derivatives.html", difficulty: 2 },
+            { title: "Integration",
+              desc: "Area under the curve \u2014 from Riemann sums to antiderivatives",
+              file: "integration.html", difficulty: 2 },
+            { title: "Fundamental Theorem of Calculus",
+              desc: "The bridge connecting derivatives and integrals",
+              file: "fundamental_theorem_calculus.html", difficulty: 2 },
+            { title: "Taylor Series",
+              desc: "Approximate any function with polynomials \u2014 watch them converge",
+              file: "taylor_series.html", difficulty: 2 },
+            { title: "Mean Value Theorem",
+              desc: "Somewhere the tangent must equal the secant",
+              file: "mean_value_theorem.html", difficulty: 2 },
+        ]
+    },
+    {
+        title: "Linear Algebra",
+        subtitle: "The mathematics of space and transformation",
+        icon: "\u2192",
+        color: "#22d3ee",
+        topics: [
+            { title: "Systems of Linear Equations",
+              desc: "Two lines, one solution \u2014 see equations meet on the plane",
+              file: "linear_algebra.html", difficulty: 1 },
+            { title: "Vectors & Vector Spaces",
+              desc: "Addition, scaling, span \u2014 the geometry of arrows",
+              file: "vectors.html", difficulty: 1 },
+            { title: "Linear Transformations",
+              desc: "Rotation, reflection, shear \u2014 see matrices as actions on space",
+              file: "linear_transformations.html", difficulty: 2 },
+            { title: "Eigenvalues & Eigenvectors",
+              desc: "The directions that survive a transformation",
+              file: "eigenvalues.html", difficulty: 2 },
+            { title: "Singular Value Decomposition",
+              desc: "Every matrix = rotate, stretch, rotate \u2014 the universal factorisation",
+              file: "svd.html", difficulty: 3 },
+        ]
+    },
+    {
+        title: "Probability & Statistics",
+        subtitle: "The mathematics of uncertainty",
+        icon: "\u2211",
+        color: "#f472b6",
+        topics: [
+            { title: "Combinatorics",
+              desc: "Count without counting \u2014 permutations, combinations, Pascal\u2019s connections",
+              file: "combinatorics.html", difficulty: 1 },
+            { title: "Probability Distributions",
+              desc: "Normal, exponential, fat-tailed \u2014 rain drops reveal the shape of chance",
+              file: "probability_distributions.html", difficulty: 2 },
+            { title: "Bayes\u2019 Theorem",
+              desc: "Update your beliefs with evidence \u2014 the most practical theorem",
+              file: "bayes_theorem.html", difficulty: 2 },
+            { title: "Law of Large Numbers",
+              desc: "Why casinos always win \u2014 the convergence of averages",
+              file: "law_of_large_numbers.html", difficulty: 2 },
+            { title: "Central Limit Theorem",
+              desc: "Why the bell curve appears everywhere in nature",
+              file: "central_limit_theorem.html", difficulty: 2 },
+        ]
+    },
+    {
+        title: "Analysis & Topology",
+        subtitle: "The mathematics of rigour and shape",
+        icon: "\u221E",
+        color: "#818cf8",
+        topics: [
+            { title: "Sequences & Series",
+              desc: "Does this sum converge? Harmonic, geometric, and beyond",
+              file: "sequences_series.html", difficulty: 2 },
+            { title: "Intermediate Value Theorem",
+              desc: "Continuous functions must cross \u2014 the foundation of root finding",
+              file: "intermediate_value_theorem.html", difficulty: 2 },
+            { title: "Bolzano-Weierstrass Theorem",
+              desc: "Every bounded sequence has a convergent subsequence",
+              file: "bolzano_weierstrass.html", difficulty: 3 },
+            { title: "M\u00F6bius Strip & Topology",
+              desc: "One-sided surfaces and the shapes that defy intuition",
+              file: "mobius_topology.html", difficulty: 2 },
+            { title: "Gaussian Curvature",
+              desc: "The intrinsic geometry of curved surfaces \u2014 Theorema Egregium",
+              file: "gaussian_curvature.html", difficulty: 3 },
+            { title: "Fixed Point Theorems",
+              desc: "Stir your coffee \u2014 one point must stay where it was",
+              file: "fixed_point_theorems.html", difficulty: 3 },
+        ]
+    },
+    {
+        title: "Beautiful Results",
+        subtitle: "The crown jewels of mathematics",
+        icon: "\u2605",
+        color: "#fcd34d",
+        topics: [
+            { title: "Euler\u2019s Identity",
+              desc: "e^(i\u03C0) + 1 = 0 \u2014 five constants, three operations, one equation",
+              file: "eulers_identity.html", difficulty: 2 },
+            { title: "Golden Ratio & Fibonacci",
+              desc: "\u03C6 in spirals, art, and nature \u2014 the most irrational number",
+              file: "golden_ratio.html", difficulty: 1 },
+            { title: "The Mandelbrot Set",
+              desc: "Infinite complexity from z \u2192 z\u00B2 + c",
+              file: "mandelbrot_set.html", difficulty: 2 },
+            { title: "Group Theory & Symmetry",
+              desc: "The mathematics of symmetry \u2014 rotations, reflections, and beyond",
+              file: "group_theory.html", difficulty: 3 },
+            { title: "The Riemann Hypothesis",
+              desc: "The greatest unsolved problem \u2014 zeros of the zeta function",
+              file: "riemann_hypothesis.html", difficulty: 4 },
+            { title: "\u03C0 Through the Ages",
+              desc: "4,000 years of computing the most famous constant",
+              file: "pi_through_ages.html", difficulty: 1 },
+        ]
+    },
+];
+
+/* Physics appendix */
+const appendix = [
+    { title: "Atomic Energy Levels",
+      desc: "Electrons, photons, and the Bohr model \u2014 quantum jumps visualised",
+      file: "atomic_energy_levels.html", difficulty: 2 },
+];
+
+/* ================================================================
+   RENDER
+   ================================================================ */
+function render() {
+    const main = document.getElementById("chaptersContainer");
+    let liveCount = 0, totalCount = 0;
+
+    chapters.forEach((ch, ci) => {
+        const sec = document.createElement("section");
+        sec.className = "chapter";
+
+        /* header */
+        const hdr = document.createElement("div");
+        hdr.className = "chapter-header";
+        hdr.innerHTML =
+            `<span class="chapter-icon" style="color:${ch.color}">${ch.icon}</span>` +
+            `<span class="chapter-num">Chapter ${ci + 1}</span>` +
+            `<span class="chapter-title">${ch.title}</span>` +
+            `<span class="chapter-subtitle">${ch.subtitle}</span>`;
+        sec.appendChild(hdr);
+
+        /* cards */
+        const grid = document.createElement("div");
+        grid.className = "topics-grid";
+
+        ch.topics.forEach(t => {
+            totalCount++;
+            const isLive = !!t.file;
+            if (isLive) liveCount++;
+            const visited = isLive && localStorage.getItem("vdm_" + t.file);
+
+            const card = document.createElement("div");
+            card.className = "topic-card" + (isLive ? " live" : "") + (visited ? " visited" : "");
+            card.style.setProperty("--accent", ch.color);
+            card.style.setProperty("--glow", ch.color + "22");
+
+            /* top row: badge + difficulty */
+            let dots = "";
+            for (let d = 1; d <= 4; d++)
+                dots += `<span class="dot${d <= t.difficulty ? " filled" : ""}"></span>`;
+
+            card.innerHTML =
+                `<div class="card-top">` +
+                    `<span class="badge ${isLive ? "live" : "soon"}">${isLive ? "Live" : "Coming Soon"}</span>` +
+                    `<span class="difficulty">${dots}</span>` +
+                `</div>` +
+                `<div class="topic-title">${t.title}</div>` +
+                `<div class="topic-desc">${t.desc}</div>`;
+
+            if (isLive) {
+                card.addEventListener("click", () => {
+                    localStorage.setItem("vdm_" + t.file, "1");
+                    window.location.href = t.file;
+                });
+            }
+
+            grid.appendChild(card);
+        });
+
+        sec.appendChild(grid);
+        main.appendChild(sec);
+    });
+
+    /* appendix */
+    if (appendix.length) {
+        const app = document.getElementById("appendixContainer");
+        const hdr = document.createElement("div");
+        hdr.className = "appendix-header";
+        hdr.textContent = "Appendix \u2014 Physics";
+        app.appendChild(hdr);
+
+        const grid = document.createElement("div");
+        grid.className = "topics-grid";
+        appendix.forEach(t => {
+            totalCount++;
+            const isLive = !!t.file;
+            if (isLive) liveCount++;
+            const visited = isLive && localStorage.getItem("vdm_" + t.file);
+            const card = document.createElement("div");
+            card.className = "topic-card" + (isLive ? " live" : "") + (visited ? " visited" : "");
+            card.style.setProperty("--accent", "#64748b");
+            card.style.setProperty("--glow", "rgba(100,116,139,0.13)");
+            let dots = "";
+            for (let d = 1; d <= 4; d++)
+                dots += `<span class="dot${d <= t.difficulty ? " filled" : ""}"></span>`;
+            card.innerHTML =
+                `<div class="card-top">` +
+                    `<span class="badge ${isLive ? "live" : "soon"}">${isLive ? "Live" : "Coming Soon"}</span>` +
+                    `<span class="difficulty">${dots}</span>` +
+                `</div>` +
+                `<div class="topic-title">${t.title}</div>` +
+                `<div class="topic-desc">${t.desc}</div>`;
+            if (isLive) {
+                card.addEventListener("click", () => {
+                    localStorage.setItem("vdm_" + t.file, "1");
+                    window.location.href = t.file;
+                });
+            }
+            grid.appendChild(card);
+        });
+        app.appendChild(grid);
+    }
+
+    /* stats */
+    document.getElementById("nLive").textContent = liveCount;
+    document.getElementById("nTotal").textContent = totalCount;
+    document.getElementById("nChapters").textContent = chapters.length;
+}
+
+/* ================================================================
+   BACKGROUND — floating mathematical symbols
+   ================================================================ */
+const mathSymbols = [
+    "\u2211","\u222B","\u03C0","\u221A","\u221E","\u2202","\u0394","\u03B8",
+    "\u03C6","\u03BB","\u03BC","\u03C3","\u03B5","\u2207","\u2261","\u2248",
+    "\u2200","\u2203","\u2208","\u2282","\u222A","\u2229","\u211D","\u2102",
+    "\u2124","\u2115","\u03B1","\u03B2","\u03B3","\u03B4","\u03C9","\u03B6"
+];
+
+let floaters = [];
+
+function initBackground() {
+    const canvas = document.getElementById("bgCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    const N = Math.min(40, Math.floor(window.innerWidth / 30));
+    floaters = [];
+    for (let i = 0; i < N; i++) {
+        floaters.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            ch: mathSymbols[Math.floor(Math.random() * mathSymbols.length)],
+            size: 13 + Math.random() * 18,
+            speed: 0.15 + Math.random() * 0.35,
+            drift: (Math.random() - 0.5) * 0.25,
+            opacity: 0.025 + Math.random() * 0.055,
+        });
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (const f of floaters) {
+            f.y -= f.speed;
+            f.x += f.drift;
+            if (f.y < -30) {
+                f.y = canvas.height + 20;
+                f.x = Math.random() * canvas.width;
+                f.ch = mathSymbols[Math.floor(Math.random() * mathSymbols.length)];
+            }
+            if (f.x < -20) f.x = canvas.width + 10;
+            if (f.x > canvas.width + 20) f.x = -10;
+            ctx.font = f.size + "px Georgia, serif";
+            ctx.fillStyle = "rgba(167,139,250," + f.opacity + ")";
+            ctx.fillText(f.ch, f.x, f.y);
+        }
+        requestAnimationFrame(animate);
+    }
+    animate();
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+render();
+initBackground();
+</script>
+<footer style="text-align:center;padding:40px 20px 30px;color:#505068;font-size:0.78em;line-height:1.8;border-top:1px solid rgba(255,255,255,0.04);margin-top:40px">
+    <div style="color:#808098;font-size:1.05em;margin-bottom:4px">A Visual Discovery of Mathematics</div>
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar. All rights reserved.</div>
+    <div>Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#818cf8;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

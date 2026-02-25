@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singular Value Decomposition</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#22d3ee}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(34,211,238,0.13);border-color:rgba(34,211,238,0.4);color:#22d3ee}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .green{color:#2ecc71}
+        .math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#22d3ee;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 300px;min-width:280px}
+        .step-canvases{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+        .step-canvas-wrap{text-align:center}
+        .step-canvas-wrap canvas{cursor:default}
+        .step-label{color:#808098;font-size:0.78em;margin-top:6px;font-family:'Courier New',monospace}
+        .matrix-input{display:inline-grid;grid-template-columns:1fr 1fr;gap:4px;margin:6px 8px}
+        .matrix-input input{width:60px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#22d3ee;padding:4px 8px;border-radius:4px;font-family:'Courier New',monospace;font-size:0.95em;text-align:center}
+        .matrix-input input:focus{outline:none;border-color:rgba(34,211,238,0.4)}
+        .matrix-bracket{display:inline-flex;align-items:center;font-size:2.2em;color:#808098;font-weight:100;line-height:1}
+        .matrix-wrap{display:inline-flex;align-items:center;vertical-align:middle}
+        .computation-step{margin:8px 0;padding:8px 12px;border-left:2px solid rgba(34,211,238,0.2);font-family:'Courier New',monospace;font-size:0.85em;color:#c0c0d8;line-height:1.7}
+        .computation-step .label{color:#22d3ee;font-size:0.8em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px}
+        .side-by-side{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+        .side-by-side canvas{cursor:default}
+        .side-label{text-align:center;color:#808098;font-size:0.82em;margin-top:6px}
+        .eq-display{font-family:'Courier New',monospace;font-size:1em;color:#c0c0d8;text-align:center;margin:14px 0;line-height:2}
+        .eq-display .cyan{color:#22d3ee}
+        .eq-display .gold{color:#fbbf24}
+        .eq-display .green{color:#2ecc71}
+        hr.sep{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:8px 0}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}.step-canvases{flex-direction:column;align-items:center}.side-by-side{flex-direction:column;align-items:center}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Singular Value Decomposition</h1>
+    <p class="subtitle">Every matrix = rotate, stretch, rotate &mdash; the universal factorisation</p>
+
+    <!-- Section 1: The SVD Story -->
+    <h2>The SVD Story &mdash; Three Steps</h2>
+    <div class="panel">
+        <h3>A = U &middot; &Sigma; &middot; V<sup>T</sup></h3>
+        <div class="btn-row">
+            <button class="btn" id="btnPlayAll">Play All</button>
+            <button class="btn" id="btnStep1">Step 1: V<sup>T</sup></button>
+            <button class="btn" id="btnStep2">Step 2: &Sigma;</button>
+            <button class="btn" id="btnStep3">Step 3: U</button>
+            <button class="btn" id="btnReset">Reset</button>
+        </div>
+        <div class="step-canvases">
+            <div class="step-canvas-wrap">
+                <canvas id="cvsStep1" width="220" height="220"></canvas>
+                <div class="step-label">V<sup>T</sup>: Align input</div>
+            </div>
+            <div class="step-canvas-wrap">
+                <canvas id="cvsStep2" width="220" height="220"></canvas>
+                <div class="step-label">&Sigma;: Stretch by singular values</div>
+            </div>
+            <div class="step-canvas-wrap">
+                <canvas id="cvsStep3" width="220" height="220"></canvas>
+                <div class="step-label">U: Align output</div>
+            </div>
+        </div>
+        <div class="eq-display" id="eqDisplay"></div>
+    </div>
+
+    <!-- Section 2: Matrix Input & Presets -->
+    <h2>Matrix Input</h2>
+    <div class="panel">
+        <h3>2&times;2 Matrix A</h3>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+            <span style="color:#808098;font-size:0.9em">A =</span>
+            <div class="matrix-wrap">
+                <span class="matrix-bracket">[</span>
+                <div class="matrix-input">
+                    <input type="number" id="m00" value="3" step="0.1">
+                    <input type="number" id="m01" value="1" step="0.1">
+                    <input type="number" id="m10" value="-1" step="0.1">
+                    <input type="number" id="m11" value="2" step="0.1">
+                </div>
+                <span class="matrix-bracket">]</span>
+            </div>
+        </div>
+        <h3>Presets</h3>
+        <div class="btn-row" id="presetBtns"></div>
+    </div>
+
+    <!-- Section 3: SVD Computation Panel -->
+    <h2>SVD Computation</h2>
+    <div class="panel" id="computationPanel"></div>
+
+    <!-- Section 4: Geometric Insight Canvas -->
+    <h2>Geometric Insight</h2>
+    <div class="panel">
+        <h3>Unit circle &rarr; Ellipse under A</h3>
+        <canvas id="cvsGeometric" width="500" height="400" style="margin:0 auto"></canvas>
+        <div class="math-line muted" id="geoCaption" style="margin-top:10px;text-align:center"></div>
+    </div>
+
+    <!-- Section 5: Low-Rank Approximation -->
+    <h2>Low-Rank Approximation</h2>
+    <div class="panel">
+        <h3>Rank-1 Approximation: A<sub>1</sub> = &sigma;<sub>1</sub> &middot; u<sub>1</sub> &middot; v<sub>1</sub><sup>T</sup></h3>
+        <div class="math-line" id="rankApproxInfo"></div>
+        <div class="side-by-side" style="margin-top:14px">
+            <div>
+                <canvas id="cvsFullA" width="250" height="250" style="cursor:default"></canvas>
+                <div class="side-label">Full A (circle &rarr; ellipse)</div>
+            </div>
+            <div>
+                <canvas id="cvsRank1" width="250" height="250" style="cursor:default"></canvas>
+                <div class="side-label">Rank-1 A<sub>1</sub> (circle &rarr; line)</div>
+            </div>
+        </div>
+        <div class="math-line muted" id="approxError" style="margin-top:12px"></div>
+        <p style="color:#a0a0b8;font-size:0.88em;line-height:1.7;margin-top:12px">The best rank-k approximation keeps only the k largest singular values &mdash; this is the mathematical foundation of data compression (PCA, image compression, recommender systems).</p>
+    </div>
+
+    <!-- Section 6: Explanation -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            The Singular Value Decomposition reveals the fundamental geometry of <em>any</em> matrix &mdash; not just square, not just invertible. Every matrix is simply: rotation, then stretching along coordinate axes, then another rotation. The singular values &sigma;<sub>1</sub> &ge; &sigma;<sub>2</sub> &ge; 0 are always real and non-negative (unlike eigenvalues, which can be complex or negative). They measure how much the matrix stretches space in each principal direction.<br><br>
+            <strong>Connections:</strong> In Principal Component Analysis, the singular values encode the importance of each component. In least squares, the SVD gives the pseudoinverse. The matrix rank equals the number of non-zero singular values. The condition number &sigma;<sub>1</sub>/&sigma;<sub>2</sub> measures numerical sensitivity. The SVD is, in many ways, the most important factorisation in all of applied mathematics.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   SVD Interactive Visualisation
+   ============================================================ */
+
+/* -- State -- */
+let A = [[3, 1], [-1, 2]];
+let svdResult = null;
+
+/* -- DOM refs -- */
+const inputs = [
+    document.getElementById('m00'), document.getElementById('m01'),
+    document.getElementById('m10'), document.getElementById('m11')
+];
+
+/* -- Presets -- */
+const presets = [
+    {label:'Simple Stretch', m:[[3,0],[0,1]], desc:'\u03C31=3, \u03C32=1, no rotation needed'},
+    {label:'Rotation+Stretch', m:[[2,1],[1,2]], desc:'Symmetric: eigenvectors = singular vectors'},
+    {label:'Shear', m:[[1,1],[0,1]], desc:'\u03C31\u22481.618, \u03C32\u22480.618 (golden ratio!)'},
+    {label:'Rank 1', m:[[1,2],[0.5,1]], desc:'\u03C32=0 (collapses to a line)'},
+    {label:'General', m:[[3,1],[-1,2]], desc:'All components active'},
+    {label:'Reflection', m:[[1,0],[0,-1]], desc:'U has det = -1'}
+];
+
+function renderPresets(){
+    const c = document.getElementById('presetBtns');
+    c.innerHTML = presets.map((p,i)=>'<button class="btn" data-pi="'+i+'" title="'+p.desc+'">'+p.label+'</button>').join('');
+    c.querySelectorAll('.btn').forEach(b=>b.addEventListener('click',()=>{
+        const p = presets[parseInt(b.dataset.pi)];
+        A = [[p.m[0][0],p.m[0][1]],[p.m[1][0],p.m[1][1]]];
+        inputs[0].value=A[0][0]; inputs[1].value=A[0][1];
+        inputs[2].value=A[1][0]; inputs[3].value=A[1][1];
+        recompute();
+    }));
+}
+renderPresets();
+
+inputs.forEach(inp=>inp.addEventListener('input',()=>{
+    A[0][0]=parseFloat(inputs[0].value)||0;
+    A[0][1]=parseFloat(inputs[1].value)||0;
+    A[1][0]=parseFloat(inputs[2].value)||0;
+    A[1][1]=parseFloat(inputs[3].value)||0;
+    recompute();
+}));
+
+/* ============================================================
+   2x2 SVD Computation
+   ============================================================ */
+function computeSVD(M){
+    const a=M[0][0], b=M[0][1], c=M[1][0], d=M[1][1];
+    // A^T * A
+    const ata00 = a*a + c*c;
+    const ata01 = a*b + c*d;
+    const ata10 = ata01;
+    const ata11 = b*b + d*d;
+
+    // Eigenvalues of ATA via quadratic formula
+    const trace = ata00 + ata11;
+    const det = ata00*ata11 - ata01*ata10;
+    const disc = Math.sqrt(Math.max(0, trace*trace - 4*det));
+    const lam1 = (trace + disc) / 2;
+    const lam2 = (trace - disc) / 2;
+
+    const s1 = Math.sqrt(Math.max(0, lam1));
+    const s2 = Math.sqrt(Math.max(0, lam2));
+
+    // Eigenvectors of ATA
+    let v1, v2;
+    if(Math.abs(ata01) > 1e-12){
+        const v1x = lam1 - ata11;
+        const v1y = ata01;
+        const n1 = Math.sqrt(v1x*v1x + v1y*v1y);
+        v1 = [v1x/n1, v1y/n1];
+
+        const v2x = lam2 - ata11;
+        const v2y = ata01;
+        const n2 = Math.sqrt(v2x*v2x + v2y*v2y);
+        v2 = [v2x/n2, v2y/n2];
+    } else {
+        // ATA is diagonal
+        if(ata00 >= ata11){
+            v1 = [1, 0];
+            v2 = [0, 1];
+        } else {
+            v1 = [0, 1];
+            v2 = [1, 0];
+        }
+    }
+
+    // Ensure V is a proper rotation (det(V) = +1)
+    // V columns are v1, v2
+    let detV = v1[0]*v2[1] - v1[1]*v2[0];
+    if(detV < 0){
+        v2 = [-v2[0], -v2[1]];
+    }
+
+    // U columns: u_i = (1/sigma_i) * A * v_i
+    let u1, u2;
+    if(s1 > 1e-12){
+        const av1x = a*v1[0] + b*v1[1];
+        const av1y = c*v1[0] + d*v1[1];
+        u1 = [av1x/s1, av1y/s1];
+    } else {
+        u1 = [1, 0];
+    }
+
+    if(s2 > 1e-12){
+        const av2x = a*v2[0] + b*v2[1];
+        const av2y = c*v2[0] + d*v2[1];
+        u2 = [av2x/s2, av2y/s2];
+    } else {
+        // Choose u2 orthogonal to u1
+        u2 = [-u1[1], u1[0]];
+    }
+
+    // Ensure U has det +1 or allow det -1 for reflections
+    // Actually, for correctness: U * Sigma * V^T must equal A
+    // The signs should already be consistent, but let's verify
+    // and fix if needed.
+    const recon00 = u1[0]*s1*v1[0] + u2[0]*s2*v2[0];
+    const recon01 = u1[0]*s1*v1[1] + u2[0]*s2*v2[1];
+    const recon10 = u1[1]*s1*v1[0] + u2[1]*s2*v2[0];
+    const recon11 = u1[1]*s1*v1[1] + u2[1]*s2*v2[1];
+
+    // Check reconstruction error
+    const err = Math.abs(recon00-a) + Math.abs(recon01-b) + Math.abs(recon10-c) + Math.abs(recon11-d);
+
+    return {
+        U: [u1, u2],       // columns
+        S: [s1, s2],
+        V: [v1, v2],       // columns
+        ATA: [[ata00, ata01],[ata10, ata11]],
+        eigenvalues: [lam1, lam2],
+        reconError: err
+    };
+}
+
+/* ============================================================
+   Drawing Utilities
+   ============================================================ */
+function drawGrid(cx, w, h, ctr, ppu){
+    cx.clearRect(0,0,w,h);
+    cx.fillStyle='#0a0a1a';
+    cx.fillRect(0,0,w,h);
+
+    // Grid lines
+    const halfW = w/(2*ppu), halfH = h/(2*ppu);
+    cx.strokeStyle='rgba(255,255,255,0.04)';
+    cx.lineWidth=1;
+    for(let i=Math.ceil(-halfW);i<=Math.floor(halfW);i++){
+        const sx=ctr.x+i*ppu;
+        cx.beginPath();cx.moveTo(sx,0);cx.lineTo(sx,h);cx.stroke();
+    }
+    for(let i=Math.ceil(-halfH);i<=Math.floor(halfH);i++){
+        const sy=ctr.y-i*ppu;
+        cx.beginPath();cx.moveTo(0,sy);cx.lineTo(w,sy);cx.stroke();
+    }
+
+    // Axes
+    cx.strokeStyle='rgba(255,255,255,0.18)';
+    cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(0,ctr.y);cx.lineTo(w,ctr.y);cx.stroke();
+    cx.beginPath();cx.moveTo(ctr.x,0);cx.lineTo(ctr.x,h);cx.stroke();
+}
+
+function drawUnitCircle(cx, ctr, ppu, style){
+    cx.save();
+    cx.setLineDash([4,4]);
+    cx.strokeStyle=style||'rgba(255,255,255,0.12)';
+    cx.lineWidth=1;
+    cx.beginPath();
+    cx.arc(ctr.x, ctr.y, ppu, 0, Math.PI*2);
+    cx.stroke();
+    cx.restore();
+}
+
+function drawEllipse(cx, ctr, ppu, mat, color, fill){
+    cx.save();
+    cx.strokeStyle=color;
+    cx.lineWidth=1.5;
+    if(fill){
+        cx.fillStyle=fill;
+    }
+    cx.beginPath();
+    const steps=120;
+    for(let i=0;i<=steps;i++){
+        const th = (i/steps)*Math.PI*2;
+        const x = Math.cos(th), y = Math.sin(th);
+        const tx = mat[0][0]*x + mat[0][1]*y;
+        const ty = mat[1][0]*x + mat[1][1]*y;
+        const sx = ctr.x + tx*ppu;
+        const sy = ctr.y - ty*ppu;
+        if(i===0) cx.moveTo(sx,sy);
+        else cx.lineTo(sx,sy);
+    }
+    cx.closePath();
+    if(fill) cx.fill();
+    cx.stroke();
+    cx.restore();
+}
+
+function drawArrow(cx, ctr, ppu, vx, vy, color, lw, label, labelSide){
+    const sx = ctr.x + vx*ppu;
+    const sy = ctr.y - vy*ppu;
+    cx.strokeStyle=color;
+    cx.lineWidth=lw||2;
+    cx.lineCap='round';
+    cx.beginPath();
+    cx.moveTo(ctr.x, ctr.y);
+    cx.lineTo(sx, sy);
+    cx.stroke();
+
+    // Arrowhead
+    const ang = Math.atan2(-(vy*ppu), vx*ppu);
+    const hl=9;
+    cx.fillStyle=color;
+    cx.beginPath();
+    cx.moveTo(sx, sy);
+    cx.lineTo(sx-hl*Math.cos(ang-0.3), sy-hl*Math.sin(ang-0.3));
+    cx.lineTo(sx-hl*Math.cos(ang+0.3), sy-hl*Math.sin(ang+0.3));
+    cx.closePath();
+    cx.fill();
+
+    if(label){
+        cx.font='12px Georgia';
+        cx.fillStyle=color;
+        const off = labelSide||1;
+        cx.textAlign='center';
+        cx.textBaseline='middle';
+        cx.fillText(label, sx + off*12*Math.cos(ang+Math.PI/2), sy + off*12*Math.sin(ang+Math.PI/2));
+    }
+}
+
+function matMul2(A,B){
+    return [
+        [A[0][0]*B[0][0]+A[0][1]*B[1][0], A[0][0]*B[0][1]+A[0][1]*B[1][1]],
+        [A[1][0]*B[0][0]+A[1][1]*B[1][0], A[1][0]*B[0][1]+A[1][1]*B[1][1]]
+    ];
+}
+
+function transpose2(M){
+    return [[M[0][0],M[1][0]],[M[0][1],M[1][1]]];
+}
+
+function matFromCols(c1, c2){
+    return [[c1[0],c2[0]],[c1[1],c2[1]]];
+}
+
+function interpolateMatrix(I, M, t){
+    // Lerp from identity to M
+    return [
+        [I[0][0]*(1-t)+M[0][0]*t, I[0][1]*(1-t)+M[0][1]*t],
+        [I[1][0]*(1-t)+M[1][0]*t, I[1][1]*(1-t)+M[1][1]*t]
+    ];
+}
+
+function fmtNum(v){ return v.toFixed(3); }
+
+/* ============================================================
+   Step Canvases Animation
+   ============================================================ */
+let animState = {running:false, step:0, t:0, mode:'none'};
+// mode: 'all' | 'step1' | 'step2' | 'step3' | 'none'
+
+function getStepMatrices(){
+    if(!svdResult) return null;
+    const U_mat = matFromCols(svdResult.U[0], svdResult.U[1]);
+    const Sig_mat = [[svdResult.S[0],0],[0,svdResult.S[1]]];
+    const V_mat = matFromCols(svdResult.V[0], svdResult.V[1]);
+    const VT = transpose2(V_mat);
+    return {U: U_mat, Sig: Sig_mat, V: V_mat, VT: VT};
+}
+
+function drawStepCanvas(canvasId, beforeMat, afterMat, t, ppu, showBasisBefore, showBasisAfter, basisColorsBefore, basisColorsAfter){
+    const cvs = document.getElementById(canvasId);
+    const cx = cvs.getContext('2d');
+    const w = cvs.width, h = cvs.height;
+    const ctr = {x:w/2, y:h/2};
+
+    drawGrid(cx, w, h, ctr, ppu);
+    drawUnitCircle(cx, ctr, ppu, 'rgba(255,255,255,0.08)');
+
+    // Interpolated matrix
+    const curMat = interpolateMatrix(beforeMat, afterMat, t);
+
+    // Draw the transformed circle
+    drawEllipse(cx, ctr, ppu, curMat, 'rgba(34,211,238,0.6)', 'rgba(34,211,238,0.06)');
+
+    // Draw basis vectors if provided
+    if(showBasisBefore && showBasisAfter){
+        for(let i=0;i<2;i++){
+            const bx = showBasisBefore[i][0]*(1-t) + showBasisAfter[i][0]*t;
+            const by = showBasisBefore[i][1]*(1-t) + showBasisAfter[i][1]*t;
+            const col = (basisColorsBefore||['#22d3ee','#fbbf24'])[i];
+            drawArrow(cx, ctr, ppu, bx, by, col, 2);
+        }
+    }
+}
+
+function getAutoScale(matrices){
+    // Determine ppu so the ellipse fits in 220x220 canvas
+    let maxExtent = 0;
+    const steps = 60;
+    for(let m of matrices){
+        for(let i=0;i<=steps;i++){
+            const th = (i/steps)*Math.PI*2;
+            const x = Math.cos(th), y = Math.sin(th);
+            const tx = Math.abs(m[0][0]*x + m[0][1]*y);
+            const ty = Math.abs(m[1][0]*x + m[1][1]*y);
+            maxExtent = Math.max(maxExtent, tx, ty);
+        }
+    }
+    if(maxExtent < 0.01) maxExtent = 1;
+    return Math.min(50, 90/maxExtent);
+}
+
+function drawAllSteps(t1, t2, t3){
+    if(!svdResult) return;
+    const sm = getStepMatrices();
+    const I2 = [[1,0],[0,1]];
+
+    // Compute the chained matrices at each stage
+    const after1 = sm.VT;
+    const after2 = matMul2(sm.Sig, sm.VT);
+    const after3 = matMul2(sm.U, matMul2(sm.Sig, sm.VT)); // = A
+
+    const allMats = [I2, after1, after2, after3];
+    const ppu = getAutoScale(allMats);
+
+    // Step 1: I -> VT
+    const v1 = svdResult.V[0], v2 = svdResult.V[1];
+    const cur1 = interpolateMatrix(I2, after1, t1);
+    {
+        const cvs = document.getElementById('cvsStep1');
+        const cx = cvs.getContext('2d');
+        const w = cvs.width, h = cvs.height;
+        const ctr = {x:w/2, y:h/2};
+        drawGrid(cx, w, h, ctr, ppu);
+        drawUnitCircle(cx, ctr, ppu, 'rgba(255,255,255,0.08)');
+        drawEllipse(cx, ctr, ppu, cur1, 'rgba(34,211,238,0.6)', 'rgba(34,211,238,0.06)');
+        // Show e1,e2 -> VT*e1, VT*e2  i.e. v1,v2 -> e1,e2
+        // On the input: v1,v2 are special. Under VT they go to e1,e2
+        // Basis: start at e1,e2 and go to VT*e1, VT*e2
+        const e1s = [1*(1-t1)+sm.VT[0][0]*t1, 0*(1-t1)+sm.VT[1][0]*t1];
+        const e2s = [0*(1-t1)+sm.VT[0][1]*t1, 1*(1-t1)+sm.VT[1][1]*t1];
+        drawArrow(cx, ctr, ppu, e1s[0], e1s[1], '#22d3ee', 2, 'v\u2081');
+        drawArrow(cx, ctr, ppu, e2s[0], e2s[1], '#fbbf24', 2, 'v\u2082');
+    }
+
+    // Step 2: VT -> Sig*VT (starts from result of step 1)
+    const cur2 = interpolateMatrix(after1, after2, t2);
+    {
+        const cvs = document.getElementById('cvsStep2');
+        const cx = cvs.getContext('2d');
+        const w = cvs.width, h = cvs.height;
+        const ctr = {x:w/2, y:h/2};
+        drawGrid(cx, w, h, ctr, ppu);
+        drawUnitCircle(cx, ctr, ppu, 'rgba(255,255,255,0.08)');
+        drawEllipse(cx, ctr, ppu, cur2, 'rgba(34,211,238,0.6)', 'rgba(34,211,238,0.06)');
+        // Basis: e1->s1*e1, e2->s2*e2
+        // After step1, the vectors are at VT*e1 = (v1[0],v1[1])^T mapped via VT,
+        // which are e1,e2 since VT*V=I. So at start of step 2 basis = e1,e2
+        // Under Sigma: e1 -> s1*e1, e2 -> s2*e2
+        const s1 = svdResult.S[0], s2 = svdResult.S[1];
+        // Current positions of VT's output basis being stretched
+        const bv1 = sm.VT[0]; // first row = VT applied to e1 (col-vector output)
+        // Actually VT*e1 = first column of VT
+        const vte1 = [sm.VT[0][0], sm.VT[1][0]];
+        const vte2 = [sm.VT[0][1], sm.VT[1][1]];
+        const svte1 = [sm.Sig[0][0]*vte1[0]+sm.Sig[0][1]*vte1[1], sm.Sig[1][0]*vte1[0]+sm.Sig[1][1]*vte1[1]];
+        const svte2 = [sm.Sig[0][0]*vte2[0]+sm.Sig[0][1]*vte2[1], sm.Sig[1][0]*vte2[0]+sm.Sig[1][1]*vte2[1]];
+        const b1x = vte1[0]*(1-t2)+svte1[0]*t2;
+        const b1y = vte1[1]*(1-t2)+svte1[1]*t2;
+        const b2x = vte2[0]*(1-t2)+svte2[0]*t2;
+        const b2y = vte2[1]*(1-t2)+svte2[1]*t2;
+        drawArrow(cx, ctr, ppu, b1x, b1y, '#22d3ee', 2, '\u03C3\u2081');
+        drawArrow(cx, ctr, ppu, b2x, b2y, '#fbbf24', 2, '\u03C3\u2082');
+    }
+
+    // Step 3: Sig*VT -> U*Sig*VT (= A)
+    const cur3 = interpolateMatrix(after2, after3, t3);
+    {
+        const cvs = document.getElementById('cvsStep3');
+        const cx = cvs.getContext('2d');
+        const w = cvs.width, h = cvs.height;
+        const ctr = {x:w/2, y:h/2};
+        drawGrid(cx, w, h, ctr, ppu);
+        drawUnitCircle(cx, ctr, ppu, 'rgba(255,255,255,0.08)');
+        drawEllipse(cx, ctr, ppu, cur3, 'rgba(34,211,238,0.6)', 'rgba(34,211,238,0.06)');
+        // Basis vectors: start at Sig*VT*e_i, end at U*Sig*VT*e_i = A*e_i
+        const s1 = svdResult.S[0], s2 = svdResult.S[1];
+        const u1 = svdResult.U[0], u2 = svdResult.U[1];
+        // Sig*VT * e1,e2
+        const svte1 = [after2[0][0], after2[1][0]];
+        const svte2 = [after2[0][1], after2[1][1]];
+        const ae1 = [after3[0][0], after3[1][0]];
+        const ae2 = [after3[0][1], after3[1][1]];
+        const b1x = svte1[0]*(1-t3)+ae1[0]*t3;
+        const b1y = svte1[1]*(1-t3)+ae1[1]*t3;
+        const b2x = svte2[0]*(1-t3)+ae2[0]*t3;
+        const b2y = svte2[1]*(1-t3)+ae2[1]*t3;
+        drawArrow(cx, ctr, ppu, b1x, b1y, '#22d3ee', 2, 'u\u2081');
+        drawArrow(cx, ctr, ppu, b2x, b2y, '#fbbf24', 2, 'u\u2082');
+    }
+}
+
+function animateSteps(mode){
+    if(animState.running) return;
+    animState.running = true;
+    animState.mode = mode;
+
+    const stepDuration = 800; // 0.8s per step
+    let startTime = null;
+
+    function tick(now){
+        if(!startTime) startTime = now;
+        const elapsed = now - startTime;
+
+        let t1=0, t2=0, t3=0;
+
+        if(mode==='all'){
+            // Sequential: step1 [0..800], step2 [800..1600], step3 [1600..2400]
+            const pause = 100;
+            const total = stepDuration*3 + pause*2;
+            if(elapsed < stepDuration){
+                t1 = easeInOut(elapsed/stepDuration);
+            } else if(elapsed < stepDuration+pause){
+                t1 = 1;
+            } else if(elapsed < stepDuration*2+pause){
+                t1 = 1;
+                t2 = easeInOut((elapsed-stepDuration-pause)/stepDuration);
+            } else if(elapsed < stepDuration*2+pause*2){
+                t1 = 1; t2 = 1;
+            } else if(elapsed < total){
+                t1 = 1; t2 = 1;
+                t3 = easeInOut((elapsed-stepDuration*2-pause*2)/stepDuration);
+            } else {
+                t1=1;t2=1;t3=1;
+                animState.running = false;
+            }
+        } else if(mode==='step1'){
+            t1 = easeInOut(Math.min(1, elapsed/stepDuration));
+            if(elapsed>=stepDuration) animState.running=false;
+        } else if(mode==='step2'){
+            t1 = 1;
+            t2 = easeInOut(Math.min(1, elapsed/stepDuration));
+            if(elapsed>=stepDuration) animState.running=false;
+        } else if(mode==='step3'){
+            t1=1;t2=1;
+            t3 = easeInOut(Math.min(1, elapsed/stepDuration));
+            if(elapsed>=stepDuration) animState.running=false;
+        }
+
+        drawAllSteps(t1, t2, t3);
+
+        if(animState.running){
+            requestAnimationFrame(tick);
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
+function easeInOut(t){
+    return t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+}
+
+document.getElementById('btnPlayAll').addEventListener('click',()=>{ animState.running=false; setTimeout(()=>animateSteps('all'),20); });
+document.getElementById('btnStep1').addEventListener('click',()=>{ animState.running=false; setTimeout(()=>animateSteps('step1'),20); });
+document.getElementById('btnStep2').addEventListener('click',()=>{ animState.running=false; setTimeout(()=>animateSteps('step2'),20); });
+document.getElementById('btnStep3').addEventListener('click',()=>{ animState.running=false; setTimeout(()=>animateSteps('step3'),20); });
+document.getElementById('btnReset').addEventListener('click',()=>{ animState.running=false; setTimeout(()=>drawAllSteps(0,0,0),20); });
+
+/* ============================================================
+   Equation Display
+   ============================================================ */
+function updateEquation(){
+    if(!svdResult) return;
+    const s = svdResult, U = s.U, S = s.S, V = s.V;
+    const el = document.getElementById('eqDisplay');
+    el.innerHTML =
+        '<span class="cyan">A</span> = ' +
+        '<span class="gold">U</span> &middot; <span class="green">&Sigma;</span> &middot; <span class="cyan">V<sup>T</sup></span>' +
+        '<br>' +
+        '<span style="font-size:0.82em;color:#808098">' +
+        '['+fmtNum(A[0][0])+', '+fmtNum(A[0][1])+'; '+fmtNum(A[1][0])+', '+fmtNum(A[1][1])+']' +
+        ' = ' +
+        '<span style="color:#fbbf24">['+fmtNum(U[0][0])+', '+fmtNum(U[1][0])+'; '+fmtNum(U[0][1])+', '+fmtNum(U[1][1])+']</span>' +
+        ' &middot; ' +
+        '<span style="color:#2ecc71">['+fmtNum(S[0])+', 0; 0, '+fmtNum(S[1])+']</span>' +
+        ' &middot; ' +
+        '<span style="color:#22d3ee">['+fmtNum(V[0][0])+', '+fmtNum(V[0][1])+'; '+fmtNum(V[1][0])+', '+fmtNum(V[1][1])+']</span>' +
+        '</span>';
+}
+
+/* ============================================================
+   Section 3: SVD Computation Panel
+   ============================================================ */
+function updateComputation(){
+    if(!svdResult) return;
+    const s = svdResult;
+    const el = document.getElementById('computationPanel');
+
+    let html = '';
+
+    // Step 1: ATA
+    html += '<div class="computation-step"><div class="label">Step 1: Compute A<sup>T</sup>A</div>';
+    html += 'A<sup>T</sup>A = ['+fmtNum(s.ATA[0][0])+', '+fmtNum(s.ATA[0][1])+'; '+fmtNum(s.ATA[1][0])+', '+fmtNum(s.ATA[1][1])+']</div>';
+
+    // Step 2: Eigenvalues
+    html += '<div class="computation-step"><div class="label">Step 2: Eigenvalues of A<sup>T</sup>A</div>';
+    html += '&lambda;<sub>1</sub> = '+fmtNum(s.eigenvalues[0])+'&emsp;&lambda;<sub>2</sub> = '+fmtNum(s.eigenvalues[1])+'</div>';
+
+    // Step 3: Singular values
+    html += '<div class="computation-step"><div class="label">Step 3: Singular values</div>';
+    html += '&sigma;<sub>1</sub> = &radic;'+fmtNum(s.eigenvalues[0])+' = <span style="color:#22d3ee">'+fmtNum(s.S[0])+'</span>&emsp;';
+    html += '&sigma;<sub>2</sub> = &radic;'+fmtNum(s.eigenvalues[1])+' = <span style="color:#22d3ee">'+fmtNum(s.S[1])+'</span></div>';
+
+    // Step 4: V
+    html += '<div class="computation-step"><div class="label">Step 4: Right singular vectors V (eigenvectors of A<sup>T</sup>A)</div>';
+    html += 'v<sub>1</sub> = ['+fmtNum(s.V[0][0])+', '+fmtNum(s.V[0][1])+']&emsp;';
+    html += 'v<sub>2</sub> = ['+fmtNum(s.V[1][0])+', '+fmtNum(s.V[1][1])+']<br>';
+    html += 'V = ['+fmtNum(s.V[0][0])+', '+fmtNum(s.V[1][0])+'; '+fmtNum(s.V[0][1])+', '+fmtNum(s.V[1][1])+']</div>';
+
+    // Step 5: U
+    html += '<div class="computation-step"><div class="label">Step 5: Left singular vectors U (u<sub>i</sub> = Av<sub>i</sub>/&sigma;<sub>i</sub>)</div>';
+    html += 'u<sub>1</sub> = ['+fmtNum(s.U[0][0])+', '+fmtNum(s.U[0][1])+']&emsp;';
+    html += 'u<sub>2</sub> = ['+fmtNum(s.U[1][0])+', '+fmtNum(s.U[1][1])+']<br>';
+    html += 'U = ['+fmtNum(s.U[0][0])+', '+fmtNum(s.U[1][0])+'; '+fmtNum(s.U[0][1])+', '+fmtNum(s.U[1][1])+']</div>';
+
+    // Step 6: Matrices
+    html += '<div class="computation-step"><div class="label">Step 6: Final decomposition</div>';
+    html += '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">';
+    // U has columns u1=[U[0][0],U[0][1]], u2=[U[1][0],U[1][1]]
+    // Display as rows: row1=[u1x,u2x], row2=[u1y,u2y]
+    html += renderMatrixHTML('U', [s.U[0][0],s.U[1][0]], [s.U[0][1],s.U[1][1]], '#fbbf24');
+    html += '<span style="color:#808098;font-size:1.4em">&middot;</span>';
+    html += renderMatrixHTML('&Sigma;', [s.S[0],0], [0,s.S[1]], '#2ecc71');
+    html += '<span style="color:#808098;font-size:1.4em">&middot;</span>';
+    const VT = transpose2(matFromCols(s.V[0], s.V[1]));
+    html += renderMatrixHTML('V<sup>T</sup>', [VT[0][0],VT[0][1]], [VT[1][0],VT[1][1]], '#22d3ee');
+    html += '</div></div>';
+
+    // Verification
+    const U_mat = matFromCols(s.U[0], s.U[1]);
+    const Sig_mat = [[s.S[0],0],[0,s.S[1]]];
+    const V_mat = matFromCols(s.V[0], s.V[1]);
+    const recon = matMul2(U_mat, matMul2(Sig_mat, transpose2(V_mat)));
+    html += '<div class="computation-step"><div class="label">Verification: U&middot;&Sigma;&middot;V<sup>T</sup></div>';
+    html += '['+fmtNum(recon[0][0])+', '+fmtNum(recon[0][1])+'; '+fmtNum(recon[1][0])+', '+fmtNum(recon[1][1])+']';
+    const err = Math.abs(recon[0][0]-A[0][0])+Math.abs(recon[0][1]-A[0][1])+Math.abs(recon[1][0]-A[1][0])+Math.abs(recon[1][1]-A[1][1]);
+    if(err < 0.01){
+        html += ' <span style="color:#2ecc71">= A (verified)</span>';
+    } else {
+        html += ' <span style="color:#fbbf24">(error: '+err.toFixed(6)+')</span>';
+    }
+    html += '</div>';
+
+    el.innerHTML = html;
+}
+
+function renderMatrixHTML(name, row1, row2, color){
+    return '<div style="text-align:center;font-family:Courier New,monospace;font-size:0.85em">' +
+        '<div style="color:'+color+';font-size:0.8em;margin-bottom:2px">'+name+'</div>' +
+        '<div style="display:inline-flex;align-items:center">' +
+        '<span style="color:#808098;font-size:1.8em;font-weight:100">[</span>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px 10px;color:#c0c0d8">' +
+        '<span>'+fmtNum(row1[0])+'</span><span>'+fmtNum(row1[1])+'</span>' +
+        '<span>'+fmtNum(row2[0])+'</span><span>'+fmtNum(row2[1])+'</span>' +
+        '</div>' +
+        '<span style="color:#808098;font-size:1.8em;font-weight:100">]</span>' +
+        '</div></div>';
+}
+
+/* ============================================================
+   Section 4: Geometric Insight Canvas
+   ============================================================ */
+function drawGeometric(){
+    if(!svdResult) return;
+    const cvs = document.getElementById('cvsGeometric');
+    const cx = cvs.getContext('2d');
+    const w = cvs.width, h = cvs.height;
+    const ctr = {x:w/2, y:h/2};
+
+    // Auto-scale
+    const s = svdResult;
+    const maxS = Math.max(s.S[0], 1);
+    const ppu = Math.min(80, Math.min((w/2-40)/maxS, (h/2-40)/maxS));
+
+    drawGrid(cx, w, h, ctr, ppu);
+
+    // Unit circle (dashed gray)
+    drawUnitCircle(cx, ctr, ppu, 'rgba(255,255,255,0.12)');
+
+    // Ellipse under A
+    const A_mat = [[A[0][0],A[0][1]],[A[1][0],A[1][1]]];
+    drawEllipse(cx, ctr, ppu, A_mat, 'rgba(34,211,238,0.5)', 'rgba(34,211,238,0.05)');
+
+    // Right singular vectors v1, v2 on the unit circle
+    const v1 = s.V[0], v2 = s.V[1];
+    drawArrow(cx, ctr, ppu, v1[0], v1[1], '#22d3ee', 2.5, 'v\u2081', 1);
+    drawArrow(cx, ctr, ppu, v2[0], v2[1], '#fbbf24', 2.5, 'v\u2082', 1);
+
+    // Left singular vectors u1, u2 scaled by sigma on the ellipse
+    const u1 = s.U[0], u2 = s.U[1];
+    if(s.S[0] > 1e-6){
+        drawArrow(cx, ctr, ppu, u1[0]*s.S[0], u1[1]*s.S[0], '#22d3ee', 2, '\u03C3\u2081u\u2081', -1);
+    }
+    if(s.S[1] > 1e-6){
+        drawArrow(cx, ctr, ppu, u2[0]*s.S[1], u2[1]*s.S[1], '#fbbf24', 2, '\u03C3\u2082u\u2082', -1);
+    }
+
+    // Draw dashed mapping lines: v_i -> sigma_i * u_i
+    cx.save();
+    cx.setLineDash([4,4]);
+    cx.lineWidth = 1;
+    // v1 -> s1*u1
+    cx.strokeStyle = 'rgba(34,211,238,0.3)';
+    cx.beginPath();
+    cx.moveTo(ctr.x + v1[0]*ppu, ctr.y - v1[1]*ppu);
+    cx.lineTo(ctr.x + u1[0]*s.S[0]*ppu, ctr.y - u1[1]*s.S[0]*ppu);
+    cx.stroke();
+    // v2 -> s2*u2
+    if(s.S[1] > 1e-6){
+        cx.strokeStyle = 'rgba(251,191,36,0.3)';
+        cx.beginPath();
+        cx.moveTo(ctr.x + v2[0]*ppu, ctr.y - v2[1]*ppu);
+        cx.lineTo(ctr.x + u2[0]*s.S[1]*ppu, ctr.y - u2[1]*s.S[1]*ppu);
+        cx.stroke();
+    }
+    cx.restore();
+
+    // Sigma labels along semi-axes
+    if(s.S[0] > 1e-6){
+        const mx1 = ctr.x + u1[0]*s.S[0]*ppu*0.5;
+        const my1 = ctr.y - u1[1]*s.S[0]*ppu*0.5;
+        cx.font = '11px Courier New';
+        cx.fillStyle = '#22d3ee';
+        cx.globalAlpha = 0.8;
+        cx.textAlign = 'center';
+        cx.textBaseline = 'middle';
+        const offx1 = -u1[1]*14, offy1 = -u1[0]*14;
+        cx.fillText('\u03C3\u2081='+fmtNum(s.S[0]), mx1+offx1, my1+offy1);
+        cx.globalAlpha = 1;
+    }
+    if(s.S[1] > 1e-6){
+        const mx2 = ctr.x + u2[0]*s.S[1]*ppu*0.5;
+        const my2 = ctr.y - u2[1]*s.S[1]*ppu*0.5;
+        cx.font = '11px Courier New';
+        cx.fillStyle = '#fbbf24';
+        cx.globalAlpha = 0.8;
+        cx.textAlign = 'center';
+        cx.textBaseline = 'middle';
+        const offx2 = -u2[1]*14, offy2 = -u2[0]*14;
+        cx.fillText('\u03C3\u2082='+fmtNum(s.S[1]), mx2+offx2, my2+offy2);
+        cx.globalAlpha = 1;
+    }
+
+    // Labels
+    cx.font = '10px Georgia';
+    cx.fillStyle = '#808098';
+    cx.textAlign = 'left';
+    cx.textBaseline = 'bottom';
+    cx.fillText('x', w-18, ctr.y-4);
+    cx.textAlign = 'left';
+    cx.textBaseline = 'top';
+    cx.fillText('y', ctr.x+4, 4);
+
+    // Caption
+    const cap = document.getElementById('geoCaption');
+    cap.innerHTML = 'v\u2081 \u2192 \u03C3\u2081 \u00B7 u\u2081 = '+fmtNum(s.S[0])+' \u00B7 u\u2081 &emsp;&emsp; v\u2082 \u2192 \u03C3\u2082 \u00B7 u\u2082 = '+fmtNum(s.S[1])+' \u00B7 u\u2082';
+}
+
+/* ============================================================
+   Section 5: Low-Rank Approximation
+   ============================================================ */
+function drawLowRank(){
+    if(!svdResult) return;
+    const s = svdResult;
+
+    // Rank-1 approximation: A1 = s1 * u1 * v1^T
+    const u1 = s.U[0], v1 = s.V[0];
+    const A1 = [
+        [s.S[0]*u1[0]*v1[0], s.S[0]*u1[0]*v1[1]],
+        [s.S[0]*u1[1]*v1[0], s.S[0]*u1[1]*v1[1]]
+    ];
+
+    // Info
+    const infoEl = document.getElementById('rankApproxInfo');
+    infoEl.innerHTML =
+        '<span class="cyan">A<sub>1</sub></span> = \u03C3<sub>1</sub> \u00B7 u<sub>1</sub> \u00B7 v<sub>1</sub><sup>T</sup> = ' +
+        fmtNum(s.S[0]) + ' \u00B7 ['+fmtNum(u1[0])+', '+fmtNum(u1[1])+'] \u00B7 ['+fmtNum(v1[0])+', '+fmtNum(v1[1])+']<sup>T</sup>' +
+        '<br><span class="muted">A<sub>1</sub> = ['+fmtNum(A1[0][0])+', '+fmtNum(A1[0][1])+'; '+fmtNum(A1[1][0])+', '+fmtNum(A1[1][1])+']</span>';
+
+    // Error
+    const errEl = document.getElementById('approxError');
+    errEl.innerHTML = '||A - A<sub>1</sub>|| = \u03C3<sub>2</sub> = '+fmtNum(s.S[1]) +
+        '&emsp;&emsp;Relative error: ' + (s.S[0]>1e-12 ? fmtNum(s.S[1]/s.S[0]*100)+'%' : 'N/A');
+
+    // Draw Full A
+    {
+        const cvs = document.getElementById('cvsFullA');
+        const cx = cvs.getContext('2d');
+        const w = cvs.width, h = cvs.height;
+        const ctr = {x:w/2, y:h/2};
+
+        const maxS = Math.max(s.S[0], 1);
+        const ppu = Math.min(50, Math.min((w/2-30)/maxS, (h/2-30)/maxS));
+
+        drawGrid(cx, w, h, ctr, ppu);
+        drawUnitCircle(cx, ctr, ppu, 'rgba(255,255,255,0.1)');
+        const A_mat = [[A[0][0],A[0][1]],[A[1][0],A[1][1]]];
+        drawEllipse(cx, ctr, ppu, A_mat, 'rgba(34,211,238,0.6)', 'rgba(34,211,238,0.06)');
+    }
+
+    // Draw Rank-1
+    {
+        const cvs = document.getElementById('cvsRank1');
+        const cx = cvs.getContext('2d');
+        const w = cvs.width, h = cvs.height;
+        const ctr = {x:w/2, y:h/2};
+
+        const maxS = Math.max(s.S[0], 1);
+        const ppu = Math.min(50, Math.min((w/2-30)/maxS, (h/2-30)/maxS));
+
+        drawGrid(cx, w, h, ctr, ppu);
+        drawUnitCircle(cx, ctr, ppu, 'rgba(255,255,255,0.1)');
+
+        // Rank-1 maps circle to a line segment along u1
+        drawEllipse(cx, ctr, ppu, A1, 'rgba(34,211,238,0.7)', 'rgba(34,211,238,0.08)');
+
+        // Draw u1 direction
+        if(s.S[0] > 1e-6){
+            drawArrow(cx, ctr, ppu, u1[0]*s.S[0], u1[1]*s.S[0], '#22d3ee', 1.5, '\u03C3\u2081u\u2081');
+        }
+    }
+}
+
+/* ============================================================
+   Touch Support for Geometric Canvas
+   ============================================================ */
+// (The geometric canvas is display-only, but we add touch scrolling prevention)
+['cvsGeometric','cvsFullA','cvsRank1','cvsStep1','cvsStep2','cvsStep3'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){
+        el.addEventListener('touchstart', e => { /* allow touch interactions */ }, {passive:true});
+    }
+});
+
+/* ============================================================
+   Master Recompute
+   ============================================================ */
+function recompute(){
+    svdResult = computeSVD(A);
+    drawAllSteps(0,0,0);
+    updateEquation();
+    updateComputation();
+    drawGeometric();
+    drawLowRank();
+}
+
+recompute();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

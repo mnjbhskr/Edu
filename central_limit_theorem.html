@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central Limit Theorem</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#f472b6}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(244,114,182,0.13);border-color:rgba(244,114,182,0.4);color:#f472b6}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .pink{color:#f472b6}.math-line .cyan{color:#22d3ee}.math-line .green{color:#2ecc71}
+        .math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#f472b6;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#f472b6}
+        .slider-label{color:#f472b6;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:6px 18px;margin:10px 0;font-size:0.88em}
+        .stats-grid .stat-label{color:#808098}
+        .stats-grid .stat-value{color:#f472b6;font-family:'Courier New',monospace}
+        .four-panel{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+        .four-panel .mini-panel{flex:1 1 160px;max-width:220px;text-align:center}
+        .four-panel .mini-panel canvas{margin:0 auto}
+        .four-panel .mini-label{color:#808098;font-size:0.82em;margin-top:6px}
+        .formal-block{background:rgba(244,114,182,0.04);border:1px solid rgba(244,114,182,0.12);border-radius:8px;padding:16px 20px;margin:12px 0;font-family:'Courier New',monospace;font-size:0.92em;line-height:2;color:#d0d0e8}
+        .dist-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+        .note-box{background:rgba(255,255,255,0.015);border-left:3px solid rgba(244,114,182,0.3);padding:10px 16px;margin:10px 0;font-size:0.88em;color:#a0a0b8}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}.four-panel{flex-direction:column;align-items:center}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Central Limit Theorem</h1>
+    <p class="subtitle">Why the bell curve appears everywhere in nature</p>
+
+    <!-- ===== SECTION 1: DICE SUMS ===== -->
+    <h2>1. The Big Demo &mdash; Dice Sums</h2>
+    <div class="panel">
+        <h3>Number of Dice</h3>
+        <div class="btn-row" id="diceBtns"></div>
+        <h3>Sampling</h3>
+        <div class="btn-row">
+            <button class="btn" onclick="diceSample(1)">Sample 1</button>
+            <button class="btn" onclick="diceSample(100)">Sample 100</button>
+            <button class="btn" onclick="diceSample(1000)">Sample 1000</button>
+            <button class="btn" id="diceAutoBtn" onclick="toggleDiceAuto()">Auto</button>
+            <button class="btn" onclick="diceReset()">Reset</button>
+        </div>
+        <canvas id="diceCanvas" width="700" height="400"></canvas>
+        <div class="stats-grid" id="diceStats"></div>
+    </div>
+
+    <!-- ===== SECTION 2: CHOOSE YOUR DISTRIBUTION ===== -->
+    <h2>2. Choose Your Distribution</h2>
+    <div class="panel">
+        <h3>Base Distribution</h3>
+        <div class="dist-btns" id="distBtns"></div>
+        <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+            <div>
+                <div style="color:#808098;font-size:0.78em;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Base PDF</div>
+                <canvas id="pdfCanvas" width="300" height="150" style="cursor:crosshair"></canvas>
+                <div id="customHint" style="display:none;color:#808098;font-size:0.8em;margin-top:4px">Click on the canvas to draw your distribution shape</div>
+            </div>
+            <div style="flex:1;min-width:200px">
+                <div class="slider-row">
+                    <span style="color:#808098;font-size:0.85em">Sample size n =</span>
+                    <input type="range" id="distNSlider" min="0" max="6" value="0">
+                    <span class="slider-label" id="distNLabel">1</span>
+                </div>
+                <div class="btn-row">
+                    <button class="btn" onclick="distSample(500)">Sample 500</button>
+                    <button class="btn" onclick="distReset()">Reset</button>
+                </div>
+            </div>
+        </div>
+        <canvas id="distCanvas" width="700" height="300" style="margin-top:12px"></canvas>
+        <div class="stats-grid" id="distStats"></div>
+    </div>
+
+    <!-- ===== SECTION 3: GALTON BOARD ===== -->
+    <h2>3. Galton Board</h2>
+    <div class="panel">
+        <h3>Bean Machine</h3>
+        <div class="btn-row">
+            <button class="btn" onclick="galtonDrop(1)">Drop 1</button>
+            <button class="btn" onclick="galtonDrop(10)">Drop 10</button>
+            <button class="btn" onclick="galtonDrop(100)">Drop 100</button>
+            <button class="btn" id="galtonAutoBtn" onclick="toggleGaltonAuto()">Auto</button>
+            <button class="btn" onclick="galtonReset()">Reset</button>
+        </div>
+        <div style="display:flex;justify-content:center">
+            <canvas id="galtonCanvas" width="400" height="500"></canvas>
+        </div>
+        <div class="stats-grid" id="galtonStats"></div>
+    </div>
+
+    <!-- ===== SECTION 4: SPEED OF CONVERGENCE ===== -->
+    <h2>4. Speed of Convergence</h2>
+    <div class="panel">
+        <h3>Distribution of Sample Means (2000 samples each)</h3>
+        <p style="color:#808098;font-size:0.85em;margin-bottom:12px">Uses the distribution selected in Section 2 above. Watch how the shape converges to normal as n grows.</p>
+        <div class="four-panel" id="convergencePanel">
+            <div class="mini-panel"><canvas id="conv1" width="160" height="200"></canvas><div class="mini-label" id="convLabel1">n = 1</div></div>
+            <div class="mini-panel"><canvas id="conv2" width="160" height="200"></canvas><div class="mini-label" id="convLabel2">n = 5</div></div>
+            <div class="mini-panel"><canvas id="conv3" width="160" height="200"></canvas><div class="mini-label" id="convLabel3">n = 30</div></div>
+            <div class="mini-panel"><canvas id="conv4" width="160" height="200"></canvas><div class="mini-label" id="convLabel4">n = 100</div></div>
+        </div>
+        <div class="btn-row" style="margin-top:10px;justify-content:center">
+            <button class="btn" onclick="regenerateConvergence()">Regenerate</button>
+        </div>
+        <div class="note-box">n = 30 is a common rule of thumb, but highly skewed distributions (like the Exponential) may need n = 100 or more for the approximation to be good.</div>
+    </div>
+
+    <!-- ===== SECTION 5: FORMAL STATEMENT ===== -->
+    <h2>5. Formal Statement</h2>
+    <div class="panel">
+        <h3>The Central Limit Theorem</h3>
+        <div class="formal-block">
+            If X<sub>1</sub>, X<sub>2</sub>, ..., X<sub>n</sub> are <span style="color:#f472b6">i.i.d.</span> with mean <span style="color:#f472b6">&mu;</span> and finite variance <span style="color:#f472b6">&sigma;&sup2;</span>, then<br>
+            &emsp;&emsp;<span style="color:#22d3ee">&radic;n</span> (<span style="color:#f472b6">X&#772;<sub>n</sub></span> &minus; <span style="color:#f472b6">&mu;</span>) / <span style="color:#f472b6">&sigma;</span> &xrarr; <span style="color:#22d3ee">N(0, 1)</span> &emsp; as n &rarr; &infin;
+        </div>
+        <div class="formal-block" style="margin-top:10px">
+            Standardised form: &emsp; <span style="color:#22d3ee">Z</span> = (<span style="color:#f472b6">X&#772;</span> &minus; <span style="color:#f472b6">&mu;</span>) / (<span style="color:#f472b6">&sigma;</span> / <span style="color:#22d3ee">&radic;n</span>)
+        </div>
+        <h3 style="margin-top:16px">Toggle View</h3>
+        <div class="btn-row">
+            <button class="btn active" id="formalRawBtn" onclick="setFormalMode('raw')">Raw X&#772; histogram</button>
+            <button class="btn" id="formalStdBtn" onclick="setFormalMode('std')">Standardised Z histogram</button>
+        </div>
+        <canvas id="formalCanvas" width="700" height="280" style="margin-top:8px"></canvas>
+        <div class="stats-grid" id="formalStats"></div>
+        <h3 style="margin-top:16px">Requirements</h3>
+        <div style="color:#a0a0b8;font-size:0.9em;line-height:1.8">
+            1. <span style="color:#f472b6">Independent</span> &mdash; each observation does not influence the others<br>
+            2. <span style="color:#f472b6">Identically distributed</span> &mdash; all drawn from the same distribution<br>
+            3. <span style="color:#f472b6">Finite variance</span> &mdash; &sigma;&sup2; &lt; &infin;
+        </div>
+        <div class="note-box" style="margin-top:12px">
+            <strong style="color:#f472b6">What happens without finite variance?</strong><br>
+            The Cauchy distribution has no mean and no finite variance. Averaging Cauchy samples does <em>not</em> converge to a normal &mdash; the sample mean has the exact same Cauchy distribution regardless of n. The CLT fails completely.
+        </div>
+    </div>
+
+    <!-- ===== SECTION 6: EXPLANATION ===== -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            <p>The Central Limit Theorem explains why the normal distribution appears so often in nature &mdash; heights, weights, measurement errors, financial returns (to a degree), test scores. Whenever a quantity is the sum of many small independent effects, it will be approximately normal, regardless of the shape of the underlying distribution.</p>
+            <p style="margin-top:10px">The convergence rate is universal: the standard error shrinks as <span style="color:#f472b6">&sigma; / &radic;n</span>. Double the sample size and you reduce uncertainty by a factor of &radic;2 &asymp; 1.41.</p>
+            <p style="margin-top:10px">This single theorem underpins vast swathes of applied statistics: <span style="color:#f472b6">confidence intervals</span>, <span style="color:#f472b6">hypothesis testing</span>, <span style="color:#f472b6">polling margins of error</span>, and <span style="color:#f472b6">quality control</span> all rely on the CLT to justify treating sample means as normally distributed.</p>
+            <p style="margin-top:10px;color:#808098"><em>Historical note:</em> First proven by Abraham de Moivre in 1733 for the special case of coin flips. Pierre-Simon Laplace established the general case in 1812. The name "Central Limit Theorem" was coined by George P&oacute;lya in 1920, reflecting its central importance in probability theory.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ================================================================
+   CENTRAL LIMIT THEOREM — Interactive Demonstrations
+   ================================================================ */
+
+const PINK = '#f472b6';
+const CYAN = '#22d3ee';
+const BG = '#0a0a1a';
+const GRID = 'rgba(255,255,255,0.04)';
+const AXIS = 'rgba(255,255,255,0.18)';
+const MUTED = '#808098';
+const TEXT = '#e0e0e0';
+
+/* ── Utility ── */
+function normalPDF(x, mu, sigma) {
+    if (sigma <= 0) return 0;
+    const z = (x - mu) / sigma;
+    return Math.exp(-0.5 * z * z) / (sigma * Math.sqrt(2 * Math.PI));
+}
+
+function drawCanvasBG(ctx, w, h) {
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, w, h);
+}
+
+function computeStats(arr) {
+    if (arr.length === 0) return { mean: 0, std: 0, skew: 0 };
+    const n = arr.length;
+    const mean = arr.reduce((a, b) => a + b, 0) / n;
+    const variance = arr.reduce((a, b) => a + (b - mean) ** 2, 0) / n;
+    const std = Math.sqrt(variance);
+    let skew = 0;
+    if (std > 1e-12) {
+        skew = arr.reduce((a, b) => a + ((b - mean) / std) ** 3, 0) / n;
+    }
+    return { mean, std, skew };
+}
+
+/* ================================================================
+   SECTION 1: DICE SUMS
+   ================================================================ */
+let diceN = 1;
+let diceSamples = [];
+let diceAutoInterval = null;
+const diceNValues = [1, 2, 3, 5, 10, 20, 50];
+
+function renderDiceBtns() {
+    const c = document.getElementById('diceBtns');
+    c.innerHTML = diceNValues.map(v =>
+        '<button class="btn' + (v === diceN ? ' active' : '') + '" data-dn="' + v + '">' + v + (v === 1 ? ' die' : ' dice') + '</button>'
+    ).join('');
+    c.querySelectorAll('.btn').forEach(b => b.addEventListener('click', () => {
+        diceN = parseInt(b.dataset.dn);
+        diceReset();
+        renderDiceBtns();
+    }));
+}
+
+function rollDice(n) {
+    let sum = 0;
+    for (let i = 0; i < n; i++) sum += Math.ceil(Math.random() * 6);
+    return sum;
+}
+
+function diceSample(count) {
+    for (let i = 0; i < count; i++) diceSamples.push(rollDice(diceN));
+    drawDiceHist();
+}
+
+function diceReset() {
+    diceSamples = [];
+    if (diceAutoInterval) { clearInterval(diceAutoInterval); diceAutoInterval = null; updateDiceAutoBtn(); }
+    drawDiceHist();
+}
+
+function toggleDiceAuto() {
+    if (diceAutoInterval) { clearInterval(diceAutoInterval); diceAutoInterval = null; }
+    else { diceAutoInterval = setInterval(() => { diceSample(50); }, 80); }
+    updateDiceAutoBtn();
+}
+
+function updateDiceAutoBtn() {
+    const b = document.getElementById('diceAutoBtn');
+    b.classList.toggle('active', !!diceAutoInterval);
+    b.textContent = diceAutoInterval ? 'Stop' : 'Auto';
+}
+
+function drawDiceHist() {
+    const cvs = document.getElementById('diceCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    drawCanvasBG(ctx, W, H);
+
+    const minVal = diceN;
+    const maxVal = diceN * 6;
+    const range = maxVal - minVal + 1;
+
+    // Count frequencies
+    const bins = new Array(range).fill(0);
+    for (const s of diceSamples) bins[s - minVal]++;
+
+    const maxCount = Math.max(1, ...bins);
+    const pad = { left: 60, right: 20, top: 30, bottom: 50 };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+    const barW = Math.max(1, Math.min(30, plotW / range - 1));
+
+    // Axes
+    ctx.strokeStyle = AXIS; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, H - pad.bottom); ctx.lineTo(W - pad.right, H - pad.bottom); ctx.stroke();
+
+    // Y ticks
+    ctx.font = '10px Courier New'; ctx.fillStyle = MUTED; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const yTicks = 5;
+    for (let i = 0; i <= yTicks; i++) {
+        const val = Math.round(maxCount * i / yTicks);
+        const y = H - pad.bottom - (plotH * i / yTicks);
+        ctx.fillText(val, pad.left - 8, y);
+        ctx.strokeStyle = GRID; ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    }
+
+    // Bars
+    const totalBarArea = range * barW + (range - 1);
+    const startX = pad.left + (plotW - totalBarArea) / 2;
+
+    for (let i = 0; i < range; i++) {
+        const h = bins[i] / maxCount * plotH;
+        const x = startX + i * (barW + 1);
+        const y = H - pad.bottom - h;
+        ctx.fillStyle = PINK;
+        ctx.globalAlpha = 0.75;
+        ctx.fillRect(x, y, barW, h);
+        ctx.globalAlpha = 1;
+    }
+
+    // X labels (sparse if many)
+    ctx.font = '10px Courier New'; ctx.fillStyle = MUTED; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const labelSkip = range > 40 ? 10 : range > 20 ? 5 : range > 10 ? 2 : 1;
+    for (let i = 0; i < range; i += labelSkip) {
+        const x = startX + i * (barW + 1) + barW / 2;
+        ctx.fillText(minVal + i, x, H - pad.bottom + 6);
+    }
+
+    // Normal overlay
+    if (diceSamples.length > 5) {
+        const mu = diceN * 3.5;
+        const sigma = Math.sqrt(diceN * 35 / 12);
+        ctx.strokeStyle = CYAN; ctx.lineWidth = 2;
+        ctx.beginPath();
+        let first = true;
+        for (let i = 0; i < range; i++) {
+            const xVal = minVal + i;
+            const pdfVal = normalPDF(xVal, mu, sigma);
+            const expectedCount = pdfVal * diceSamples.length;
+            const h = expectedCount / maxCount * plotH;
+            const x = startX + i * (barW + 1) + barW / 2;
+            const y = H - pad.bottom - h;
+            if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Legend
+        ctx.font = '11px Georgia';
+        ctx.fillStyle = CYAN; ctx.textAlign = 'left';
+        ctx.fillText('N(' + mu.toFixed(1) + ', ' + sigma.toFixed(2) + '\u00B2)', pad.left + 10, pad.top + 6);
+    }
+
+    // Title
+    ctx.font = '12px Georgia'; ctx.fillStyle = TEXT; ctx.textAlign = 'center';
+    ctx.fillText('Histogram of sums of ' + diceN + (diceN === 1 ? ' die' : ' dice'), W / 2, 16);
+
+    // Stats
+    const stats = computeStats(diceSamples);
+    const mu = diceN * 3.5;
+    const sigma = Math.sqrt(diceN * 35 / 12);
+    document.getElementById('diceStats').innerHTML =
+        '<div><span class="stat-label">Dice: </span><span class="stat-value">' + diceN + '</span></div>' +
+        '<div><span class="stat-label">Samples: </span><span class="stat-value">' + diceSamples.length + '</span></div>' +
+        '<div><span class="stat-label">Mean: </span><span class="stat-value">' + (diceSamples.length ? stats.mean.toFixed(2) : '-') + '</span></div>' +
+        '<div><span class="stat-label">Std dev: </span><span class="stat-value">' + (diceSamples.length ? stats.std.toFixed(2) : '-') + '</span></div>' +
+        '<div><span class="stat-label">Expected mean: </span><span class="stat-value">' + mu.toFixed(1) + '</span></div>' +
+        '<div><span class="stat-label">Expected std: </span><span class="stat-value">' + sigma.toFixed(2) + '</span></div>';
+}
+
+renderDiceBtns();
+drawDiceHist();
+
+
+/* ================================================================
+   SECTION 2: CHOOSE YOUR DISTRIBUTION
+   ================================================================ */
+const distNValues = [1, 2, 5, 10, 30, 50, 100];
+let currentDist = 'uniform';
+let distSamples2 = [];
+let customBins = new Array(20).fill(1); // user-drawn PDF (unnormalized weights)
+let customDrawing = false;
+
+const distributions = {
+    uniform: { label: 'Uniform [0,1]', mean: 0.5, variance: 1 / 12 },
+    exponential: { label: 'Exponential (\u03BB=1)', mean: 1, variance: 1 },
+    bernoulli: { label: 'Bernoulli (p=0.3)', mean: 0.3, variance: 0.21 },
+    bimodal: { label: 'Bimodal', mean: 0, variance: 5 },
+    custom: { label: 'Custom', mean: 0, variance: 0 }
+};
+
+function sampleOne(dist) {
+    switch (dist) {
+        case 'uniform': return Math.random();
+        case 'exponential': return -Math.log(1 - Math.random());
+        case 'bernoulli': return Math.random() < 0.3 ? 1 : 0;
+        case 'bimodal': return (Math.random() < 0.5 ? -2 : 2) + (Math.random() + Math.random() + Math.random() - 1.5) * 0.8;
+        case 'custom': return sampleCustom();
+    }
+}
+
+function sampleCustom() {
+    const total = customBins.reduce((a, b) => a + b, 0);
+    if (total <= 0) return 0;
+    let r = Math.random() * total;
+    for (let i = 0; i < 20; i++) {
+        r -= customBins[i];
+        if (r <= 0) return (i + Math.random()) / 20;
+    }
+    return 19.5 / 20;
+}
+
+function getDistMeanVar(dist) {
+    if (dist === 'custom') {
+        const total = customBins.reduce((a, b) => a + b, 0);
+        if (total <= 0) return { mean: 0.5, variance: 1 / 12 };
+        let mu = 0, mu2 = 0;
+        for (let i = 0; i < 20; i++) {
+            const p = customBins[i] / total;
+            const center = (i + 0.5) / 20;
+            mu += p * center;
+            mu2 += p * center * center;
+        }
+        return { mean: mu, variance: mu2 - mu * mu + 1 / (20 * 20 * 12) };
+    }
+    const d = distributions[dist];
+    return { mean: d.mean, variance: d.variance };
+}
+
+function sampleMean(dist, n) {
+    let sum = 0;
+    for (let i = 0; i < n; i++) sum += sampleOne(dist);
+    return sum / n;
+}
+
+function renderDistBtns() {
+    const c = document.getElementById('distBtns');
+    c.innerHTML = Object.keys(distributions).map(k =>
+        '<button class="btn' + (k === currentDist ? ' active' : '') + '" data-dist="' + k + '">' + distributions[k].label + '</button>'
+    ).join('');
+    c.querySelectorAll('.btn').forEach(b => b.addEventListener('click', () => {
+        currentDist = b.dataset.dist;
+        distReset();
+        renderDistBtns();
+        drawPDFCanvas();
+        document.getElementById('customHint').style.display = currentDist === 'custom' ? 'block' : 'none';
+        regenerateConvergence();
+    }));
+    document.getElementById('customHint').style.display = currentDist === 'custom' ? 'block' : 'none';
+}
+
+function getDistN() {
+    return distNValues[parseInt(document.getElementById('distNSlider').value)];
+}
+
+document.getElementById('distNSlider').addEventListener('input', () => {
+    document.getElementById('distNLabel').textContent = getDistN();
+    distReset();
+});
+
+function distSample(count) {
+    const n = getDistN();
+    for (let i = 0; i < count; i++) distSamples2.push(sampleMean(currentDist, n));
+    drawDistHist();
+}
+
+function distReset() {
+    distSamples2 = [];
+    drawDistHist();
+}
+
+function drawPDFCanvas() {
+    const cvs = document.getElementById('pdfCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    drawCanvasBG(ctx, W, H);
+
+    const pad = { left: 10, right: 10, top: 10, bottom: 25 };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+
+    ctx.strokeStyle = AXIS; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, H - pad.bottom); ctx.lineTo(W - pad.right, H - pad.bottom); ctx.stroke();
+
+    const nPts = 200;
+
+    if (currentDist === 'custom') {
+        // Draw custom bins
+        const maxB = Math.max(1, ...customBins);
+        const bw = plotW / 20;
+        for (let i = 0; i < 20; i++) {
+            const h = (customBins[i] / maxB) * plotH * 0.9;
+            ctx.fillStyle = PINK; ctx.globalAlpha = 0.6;
+            ctx.fillRect(pad.left + i * bw, H - pad.bottom - h, bw - 1, h);
+            ctx.globalAlpha = 1;
+        }
+    } else {
+        let xMin, xMax, pdfFn;
+        switch (currentDist) {
+            case 'uniform': xMin = -0.2; xMax = 1.2; pdfFn = x => (x >= 0 && x <= 1) ? 1 : 0; break;
+            case 'exponential': xMin = -0.2; xMax = 6; pdfFn = x => x >= 0 ? Math.exp(-x) : 0; break;
+            case 'bernoulli': xMin = -0.3; xMax = 1.3; pdfFn = null; break;
+            case 'bimodal':
+                xMin = -5; xMax = 5;
+                pdfFn = x => 0.5 * normalPDF(x, -2, 0.8) + 0.5 * normalPDF(x, 2, 0.8);
+                break;
+        }
+
+        if (currentDist === 'bernoulli') {
+            // Draw discrete bars
+            const barWidth = plotW * 0.08;
+            const x0 = pad.left + (0 - (-0.3)) / 1.6 * plotW;
+            const x1 = pad.left + (1 - (-0.3)) / 1.6 * plotW;
+            const h0 = 0.7 * plotH * 0.9;
+            const h1 = 0.3 * plotH * 0.9;
+            ctx.fillStyle = PINK; ctx.globalAlpha = 0.7;
+            ctx.fillRect(x0 - barWidth / 2, H - pad.bottom - h0, barWidth, h0);
+            ctx.fillRect(x1 - barWidth / 2, H - pad.bottom - h1, barWidth, h1);
+            ctx.globalAlpha = 1;
+            ctx.font = '10px Courier New'; ctx.fillStyle = MUTED; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText('0', x0, H - pad.bottom + 4);
+            ctx.fillText('1', x1, H - pad.bottom + 4);
+            ctx.fillText('p=0.7', x0, H - pad.bottom - h0 - 14);
+            ctx.fillText('p=0.3', x1, H - pad.bottom - h1 - 14);
+        } else {
+            let maxPdf = 0;
+            const pts = [];
+            for (let i = 0; i <= nPts; i++) {
+                const x = xMin + (xMax - xMin) * i / nPts;
+                const y = pdfFn(x);
+                pts.push({ x, y });
+                if (y > maxPdf) maxPdf = y;
+            }
+            if (maxPdf <= 0) maxPdf = 1;
+
+            ctx.fillStyle = PINK; ctx.globalAlpha = 0.15;
+            ctx.beginPath();
+            ctx.moveTo(pad.left, H - pad.bottom);
+            for (const p of pts) {
+                const sx = pad.left + (p.x - xMin) / (xMax - xMin) * plotW;
+                const sy = H - pad.bottom - (p.y / maxPdf) * plotH * 0.9;
+                ctx.lineTo(sx, sy);
+            }
+            ctx.lineTo(W - pad.right, H - pad.bottom);
+            ctx.closePath(); ctx.fill();
+            ctx.globalAlpha = 1;
+
+            ctx.strokeStyle = PINK; ctx.lineWidth = 2;
+            ctx.beginPath();
+            let first = true;
+            for (const p of pts) {
+                const sx = pad.left + (p.x - xMin) / (xMax - xMin) * plotW;
+                const sy = H - pad.bottom - (p.y / maxPdf) * plotH * 0.9;
+                if (first) { ctx.moveTo(sx, sy); first = false; } else ctx.lineTo(sx, sy);
+            }
+            ctx.stroke();
+        }
+    }
+
+    // Label
+    ctx.font = '11px Georgia'; ctx.fillStyle = TEXT; ctx.textAlign = 'center';
+    ctx.fillText(distributions[currentDist].label, W / 2, H - 4);
+}
+
+// Custom drawing on PDF canvas
+const pdfCvs = document.getElementById('pdfCanvas');
+pdfCvs.addEventListener('mousedown', e => { if (currentDist === 'custom') { customDrawing = true; drawCustomPoint(e); } });
+pdfCvs.addEventListener('mousemove', e => { if (customDrawing && currentDist === 'custom') drawCustomPoint(e); });
+pdfCvs.addEventListener('mouseup', () => { customDrawing = false; });
+pdfCvs.addEventListener('mouseleave', () => { customDrawing = false; });
+
+pdfCvs.addEventListener('touchstart', e => { if (currentDist === 'custom') { e.preventDefault(); customDrawing = true; drawCustomPointTouch(e); } }, { passive: false });
+pdfCvs.addEventListener('touchmove', e => { if (customDrawing && currentDist === 'custom') { e.preventDefault(); drawCustomPointTouch(e); } }, { passive: false });
+pdfCvs.addEventListener('touchend', () => { customDrawing = false; });
+
+function drawCustomPoint(e) {
+    const r = pdfCvs.getBoundingClientRect();
+    const x = (e.clientX - r.left) * (pdfCvs.width / r.width);
+    const y = (e.clientY - r.top) * (pdfCvs.height / r.height);
+    applyCustomDraw(x, y);
+}
+
+function drawCustomPointTouch(e) {
+    const t = e.touches[0];
+    const r = pdfCvs.getBoundingClientRect();
+    const x = (t.clientX - r.left) * (pdfCvs.width / r.width);
+    const y = (t.clientY - r.top) * (pdfCvs.height / r.height);
+    applyCustomDraw(x, y);
+}
+
+function applyCustomDraw(x, y) {
+    const pad = { left: 10, right: 10, top: 10, bottom: 25 };
+    const plotW = pdfCvs.width - pad.left - pad.right;
+    const plotH = pdfCvs.height - pad.top - pad.bottom;
+    const binIdx = Math.floor((x - pad.left) / plotW * 20);
+    if (binIdx < 0 || binIdx >= 20) return;
+    const height = Math.max(0, 1 - (y - pad.top) / plotH);
+    customBins[binIdx] = Math.max(0.01, height * 5);
+    drawPDFCanvas();
+    distReset();
+    regenerateConvergence();
+}
+
+function drawDistHist() {
+    const cvs = document.getElementById('distCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    drawCanvasBG(ctx, W, H);
+
+    const n = getDistN();
+    const { mean: mu, variance: v } = getDistMeanVar(currentDist);
+    const sigma = Math.sqrt(v / n);
+
+    const pad = { left: 60, right: 20, top: 30, bottom: 45 };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+
+    ctx.strokeStyle = AXIS; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, H - pad.bottom); ctx.lineTo(W - pad.right, H - pad.bottom); ctx.stroke();
+
+    if (distSamples2.length < 2) {
+        ctx.font = '13px Georgia'; ctx.fillStyle = MUTED; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('Click "Sample 500" to generate data', W / 2, H / 2);
+        document.getElementById('distStats').innerHTML = '';
+        return;
+    }
+
+    // Determine histogram range
+    const sorted = [...distSamples2].sort((a, b) => a - b);
+    const q01 = sorted[Math.floor(sorted.length * 0.005)] || sorted[0];
+    const q99 = sorted[Math.ceil(sorted.length * 0.995) - 1] || sorted[sorted.length - 1];
+    const spread = q99 - q01 || 1;
+    const histMin = q01 - spread * 0.1;
+    const histMax = q99 + spread * 0.1;
+    const numBins = Math.min(60, Math.max(20, Math.ceil(Math.sqrt(distSamples2.length))));
+    const binWidth = (histMax - histMin) / numBins;
+
+    const bins = new Array(numBins).fill(0);
+    for (const s of distSamples2) {
+        const idx = Math.floor((s - histMin) / binWidth);
+        if (idx >= 0 && idx < numBins) bins[idx]++;
+    }
+    const maxCount = Math.max(1, ...bins);
+
+    // Y ticks
+    ctx.font = '10px Courier New'; ctx.fillStyle = MUTED; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let i = 0; i <= 4; i++) {
+        const val = Math.round(maxCount * i / 4);
+        const y = H - pad.bottom - (plotH * i / 4);
+        ctx.fillText(val, pad.left - 8, y);
+        ctx.strokeStyle = GRID; ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    }
+
+    // Bars
+    const bw = plotW / numBins;
+    for (let i = 0; i < numBins; i++) {
+        const h = bins[i] / maxCount * plotH;
+        const x = pad.left + i * bw;
+        ctx.fillStyle = PINK; ctx.globalAlpha = 0.7;
+        ctx.fillRect(x, H - pad.bottom - h, bw - 1, h);
+        ctx.globalAlpha = 1;
+    }
+
+    // X labels
+    ctx.font = '10px Courier New'; ctx.fillStyle = MUTED; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const xLabelCount = 6;
+    for (let i = 0; i <= xLabelCount; i++) {
+        const val = histMin + (histMax - histMin) * i / xLabelCount;
+        const x = pad.left + plotW * i / xLabelCount;
+        ctx.fillText(val.toFixed(2), x, H - pad.bottom + 6);
+    }
+
+    // Normal overlay N(mu, sigma^2/n)
+    ctx.strokeStyle = CYAN; ctx.lineWidth = 2;
+    ctx.beginPath();
+    let first = true;
+    for (let i = 0; i <= numBins; i++) {
+        const xVal = histMin + (i + 0.5) * binWidth;
+        const pdfVal = normalPDF(xVal, mu, sigma);
+        const expectedCount = pdfVal * distSamples2.length * binWidth;
+        const h = expectedCount / maxCount * plotH;
+        const x = pad.left + (i + 0.5) * bw;
+        const y = H - pad.bottom - h;
+        if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Legend
+    ctx.font = '11px Georgia'; ctx.fillStyle = CYAN; ctx.textAlign = 'left';
+    ctx.fillText('N(' + mu.toFixed(2) + ', ' + sigma.toFixed(3) + '\u00B2)', pad.left + 10, pad.top + 6);
+
+    // Title
+    ctx.font = '12px Georgia'; ctx.fillStyle = TEXT; ctx.textAlign = 'center';
+    ctx.fillText('Distribution of sample means (n=' + n + ')', W / 2, 16);
+
+    // Stats
+    const stats = computeStats(distSamples2);
+    document.getElementById('distStats').innerHTML =
+        '<div><span class="stat-label">Samples: </span><span class="stat-value">' + distSamples2.length + '</span></div>' +
+        '<div><span class="stat-label">Sample mean: </span><span class="stat-value">' + stats.mean.toFixed(4) + '</span></div>' +
+        '<div><span class="stat-label">Sample std: </span><span class="stat-value">' + stats.std.toFixed(4) + '</span></div>' +
+        '<div><span class="stat-label">Expected mean: </span><span class="stat-value">' + mu.toFixed(4) + '</span></div>' +
+        '<div><span class="stat-label">Expected std: </span><span class="stat-value">' + sigma.toFixed(4) + '</span></div>' +
+        '<div><span class="stat-label">Skewness: </span><span class="stat-value">' + stats.skew.toFixed(3) + '</span></div>';
+}
+
+renderDistBtns();
+drawPDFCanvas();
+drawDistHist();
+
+
+/* ================================================================
+   SECTION 3: GALTON BOARD
+   Waypoint-based animation: pre-compute the full path through pegs,
+   then animate the ball smoothly along that path with easing.
+   ================================================================ */
+const galtonCvs = document.getElementById('galtonCanvas');
+const galtonCtx = galtonCvs.getContext('2d');
+const GW = galtonCvs.width, GH = galtonCvs.height;
+const GALTON_ROWS = 10;
+const GALTON_BINS = GALTON_ROWS + 1;
+const PEG_R = 3;
+const BALL_R = 4;
+const HIST_HEIGHT = 130;
+const PEG_AREA_TOP = 50;
+const PEG_AREA_BOTTOM = GH - HIST_HEIGHT - 20;
+const PEG_VSPACING = (PEG_AREA_BOTTOM - PEG_AREA_TOP) / GALTON_ROWS;
+const PEG_HSPACING = 28;
+
+let galtonBins = new Array(GALTON_BINS).fill(0);
+let galtonBalls = [];
+let galtonQueue = [];
+let galtonAutoInterval = null;
+let galtonAnimating = false;
+let galtonTotalDropped = 0;
+let galtonDropTimer = 0;
+
+function pegX(row, col) {
+    const rowWidth = row * PEG_HSPACING;
+    return GW / 2 - rowWidth / 2 + col * PEG_HSPACING;
+}
+
+function pegY(row) {
+    return PEG_AREA_TOP + row * PEG_VSPACING;
+}
+
+function binCenterX(bin) {
+    const totalWidth = GALTON_BINS * PEG_HSPACING;
+    return GW / 2 - totalWidth / 2 + (bin + 0.5) * PEG_HSPACING;
+}
+
+function buildBallWaypoints() {
+    /* Build an array of {x,y} waypoints from top to bottom.
+       At each peg row, the ball arrives at the peg, then bounces left or right. */
+    const waypoints = [];
+    const startX = GW / 2 + (Math.random() - 0.5) * 4;
+    const startY = PEG_AREA_TOP - 30;
+    waypoints.push({ x: startX, y: startY });
+
+    let col = 0; // column index within the peg row (left-cumulative)
+    let bin = 0;
+    for (let r = 0; r < GALTON_ROWS; r++) {
+        const goRight = Math.random() < 0.5;
+        // Waypoint: arrive at peg
+        const px = pegX(r, col);
+        const py = pegY(r);
+        waypoints.push({ x: px, y: py - PEG_R - BALL_R });
+        // Bounce direction
+        if (goRight) { bin++; col++; }
+        // Waypoint: deflected position (slightly below and to the side)
+        const nx = pegX(r, col) + (goRight ? PEG_HSPACING * 0.1 : -PEG_HSPACING * 0.1);
+        waypoints.push({ x: goRight ? px + PEG_HSPACING * 0.5 : px - PEG_HSPACING * 0.5, y: py + PEG_VSPACING * 0.4 });
+    }
+    // Final waypoint: bin position
+    const binX = binCenterX(bin);
+    const binY = GH - HIST_HEIGHT + 5;
+    waypoints.push({ x: binX, y: binY });
+    return { waypoints, bin };
+}
+
+function galtonDrop(count) {
+    for (let i = 0; i < count; i++) {
+        galtonQueue.push(i * 80); // delay in ms
+    }
+    if (!galtonAnimating) startGaltonAnim();
+}
+
+function galtonReset() {
+    galtonBins.fill(0);
+    galtonBalls = [];
+    galtonQueue = [];
+    galtonTotalDropped = 0;
+    galtonDropTimer = 0;
+    if (galtonAutoInterval) { clearInterval(galtonAutoInterval); galtonAutoInterval = null; updateGaltonAutoBtn(); }
+    drawGalton();
+}
+
+function toggleGaltonAuto() {
+    if (galtonAutoInterval) { clearInterval(galtonAutoInterval); galtonAutoInterval = null; }
+    else { galtonAutoInterval = setInterval(() => galtonDrop(3), 200); }
+    updateGaltonAutoBtn();
+}
+
+function updateGaltonAutoBtn() {
+    const b = document.getElementById('galtonAutoBtn');
+    b.classList.toggle('active', !!galtonAutoInterval);
+    b.textContent = galtonAutoInterval ? 'Stop' : 'Auto';
+}
+
+function startGaltonAnim() {
+    galtonAnimating = true;
+    let lastTime = 0;
+
+    function frame(time) {
+        if (!lastTime) lastTime = time;
+        const dtMs = Math.min(time - lastTime, 50);
+        lastTime = time;
+
+        // Release queued balls
+        galtonDropTimer += dtMs;
+        while (galtonQueue.length > 0 && galtonDropTimer >= galtonQueue[0]) {
+            galtonQueue.shift();
+            galtonDropTimer = 0;
+            const { waypoints, bin } = buildBallWaypoints();
+            // Compute cumulative distances for waypoints
+            let totalDist = 0;
+            const dists = [0];
+            for (let i = 1; i < waypoints.length; i++) {
+                const dx = waypoints[i].x - waypoints[i - 1].x;
+                const dy = waypoints[i].y - waypoints[i - 1].y;
+                totalDist += Math.sqrt(dx * dx + dy * dy);
+                dists.push(totalDist);
+            }
+            galtonBalls.push({
+                waypoints, bin, dists, totalDist,
+                progress: 0, // 0 to 1
+                speed: 1.8 + Math.random() * 0.4, // seconds for full traversal
+                settled: false
+            });
+            galtonTotalDropped++;
+        }
+
+        // Advance balls
+        for (const ball of galtonBalls) {
+            if (ball.settled) continue;
+            ball.progress += dtMs / 1000 / ball.speed;
+            // Ease: accelerating fall (quadratic ease-in with slight ease-out at end)
+            const t = Math.min(ball.progress, 1);
+            const eased = t < 0.9 ? t * t / 0.81 : 1 - (1 - t) * (1 - t) / 0.01 * 0.01 + 0.99 * 0.99 / 0.81;
+            // Actually let's do a simpler gravity-like easing
+            const easedT = t * t * (3 - 2 * t); // smoothstep
+            const targetDist = easedT * ball.totalDist;
+
+            // Find position along waypoints
+            let segIdx = 0;
+            for (let i = 1; i < ball.dists.length; i++) {
+                if (ball.dists[i] >= targetDist) { segIdx = i - 1; break; }
+                segIdx = i - 1;
+            }
+            const segStart = ball.dists[segIdx];
+            const segEnd = ball.dists[segIdx + 1] || ball.totalDist;
+            const segLen = segEnd - segStart;
+            const segFrac = segLen > 0 ? (targetDist - segStart) / segLen : 0;
+            const wp0 = ball.waypoints[segIdx];
+            const wp1 = ball.waypoints[Math.min(segIdx + 1, ball.waypoints.length - 1)];
+            ball.x = wp0.x + (wp1.x - wp0.x) * segFrac;
+            ball.y = wp0.y + (wp1.y - wp0.y) * segFrac;
+
+            if (t >= 1) {
+                galtonBins[ball.bin]++;
+                ball.settled = true;
+            }
+        }
+
+        galtonBalls = galtonBalls.filter(b => !b.settled);
+        drawGalton();
+
+        if (galtonBalls.length > 0 || galtonQueue.length > 0) {
+            requestAnimationFrame(frame);
+        } else {
+            galtonAnimating = false;
+        }
+    }
+    requestAnimationFrame(frame);
+}
+
+function drawGalton() {
+    const ctx = galtonCtx;
+    drawCanvasBG(ctx, GW, GH);
+
+    // Title
+    ctx.font = '12px Georgia'; ctx.fillStyle = TEXT; ctx.textAlign = 'center';
+    ctx.fillText('Galton Board (' + GALTON_ROWS + ' rows of pegs)', GW / 2, 16);
+
+    // Funnel
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(GW / 2 - 20, PEG_AREA_TOP - 30);
+    ctx.lineTo(GW / 2 - 6, PEG_AREA_TOP - 8);
+    ctx.moveTo(GW / 2 + 20, PEG_AREA_TOP - 30);
+    ctx.lineTo(GW / 2 + 6, PEG_AREA_TOP - 8);
+    ctx.stroke();
+
+    // Pegs
+    for (let r = 0; r < GALTON_ROWS; r++) {
+        for (let c = 0; c <= r; c++) {
+            const px = pegX(r, c);
+            const py = pegY(r);
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.beginPath();
+            ctx.arc(px, py, PEG_R, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // Bin dividers and bottom
+    const binY = GH - HIST_HEIGHT;
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+    const totalBinWidth = GALTON_BINS * PEG_HSPACING;
+    const binStartX = GW / 2 - totalBinWidth / 2;
+    for (let i = 0; i <= GALTON_BINS; i++) {
+        const bx = binStartX + i * PEG_HSPACING;
+        ctx.beginPath(); ctx.moveTo(bx, binY); ctx.lineTo(bx, GH - 8); ctx.stroke();
+    }
+    // Bottom line
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+    ctx.beginPath(); ctx.moveTo(binStartX, GH - 8); ctx.lineTo(binStartX + totalBinWidth, GH - 8); ctx.stroke();
+
+    // Histogram bars in bins
+    const maxBin = Math.max(1, ...galtonBins);
+    const maxBarH = HIST_HEIGHT - 20;
+    for (let i = 0; i < GALTON_BINS; i++) {
+        if (galtonBins[i] === 0) continue;
+        const bx = binStartX + i * PEG_HSPACING;
+        const h = (galtonBins[i] / maxBin) * maxBarH;
+        ctx.fillStyle = PINK; ctx.globalAlpha = 0.7;
+        ctx.fillRect(bx + 2, GH - 8 - h, PEG_HSPACING - 4, h);
+        ctx.globalAlpha = 1;
+
+        // Count labels on tall bars
+        if (galtonBins[i] > 0 && GALTON_BINS <= 15) {
+            ctx.font = '9px Courier New'; ctx.fillStyle = MUTED; ctx.textAlign = 'center';
+            ctx.fillText(galtonBins[i], bx + PEG_HSPACING / 2, GH - 10 - h);
+        }
+    }
+
+    // Normal overlay on histogram
+    if (galtonTotalDropped > 10) {
+        const mu = GALTON_ROWS / 2;
+        const sigma = Math.sqrt(GALTON_ROWS * 0.25);
+        ctx.strokeStyle = CYAN; ctx.lineWidth = 2;
+        ctx.beginPath();
+        let first = true;
+        for (let i = 0; i < GALTON_BINS; i++) {
+            const pdfVal = normalPDF(i, mu, sigma);
+            const expectedCount = pdfVal * galtonTotalDropped;
+            const h = (expectedCount / maxBin) * maxBarH;
+            const bx = binStartX + (i + 0.5) * PEG_HSPACING;
+            const y = GH - 8 - h;
+            if (first) { ctx.moveTo(bx, y); first = false; } else ctx.lineTo(bx, y);
+        }
+        ctx.stroke();
+    }
+
+    // Active balls (with glow)
+    for (const ball of galtonBalls) {
+        if (ball.x === undefined) continue;
+        // Subtle glow
+        const grad = ctx.createRadialGradient(ball.x, ball.y, 0, ball.x, ball.y, BALL_R * 3);
+        grad.addColorStop(0, 'rgba(244,114,182,0.3)');
+        grad.addColorStop(1, 'rgba(244,114,182,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath(); ctx.arc(ball.x, ball.y, BALL_R * 3, 0, Math.PI * 2); ctx.fill();
+        // Ball
+        ctx.fillStyle = PINK; ctx.globalAlpha = 0.95;
+        ctx.beginPath(); ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+    }
+
+    // Stats
+    document.getElementById('galtonStats').innerHTML =
+        '<div><span class="stat-label">Balls dropped: </span><span class="stat-value">' + galtonTotalDropped + '</span></div>' +
+        '<div><span class="stat-label">Bin counts: </span><span class="stat-value">[' + galtonBins.join(', ') + ']</span></div>';
+}
+
+drawGalton();
+
+
+/* ================================================================
+   SECTION 4: SPEED OF CONVERGENCE
+   ================================================================ */
+const convNs = [1, 5, 30, 100];
+
+function regenerateConvergence() {
+    for (let idx = 0; idx < 4; idx++) {
+        const n = convNs[idx];
+        const samples = [];
+        for (let i = 0; i < 2000; i++) samples.push(sampleMean(currentDist, n));
+        drawConvergencePanel(idx, samples, n);
+    }
+}
+
+function drawConvergencePanel(idx, samples, n) {
+    const cvs = document.getElementById('conv' + (idx + 1));
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    drawCanvasBG(ctx, W, H);
+
+    const stats = computeStats(samples);
+    const { mean: mu, variance: v } = getDistMeanVar(currentDist);
+    const sigma = Math.sqrt(v / n);
+
+    const pad = { left: 8, right: 8, top: 20, bottom: 36 };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+
+    // Determine range
+    const sorted = [...samples].sort((a, b) => a - b);
+    const q01 = sorted[Math.floor(sorted.length * 0.005)];
+    const q99 = sorted[Math.ceil(sorted.length * 0.995) - 1];
+    const spread = (q99 - q01) || 1;
+    const histMin = q01 - spread * 0.15;
+    const histMax = q99 + spread * 0.15;
+    const numBins = 30;
+    const binWidth = (histMax - histMin) / numBins;
+
+    const bins = new Array(numBins).fill(0);
+    for (const s of samples) {
+        const idx2 = Math.floor((s - histMin) / binWidth);
+        if (idx2 >= 0 && idx2 < numBins) bins[idx2]++;
+    }
+    const maxCount = Math.max(1, ...bins);
+
+    // Bars
+    const bw = plotW / numBins;
+    for (let i = 0; i < numBins; i++) {
+        const h = bins[i] / maxCount * plotH;
+        const x = pad.left + i * bw;
+        ctx.fillStyle = PINK; ctx.globalAlpha = 0.65;
+        ctx.fillRect(x, H - pad.bottom - h, bw - 0.5, h);
+        ctx.globalAlpha = 1;
+    }
+
+    // Normal overlay
+    ctx.strokeStyle = CYAN; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    let first = true;
+    for (let i = 0; i < numBins; i++) {
+        const xVal = histMin + (i + 0.5) * binWidth;
+        const pdfVal = normalPDF(xVal, mu, sigma);
+        const expectedCount = pdfVal * samples.length * binWidth;
+        const h = expectedCount / maxCount * plotH;
+        const x = pad.left + (i + 0.5) * bw;
+        const y = H - pad.bottom - h;
+        if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Title
+    ctx.font = '11px Georgia'; ctx.fillStyle = TEXT; ctx.textAlign = 'center';
+    ctx.fillText('n = ' + n, W / 2, 14);
+
+    // Axis line
+    ctx.strokeStyle = AXIS; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(pad.left, H - pad.bottom); ctx.lineTo(W - pad.right, H - pad.bottom); ctx.stroke();
+
+    // Label
+    const label = document.getElementById('convLabel' + (idx + 1));
+    label.innerHTML = 'n = ' + n + ' &nbsp; skewness = ' + stats.skew.toFixed(3);
+}
+
+regenerateConvergence();
+
+
+/* ================================================================
+   SECTION 5: FORMAL STATEMENT — TOGGLE
+   ================================================================ */
+let formalMode = 'raw';
+let formalSamples = [];
+
+function setFormalMode(mode) {
+    formalMode = mode;
+    document.getElementById('formalRawBtn').classList.toggle('active', mode === 'raw');
+    document.getElementById('formalStdBtn').classList.toggle('active', mode === 'std');
+    generateFormalSamples();
+}
+
+function generateFormalSamples() {
+    formalSamples = [];
+    const n = getDistN() || 30;
+    for (let i = 0; i < 3000; i++) formalSamples.push(sampleMean(currentDist, Math.max(n, 5)));
+    drawFormalHist();
+}
+
+function drawFormalHist() {
+    const cvs = document.getElementById('formalCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    drawCanvasBG(ctx, W, H);
+
+    if (formalSamples.length < 10) {
+        ctx.font = '13px Georgia'; ctx.fillStyle = MUTED; ctx.textAlign = 'center';
+        ctx.fillText('Generating...', W / 2, H / 2);
+        return;
+    }
+
+    const n = getDistN() || 30;
+    const effectiveN = Math.max(n, 5);
+    const { mean: mu, variance: v } = getDistMeanVar(currentDist);
+    const sigma = Math.sqrt(v / effectiveN);
+
+    let data;
+    let overlayMu, overlaySigma, title;
+
+    if (formalMode === 'raw') {
+        data = formalSamples;
+        overlayMu = mu;
+        overlaySigma = sigma;
+        title = 'Raw sample means X\u0304 (n=' + effectiveN + ')';
+    } else {
+        // Standardise: Z = (Xbar - mu) / (sigma / sqrt(n)) = (Xbar - mu) / sigma
+        data = formalSamples.map(x => sigma > 1e-12 ? (x - mu) / sigma : 0);
+        overlayMu = 0;
+        overlaySigma = 1;
+        title = 'Standardised Z = (X\u0304 \u2212 \u03BC) / (\u03C3/\u221An)';
+    }
+
+    const pad = { left: 60, right: 20, top: 30, bottom: 45 };
+    const plotW = W - pad.left - pad.right;
+    const plotH = H - pad.top - pad.bottom;
+
+    ctx.strokeStyle = AXIS; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, H - pad.bottom); ctx.lineTo(W - pad.right, H - pad.bottom); ctx.stroke();
+
+    const sorted = [...data].sort((a, b) => a - b);
+    const q01 = sorted[Math.floor(sorted.length * 0.003)];
+    const q99 = sorted[Math.ceil(sorted.length * 0.997) - 1];
+    const spread = (q99 - q01) || 1;
+    const histMin = q01 - spread * 0.12;
+    const histMax = q99 + spread * 0.12;
+    const numBins = 50;
+    const binWidth = (histMax - histMin) / numBins;
+
+    const bins = new Array(numBins).fill(0);
+    for (const s of data) {
+        const idx = Math.floor((s - histMin) / binWidth);
+        if (idx >= 0 && idx < numBins) bins[idx]++;
+    }
+    const maxCount = Math.max(1, ...bins);
+
+    // Y ticks
+    ctx.font = '10px Courier New'; ctx.fillStyle = MUTED; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let i = 0; i <= 4; i++) {
+        const val = Math.round(maxCount * i / 4);
+        const y = H - pad.bottom - (plotH * i / 4);
+        ctx.fillText(val, pad.left - 8, y);
+        ctx.strokeStyle = GRID; ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    }
+
+    // Bars
+    const bw = plotW / numBins;
+    for (let i = 0; i < numBins; i++) {
+        const h = bins[i] / maxCount * plotH;
+        const x = pad.left + i * bw;
+        ctx.fillStyle = PINK; ctx.globalAlpha = 0.7;
+        ctx.fillRect(x, H - pad.bottom - h, bw - 1, h);
+        ctx.globalAlpha = 1;
+    }
+
+    // X labels
+    ctx.font = '10px Courier New'; ctx.fillStyle = MUTED; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const xLabelCount = 6;
+    for (let i = 0; i <= xLabelCount; i++) {
+        const val = histMin + (histMax - histMin) * i / xLabelCount;
+        const x = pad.left + plotW * i / xLabelCount;
+        ctx.fillText(val.toFixed(2), x, H - pad.bottom + 6);
+    }
+
+    // Normal overlay
+    ctx.strokeStyle = CYAN; ctx.lineWidth = 2;
+    ctx.beginPath();
+    let first = true;
+    for (let i = 0; i <= numBins; i++) {
+        const xVal = histMin + (i + 0.5) * binWidth;
+        const pdfVal = normalPDF(xVal, overlayMu, overlaySigma);
+        const expectedCount = pdfVal * data.length * binWidth;
+        const h = expectedCount / maxCount * plotH;
+        const x = pad.left + (i + 0.5) * bw;
+        const y = H - pad.bottom - h;
+        if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Legend
+    ctx.font = '11px Georgia'; ctx.fillStyle = CYAN; ctx.textAlign = 'left';
+    if (formalMode === 'std') {
+        ctx.fillText('N(0, 1)', pad.left + 10, pad.top + 6);
+    } else {
+        ctx.fillText('N(' + overlayMu.toFixed(2) + ', ' + overlaySigma.toFixed(3) + '\u00B2)', pad.left + 10, pad.top + 6);
+    }
+
+    // Title
+    ctx.font = '12px Georgia'; ctx.fillStyle = TEXT; ctx.textAlign = 'center';
+    ctx.fillText(title, W / 2, 16);
+
+    // Stats
+    const stats = computeStats(data);
+    document.getElementById('formalStats').innerHTML =
+        '<div><span class="stat-label">Samples: </span><span class="stat-value">' + data.length + '</span></div>' +
+        '<div><span class="stat-label">Mean: </span><span class="stat-value">' + stats.mean.toFixed(4) + '</span></div>' +
+        '<div><span class="stat-label">Std dev: </span><span class="stat-value">' + stats.std.toFixed(4) + '</span></div>' +
+        '<div><span class="stat-label">Skewness: </span><span class="stat-value">' + stats.skew.toFixed(4) + '</span></div>' +
+        '<div><span class="stat-label">Expected mean: </span><span class="stat-value">' + overlayMu.toFixed(4) + '</span></div>' +
+        '<div><span class="stat-label">Expected std: </span><span class="stat-value">' + overlaySigma.toFixed(4) + '</span></div>';
+}
+
+generateFormalSamples();
+
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

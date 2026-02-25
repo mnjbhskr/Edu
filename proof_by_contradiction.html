@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proof by Contradiction</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#c084fc}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+
+        .concept{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);
+            border-left:3px solid #c084fc;border-radius:10px;padding:18px 24px;margin-bottom:28px}
+        .concept p{color:#a0a0b8;font-size:0.92em}
+        .concept strong{color:#c084fc}
+
+        .main-row{display:flex;gap:28px;margin-bottom:28px;flex-wrap:wrap;align-items:flex-start}
+        .geo-panel{flex:0 0 320px}
+        .geo-panel canvas{max-width:100%;height:auto}
+        .proof-panel{flex:1 1 340px;min-width:280px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+
+        .step-counter{font-size:0.78em;color:#808098;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px}
+        .step-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);
+            border-radius:10px;padding:14px 18px;margin-bottom:8px;transition:all 0.3s}
+        .step-card.active{border-color:rgba(192,132,252,0.5);background:rgba(192,132,252,0.06)}
+        .step-card.dimmed{opacity:0.45}
+        .step-card.contradiction{border-color:rgba(231,76,60,0.6);
+            box-shadow:0 0 16px rgba(231,76,60,0.15);background:rgba(231,76,60,0.05)}
+        .step-card.conclusion{border-color:rgba(46,204,113,0.6);
+            box-shadow:0 0 16px rgba(46,204,113,0.15);background:rgba(46,204,113,0.05)}
+        .step-title{font-size:0.88em;color:#c084fc;margin-bottom:4px}
+        .step-card.contradiction .step-title{color:#e74c3c}
+        .step-card.conclusion .step-title{color:#2ecc71}
+        .step-body{font-size:0.88em;color:#a0a0b8}
+        .step-nav{display:flex;gap:10px;margin-top:12px}
+        .step-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);
+            color:#b0b0c4;padding:6px 16px;border-radius:6px;cursor:pointer;
+            font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s}
+        .step-btn:hover:not(:disabled){background:rgba(192,132,252,0.13);
+            border-color:rgba(192,132,252,0.4);color:#c084fc}
+        .step-btn:disabled{opacity:0.3;cursor:default}
+
+        .explorer{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);
+            border-radius:10px;padding:22px 24px;margin-bottom:28px}
+        .explorer h2{font-size:1.1em;font-weight:400;color:#fff;margin-bottom:16px}
+        .slider-row{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px}
+        .slider-group{flex:1 1 180px}
+        .slider-group label{display:block;font-size:0.82em;color:#808098;margin-bottom:4px}
+        .slider-group input[type=range]{width:100%;accent-color:#c084fc}
+        .readout{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px}
+        .readout-item{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);
+            border-radius:8px;padding:10px 16px;flex:1 1 140px;text-align:center}
+        .readout-label{font-size:0.72em;color:#808098;text-transform:uppercase;letter-spacing:0.8px}
+        .readout-val{font-size:1.1em;color:#e0e0e0;font-family:'Courier New',monospace;margin-top:2px}
+        .presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .preset-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);
+            color:#b0b0c4;padding:5px 12px;border-radius:6px;cursor:pointer;
+            font-family:'Courier New',monospace;font-size:0.85em;transition:all 0.2s}
+        .preset-btn:hover{background:rgba(192,132,252,0.13);border-color:rgba(192,132,252,0.4);color:#c084fc}
+        .preset-btn.active{background:rgba(192,132,252,0.13);border-color:rgba(192,132,252,0.4);color:#c084fc}
+        .preset-table{width:100%;border-collapse:collapse;margin-top:12px;font-size:0.82em}
+        .preset-table th{text-align:left;color:#808098;font-weight:400;padding:4px 10px;
+            border-bottom:1px solid rgba(255,255,255,0.06)}
+        .preset-table td{padding:4px 10px;color:#a0a0b8;font-family:'Courier New',monospace;font-size:0.95em}
+
+        .insight{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);
+            border-radius:10px;padding:20px 24px}
+        .insight-title{color:#c084fc;font-size:0.78em;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+        .insight-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+
+        @media(max-width:768px){
+            .geo-panel{flex:1 1 100%}
+            .main-row{flex-direction:column}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Proof by Contradiction</h1>
+    <p class="subtitle">Why &radic;2 cannot be a fraction &mdash; the first shocking proof</p>
+
+    <div class="concept">
+        <p>To prove statement <strong>P</strong>, assume <strong>&not;P</strong> and derive
+        a logical impossibility. Since contradictions cannot exist,
+        <strong>&not;P</strong> must be false, so <strong>P</strong> is true.</p>
+    </div>
+
+    <div class="main-row">
+        <div class="geo-panel">
+            <canvas id="geom" width="320" height="320"></canvas>
+        </div>
+        <div class="proof-panel">
+            <div class="step-counter" id="stepCounter">Step 1 of 8</div>
+            <div id="stepCards"></div>
+            <div class="step-nav">
+                <button class="step-btn" id="prevBtn" disabled>&larr; Previous Step</button>
+                <button class="step-btn" id="nextBtn">Next Step &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="explorer">
+        <h2>Try it yourself &mdash; can you find p/q = &radic;2?</h2>
+        <div class="slider-row">
+            <div class="slider-group">
+                <label>p = <span id="pLabel">1</span></label>
+                <input type="range" id="pSlider" min="1" max="200" value="1">
+            </div>
+            <div class="slider-group">
+                <label>q = <span id="qLabel">1</span></label>
+                <input type="range" id="qSlider" min="1" max="200" value="1">
+            </div>
+        </div>
+        <div class="readout">
+            <div class="readout-item">
+                <div class="readout-label">p / q</div>
+                <div class="readout-val" id="rRatio">1.000000</div>
+            </div>
+            <div class="readout-item">
+                <div class="readout-label">(p / q)<sup>2</sup></div>
+                <div class="readout-val" id="rSquared">1.000000</div>
+            </div>
+            <div class="readout-item">
+                <div class="readout-label">|2 &minus; (p/q)<sup>2</sup>|</div>
+                <div class="readout-val" id="rError">1.000000</div>
+            </div>
+        </div>
+        <canvas id="numline" width="900" height="80"></canvas>
+        <div style="margin-top:14px;font-size:0.82em;color:#808098;margin-bottom:6px">
+            Best rational approximations (convergents):
+        </div>
+        <div class="presets" id="presets"></div>
+        <table class="preset-table">
+            <thead>
+                <tr><th>p / q</th><th>Decimal</th><th>(p/q)<sup>2</sup></th><th>Error</th></tr>
+            </thead>
+            <tbody id="presetRows"></tbody>
+        </table>
+    </div>
+
+    <div class="insight">
+        <div class="insight-title">Insight</div>
+        <div class="insight-text" id="insightText"></div>
+    </div>
+</div>
+
+<script>
+/* ===== Proof step data ===== */
+var STEPS = [
+    {
+        title: "Assume &radic;2 is rational",
+        body: "Then &radic;2 = p/q where gcd(p, q) = 1 (lowest terms).",
+        insight: "We begin with the opposite of what we want to prove. " +
+                 "If this assumption is consistent, &radic;2 could be rational. We will show it is not."
+    },
+    {
+        title: "Square both sides",
+        body: "2 = p<sup>2</sup>/q<sup>2</sup>, therefore p<sup>2</sup> = 2q<sup>2</sup>.",
+        insight: "Squaring eliminates the square root, giving us a purely integer equation. " +
+                 "Everything that follows is basic number theory."
+    },
+    {
+        title: "p<sup>2</sup> is even",
+        body: "Since p<sup>2</sup> = 2q<sup>2</sup>, p<sup>2</sup> is divisible by 2.",
+        insight: "Any number equal to 2 times an integer is even by definition. This is the first domino."
+    },
+    {
+        title: "p must be even",
+        body: "If p were odd, p<sup>2</sup> would be odd. So p is even: p = 2k.",
+        insight: "An odd number times an odd number is always odd. " +
+                 "Since p<sup>2</sup> is even, p itself cannot be odd."
+    },
+    {
+        title: "Substitute p = 2k",
+        body: "(2k)<sup>2</sup> = 2q<sup>2</sup> &rarr; 4k<sup>2</sup> = 2q<sup>2</sup>" +
+              " &rarr; q<sup>2</sup> = 2k<sup>2</sup>.",
+        insight: "Substituting the even form of p cascades the factor of 2 into the other side. " +
+                 "Now q faces the same predicament p did."
+    },
+    {
+        title: "q<sup>2</sup> is even, so q is even",
+        body: "Same reasoning: q<sup>2</sup> = 2k<sup>2</sup> means q must be even.",
+        insight: "The same parity argument applies again. " +
+                 "Both p and q are now proven even. The trap is closing."
+    },
+    {
+        title: "CONTRADICTION",
+        body: "Both p and q are even &mdash; they share factor 2 &mdash; " +
+              "gcd(p, q) &ge; 2. But we assumed gcd(p, q) = 1!",
+        insight: "This is the heart of the proof. Our assumption forced us into an impossible " +
+                 "situation: a fraction simultaneously in lowest terms and not in lowest terms."
+    },
+    {
+        title: "Therefore &radic;2 is irrational &#8718;",
+        body: "Our assumption led to impossibility. &radic;2 cannot be expressed as p/q.",
+        insight: "Since the negation of our desired statement produced a contradiction, " +
+                 "the original statement must be true. &radic;2 lies on the number line " +
+                 "at a point no fraction can ever reach."
+    }
+];
+
+/* ===== Convergents of the continued fraction for sqrt(2) ===== */
+var CONVERGENTS = [
+    {p:1, q:1}, {p:3, q:2}, {p:7, q:5}, {p:17, q:12},
+    {p:41, q:29}, {p:99, q:70}, {p:239, q:169}
+];
+
+var SQRT2 = Math.SQRT2;
+var curStep = 0;
+var mode = "proof";
+
+/* ===== Geometric canvas: unit square with diagonal ===== */
+var gCvs = document.getElementById("geom");
+var gCtx = gCvs.getContext("2d");
+
+function drawGeom() {
+    var W = gCvs.width, H = gCvs.height;
+    gCtx.clearRect(0, 0, W, H);
+    gCtx.fillStyle = "#0a0a1a";
+    gCtx.fillRect(0, 0, W, H);
+    var m = 50, s = W - 2 * m;
+
+    /* subtle grid dots */
+    gCtx.fillStyle = "rgba(255,255,255,0.04)";
+    for (var i = 0; i <= 10; i++) {
+        for (var j = 0; j <= 10; j++) {
+            gCtx.beginPath();
+            gCtx.arc(m + s * i / 10, m + s * j / 10, 1, 0, Math.PI * 2);
+            gCtx.fill();
+        }
+    }
+
+    /* unit square */
+    gCtx.strokeStyle = "rgba(255,255,255,0.6)";
+    gCtx.lineWidth = 2;
+    gCtx.strokeRect(m, m, s, s);
+
+    /* diagonal in accent purple */
+    gCtx.strokeStyle = "#c084fc";
+    gCtx.lineWidth = 2.5;
+    gCtx.beginPath();
+    gCtx.moveTo(m, m + s);
+    gCtx.lineTo(m + s, m);
+    gCtx.stroke();
+
+    /* side labels */
+    gCtx.font = "18px Georgia";
+    gCtx.fillStyle = "rgba(255,255,255,0.7)";
+    gCtx.textAlign = "center";
+    gCtx.fillText("1", m + s / 2, m + s + 28);
+    gCtx.save();
+    gCtx.translate(m - 24, m + s / 2);
+    gCtx.rotate(-Math.PI / 2);
+    gCtx.fillText("1", 0, 0);
+    gCtx.restore();
+
+    /* diagonal label */
+    gCtx.font = "17px Georgia";
+    gCtx.fillStyle = "#c084fc";
+    gCtx.save();
+    gCtx.translate(m + s * 0.58, m + s * 0.32);
+    gCtx.rotate(-Math.atan(1));
+    gCtx.fillText("\u221A2 \u2248 1.41421\u2026", 0, 0);
+    gCtx.restore();
+
+    /* corner coordinates */
+    gCtx.fillStyle = "rgba(255,255,255,0.5)";
+    gCtx.font = "13px Georgia";
+    gCtx.textAlign = "left";
+    var corners = [[m - 12, m + s + 14, "(0,0)"],
+                   [m + s - 14, m + s + 14, "(1,0)"],
+                   [m + s - 14, m - 6, "(1,1)"]];
+    corners.forEach(function(c) { gCtx.fillText(c[2], c[0], c[1]); });
+}
+
+drawGeom();
+
+/* ===== Proof step rendering ===== */
+function renderSteps() {
+    var el = document.getElementById("stepCards");
+    var html = "";
+    for (var i = 0; i <= curStep; i++) {
+        var s = STEPS[i];
+        var cls = "step-card";
+        if (i === curStep) {
+            if (i === 6)      cls += " contradiction";
+            else if (i === 7) cls += " conclusion";
+            else              cls += " active";
+        } else {
+            cls += " dimmed";
+        }
+        html += '<div class="' + cls + '">';
+        html += '<div class="step-title">' + (i + 1) + '. ' + s.title + '</div>';
+        html += '<div class="step-body">' + s.body + '</div>';
+        html += '</div>';
+    }
+    el.innerHTML = html;
+    document.getElementById("stepCounter").textContent = "Step " + (curStep + 1) + " of 8";
+    document.getElementById("prevBtn").disabled = (curStep === 0);
+    document.getElementById("nextBtn").disabled = (curStep === 7);
+
+    /* update insight panel */
+    if (mode === "proof") {
+        if (curStep === 7) {
+            document.getElementById("insightText").innerHTML =
+                "This proof, attributed to the Pythagoreans (~500 BCE), was revolutionary. " +
+                "It revealed that the number line contains points that no fraction can reach " +
+                "&mdash; a discovery so disturbing that legend says Hippasus was drowned " +
+                "for revealing it.";
+        } else {
+            document.getElementById("insightText").innerHTML = STEPS[curStep].insight;
+        }
+    }
+}
+
+document.getElementById("nextBtn").onclick = function() {
+    if (curStep < 7) { curStep++; mode = "proof"; renderSteps(); }
+};
+document.getElementById("prevBtn").onclick = function() {
+    if (curStep > 0) { curStep--; mode = "proof"; renderSteps(); }
+};
+
+/* ===== Interactive explorer ===== */
+var pSlider  = document.getElementById("pSlider");
+var qSlider  = document.getElementById("qSlider");
+var pLabel   = document.getElementById("pLabel");
+var qLabel   = document.getElementById("qLabel");
+var rRatio   = document.getElementById("rRatio");
+var rSquared = document.getElementById("rSquared");
+var rError   = document.getElementById("rError");
+var nlCvs    = document.getElementById("numline");
+var nlCtx    = nlCvs.getContext("2d");
+
+function updateExplorer() {
+    var p = parseInt(pSlider.value), q = parseInt(qSlider.value);
+    pLabel.textContent = p;
+    qLabel.textContent = q;
+    var ratio = p / q, sq = ratio * ratio, err = Math.abs(2 - sq);
+    rRatio.textContent   = ratio.toFixed(6);
+    rSquared.textContent = sq.toFixed(6);
+    rError.textContent   = err < 0.000001 ? err.toExponential(2) : err.toFixed(6);
+    drawNumberLine(ratio);
+    highlightPreset(p, q);
+    mode = "explorer";
+    document.getElementById("insightText").innerHTML =
+        "No matter how large p and q become, (p/q)<sup>2</sup> will never exactly equal 2. " +
+        "The best approximations follow the pattern of continued fractions: " +
+        "&radic;2 = [1; 2, 2, 2, \u2026].";
+}
+
+function drawNumberLine(ratio) {
+    var W = nlCvs.width, H = nlCvs.height;
+    nlCtx.clearRect(0, 0, W, H);
+    nlCtx.fillStyle = "#0a0a1a";
+    nlCtx.fillRect(0, 0, W, H);
+
+    /* adaptive zoom: window narrows as p/q approaches sqrt(2) */
+    var gap = Math.abs(ratio - SQRT2);
+    var halfSpan = Math.max(gap * 4, 0.02);
+    var center = (ratio + SQRT2) / 2;
+    var lo = center - halfSpan, hi = center + halfSpan;
+    var pad = 40;
+    function toX(v) { return (v - lo) / (hi - lo) * (W - 2 * pad) + pad; }
+
+    /* horizontal axis */
+    nlCtx.strokeStyle = "rgba(255,255,255,0.15)";
+    nlCtx.lineWidth = 1;
+    nlCtx.beginPath();
+    nlCtx.moveTo(pad, H / 2);
+    nlCtx.lineTo(W - pad, H / 2);
+    nlCtx.stroke();
+
+    /* tick marks */
+    var tickStep = Math.pow(10, Math.floor(Math.log10(halfSpan * 2))) / 2;
+    var t = Math.ceil(lo / tickStep) * tickStep;
+    nlCtx.font = "11px 'Courier New', monospace";
+    nlCtx.fillStyle = "#606078";
+    nlCtx.textAlign = "center";
+    while (t <= hi) {
+        var x = toX(t);
+        if (x > pad - 10 && x < W - pad + 10) {
+            nlCtx.beginPath();
+            nlCtx.moveTo(x, H / 2 - 4);
+            nlCtx.lineTo(x, H / 2 + 4);
+            nlCtx.stroke();
+            nlCtx.fillText(t.toFixed(4), x, H / 2 + 18);
+        }
+        t += tickStep;
+    }
+
+    /* sqrt(2) marker: gold triangle above axis */
+    var sx = toX(SQRT2);
+    nlCtx.fillStyle = "#fbbf24";
+    nlCtx.beginPath();
+    nlCtx.moveTo(sx, H / 2 - 16);
+    nlCtx.lineTo(sx - 6, H / 2 - 6);
+    nlCtx.lineTo(sx + 6, H / 2 - 6);
+    nlCtx.closePath();
+    nlCtx.fill();
+    nlCtx.font = "12px Georgia";
+    nlCtx.textAlign = "center";
+    nlCtx.fillText("\u221A2", sx, H / 2 - 20);
+
+    /* p/q marker: purple triangle below axis */
+    var rx = toX(ratio);
+    nlCtx.fillStyle = "#c084fc";
+    nlCtx.beginPath();
+    nlCtx.moveTo(rx, H / 2 + 16);
+    nlCtx.lineTo(rx - 6, H / 2 + 6);
+    nlCtx.lineTo(rx + 6, H / 2 + 6);
+    nlCtx.closePath();
+    nlCtx.fill();
+    nlCtx.fillText("p/q", rx, H / 2 + 30);
+
+    /* dashed gap line between the two markers */
+    if (Math.abs(rx - sx) > 2) {
+        nlCtx.strokeStyle = "rgba(231,76,60,0.4)";
+        nlCtx.lineWidth = 1;
+        nlCtx.setLineDash([4, 3]);
+        nlCtx.beginPath();
+        nlCtx.moveTo(sx, H / 2);
+        nlCtx.lineTo(rx, H / 2);
+        nlCtx.stroke();
+        nlCtx.setLineDash([]);
+    }
+}
+
+function highlightPreset(p, q) {
+    document.querySelectorAll(".preset-btn").forEach(function(b) {
+        var pp = parseInt(b.dataset.p), qq = parseInt(b.dataset.q);
+        b.classList.toggle("active", pp === p && qq === q);
+    });
+}
+
+/* ===== Build preset buttons and convergent table ===== */
+function buildPresets() {
+    var el = document.getElementById("presets");
+    var tbody = document.getElementById("presetRows");
+    var btns = "", rows = "";
+    CONVERGENTS.forEach(function(c) {
+        btns += '<button class="preset-btn" data-p="' + c.p +
+                '" data-q="' + c.q + '">' + c.p + '/' + c.q + '</button>';
+        var r = c.p / c.q, sq = r * r, err = Math.abs(2 - sq);
+        var errStr = err < 0.000001 ? err.toExponential(2) : err.toFixed(6);
+        rows += "<tr><td>" + c.p + " / " + c.q + "</td>";
+        rows += "<td>" + r.toFixed(6) + "</td>";
+        rows += "<td>" + sq.toFixed(6) + "</td>";
+        rows += "<td>" + errStr + "</td></tr>";
+    });
+    el.innerHTML = btns;
+    tbody.innerHTML = rows;
+    el.querySelectorAll(".preset-btn").forEach(function(b) {
+        b.onclick = function() {
+            pSlider.value = b.dataset.p;
+            qSlider.value = b.dataset.q;
+            updateExplorer();
+        };
+    });
+}
+
+pSlider.oninput = updateExplorer;
+qSlider.oninput = updateExplorer;
+
+/* ===== Responsive canvas sizing ===== */
+function resizeNumline() {
+    var w = nlCvs.parentElement.clientWidth - 48;
+    nlCvs.width = Math.max(w, 300);
+    updateExplorer();
+}
+window.addEventListener("resize", resizeNumline);
+
+/* ===== Initialise ===== */
+renderSteps();
+buildPresets();
+resizeNumline();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

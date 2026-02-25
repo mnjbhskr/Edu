@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polynomial Roots &amp; Factoring</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#60a5fa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:18px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+
+        .controls-row{display:flex;gap:18px;margin:18px 0;flex-wrap:wrap;align-items:center}
+        .ctrl-group{display:flex;align-items:center;gap:8px}
+        .ctrl-label{font-size:0.82em;color:#808098}
+
+        select,input[type=range]{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#e0e0e0;border-radius:6px;padding:4px 8px;font-family:Georgia,serif;font-size:0.9em}
+        select{cursor:pointer}
+        input[type=range]{-webkit-appearance:none;height:6px;border-radius:3px;cursor:pointer;width:100px}
+        input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#60a5fa;cursor:pointer}
+
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+        .preset-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s}
+        .preset-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .preset-btn.active{background:rgba(96,165,250,0.13);border-color:rgba(96,165,250,0.4);color:#60a5fa}
+
+        .toggle-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.85em;transition:all 0.2s}
+        .toggle-btn.on{background:rgba(96,165,250,0.13);border-color:rgba(96,165,250,0.4);color:#60a5fa}
+
+        .formula{font-size:1.05em;line-height:1.8;font-family:'Courier New',monospace;color:#c8c8d8}
+        .root-color{color:#fbbf24}
+        .coeff-color{color:#60a5fa}
+        .check{color:#2ecc71}
+        .verify-line{font-size:0.92em;line-height:1.9;color:#b0b0c4;font-family:'Courier New',monospace}
+
+        .complex-controls{margin-top:10px;padding:12px 16px;background:rgba(96,165,250,0.04);border:1px solid rgba(96,165,250,0.1);border-radius:8px}
+        .complex-pair{display:flex;gap:14px;align-items:center;margin:6px 0;flex-wrap:wrap}
+        .complex-pair label{font-size:0.82em;color:#808098;min-width:50px}
+
+        .vieta-row{display:flex;gap:8px;align-items:baseline;margin:4px 0;font-size:0.93em;line-height:1.8}
+        .vieta-label{color:#808098;min-width:180px}
+        .vieta-val{font-family:'Courier New',monospace}
+
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px}
+        .explain-name{color:#60a5fa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+
+        @media(max-width:768px){.controls-row{flex-direction:column;align-items:flex-start}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Polynomial Roots &amp; Factoring</h1>
+    <p class="subtitle">Vieta's formulas and root-coefficient relationships</p>
+
+    <canvas id="graph" width="700" height="400"></canvas>
+
+    <div class="controls-row">
+        <div class="ctrl-group">
+            <span class="ctrl-label">Degree:</span>
+            <select id="degSel"><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select>
+        </div>
+        <button class="toggle-btn" id="complexToggle">Allow Complex Roots</button>
+        <div class="ctrl-group" id="complexInfo" style="display:none">
+            <span class="ctrl-label" style="color:#60a5fa;font-style:italic">Complex pair replaces last two real roots</span>
+        </div>
+    </div>
+
+    <div class="btn-row" id="presets"></div>
+
+    <div class="complex-controls" id="complexPanel" style="display:none">
+        <h3 style="font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Complex Conjugate Pair</h3>
+        <div class="complex-pair">
+            <label>Real (a):</label>
+            <input type="range" id="cReal" min="-4" max="4" step="0.1" value="0">
+            <span id="cRealVal" style="font-family:monospace;color:#fbbf24;min-width:40px">0</span>
+            <label>Imag (b):</label>
+            <input type="range" id="cImag" min="0.1" max="4" step="0.1" value="1">
+            <span id="cImagVal" style="font-family:monospace;color:#fbbf24;min-width:40px">1</span>
+            <span style="font-size:0.88em;color:#808098;margin-left:8px">Roots: <span id="cPairDisplay" style="color:#fbbf24">0+1i, 0-1i</span></span>
+        </div>
+    </div>
+
+    <div class="panel" id="factoredPanel"><h3>Factored Form</h3><div class="formula" id="factored"></div></div>
+    <div class="panel" id="expandedPanel"><h3>Expanded Form</h3><div class="formula" id="expanded"></div></div>
+
+    <div class="panel"><h3>Vieta's Formulas</h3><div id="vieta"></div></div>
+    <div class="panel"><h3>Verification</h3><div id="verify"></div></div>
+
+    <div class="explain"><div class="explain-name" id="insightTitle">Vieta's Formulas</div><div class="explain-text" id="insightText"></div></div>
+</div>
+
+<script>
+const cvs=document.getElementById("graph"),ctx=cvs.getContext("2d"),W=cvs.width,H=cvs.height;
+
+let degree=3, roots=[-2,0,3], complexOn=false, complexA=0, complexB=1;
+let dragging=-1, activePreset=-1, insightMode="default";
+
+const presets=[
+    {label:"x\u00B2 \u2212 1",deg:2,roots:[-1,1],cx:false},
+    {label:"x\u00B3 \u2212 x",deg:3,roots:[-1,0,1],cx:false},
+    {label:"(x\u22121)(x\u22122)(x\u22123)",deg:3,roots:[1,2,3],cx:false},
+    {label:"x\u2074 \u2212 1",deg:4,roots:[-1,1],cx:true,ca:0,cb:1},
+    {label:"x\u00B2 + 1",deg:2,roots:[],cx:true,ca:0,cb:1,forceDeg:2},
+];
+
+function init(){renderPresets();setDegree(degree);update();}
+
+function renderPresets(){
+    const c=document.getElementById("presets");
+    c.innerHTML=presets.map((p,i)=>"<button class='preset-btn"+(i===activePreset?" active":"")+"' data-i='"+i+"'>"+p.label+"</button>").join("");
+    c.querySelectorAll(".preset-btn").forEach(b=>b.addEventListener("click",()=>{
+        const i=+b.dataset.i,p=presets[i];
+        activePreset=i;
+        degree=p.forceDeg||p.deg;
+        document.getElementById("degSel").value=degree;
+        roots=p.roots.slice();
+        complexOn=!!p.cx;
+        if(p.cx){complexA=p.ca||0;complexB=p.cb||1;}
+        document.getElementById("complexToggle").classList.toggle("on",complexOn);
+        syncComplexUI();update();renderPresets();
+    }));
+}
+
+function setDegree(d){
+    degree=d;
+    const realCount=complexOn?Math.max(0,d-2):d;
+    while(roots.length<realCount)roots.push(Math.round((Math.random()*6-3)*10)/10);
+    while(roots.length>realCount)roots.pop();
+}
+
+document.getElementById("degSel").addEventListener("change",e=>{
+    degree=+e.target.value;
+    if(complexOn&&degree<2){complexOn=false;document.getElementById("complexToggle").classList.remove("on");}
+    setDegree(degree);activePreset=-1;syncComplexUI();update();renderPresets();
+});
+
+document.getElementById("complexToggle").addEventListener("click",()=>{
+    if(degree<2)return;
+    complexOn=!complexOn;
+    document.getElementById("complexToggle").classList.toggle("on",complexOn);
+    setDegree(degree);activePreset=-1;syncComplexUI();update();renderPresets();
+});
+
+function syncComplexUI(){
+    document.getElementById("complexPanel").style.display=complexOn?"block":"none";
+    document.getElementById("complexInfo").style.display=complexOn?"flex":"none";
+    document.getElementById("cReal").value=complexA;
+    document.getElementById("cImag").value=complexB;
+    document.getElementById("cRealVal").textContent=fmtN(complexA);
+    document.getElementById("cImagVal").textContent=fmtN(complexB);
+    updateCPairDisplay();
+}
+
+document.getElementById("cReal").addEventListener("input",e=>{complexA=+e.target.value;document.getElementById("cRealVal").textContent=fmtN(complexA);updateCPairDisplay();activePreset=-1;update();renderPresets();});
+document.getElementById("cImag").addEventListener("input",e=>{complexB=+e.target.value;document.getElementById("cImagVal").textContent=fmtN(complexB);updateCPairDisplay();activePreset=-1;update();renderPresets();});
+
+function updateCPairDisplay(){
+    const s1=fmtN(complexA)+(complexB>=0?"+":"")+fmtN(complexB)+"i";
+    const s2=fmtN(complexA)+((-complexB)>=0?"+":"")+fmtN(-complexB)+"i";
+    document.getElementById("cPairDisplay").textContent=s1+",  "+s2;
+}
+
+function fmtN(v){return Math.round(v*1000)/1000===Math.round(v)?v.toFixed(0):(Math.round(v*100)/100).toString();}
+
+/* Polynomial from roots: multiply coefficient arrays [1,-r] for each real root,
+   then [1, -2a, a^2+b^2] for complex pair */
+function getCoeffs(){
+    let c=[1];
+    for(const r of roots)c=polyMul(c,[1,-r]);
+    if(complexOn)c=polyMul(c,[1,-2*complexA,complexA*complexA+complexB*complexB]);
+    return c;
+}
+
+function polyMul(a,b){
+    const r=new Array(a.length+b.length-1).fill(0);
+    for(let i=0;i<a.length;i++)for(let j=0;j<b.length;j++)r[i+j]+=a[i]*b[j];
+    return r;
+}
+
+function evalPoly(coeffs,x){
+    let v=0;for(let i=0;i<coeffs.length;i++)v=v*x+coeffs[i];return v;
+}
+
+/* All roots (real + complex) for symmetric function computation */
+function allRoots(){
+    const all=roots.map(r=>({re:r,im:0}));
+    if(complexOn){all.push({re:complexA,im:complexB});all.push({re:complexA,im:-complexB});}
+    return all;
+}
+
+/* Elementary symmetric polynomials e_k from all roots */
+function symFuncs(rts){
+    const n=rts.length, e=[{re:1,im:0}];
+    for(let k=1;k<=n;k++){
+        let sum={re:0,im:0};
+        // Use coefficients: e_k = (-1)^k * a_{n-k} where coeffs[0]=1
+        // But compute directly for display
+        const combos=kSubsets(rts,k);
+        for(const combo of combos){
+            let prod={re:1,im:0};
+            for(const r of combo)prod=cMul(prod,r);
+            sum=cAdd(sum,prod);
+        }
+        e.push(sum);
+    }
+    return e;
+}
+
+function cAdd(a,b){return{re:a.re+b.re,im:a.im+b.im};}
+function cMul(a,b){return{re:a.re*b.re-a.im*b.im,im:a.re*b.im+a.im*b.re};}
+
+function kSubsets(arr,k){
+    if(k===0)return[[]];if(k>arr.length)return[];
+    const res=[];
+    function bt(start,cur){
+        if(cur.length===k){res.push(cur.slice());return;}
+        for(let i=start;i<=arr.length-(k-cur.length);i++){cur.push(arr[i]);bt(i+1,cur);cur.pop();}
+    }
+    bt(0,[]);return res;
+}
+
+/* Drawing */
+function update(){
+    const coeffs=getCoeffs();
+    drawGraph(coeffs);
+    drawFactored();
+    drawExpanded(coeffs);
+    drawVieta(coeffs);
+    drawVerify(coeffs);
+    drawInsight();
+}
+
+function drawGraph(coeffs){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle="#0a0a1a";ctx.fillRect(0,0,W,H);
+
+    // Determine x range from roots
+    const allR=roots.length?roots:[0];
+    const xMin_r=Math.min(...allR),xMax_r=Math.max(...allR);
+    const pad=Math.max(2,(xMax_r-xMin_r)*0.5);
+    const xMin=Math.floor(xMin_r-pad),xMax=Math.ceil(xMax_r+pad);
+
+    // Sample y to determine y range
+    const samples=200;
+    let yVals=[];
+    for(let i=0;i<=samples;i++){
+        const x=xMin+(xMax-xMin)*i/samples;
+        yVals.push(evalPoly(coeffs,x));
+    }
+    // Clip extreme values for nice display
+    yVals.sort((a,b)=>a-b);
+    const yLo=yVals[Math.floor(samples*0.02)],yHi=yVals[Math.floor(samples*0.98)];
+    const yPad=Math.max(1,(yHi-yLo)*0.15);
+    const yMin=Math.min(yLo-yPad,-1),yMax=Math.max(yHi+yPad,1);
+
+    const mx=40,my=30; // margins
+    const gw=W-2*mx,gh=H-2*my;
+
+    function toSx(x){return mx+(x-xMin)/(xMax-xMin)*gw;}
+    function toSy(y){return my+(yMax-y)/(yMax-yMin)*gh;}
+
+    // Grid
+    ctx.strokeStyle="rgba(255,255,255,0.04)";ctx.lineWidth=1;
+    const xStep=niceStep(xMax-xMin,8),yStep=niceStep(yMax-yMin,6);
+    ctx.font="11px Georgia";ctx.fillStyle="#606078";ctx.textAlign="center";ctx.textBaseline="top";
+    for(let x=Math.ceil(xMin/xStep)*xStep;x<=xMax;x+=xStep){
+        const sx=toSx(x);
+        ctx.beginPath();ctx.moveTo(sx,my);ctx.lineTo(sx,my+gh);ctx.stroke();
+        ctx.fillText(fmtN(x),sx,my+gh+4);
+    }
+    ctx.textAlign="right";ctx.textBaseline="middle";
+    for(let y=Math.ceil(yMin/yStep)*yStep;y<=yMax;y+=yStep){
+        const sy=toSy(y);
+        ctx.beginPath();ctx.moveTo(mx,sy);ctx.lineTo(mx+gw,sy);ctx.stroke();
+        ctx.fillText(fmtN(y),mx-6,sy);
+    }
+
+    // Axes
+    ctx.strokeStyle="rgba(255,255,255,0.15)";ctx.lineWidth=1;
+    if(yMin<=0&&yMax>=0){const sy=toSy(0);ctx.beginPath();ctx.moveTo(mx,sy);ctx.lineTo(mx+gw,sy);ctx.stroke();}
+    if(xMin<=0&&xMax>=0){const sx=toSx(0);ctx.beginPath();ctx.moveTo(sx,my);ctx.lineTo(sx,my+gh);ctx.stroke();}
+
+    // Shaded regions and curve
+    const pts=500;
+    // Shading: p(x)>0 blue, p(x)<0 coral
+    for(let i=0;i<pts;i++){
+        const x0=xMin+(xMax-xMin)*i/pts,x1=xMin+(xMax-xMin)*(i+1)/pts;
+        const y0=evalPoly(coeffs,x0),y1=evalPoly(coeffs,x1);
+        const sx0=toSx(x0),sx1=toSx(x1);
+        const sy0=toSy(Math.max(yMin,Math.min(yMax,y0)));
+        const sy1=toSy(Math.max(yMin,Math.min(yMax,y1)));
+        const syZero=toSy(0);
+        const clampedSyZero=Math.max(my,Math.min(my+gh,syZero));
+        if((y0>0&&y1>0)||(y0>=0&&y1>=0)){
+            ctx.fillStyle="rgba(96,165,250,0.06)";
+            ctx.beginPath();ctx.moveTo(sx0,clampedSyZero);ctx.lineTo(sx0,sy0);ctx.lineTo(sx1,sy1);ctx.lineTo(sx1,clampedSyZero);ctx.fill();
+        }else if((y0<0&&y1<0)||(y0<=0&&y1<=0)){
+            ctx.fillStyle="rgba(248,113,113,0.06)";
+            ctx.beginPath();ctx.moveTo(sx0,clampedSyZero);ctx.lineTo(sx0,sy0);ctx.lineTo(sx1,sy1);ctx.lineTo(sx1,clampedSyZero);ctx.fill();
+        }
+    }
+
+    // Curve
+    ctx.strokeStyle="#60a5fa";ctx.lineWidth=2.5;ctx.beginPath();
+    let started=false;
+    for(let i=0;i<=pts;i++){
+        const x=xMin+(xMax-xMin)*i/pts;
+        const y=evalPoly(coeffs,x);
+        const sx=toSx(x),sy=toSy(y);
+        if(sy<my-50||sy>my+gh+50){started=false;continue;}
+        if(!started){ctx.moveTo(sx,Math.max(my-2,Math.min(my+gh+2,sy)));started=true;}
+        else ctx.lineTo(sx,Math.max(my-2,Math.min(my+gh+2,sy)));
+    }
+    ctx.stroke();
+
+    // Local extrema
+    ctx.fillStyle="rgba(96,165,250,0.5)";
+    for(let i=1;i<pts-1;i++){
+        const x0=xMin+(xMax-xMin)*(i-1)/pts,x1=xMin+(xMax-xMin)*i/pts,x2=xMin+(xMax-xMin)*(i+1)/pts;
+        const y0=evalPoly(coeffs,x0),y1=evalPoly(coeffs,x1),y2=evalPoly(coeffs,x2);
+        if((y1>y0&&y1>y2)||(y1<y0&&y1<y2)){
+            const sx=toSx(x1),sy=toSy(y1);
+            if(sy>=my&&sy<=my+gh){ctx.beginPath();ctx.arc(sx,sy,3,0,Math.PI*2);ctx.fill();}
+        }
+    }
+
+    // Root dots (draggable)
+    const syAxis=toSy(0);
+    roots.forEach((r,i)=>{
+        const sx=toSx(r),sy=Math.max(my,Math.min(my+gh,syAxis));
+        ctx.beginPath();ctx.arc(sx,sy,7,0,Math.PI*2);
+        ctx.fillStyle="#fbbf24";ctx.fill();
+        ctx.strokeStyle="rgba(0,0,0,0.4)";ctx.lineWidth=1.5;ctx.stroke();
+        ctx.fillStyle="#0a0a1a";ctx.font="bold 9px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.fillText("r"+(i+1),sx,sy);
+    });
+
+    // Store mapping for drag
+    cvs._xMin=xMin;cvs._xMax=xMax;cvs._mx=mx;cvs._gw=gw;cvs._my=my;cvs._gh=gh;cvs._yMin=yMin;cvs._yMax=yMax;
+}
+
+function niceStep(range,maxTicks){
+    const rough=range/maxTicks;
+    const mag=Math.pow(10,Math.floor(Math.log10(rough)));
+    const norm=rough/mag;
+    let step;
+    if(norm<=1.5)step=1;else if(norm<=3)step=2;else if(norm<=7)step=5;else step=10;
+    return step*mag;
+}
+
+/* Drag interaction */
+cvs.addEventListener("mousedown",e=>{
+    const rect=cvs.getBoundingClientRect(),sx=e.clientX-rect.left,sy=e.clientY-rect.top;
+    const scaleX=W/rect.width,scaleY=H/rect.height;
+    const cx=sx*scaleX,cy=sy*scaleY;
+    const syAxis=cvs._my+(cvs._yMax-0)/(cvs._yMax-cvs._yMin)*cvs._gh;
+    for(let i=0;i<roots.length;i++){
+        const rx=cvs._mx+(roots[i]-cvs._xMin)/(cvs._xMax-cvs._xMin)*cvs._gw;
+        const ry=Math.max(cvs._my,Math.min(cvs._my+cvs._gh,syAxis));
+        if(Math.hypot(cx-rx,cy-ry)<15){dragging=i;insightMode="drag";break;}
+    }
+});
+cvs.addEventListener("mousemove",e=>{
+    if(dragging<0)return;
+    const rect=cvs.getBoundingClientRect(),sx=e.clientX-rect.left;
+    const cx=sx*(W/rect.width);
+    const x=cvs._xMin+(cx-cvs._mx)/cvs._gw*(cvs._xMax-cvs._xMin);
+    roots[dragging]=Math.round(x*20)/20;
+    activePreset=-1;renderPresets();update();
+});
+cvs.addEventListener("mouseup",()=>{dragging=-1;});
+cvs.addEventListener("mouseleave",()=>{dragging=-1;});
+
+/* Factored form display */
+function drawFactored(){
+    const parts=roots.map((r,i)=>{
+        const color="#fbbf24";
+        const sign=r<0?"+":r>0?"\u2212":"";
+        const val=r===0?"x":"(x "+sign+" "+fmtN(Math.abs(r))+")";
+        return "<span style='color:"+color+"'>"+val+"</span>";
+    });
+    if(complexOn){
+        const a=complexA,b=complexB;
+        const linCoeff=-2*a, constCoeff=a*a+b*b;
+        let q="(x\u00B2";
+        if(Math.abs(linCoeff)>1e-9){
+            q+=(linCoeff>=0?" + ":" \u2212 ")+fmtN(Math.abs(Math.round(linCoeff*1000)/1000))+"x";
+        }
+        q+=" + "+fmtN(Math.round(constCoeff*1000)/1000)+")";
+        parts.push("<span style='color:#60a5fa'>"+q+"</span>");
+    }
+    document.getElementById("factored").innerHTML="p(x) = "+parts.join(" ");
+}
+
+/* Expanded form display */
+function drawExpanded(coeffs){
+    let terms=[];
+    const n=coeffs.length-1;
+    for(let i=0;i<=n;i++){
+        const power=n-i;
+        let c=Math.round(coeffs[i]*10000)/10000;
+        if(Math.abs(c)<1e-10)continue;
+        let sign=c>=0?"+":"\u2212";
+        let absC=Math.abs(c);
+        let cStr="";
+        if(power===0)cStr=fmtN(absC);
+        else if(power===1)cStr=(absC===1?"":""+fmtN(absC))+"x";
+        else cStr=(absC===1?"":""+fmtN(absC))+"x"+supNum(power);
+        if(terms.length===0){
+            terms.push((c<0?"\u2212 ":"")+cStr);
+        }else{
+            terms.push(" "+sign+" "+cStr);
+        }
+    }
+    document.getElementById("expanded").innerHTML="<span class='coeff-color'>p(x) = "+terms.join("")+"</span>";
+}
+
+function supNum(n){
+    const sups="\u2070\u00B9\u00B2\u00B3\u2074\u2075\u2076\u2077\u2078\u2079";
+    return String(n).split("").map(d=>sups[+d]).join("");
+}
+
+/* Vieta's formulas display */
+function drawVieta(coeffs){
+    const rts=allRoots(),n=rts.length;
+    const ef=symFuncs(rts);
+    let html="";
+    const labels=["Sum of roots","Sum of pairwise products","Sum of triple products","Sum of quadruple products","Product of all roots"];
+    for(let k=1;k<=n;k++){
+        const signFactor=Math.pow(-1,k);
+        const coeffVal=Math.round(coeffs[k]*10000)/10000;
+        const symVal=ef[k];
+        const symStr=fmtComplex(symVal);
+        const label=k<n?labels[Math.min(k-1,3)]||("e"+k):labels[4];
+        const power=n-k;
+        const coeffName=power===0?"constant term":"coefficient of x"+(power>1?supNum(power):"");
+
+        // Generate root expression
+        let rootExpr="";
+        if(k===1)rootExpr=rts.map((_,i)=>"<span class='root-color'>r"+(i+1)+"</span>").join(" + ");
+        else if(k===n)rootExpr=rts.map((_,i)=>"<span class='root-color'>r"+(i+1)+"</span>").join(" \u00D7 ");
+        else{
+            const subs=kSubsets(rts.map((_,i)=>i),k);
+            rootExpr=subs.slice(0,8).map(s=>s.map(j=>"<span class='root-color'>r"+(j+1)+"</span>").join("\u00B7")).join(" + ");
+            if(subs.length>8)rootExpr+=" + ...";
+        }
+
+        // e_k = (-1)^k * coeffs[k]
+        const rhs=Math.round(signFactor*coeffVal*10000)/10000;
+        const signLabel=signFactor===-1?"\u2212("+coeffName+")":"("+coeffName+")";
+        html+="<div class='vieta-row'>"
+            +"<span class='vieta-label'>e<sub>"+k+"</sub> ("+label+"):</span>"
+            +"<span class='vieta-val'>"+rootExpr
+            +" = <span class='root-color'>"+symStr+"</span>"
+            +" = "+(signFactor===-1?"\u2212":"")+"<span class='coeff-color'>("+fmtN(coeffVal)+")</span>"
+            +" = <span class='coeff-color'>"+fmtN(rhs)+"</span>"
+            +"</span></div>";
+    }
+    document.getElementById("vieta").innerHTML=html;
+}
+
+function fmtComplex(c){
+    const r=Math.round(c.re*10000)/10000,i=Math.round(c.im*10000)/10000;
+    if(Math.abs(i)<1e-9)return fmtN(r);
+    return fmtN(r)+(i>=0?"+":"")+fmtN(i)+"i";
+}
+
+/* Verification panel */
+function drawVerify(coeffs){
+    const rts=allRoots(),n=rts.length;
+    const ef=symFuncs(rts);
+    let html="";
+    // Show roots
+    const rootStrs=rts.map(r=>fmtComplex(r));
+    html+="<div class='verify-line'>Roots: ["+rootStrs.map(s=>"<span class='root-color'>"+s+"</span>").join(", ")+"]</div>";
+
+    const labels=["Sum","Pairwise products sum","Triple products sum","Quadruple products sum","Product"];
+    for(let k=1;k<=n;k++){
+        const signFactor=Math.pow(-1,k);
+        const coeffVal=Math.round(coeffs[k]*10000)/10000;
+        const symVal=ef[k];
+        const symStr=fmtComplex(symVal);
+        const rhs=Math.round(signFactor*coeffVal*10000)/10000;
+        const label=k<n?labels[Math.min(k-1,3)]:labels[4];
+        const power=n-k;
+        const coeffDesc=power===0?"constant":"coeff of x"+(power>1?supNum(power):"");
+
+        const match=Math.abs(symVal.re-rhs)<0.01&&Math.abs(symVal.im)<0.01;
+        html+="<div class='verify-line'>"
+            +label+": <span class='root-color'>"+symStr+"</span>"
+            +" = "+(signFactor===-1?"\u2212":"")+"(<span class='coeff-color'>"+fmtN(coeffVal)+"</span>)"
+            +" ("+coeffDesc+")"
+            +" = <span class='coeff-color'>"+fmtN(rhs)+"</span>"
+            +(match?" <span class='check'>\u2713</span>":"")
+            +"</div>";
+    }
+    document.getElementById("verify").innerHTML=html;
+}
+
+/* Insight panel */
+function drawInsight(){
+    const title=document.getElementById("insightTitle");
+    const text=document.getElementById("insightText");
+    if(complexOn){
+        title.textContent="Complex Roots";
+        text.textContent="Complex roots of real polynomials always come in conjugate pairs: if a+bi is a root, so is a\u2212bi. Each conjugate pair contributes a real quadratic factor (x\u00B2 \u2212 2ax + a\u00B2 + b\u00B2) to the polynomial. This is why a real polynomial of odd degree must always have at least one real root.";
+    }else if(insightMode==="drag"){
+        title.textContent="Root-Coefficient Entanglement";
+        text.textContent="Watch how moving a single root changes ALL the coefficients simultaneously. Each coefficient depends on ALL the roots together \u2014 they are entangled through Vieta\u2019s formulas. The sum of roots fixes one coefficient, the sum of pairwise products fixes another, and so on down to the product of all roots.";
+    }else{
+        title.textContent="Vieta\u2019s Formulas";
+        text.textContent="Vieta\u2019s formulas (Fran\u00E7ois Vi\u00E8te, 1591) reveal that a polynomial\u2019s coefficients are symmetric functions of its roots. This means you can recover information about the roots \u2014 their sum, the sum of their products, their total product \u2014 directly from the coefficients, without solving the equation. The factored form and the expanded form carry exactly the same information, connected by these elegant identities.";
+    }
+}
+
+init();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

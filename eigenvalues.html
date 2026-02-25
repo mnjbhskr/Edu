@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eigenvalues &amp; Eigenvectors</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#22d3ee}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(34,211,238,0.13);border-color:rgba(34,211,238,0.4);color:#22d3ee}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .cyan{color:#22d3ee}
+        .math-line .gold{color:#fbbf24}
+        .math-line .green{color:#2ecc71}
+        .math-line .red{color:#ef4444}
+        .math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#22d3ee;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 300px;min-width:280px}
+        .matrix-input{display:inline-grid;grid-template-columns:1fr 1fr;gap:4px;vertical-align:middle}
+        .matrix-input input{width:58px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#22d3ee;padding:5px 6px;border-radius:4px;font-family:'Courier New',monospace;font-size:0.95em;text-align:center}
+        .matrix-input input:focus{outline:none;border-color:rgba(34,211,238,0.5)}
+        .matrix-bracket{display:inline-flex;align-items:center;font-size:2.2em;color:#808098;vertical-align:middle;line-height:1}
+        .preset-desc{color:#808098;font-size:0.78em;margin-top:2px;line-height:1.4}
+        .step{margin:3px 0;padding:2px 0}
+        .step .label{color:#808098;font-size:0.8em;margin-right:6px}
+        .disc-positive{color:#2ecc71}
+        .disc-zero{color:#fbbf24}
+        .disc-negative{color:#ef4444}
+        .eigvec-match{color:#2ecc71;font-weight:bold;font-size:0.95em}
+        .eigvec-miss{color:#ef4444;font-size:0.95em}
+        hr.sep{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:8px 0}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Eigenvalues &amp; Eigenvectors</h1>
+    <p class="subtitle">The directions that survive a transformation</p>
+
+    <!-- Section 1: Main Visualization -->
+    <canvas id="mainCanvas" width="650" height="500"></canvas>
+    <div style="margin-top:10px;margin-bottom:20px">
+        <button class="btn" id="animBtn">Play</button>
+        <button class="btn" id="resetBtn">Reset</button>
+        <span class="math-line muted" id="animLabel" style="margin-left:12px"></span>
+    </div>
+
+    <!-- Section 2: Matrix Input & Presets -->
+    <div class="panel">
+        <h3>Matrix A</h3>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:14px">
+            <span class="matrix-bracket">[</span>
+            <div class="matrix-input">
+                <input type="number" id="ma" value="2" step="0.1">
+                <input type="number" id="mb" value="1" step="0.1">
+                <input type="number" id="mc" value="1" step="0.1">
+                <input type="number" id="md" value="2" step="0.1">
+            </div>
+            <span class="matrix-bracket">]</span>
+        </div>
+        <h3>Presets</h3>
+        <div id="presetBtns"></div>
+    </div>
+
+    <!-- Section 3: Characteristic Equation -->
+    <h2>Characteristic Equation</h2>
+    <div class="panel" id="charPanel"></div>
+
+    <!-- Section 4: Geometric Interpretation -->
+    <h2>Geometric Interpretation</h2>
+    <div class="flex-row">
+        <div class="flex-half">
+            <div class="panel">
+                <canvas id="geoCanvas" width="250" height="250" style="cursor:default"></canvas>
+            </div>
+        </div>
+        <div class="flex-half">
+            <div class="panel" id="geoText"></div>
+        </div>
+    </div>
+
+    <!-- Section 5: Interactive Eigenvector Test -->
+    <h2>Eigenvector Test</h2>
+    <div class="flex-row">
+        <div class="flex-half">
+            <div class="panel">
+                <h3>Drag the vector to test</h3>
+                <canvas id="testCanvas" width="300" height="300"></canvas>
+            </div>
+        </div>
+        <div class="flex-half">
+            <div class="panel" id="testInfo">
+                <h3>Result</h3>
+                <div id="testResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 6: Explanation -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            Most vectors change direction when a matrix acts on them. But eigenvectors are special: they stay on the same line through the origin, merely stretched (or flipped) by their eigenvalue. They reveal the intrinsic geometry of a linear transformation &mdash; the natural axes and stretch factors that define it.
+            <br><br>
+            The characteristic equation det(A &minus; &lambda;I) = 0 finds these special values. For a 2&times;2 matrix it is a quadratic, giving at most two eigenvalues. The discriminant tells the story: positive means two distinct real eigenvalues, zero means a repeated eigenvalue, and negative means a complex conjugate pair (pure rotation, no real eigenvectors).
+            <br><br>
+            The connection to diagonalisation: if A has two linearly independent eigenvectors, we can write A = PDP<sup>&minus;1</sup>, where D is the diagonal matrix of eigenvalues and P holds the eigenvectors as columns. This decomposition makes computing powers of A trivial &mdash; A<sup>n</sup> = PD<sup>n</sup>P<sup>&minus;1</sup> &mdash; and lies at the heart of differential equations, quantum mechanics, and data science (PCA).
+        </div>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+let M = {a:2, b:1, c:1, d:2};
+let animT = 0;       // 0 = identity, 1 = fully transformed
+let animating = false;
+let animDir = 1;      // 1 = forward, -1 = reverse
+let animStart = 0;
+
+// Draggable test vector (angle in radians)
+let testAngle = Math.PI / 5;
+let testDrag = false;
+
+/* ============================================================
+   PRESETS
+   ============================================================ */
+const presets = [
+    {label:'Stretch', m:{a:2,b:0,c:0,d:1}, desc:'Eigenvectors along axes, eigenvalues 2 and 1. The simplest case: a diagonal matrix stretches each axis independently.'},
+    {label:'Symmetric', m:{a:2,b:1,c:1,d:2}, desc:'Real orthogonal eigenvectors, eigenvalues 3 and 1. Symmetric matrices always have orthogonal eigenvectors.'},
+    {label:'Rotation 45\u00B0', m:{a:Math.cos(Math.PI/4),b:-Math.sin(Math.PI/4),c:Math.sin(Math.PI/4),d:Math.cos(Math.PI/4)}, desc:'Complex eigenvalues \u2014 no real eigenvectors exist. Every direction rotates, so no direction is preserved.'},
+    {label:'Shear', m:{a:1,b:1,c:0,d:1}, desc:'Repeated eigenvalue \u03BB=1 but only 1 eigenvector. A defective matrix: the eigenspace is too small.'},
+    {label:'Reflection', m:{a:0,b:1,c:1,d:0}, desc:'Eigenvalues 1 and \u22121, eigenvectors at 45\u00B0 and 135\u00B0. Reflects across the line y = x.'},
+    {label:'Negative Scale', m:{a:-1,b:0,c:0,d:-2}, desc:'Negative eigenvalues \u22121 and \u22122. Eigenvectors flip direction: they reverse rather than stretch.'}
+];
+
+/* ============================================================
+   DOM REFERENCES
+   ============================================================ */
+const mainCvs = document.getElementById('mainCanvas');
+const mainCtx = mainCvs.getContext('2d');
+const geoCvs = document.getElementById('geoCanvas');
+const geoCtx = geoCvs.getContext('2d');
+const testCvs = document.getElementById('testCanvas');
+const testCtx = testCvs.getContext('2d');
+
+const inputA = document.getElementById('ma');
+const inputB = document.getElementById('mb');
+const inputC = document.getElementById('mc');
+const inputD = document.getElementById('md');
+
+/* ============================================================
+   EIGEN COMPUTATION (analytical 2x2)
+   ============================================================ */
+function computeEigen(m) {
+    const tr = m.a + m.d;
+    const det = m.a * m.d - m.b * m.c;
+    const disc = tr * tr - 4 * det;
+    const result = {tr, det, disc, eigenvalues:[], eigenvectors:[], complex:false, repeated:false, defective:false};
+
+    if (disc < -1e-10) {
+        // Complex eigenvalues
+        result.complex = true;
+        const realPart = tr / 2;
+        const imagPart = Math.sqrt(-disc) / 2;
+        result.eigenvalues = [{re: realPart, im: imagPart}, {re: realPart, im: -imagPart}];
+    } else if (Math.abs(disc) <= 1e-10) {
+        // Repeated eigenvalue
+        result.repeated = true;
+        const lam = tr / 2;
+        result.eigenvalues = [{re: lam, im: 0}, {re: lam, im: 0}];
+        // Check if defective: (A - lam*I) should be zero matrix for non-defective
+        const r00 = m.a - lam, r01 = m.b, r10 = m.c, r11 = m.d - lam;
+        if (Math.abs(r00) < 1e-10 && Math.abs(r01) < 1e-10 && Math.abs(r10) < 1e-10 && Math.abs(r11) < 1e-10) {
+            // A = lam*I, every vector is an eigenvector
+            result.eigenvectors = [{x:1, y:0}, {x:0, y:1}];
+        } else {
+            result.defective = true;
+            // Find one eigenvector from (A - lam*I)v = 0
+            if (Math.abs(r00) > 1e-10 || Math.abs(r01) > 1e-10) {
+                const vx = -r01, vy = r00;
+                const len = Math.sqrt(vx*vx + vy*vy);
+                result.eigenvectors = [{x: vx/len, y: vy/len}];
+            } else if (Math.abs(r10) > 1e-10 || Math.abs(r11) > 1e-10) {
+                const vx = -r11, vy = r10;
+                const len = Math.sqrt(vx*vx + vy*vy);
+                result.eigenvectors = [{x: vx/len, y: vy/len}];
+            } else {
+                result.eigenvectors = [{x:1, y:0}];
+            }
+        }
+    } else {
+        // Two distinct real eigenvalues
+        const sqrtDisc = Math.sqrt(disc);
+        const lam1 = (tr + sqrtDisc) / 2;
+        const lam2 = (tr - sqrtDisc) / 2;
+        result.eigenvalues = [{re: lam1, im: 0}, {re: lam2, im: 0}];
+
+        // Eigenvectors from (A - lam*I)v = 0
+        result.eigenvectors = [];
+        for (const lam of [lam1, lam2]) {
+            const r00 = m.a - lam, r01 = m.b, r10 = m.c, r11 = m.d - lam;
+            let vx, vy;
+            if (Math.abs(r00) > 1e-10 || Math.abs(r01) > 1e-10) {
+                vx = -r01; vy = r00;
+            } else if (Math.abs(r10) > 1e-10 || Math.abs(r11) > 1e-10) {
+                vx = -r11; vy = r10;
+            } else {
+                vx = 1; vy = 0;
+            }
+            const len = Math.sqrt(vx*vx + vy*vy);
+            result.eigenvectors.push({x: vx/len, y: vy/len});
+        }
+    }
+    return result;
+}
+
+/* ============================================================
+   MATRIX-VECTOR MULTIPLY
+   ============================================================ */
+function matVec(m, v) {
+    return {x: m.a * v.x + m.b * v.y, y: m.c * v.x + m.d * v.y};
+}
+
+/* ============================================================
+   DRAWING HELPERS
+   ============================================================ */
+function drawGrid(ctx, W, H, ox, oy, scale) {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(0, 0, W, H);
+    const halfW = W / (2 * scale), halfH = H / (2 * scale);
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    for (let i = Math.ceil(-halfW); i <= Math.floor(halfW); i++) {
+        const sx = ox + i * scale;
+        ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke();
+    }
+    for (let i = Math.ceil(-halfH); i <= Math.floor(halfH); i++) {
+        const sy = oy - i * scale;
+        ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+}
+
+function drawArrow(ctx, ox, oy, scale, vx, vy, color, lw, headLen) {
+    headLen = headLen || 10;
+    const sx = ox + vx * scale, sy = oy - vy * scale;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(ox, oy);
+    ctx.lineTo(sx, sy);
+    ctx.stroke();
+    const ang = Math.atan2(sy - oy, sx - ox);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(sx - headLen * Math.cos(ang - 0.3), sy - headLen * Math.sin(ang - 0.3));
+    ctx.lineTo(sx - headLen * Math.cos(ang + 0.3), sy - headLen * Math.sin(ang + 0.3));
+    ctx.closePath();
+    ctx.fill();
+}
+
+/* ============================================================
+   SECTION 1: MAIN CANVAS
+   ============================================================ */
+const MAIN_W = 650, MAIN_H = 500, MAIN_SCALE = 50;
+const mainOx = MAIN_W / 2, mainOy = MAIN_H / 2;
+const NUM_ARROWS = 40;
+
+function drawMain() {
+    const ctx = mainCtx;
+    const W = MAIN_W, H = MAIN_H, sc = MAIN_SCALE;
+    const ox = mainOx, oy = mainOy;
+
+    drawGrid(ctx, W, H, ox, oy, sc);
+
+    // Tick labels
+    ctx.font = '10px Georgia';
+    ctx.fillStyle = '#505068';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const halfW = W / (2 * sc), halfH = H / (2 * sc);
+    for (let i = Math.ceil(-halfW); i <= Math.floor(halfW); i++) {
+        if (i === 0) continue;
+        ctx.fillText(i, ox + i * sc, oy + 4);
+    }
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = Math.ceil(-halfH); i <= Math.floor(halfH); i++) {
+        if (i === 0) continue;
+        ctx.fillText(i, ox - 6, oy - i * sc);
+    }
+
+    const eigen = computeEigen(M);
+    const t = animT;
+
+    // Interpolated matrix: (1-t)*I + t*A
+    const mt = {
+        a: (1 - t) * 1 + t * M.a,
+        b: (1 - t) * 0 + t * M.b,
+        c: (1 - t) * 0 + t * M.c,
+        d: (1 - t) * 1 + t * M.d
+    };
+
+    // Draw unit circle reference (dashed)
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(ox, oy, sc, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw all transformed arrows
+    for (let i = 0; i < NUM_ARROWS; i++) {
+        const theta = (2 * Math.PI * i) / NUM_ARROWS;
+        const vx = Math.cos(theta), vy = Math.sin(theta);
+        const tv = matVec(mt, {x: vx, y: vy});
+
+        // Check if this direction is near an eigenvector
+        let isEigen = false;
+        if (!eigen.complex) {
+            for (let j = 0; j < eigen.eigenvectors.length; j++) {
+                const ev = eigen.eigenvectors[j];
+                // Check both directions of eigenvector
+                const dot = Math.abs(vx * ev.x + vy * ev.y);
+                if (dot > 0.98) {
+                    isEigen = true;
+                    break;
+                }
+            }
+        }
+
+        if (!isEigen) {
+            drawArrow(ctx, ox, oy, sc, tv.x, tv.y, 'rgba(255,255,255,0.15)', 1, 6);
+        }
+    }
+
+    // Draw eigenvector arrows highlighted (on top)
+    if (!eigen.complex) {
+        const colors = ['#22d3ee', '#fbbf24'];
+        const glowColors = ['rgba(34,211,238,0.3)', 'rgba(251,191,36,0.3)'];
+        const time = performance.now() / 1000;
+        const pulse = 0.6 + 0.4 * Math.sin(time * 3);
+
+        for (let j = 0; j < eigen.eigenvectors.length; j++) {
+            const ev = eigen.eigenvectors[j];
+            const lam = eigen.eigenvalues[j].re;
+
+            // Draw both directions of eigenvector
+            for (const sign of [1, -1]) {
+                const vx = sign * ev.x, vy = sign * ev.y;
+                const tv = matVec(mt, {x: vx, y: vy});
+
+                // Glow
+                ctx.strokeStyle = glowColors[j];
+                ctx.lineWidth = 6 * pulse;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(ox, oy);
+                ctx.lineTo(ox + tv.x * sc, oy - tv.y * sc);
+                ctx.stroke();
+
+                // Main arrow
+                drawArrow(ctx, ox, oy, sc, tv.x, tv.y, colors[j], 2.5, 10);
+            }
+
+            // Label eigenvalue
+            const labelVx = ev.x * Math.abs(lam) * t + ev.x * (1 - t);
+            const labelVy = ev.y * Math.abs(lam) * t + ev.y * (1 - t);
+            const labelDist = Math.sqrt(labelVx * labelVx + labelVy * labelVy);
+            const normLx = labelDist > 0.01 ? labelVx / labelDist : ev.x;
+            const normLy = labelDist > 0.01 ? labelVy / labelDist : ev.y;
+            const lx = ox + normLx * (labelDist * sc + 18);
+            const ly = oy - normLy * (labelDist * sc + 18);
+
+            ctx.font = '13px Georgia';
+            ctx.fillStyle = colors[j];
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const lamStr = '\u03BB' + (j + 1) + ' = ' + fmtNum(lam);
+            ctx.fillText(lamStr, lx, ly);
+        }
+    } else {
+        // Complex eigenvalues: just draw all arrows as faint
+        ctx.font = '14px Georgia';
+        ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Complex eigenvalues \u2014 no real eigenvectors', ox, 30);
+        const re = eigen.eigenvalues[0].re;
+        const im = eigen.eigenvalues[0].im;
+        ctx.font = '13px Georgia';
+        ctx.fillStyle = '#22d3ee';
+        ctx.fillText('\u03BB = ' + fmtNum(re) + ' \u00B1 ' + fmtNum(Math.abs(im)) + 'i', ox, 52);
+    }
+}
+
+function fmtNum(x) {
+    if (Math.abs(x - Math.round(x)) < 0.001) return Math.round(x).toString();
+    return x.toFixed(3);
+}
+
+function fmtComplex(re, im) {
+    if (Math.abs(im) < 1e-10) return fmtNum(re);
+    const rs = fmtNum(re);
+    const is = fmtNum(Math.abs(im));
+    if (Math.abs(re) < 1e-10) return (im < 0 ? '-' : '') + (Math.abs(im) === 1 ? '' : is) + 'i';
+    return rs + (im >= 0 ? ' + ' : ' - ') + (Math.abs(im) === 1 ? '' : is) + 'i';
+}
+
+/* ============================================================
+   ANIMATION
+   ============================================================ */
+function animLoop() {
+    if (!animating) return;
+    const elapsed = (performance.now() - animStart) / 1000;
+    const duration = 1.5;
+    if (animDir === 1) {
+        animT = Math.min(elapsed / duration, 1);
+        if (animT >= 1) { animT = 1; animating = false; }
+    } else {
+        animT = Math.max(1 - elapsed / duration, 0);
+        if (animT <= 0) { animT = 0; animating = false; }
+    }
+    drawAll();
+    if (animating) requestAnimationFrame(animLoop);
+}
+
+// Pulse loop for eigenvector glow (only redraws main canvas)
+let pulseRAF;
+function pulseLoop() {
+    if (!animating) {
+        drawMain();
+    }
+    pulseRAF = requestAnimationFrame(pulseLoop);
+}
+pulseRAF = requestAnimationFrame(pulseLoop);
+
+document.getElementById('animBtn').addEventListener('click', () => {
+    if (animating) return;
+    if (animT >= 1) {
+        animDir = -1;
+    } else {
+        animDir = 1;
+    }
+    animStart = performance.now();
+    if (animDir === -1) {
+        // Already at 1, animate back
+    }
+    animating = true;
+    requestAnimationFrame(animLoop);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+    animating = false;
+    animT = 0;
+    drawAll();
+});
+
+/* ============================================================
+   SECTION 3: CHARACTERISTIC EQUATION
+   ============================================================ */
+function updateCharPanel() {
+    const m = M;
+    const eigen = computeEigen(m);
+    const tr = eigen.tr, det = eigen.det, disc = eigen.disc;
+    const a = fmtNum(m.a), b = fmtNum(m.b), c = fmtNum(m.c), d = fmtNum(m.d);
+    const trStr = fmtNum(tr), detStr = fmtNum(det), discStr = fmtNum(disc);
+
+    let discClass, discLabel;
+    if (disc > 1e-10) { discClass = 'disc-positive'; discLabel = '> 0 : two distinct real eigenvalues'; }
+    else if (Math.abs(disc) <= 1e-10) { discClass = 'disc-zero'; discLabel = '= 0 : repeated eigenvalue'; }
+    else { discClass = 'disc-negative'; discLabel = '< 0 : complex conjugate pair'; }
+
+    let html = '';
+    html += '<div class="step"><span class="label">Start:</span><span class="math-line">Av = <span class="cyan">&lambda;</span>v &rarr; (A - <span class="cyan">&lambda;</span>I)v = 0</span></div>';
+    html += '<div class="step"><span class="label">Condition:</span><span class="math-line">det(A - <span class="cyan">&lambda;</span>I) = 0</span></div>';
+    html += '<hr class="sep">';
+    html += '<div class="step"><span class="label">Expand:</span><span class="math-line">(' + a + ' - <span class="cyan">&lambda;</span>)(' + d + ' - <span class="cyan">&lambda;</span>) - (' + b + ')(' + c + ') = 0</span></div>';
+    html += '<div class="step"><span class="label">Polynomial:</span><span class="math-line"><span class="cyan">&lambda;</span>&sup2; - (' + a + ' + ' + d + ')<span class="cyan">&lambda;</span> + (' + a + '&middot;' + d + ' - ' + b + '&middot;' + c + ') = 0</span></div>';
+    html += '<div class="step"><span class="label">Simplified:</span><span class="math-line"><span class="cyan">&lambda;</span>&sup2; - ' + trStr + '<span class="cyan">&lambda;</span> + ' + detStr + ' = 0</span></div>';
+    html += '<div class="step"><span class="label">i.e.</span><span class="math-line"><span class="cyan">&lambda;</span>&sup2; - tr(A)&middot;<span class="cyan">&lambda;</span> + det(A) = 0</span></div>';
+    html += '<hr class="sep">';
+    html += '<div class="step"><span class="label">Formula:</span><span class="math-line"><span class="cyan">&lambda;</span> = [' + trStr + ' &plusmn; &radic;(' + trStr + '&sup2; - 4&middot;' + detStr + ')] / 2</span></div>';
+    html += '<div class="step"><span class="label">Discriminant:</span><span class="math-line ' + discClass + '">&Delta; = ' + trStr + '&sup2; - 4&middot;' + detStr + ' = ' + discStr + ' ' + discLabel + '</span></div>';
+    html += '<hr class="sep">';
+
+    // Show eigenvalues
+    if (eigen.complex) {
+        const re = eigen.eigenvalues[0].re, im = eigen.eigenvalues[0].im;
+        html += '<div class="math-line"><span class="cyan">&lambda;<sub>1</sub> = ' + fmtComplex(re, im) + '</span></div>';
+        html += '<div class="math-line"><span class="gold">&lambda;<sub>2</sub> = ' + fmtComplex(re, -im) + '</span></div>';
+        html += '<div class="math-line muted" style="margin-top:6px">Complex eigenvalues &mdash; no real eigenvectors exist. The transformation rotates every direction.</div>';
+    } else {
+        for (let j = 0; j < eigen.eigenvalues.length; j++) {
+            const lam = eigen.eigenvalues[j].re;
+            const color = j === 0 ? 'cyan' : 'gold';
+            html += '<div class="math-line"><span class="' + color + '">&lambda;<sub>' + (j+1) + '</sub> = ' + fmtNum(lam) + '</span>';
+            if (j < eigen.eigenvectors.length) {
+                const ev = eigen.eigenvectors[j];
+                html += ' &ensp; <span class="muted">eigenvector: (' + fmtNum(ev.x) + ', ' + fmtNum(ev.y) + ')</span>';
+            }
+            html += '</div>';
+        }
+        if (eigen.defective) {
+            html += '<div class="math-line muted" style="margin-top:6px">Defective matrix &mdash; only 1 independent eigenvector for the repeated eigenvalue.</div>';
+        }
+    }
+
+    // Show eigenvector derivation for real eigenvalues
+    if (!eigen.complex && eigen.eigenvectors.length > 0) {
+        html += '<hr class="sep">';
+        html += '<div class="step"><span class="label">Eigenvectors from (A - &lambda;I)v = 0:</span></div>';
+        for (let j = 0; j < eigen.eigenvectors.length; j++) {
+            const lam = eigen.eigenvalues[j].re;
+            const color = j === 0 ? 'cyan' : 'gold';
+            const r00 = fmtNum(m.a - lam), r01 = fmtNum(m.b), r10 = fmtNum(m.c), r11 = fmtNum(m.d - lam);
+            html += '<div class="math-line"><span class="' + color + '">&lambda;<sub>' + (j+1) + '</sub> = ' + fmtNum(lam) + ':</span> <span class="muted">[' + r00 + ', ' + r01 + '; ' + r10 + ', ' + r11 + ']v = 0</span></div>';
+        }
+    }
+
+    document.getElementById('charPanel').innerHTML = html;
+}
+
+/* ============================================================
+   SECTION 4: GEOMETRIC INTERPRETATION
+   ============================================================ */
+function drawGeoCanvas() {
+    const ctx = geoCtx;
+    const W = 250, H = 250, sc = 35;
+    const ox = W / 2, oy = H / 2;
+
+    drawGrid(ctx, W, H, ox, oy, sc);
+
+    // Unit circle (before)
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(ox, oy, sc, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Transformed ellipse (after)
+    ctx.strokeStyle = 'rgba(34,211,238,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    const steps = 120;
+    for (let i = 0; i <= steps; i++) {
+        const theta = (2 * Math.PI * i) / steps;
+        const vx = Math.cos(theta), vy = Math.sin(theta);
+        const tv = matVec(M, {x: vx, y: vy});
+        const sx = ox + tv.x * sc, sy = oy - tv.y * sc;
+        if (i === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+
+    // Eigenvectors
+    const eigen = computeEigen(M);
+    if (!eigen.complex) {
+        const colors = ['#22d3ee', '#fbbf24'];
+        for (let j = 0; j < eigen.eigenvectors.length; j++) {
+            const ev = eigen.eigenvectors[j];
+            const lam = eigen.eigenvalues[j].re;
+            // Draw eigenvector line through origin
+            ctx.strokeStyle = colors[j];
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(ox - ev.x * sc * 3, oy + ev.y * sc * 3);
+            ctx.lineTo(ox + ev.x * sc * 3, oy - ev.y * sc * 3);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw transformed eigenvector (solid)
+            drawArrow(ctx, ox, oy, sc, ev.x * lam, ev.y * lam, colors[j], 2, 8);
+        }
+    }
+
+    // Labels
+    ctx.font = '9px Georgia';
+    ctx.fillStyle = '#808098';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText('Before: unit circle (dashed)', 8, H - 28);
+    ctx.fillStyle = 'rgba(34,211,238,0.6)';
+    ctx.fillText('After: transformed (solid)', 8, H - 14);
+}
+
+function updateGeoText() {
+    const eigen = computeEigen(M);
+    let html = '<h3>Geometric meaning</h3>';
+    html += '<div class="math-line" style="margin-top:8px;line-height:1.9">';
+    html += '<span class="muted">Eigenvectors are the directions that don\'t rotate &mdash; they only stretch or flip.</span><br>';
+    html += '<span class="muted">Eigenvalues tell us the stretch factor along each eigenvector.</span>';
+    html += '</div>';
+    html += '<hr class="sep">';
+
+    if (eigen.complex) {
+        html += '<div class="math-line"><span class="red">Complex conjugate pair:</span></div>';
+        html += '<div class="math-line muted">No direction is preserved. The matrix combines rotation and scaling. Every vector rotates.</div>';
+        const re = eigen.eigenvalues[0].re, im = eigen.eigenvalues[0].im;
+        const modulus = Math.sqrt(re * re + im * im);
+        const angle = Math.atan2(im, re) * 180 / Math.PI;
+        html += '<div class="math-line muted">Rotation angle: ' + fmtNum(angle) + '\u00B0, scale factor: ' + fmtNum(modulus) + '</div>';
+    } else if (eigen.repeated) {
+        html += '<div class="math-line"><span class="gold">Repeated eigenvalue:</span></div>';
+        html += '<div class="math-line muted">&lambda; = ' + fmtNum(eigen.eigenvalues[0].re) + '</div>';
+        if (eigen.defective) {
+            html += '<div class="math-line muted">Defective: only 1 independent eigenvector. The matrix cannot be diagonalised. It shears space along the eigenvector direction.</div>';
+        } else {
+            html += '<div class="math-line muted">A = &lambda;I: every direction is an eigenvector. Uniform scaling.</div>';
+        }
+    } else {
+        html += '<div class="math-line"><span class="green">Two distinct real eigenvalues:</span></div>';
+        for (let j = 0; j < eigen.eigenvalues.length; j++) {
+            const lam = eigen.eigenvalues[j].re;
+            const ev = eigen.eigenvectors[j];
+            const color = j === 0 ? 'cyan' : 'gold';
+            let desc = '';
+            if (lam > 1) desc = 'stretches by ' + fmtNum(lam);
+            else if (Math.abs(lam - 1) < 1e-10) desc = 'unchanged (scale 1)';
+            else if (lam > 0) desc = 'compresses by ' + fmtNum(lam);
+            else if (Math.abs(lam) < 1e-10) desc = 'collapses to zero';
+            else if (lam > -1) desc = 'flips and compresses by ' + fmtNum(Math.abs(lam));
+            else if (Math.abs(lam + 1) < 1e-10) desc = 'flips (scale -1)';
+            else desc = 'flips and stretches by ' + fmtNum(Math.abs(lam));
+            html += '<div class="math-line"><span class="' + color + '">&lambda;<sub>' + (j+1) + '</sub> = ' + fmtNum(lam) + '</span> &mdash; <span class="muted">' + desc + '</span></div>';
+        }
+        // Check orthogonality
+        if (eigen.eigenvectors.length === 2) {
+            const dot = eigen.eigenvectors[0].x * eigen.eigenvectors[1].x + eigen.eigenvectors[0].y * eigen.eigenvectors[1].y;
+            if (Math.abs(dot) < 1e-6) {
+                html += '<div class="math-line muted" style="margin-top:6px">Eigenvectors are orthogonal (the matrix is symmetric). The ellipse axes align with the eigenvectors.</div>';
+            }
+        }
+    }
+
+    document.getElementById('geoText').innerHTML = html;
+}
+
+/* ============================================================
+   SECTION 5: EIGENVECTOR TEST
+   ============================================================ */
+const TEST_W = 300, TEST_H = 300, TEST_SCALE = 45;
+const testOx = TEST_W / 2, testOy = TEST_H / 2;
+
+function drawTestCanvas() {
+    const ctx = testCtx;
+    const W = TEST_W, H = TEST_H, sc = TEST_SCALE;
+    const ox = testOx, oy = testOy;
+
+    drawGrid(ctx, W, H, ox, oy, sc);
+
+    // Tick labels
+    ctx.font = '9px Georgia';
+    ctx.fillStyle = '#505068';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    for (let i = -3; i <= 3; i++) {
+        if (i === 0) continue;
+        ctx.fillText(i, ox + i * sc, oy + 3);
+    }
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    for (let i = -3; i <= 3; i++) {
+        if (i === 0) continue;
+        ctx.fillText(i, ox - 4, oy - i * sc);
+    }
+
+    const vx = Math.cos(testAngle), vy = Math.sin(testAngle);
+    const v = {x: vx * 1.5, y: vy * 1.5};
+    const Av = matVec(M, v);
+
+    // Draw original vector v
+    drawArrow(ctx, ox, oy, sc, v.x, v.y, '#22d3ee', 2.5, 9);
+    // Label v
+    ctx.font = '12px Georgia';
+    ctx.fillStyle = '#22d3ee';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('v', ox + v.x * sc + 8, oy - v.y * sc - 4);
+
+    // Draw Av
+    drawArrow(ctx, ox, oy, sc, Av.x, Av.y, '#fbbf24', 2.5, 9);
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillText('Av', ox + Av.x * sc + 8, oy - Av.y * sc - 4);
+
+    // Check if eigenvector
+    const eigen = computeEigen(M);
+    let isEigenvector = false;
+    let matchedLambda = 0;
+    let tolerance = 0.05;
+
+    if (!eigen.complex) {
+        for (let j = 0; j < eigen.eigenvectors.length; j++) {
+            const ev = eigen.eigenvectors[j];
+            const dot = Math.abs(vx * ev.x + vy * ev.y);
+            if (dot > 1 - tolerance) {
+                isEigenvector = true;
+                matchedLambda = eigen.eigenvalues[j].re;
+                break;
+            }
+        }
+    }
+
+    // Draw handle dot
+    ctx.fillStyle = isEigenvector ? '#2ecc71' : '#22d3ee';
+    ctx.beginPath();
+    ctx.arc(ox + v.x * sc, oy - v.y * sc, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Update test result
+    updateTestResult(v, Av, isEigenvector, matchedLambda);
+}
+
+function updateTestResult(v, Av, isEigen, lambda) {
+    let html = '';
+    html += '<div class="math-line"><span class="cyan">v = (' + fmtNum(v.x) + ', ' + fmtNum(v.y) + ')</span></div>';
+    html += '<div class="math-line"><span class="gold">Av = (' + fmtNum(Av.x) + ', ' + fmtNum(Av.y) + ')</span></div>';
+    html += '<hr class="sep">';
+
+    if (isEigen) {
+        const lamV = {x: lambda * v.x, y: lambda * v.y};
+        html += '<div class="eigvec-match">This IS an eigenvector!</div>';
+        html += '<div class="math-line"><span class="green">Av = &lambda;v = ' + fmtNum(lambda) + ' &middot; v = (' + fmtNum(lamV.x) + ', ' + fmtNum(lamV.y) + ')</span></div>';
+        html += '<div class="math-line muted">The vector stays on the same line through the origin. It is scaled by &lambda; = ' + fmtNum(lambda) + '.</div>';
+    } else {
+        // Compute angle between v and Av
+        const vMag = Math.sqrt(v.x * v.x + v.y * v.y);
+        const AvMag = Math.sqrt(Av.x * Av.x + Av.y * Av.y);
+        let angleDiff = 0;
+        if (vMag > 1e-10 && AvMag > 1e-10) {
+            const cosA = (v.x * Av.x + v.y * Av.y) / (vMag * AvMag);
+            angleDiff = Math.acos(Math.max(-1, Math.min(1, cosA))) * 180 / Math.PI;
+        }
+        html += '<div class="eigvec-miss">Not an eigenvector</div>';
+        html += '<div class="math-line muted">Av points in a different direction from v.</div>';
+        html += '<div class="math-line muted">Angle between v and Av: ' + fmtNum(angleDiff) + '\u00B0</div>';
+
+        const eigen = computeEigen(M);
+        if (!eigen.complex && eigen.eigenvectors.length > 0) {
+            html += '<div class="math-line muted" style="margin-top:8px">Drag the vector to align with an eigenvector direction to see Av = &lambda;v.</div>';
+        } else if (eigen.complex) {
+            html += '<div class="math-line muted" style="margin-top:8px">This matrix has complex eigenvalues &mdash; no direction will satisfy Av = &lambda;v for real &lambda;.</div>';
+        }
+    }
+
+    document.getElementById('testResult').innerHTML = html;
+}
+
+/* ============================================================
+   DRAG HANDLING FOR TEST CANVAS
+   ============================================================ */
+function getTestCanvasPos(e) {
+    const r = testCvs.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+        x: (clientX - r.left) * (TEST_W / r.width),
+        y: (clientY - r.top) * (TEST_H / r.height)
+    };
+}
+
+function handleTestDown(e) {
+    e.preventDefault();
+    const p = getTestCanvasPos(e);
+    const vx = Math.cos(testAngle) * 1.5, vy = Math.sin(testAngle) * 1.5;
+    const sx = testOx + vx * TEST_SCALE, sy = testOy - vy * TEST_SCALE;
+    const dx = p.x - sx, dy = p.y - sy;
+    if (dx * dx + dy * dy < 800) {
+        testDrag = true;
+    }
+}
+
+function handleTestMove(e) {
+    if (!testDrag) return;
+    e.preventDefault();
+    const p = getTestCanvasPos(e);
+    const cx = p.x - testOx, cy = -(p.y - testOy);
+    testAngle = Math.atan2(cy, cx);
+    drawTestCanvas();
+}
+
+function handleTestUp() {
+    testDrag = false;
+}
+
+testCvs.addEventListener('mousedown', handleTestDown);
+testCvs.addEventListener('mousemove', handleTestMove);
+testCvs.addEventListener('mouseup', handleTestUp);
+testCvs.addEventListener('mouseleave', handleTestUp);
+testCvs.addEventListener('touchstart', handleTestDown, {passive: false});
+testCvs.addEventListener('touchmove', handleTestMove, {passive: false});
+testCvs.addEventListener('touchend', handleTestUp);
+
+/* ============================================================
+   MATRIX INPUT HANDLING
+   ============================================================ */
+function readMatrix() {
+    M.a = parseFloat(inputA.value) || 0;
+    M.b = parseFloat(inputB.value) || 0;
+    M.c = parseFloat(inputC.value) || 0;
+    M.d = parseFloat(inputD.value) || 0;
+    animT = 1;
+    drawAll();
+}
+
+function setMatrix(m) {
+    M = {...m};
+    inputA.value = Math.round(m.a * 10000) / 10000;
+    inputB.value = Math.round(m.b * 10000) / 10000;
+    inputC.value = Math.round(m.c * 10000) / 10000;
+    inputD.value = Math.round(m.d * 10000) / 10000;
+    animT = 0;
+    animating = false;
+    drawAll();
+}
+
+inputA.addEventListener('input', readMatrix);
+inputB.addEventListener('input', readMatrix);
+inputC.addEventListener('input', readMatrix);
+inputD.addEventListener('input', readMatrix);
+
+/* ============================================================
+   PRESET BUTTONS
+   ============================================================ */
+(function renderPresets() {
+    const c = document.getElementById('presetBtns');
+    let html = '';
+    for (let i = 0; i < presets.length; i++) {
+        html += '<div style="display:inline-block;margin:0 8px 10px 0;vertical-align:top">';
+        html += '<button class="btn" data-pi="' + i + '">' + presets[i].label + '</button>';
+        html += '<div class="preset-desc" style="max-width:140px">' + presets[i].desc + '</div>';
+        html += '</div>';
+    }
+    c.innerHTML = html;
+    c.querySelectorAll('.btn').forEach(b => b.addEventListener('click', () => {
+        const p = presets[parseInt(b.dataset.pi)];
+        setMatrix(p.m);
+    }));
+})();
+
+/* ============================================================
+   DRAW ALL
+   ============================================================ */
+function drawAll() {
+    drawMain();
+    updateCharPanel();
+    drawGeoCanvas();
+    updateGeoText();
+    drawTestCanvas();
+    // Update animation label
+    const label = document.getElementById('animLabel');
+    if (animT <= 0) label.textContent = 'Identity (t = 0)';
+    else if (animT >= 1) label.textContent = 'Fully transformed (t = 1)';
+    else label.textContent = 't = ' + animT.toFixed(2);
+}
+
+/* ============================================================
+   INITIAL DRAW
+   ============================================================ */
+drawAll();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

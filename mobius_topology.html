@@ -1,0 +1,1773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobius Strip &amp; Topology</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#818cf8}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(129,140,248,0.13);border-color:rgba(129,140,248,0.4);color:#818cf8}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .accent{color:#818cf8}
+        .math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#818cf8;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:320px;accent-color:#818cf8}
+        .slider-label{color:#818cf8;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .prop-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:14px 18px;margin-bottom:12px}
+        .prop-card h4{font-weight:400;color:#818cf8;font-size:0.95em;margin-bottom:6px}
+        .prop-card p{color:#a0a0b8;font-size:0.88em;line-height:1.65}
+        .zoo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}
+        .zoo-cell{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:8px;cursor:pointer;transition:all 0.2s;text-align:center}
+        .zoo-cell:hover{border-color:rgba(129,140,248,0.3)}
+        .zoo-cell.active{border-color:rgba(129,140,248,0.5);background:rgba(129,140,248,0.06)}
+        .zoo-cell canvas{display:block;margin:0 auto;cursor:pointer}
+        .zoo-label{font-size:0.82em;color:#b0b0c4;margin-top:6px}
+        .zoo-info{background:rgba(129,140,248,0.05);border:1px solid rgba(129,140,248,0.15);border-radius:8px;padding:14px 18px;margin-top:12px}
+        .zoo-info h4{color:#818cf8;font-weight:400;font-size:1em;margin-bottom:6px}
+        .zoo-info p{color:#a0a0b8;font-size:0.88em;line-height:1.7}
+        .cut-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+        @media(max-width:700px){
+            .zoo-grid{grid-template-columns:repeat(2,1fr)}
+            canvas{width:100%!important;height:auto!important}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Mobius Strip &amp; Topology</h1>
+    <p class="subtitle">One-sided surfaces and the shapes that defy intuition</p>
+
+    <!-- Section 1: 3D Mobius Strip -->
+    <h2>The Mobius Strip in 3D</h2>
+    <canvas id="mobius3d" width="650" height="450"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Controls</h3>
+        <p class="math-line muted">Drag to rotate. The animated dot traces the center line &mdash; watch it traverse the entire surface and return to its start after two full loops, proving the strip is one-sided.</p>
+        <div class="btn-row" style="margin-top:10px">
+            <button class="btn active" id="btnAutoRotate">Auto-Rotate</button>
+            <button class="btn" id="btnAnt">Show Ant</button>
+            <button class="btn" id="btnWireframe">Wireframe</button>
+        </div>
+        <div class="math-line" style="margin-top:8px">
+            <span class="accent">x(u,v)</span> = (1 + v/2 cos(u/2)) cos(u) &emsp;
+            <span class="accent">y(u,v)</span> = (1 + v/2 cos(u/2)) sin(u) &emsp;
+            <span class="accent">z(u,v)</span> = v/2 sin(u/2)
+        </div>
+        <div class="math-line muted">u in [0, 2pi], v in [-0.4, 0.4]</div>
+    </div>
+
+    <!-- Section 2: Build Your Own -->
+    <h2>Build Your Own &mdash; From Rectangle to Mobius</h2>
+    <canvas id="buildCanvas" width="600" height="300"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Construction</h3>
+        <div class="btn-row">
+            <button class="btn active" id="btnBuildMobius">Mobius Strip</button>
+            <button class="btn" id="btnBuildCylinder">Cylinder</button>
+        </div>
+        <div class="slider-row">
+            <span class="math-line muted">Progress:</span>
+            <input type="range" id="buildSlider" min="0" max="100" value="0">
+            <span class="slider-label" id="buildLabel">0%</span>
+        </div>
+        <button class="btn" id="btnAnimate">Twist &amp; Glue</button>
+        <p class="math-line muted" style="margin-top:8px" id="buildExplain">Flat rectangle with edge identifications. Arrows show how edges are glued: same direction = cylinder, reversed = Mobius strip.</p>
+    </div>
+
+    <!-- Section 3: Topological Properties -->
+    <h2>Topological Properties</h2>
+    <div class="prop-card">
+        <h4>Non-Orientability</h4>
+        <canvas id="orientCanvas" width="500" height="200" style="cursor:default"></canvas>
+        <div class="btn-row" style="margin-top:10px">
+            <button class="btn" id="btnOrient">Slide the Oriented Loop</button>
+        </div>
+        <p>A clockwise-oriented loop, when slid once around the Mobius strip, returns as a counterclockwise loop. The surface has no consistent notion of "inside" vs "outside."</p>
+    </div>
+    <div class="prop-card">
+        <h4>One Edge, One Side</h4>
+        <canvas id="edgeCanvas" width="500" height="200" style="cursor:default"></canvas>
+        <div class="btn-row" style="margin-top:10px">
+            <button class="btn" id="btnTraceEdge">Trace the Edge</button>
+        </div>
+        <p>A cylinder has 2 separate edges (top and bottom circles). The Mobius strip has only 1 edge &mdash; a single continuous loop. Euler characteristic: <span style="color:#818cf8">X = V - E + F = 0</span>.</p>
+    </div>
+    <div class="prop-card">
+        <h4>Cutting the Mobius Strip</h4>
+        <canvas id="cutCanvas" width="500" height="220" style="cursor:default"></canvas>
+        <div class="cut-row">
+            <button class="btn" id="btnCutCenter">Cut Along Center</button>
+            <button class="btn" id="btnCutThird">Cut at 1/3 from Edge</button>
+            <button class="btn" id="btnCutReset">Reset</button>
+        </div>
+        <p style="margin-top:8px" id="cutExplain">Cutting a Mobius strip along its center line does NOT produce two pieces &mdash; it produces one longer strip with two full twists!</p>
+    </div>
+
+    <!-- Section 4: Topology Zoo -->
+    <h2>The Topology Zoo</h2>
+    <div class="zoo-grid" id="zooGrid"></div>
+    <div class="zoo-info" id="zooInfo">
+        <h4 id="zooName">Sphere</h4>
+        <p id="zooDesc">Click a surface above to see its topological properties.</p>
+    </div>
+
+    <!-- Section 5: Homeomorphism -->
+    <h2>Homeomorphism &mdash; "Rubber Sheet Geometry"</h2>
+    <canvas id="morphCanvas" width="500" height="300" style="cursor:default"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Deformation</h3>
+        <div class="btn-row">
+            <button class="btn active" id="btnMugDonut">Mug to Torus</button>
+            <button class="btn" id="btnSphereCube">Sphere to Cube</button>
+        </div>
+        <div class="slider-row">
+            <span class="math-line muted">t =</span>
+            <input type="range" id="morphSlider" min="0" max="100" value="0">
+            <span class="slider-label" id="morphLabel">0.00</span>
+        </div>
+        <p class="math-line muted" id="morphExplain">Topology cares about connectivity, not shape. Stretching and bending are allowed, but not cutting or gluing. Topologically equivalent: same number of holes.</p>
+    </div>
+
+    <!-- Section 6: Explanation -->
+    <div class="explain" style="margin-top:28px">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            Topology studies properties preserved under continuous deformation &mdash; the number of holes, the number of sides, orientability. These are "deeper" than geometric properties like length and angle.<br><br>
+            The Mobius strip is the simplest example of a non-orientable surface: it has only one side, only one edge, and when you cut it along its center line, it does not fall into two pieces. These properties are intrinsic &mdash; they do not depend on how the strip is embedded in 3D space.<br><br>
+            Homeomorphism ("rubber-sheet equivalence") captures when two shapes are topologically the same: a coffee mug and a donut both have exactly one hole, so they are equivalent. A sphere and a cube have zero holes, so they too are equivalent.<br><br>
+            <span style="color:#818cf8">Applications:</span> Mobius aromatic compounds in molecular chemistry, topological insulators in physics, persistent homology in data science, and fibre bundles in differential geometry all rely on the ideas explored here.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ============================================================
+   SECTION 1: 3D MOBIUS STRIP
+   ============================================================ */
+(function(){
+    const cvs = document.getElementById('mobius3d');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const cx = W/2, cy = H/2;
+    const d = 5; // perspective distance
+    const pxPerUnit = 150;
+
+    let rotX = 0.4, rotY = 0;
+    let autoRotate = true;
+    let showAnt = false;
+    let wireframeOnly = false;
+    let dragging = false, lastMX = 0, lastMY = 0;
+    let antParam = 0; // 0 to 4pi for full round trip
+
+    const NU = 60, NV = 8;
+
+    // buttons
+    document.getElementById('btnAutoRotate').addEventListener('click', function(){
+        autoRotate = !autoRotate;
+        this.classList.toggle('active', autoRotate);
+    });
+    document.getElementById('btnAnt').addEventListener('click', function(){
+        showAnt = !showAnt;
+        this.classList.toggle('active', showAnt);
+    });
+    document.getElementById('btnWireframe').addEventListener('click', function(){
+        wireframeOnly = !wireframeOnly;
+        this.classList.toggle('active', wireframeOnly);
+    });
+
+    // parametric Mobius
+    function mobiusPoint(u, v) {
+        var x = (1 + v/2 * Math.cos(u/2)) * Math.cos(u);
+        var y = (1 + v/2 * Math.cos(u/2)) * Math.sin(u);
+        var z = v/2 * Math.sin(u/2);
+        return [x, y, z];
+    }
+
+    // rotation
+    function rotateY3(p, a) {
+        var c = Math.cos(a), s = Math.sin(a);
+        return [c*p[0]+s*p[2], p[1], -s*p[0]+c*p[2]];
+    }
+    function rotateX3(p, a) {
+        var c = Math.cos(a), s = Math.sin(a);
+        return [p[0], c*p[1]-s*p[2], s*p[1]+c*p[2]];
+    }
+
+    // perspective project
+    function project(p) {
+        var z = p[2] + d;
+        if (z < 0.1) z = 0.1;
+        var factor = d / z * pxPerUnit;
+        return [cx + p[0] * factor, cy - p[1] * factor, z];
+    }
+
+    // build mesh
+    function buildQuads() {
+        var quads = [];
+        for (var i = 0; i < NU; i++) {
+            var u0 = i * 2 * Math.PI / NU;
+            var u1 = (i+1) * 2 * Math.PI / NU;
+            for (var j = 0; j < NV; j++) {
+                var v0 = -0.4 + j * 0.8 / NV;
+                var v1 = -0.4 + (j+1) * 0.8 / NV;
+                var p00 = mobiusPoint(u0, v0);
+                var p10 = mobiusPoint(u1, v0);
+                var p11 = mobiusPoint(u1, v1);
+                var p01 = mobiusPoint(u0, v1);
+                // color based on u position - continuous gradient revealing single-sidedness
+                var hue = (i / NU); // 0 to 1
+                // at v<0, offset hue by 0.5 to show "other side" but since it's continuous...
+                var vMid = (v0 + v1) / 2;
+                var uMid = (u0 + u1) / 2;
+                quads.push({pts: [p00, p10, p11, p01], u: uMid, v: vMid, i: i, j: j});
+            }
+        }
+        return quads;
+    }
+
+    var quads = buildQuads();
+
+    function getColor(quad) {
+        // Continuous coloring that reveals one-sidedness:
+        // Use u + pi*sign(v) to create a color that smoothly transitions
+        // On one "side" (v>0) start at hue 0, on "other" (v<0) at hue 0.5
+        // But at u=2pi they connect: the surface is one-sided!
+        var t = quad.u / (2 * Math.PI);
+        var vNorm = (quad.v + 0.4) / 0.8; // 0 to 1
+        // Two-tone coloring: indigo vs teal, blending with v
+        var r, g, b;
+        if (vNorm > 0.5) {
+            // "Side A": indigo #818cf8
+            var blend = t;
+            r = Math.round(129 - 40*blend);
+            g = Math.round(140 - 60*blend);
+            b = Math.round(248 - 30*blend);
+        } else {
+            // "Side B": but it's actually the same surface!
+            // Teal-ish to show continuity: #4fd1c5
+            var blend = t;
+            r = Math.round(79 + 50*blend);
+            g = Math.round(209 - 69*blend);
+            b = Math.round(197 + 51*blend);
+        }
+        return {r:r, g:g, b:b};
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        // transform and project all quads
+        var projected = [];
+        for (var qi = 0; qi < quads.length; qi++) {
+            var q = quads[qi];
+            var pts2d = [];
+            var avgZ = 0;
+            for (var pi = 0; pi < 4; pi++) {
+                var p = rotateX3(rotateY3(q.pts[pi], rotY), rotX);
+                var s = project(p);
+                pts2d.push(s);
+                avgZ += s[2];
+            }
+            avgZ /= 4;
+            var col = getColor(q);
+            projected.push({pts: pts2d, avgZ: avgZ, col: col});
+        }
+
+        // painter's algorithm: sort back to front (larger z = further away)
+        projected.sort(function(a, b) { return b.avgZ - a.avgZ; });
+
+        for (var qi = 0; qi < projected.length; qi++) {
+            var pq = projected[qi];
+            var pts = pq.pts;
+            var col = pq.col;
+
+            if (!wireframeOnly) {
+                // Compute simple lighting based on face normal
+                var ax = pts[1][0]-pts[0][0], ay = pts[1][1]-pts[0][1];
+                var bx = pts[3][0]-pts[0][0], by = pts[3][1]-pts[0][1];
+                var brightness = 0.5 + 0.5 * Math.abs(ax*by - ay*bx) / (Math.sqrt(ax*ax+ay*ay)*Math.sqrt(bx*bx+by*by)+0.001);
+                brightness = Math.min(1, Math.max(0.3, brightness));
+
+                ctx.fillStyle = 'rgba('+Math.round(col.r*brightness)+','+Math.round(col.g*brightness)+','+Math.round(col.b*brightness)+',0.85)';
+                ctx.beginPath();
+                ctx.moveTo(pts[0][0], pts[0][1]);
+                ctx.lineTo(pts[1][0], pts[1][1]);
+                ctx.lineTo(pts[2][0], pts[2][1]);
+                ctx.lineTo(pts[3][0], pts[3][1]);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // wireframe
+            ctx.strokeStyle = wireframeOnly
+                ? 'rgba('+col.r+','+col.g+','+col.b+',0.6)'
+                : 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = wireframeOnly ? 1 : 0.5;
+            ctx.beginPath();
+            ctx.moveTo(pts[0][0], pts[0][1]);
+            ctx.lineTo(pts[1][0], pts[1][1]);
+            ctx.lineTo(pts[2][0], pts[2][1]);
+            ctx.lineTo(pts[3][0], pts[3][1]);
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        // Ant
+        if (showAnt) {
+            var antU = antParam % (4 * Math.PI);
+            // Center line: v=0, but we need to go around twice (u: 0 to 4pi)
+            // Map to actual surface: u_actual = antU mod 2pi, but v flips sign after first loop
+            var uActual = antU % (2 * Math.PI);
+            var vActual = 0;
+            // For visual effect, offset v slightly based on which lap we're on
+            var lap = antU < 2*Math.PI ? 0 : 1;
+            vActual = lap === 0 ? 0.02 : -0.02;
+
+            var antPt = mobiusPoint(uActual, vActual);
+            var antRot = rotateX3(rotateY3(antPt, rotY), rotX);
+            var antScr = project(antRot);
+
+            // Trail
+            ctx.strokeStyle = 'rgba(255,220,80,0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            var first = true;
+            for (var ti = 0; ti <= 40; ti++) {
+                var tu = antParam - ti * 0.15;
+                if (tu < 0) break;
+                var tuActual = tu % (2*Math.PI);
+                var tvActual = tu < 2*Math.PI ? 0.02 : -0.02;
+                if (tu >= 4*Math.PI) tvActual = tu < 6*Math.PI ? 0.02 : -0.02; // wrap
+                var tp = mobiusPoint(tuActual, tvActual);
+                var tr = rotateX3(rotateY3(tp, rotY), rotX);
+                var ts = project(tr);
+                if (first) { ctx.moveTo(ts[0], ts[1]); first = false; }
+                else ctx.lineTo(ts[0], ts[1]);
+            }
+            ctx.stroke();
+
+            // Ant dot
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(antScr[0], antScr[1], 5, 0, Math.PI*2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Label
+            ctx.font = '11px Georgia';
+            ctx.fillStyle = '#fbbf24';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'bottom';
+            var lapNum = Math.floor(antParam / (2*Math.PI)) + 1;
+            ctx.fillText('Lap ' + Math.min(lapNum, 2) + '/2', antScr[0]+10, antScr[1]-8);
+        }
+
+        // Update
+        if (autoRotate) {
+            rotY += 0.008;
+        }
+        if (showAnt) {
+            antParam += 0.03;
+            if (antParam > 4*Math.PI) antParam = 0;
+        }
+
+        requestAnimationFrame(draw);
+    }
+
+    // Mouse drag
+    cvs.addEventListener('mousedown', function(e) {
+        dragging = true;
+        lastMX = e.clientX;
+        lastMY = e.clientY;
+    });
+    window.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var dx = e.clientX - lastMX;
+        var dy = e.clientY - lastMY;
+        rotY += dx * 0.008;
+        rotX += dy * 0.008;
+        lastMX = e.clientX;
+        lastMY = e.clientY;
+    });
+    window.addEventListener('mouseup', function() { dragging = false; });
+
+    // Touch support
+    cvs.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        dragging = true;
+        lastMX = e.touches[0].clientX;
+        lastMY = e.touches[0].clientY;
+    }, {passive: false});
+    cvs.addEventListener('touchmove', function(e) {
+        e.preventDefault();
+        if (!dragging) return;
+        var dx = e.touches[0].clientX - lastMX;
+        var dy = e.touches[0].clientY - lastMY;
+        rotY += dx * 0.008;
+        rotX += dy * 0.008;
+        lastMX = e.touches[0].clientX;
+        lastMY = e.touches[0].clientY;
+    }, {passive: false});
+    cvs.addEventListener('touchend', function() { dragging = false; });
+
+    draw();
+})();
+
+
+/* ============================================================
+   SECTION 2: BUILD YOUR OWN
+   ============================================================ */
+(function(){
+    var cvs = document.getElementById('buildCanvas');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var buildMode = 'mobius'; // 'mobius' or 'cylinder'
+    var progress = 0; // 0 to 1
+    var animating = false;
+
+    document.getElementById('btnBuildMobius').addEventListener('click', function(){
+        buildMode = 'mobius';
+        this.classList.add('active');
+        document.getElementById('btnBuildCylinder').classList.remove('active');
+        drawBuild();
+    });
+    document.getElementById('btnBuildCylinder').addEventListener('click', function(){
+        buildMode = 'cylinder';
+        this.classList.add('active');
+        document.getElementById('btnBuildMobius').classList.remove('active');
+        drawBuild();
+    });
+
+    var slider = document.getElementById('buildSlider');
+    var label = document.getElementById('buildLabel');
+    slider.addEventListener('input', function(){
+        progress = parseInt(this.value) / 100;
+        label.textContent = Math.round(progress*100) + '%';
+        drawBuild();
+    });
+
+    document.getElementById('btnAnimate').addEventListener('click', function(){
+        if (animating) return;
+        animating = true;
+        progress = 0;
+        slider.value = 0;
+        var t0 = performance.now();
+        var duration = 2500;
+        function step(now) {
+            var frac = (now - t0) / duration;
+            if (frac >= 1) { frac = 1; animating = false; }
+            progress = frac;
+            slider.value = Math.round(frac * 100);
+            label.textContent = Math.round(frac*100) + '%';
+            drawBuild();
+            if (frac < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+    });
+
+    function drawBuild() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var t = progress;
+        var explain = document.getElementById('buildExplain');
+
+        if (t < 0.01) {
+            // Draw flat rectangle
+            drawFlatRect(ctx, W/2, H/2, 240, 80, buildMode);
+            explain.textContent = 'Flat rectangle with edge identifications. Arrows show how edges are glued: same direction = cylinder, reversed = Mobius strip.';
+        } else if (t < 0.33) {
+            // Curling phase
+            var curl = (t - 0) / 0.33;
+            drawCurling(ctx, W/2, H/2, curl, buildMode);
+            explain.textContent = 'Curling the rectangle into a tube...';
+        } else if (t < 0.66) {
+            // Twisting phase (only for Mobius)
+            var twist = (t - 0.33) / 0.33;
+            drawTwisting(ctx, W/2, H/2, twist, buildMode);
+            explain.textContent = buildMode === 'mobius' ? 'Twisting one end by 180 degrees...' : 'Bringing the ends together...';
+        } else {
+            // Joining phase
+            var join = (t - 0.66) / 0.34;
+            drawJoining(ctx, W/2, H/2, join, buildMode);
+            if (join >= 0.99) {
+                explain.textContent = buildMode === 'mobius'
+                    ? 'The Mobius strip: a surface with only one side and one edge, formed by a half-twist before joining.'
+                    : 'The cylinder: a surface with two sides and two edges, formed by joining without any twist.';
+            } else {
+                explain.textContent = 'Joining the edges...';
+            }
+        }
+    }
+
+    function drawFlatRect(ctx, cx, cy, w, h, mode) {
+        // Rectangle
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(cx - w/2, cy - h/2, w, h);
+
+        // Fill
+        ctx.fillStyle = 'rgba(129,140,248,0.06)';
+        ctx.fillRect(cx - w/2, cy - h/2, w, h);
+
+        // Edge labels and arrows
+        // Left edge: arrow A going up
+        drawArrowLine(ctx, cx - w/2, cy + h/2 - 10, cx - w/2, cy - h/2 + 10, '#818cf8', 'A');
+        // Right edge: arrow A going up (cylinder) or down (mobius)
+        if (mode === 'cylinder') {
+            drawArrowLine(ctx, cx + w/2, cy + h/2 - 10, cx + w/2, cy - h/2 + 10, '#818cf8', 'A');
+        } else {
+            drawArrowLine(ctx, cx + w/2, cy - h/2 + 10, cx + w/2, cy + h/2 - 10, '#e06070', 'A*');
+        }
+
+        // Free edges (top/bottom) dashes
+        ctx.setLineDash([4,4]);
+        ctx.strokeStyle = '#808098';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - w/2, cy - h/2);
+        ctx.lineTo(cx + w/2, cy - h/2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - w/2, cy + h/2);
+        ctx.lineTo(cx + w/2, cy + h/2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Labels
+        ctx.font = '12px Georgia';
+        ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center';
+        ctx.fillText('free edge', cx, cy - h/2 - 8);
+        ctx.fillText('free edge', cx, cy + h/2 + 16);
+
+        if (mode === 'mobius') {
+            ctx.fillStyle = '#e06070';
+            ctx.fillText('reversed', cx + w/2 + 6, cy + h/2 + 16);
+        }
+    }
+
+    function drawArrowLine(ctx, x1, y1, x2, y2, color, label) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+
+        // Arrowhead
+        var ang = Math.atan2(y2 - y1, x2 - x1);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - 8*Math.cos(ang - 0.4), y2 - 8*Math.sin(ang - 0.4));
+        ctx.lineTo(x2 - 8*Math.cos(ang + 0.4), y2 - 8*Math.sin(ang + 0.4));
+        ctx.closePath();
+        ctx.fill();
+
+        // Label
+        var mx = (x1+x2)/2, my = (y1+y2)/2;
+        ctx.font = '13px Georgia';
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, mx - 14, my);
+    }
+
+    function drawCurling(ctx, cx, cy, t, mode) {
+        // Draw a series of vertical line segments at different angles to simulate curling
+        var nSegs = 30;
+        var rectW = 240, rectH = 80;
+        var maxAngle = Math.PI * t; // how much the sheet has curled
+
+        for (var i = 0; i <= nSegs; i++) {
+            var frac = i / nSegs;
+            var angle = -maxAngle / 2 + frac * maxAngle;
+            var r = rectW / (maxAngle + 0.01);
+            if (maxAngle < 0.1) r = 10000;
+
+            var px, py;
+            if (maxAngle < 0.1) {
+                px = cx - rectW/2 + frac * rectW;
+                py = cy;
+            } else {
+                px = cx + r * Math.sin(angle);
+                py = cy - r * (1 - Math.cos(angle)) * 0.3;
+            }
+
+            // Draw vertical line at this position (representing the strip width)
+            var halfH = rectH/2 * (1 - 0.3*t); // compress slightly as we curl
+            ctx.strokeStyle = 'rgba(129,140,248,0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(px, py - halfH);
+            ctx.lineTo(px, py + halfH);
+            ctx.stroke();
+        }
+
+        // Edge curves
+        ctx.strokeStyle = 'rgba(129,140,248,0.5)';
+        ctx.lineWidth = 1.5;
+        for (var side = -1; side <= 1; side += 2) {
+            ctx.beginPath();
+            for (var i = 0; i <= nSegs; i++) {
+                var frac = i / nSegs;
+                var angle = -maxAngle / 2 + frac * maxAngle;
+                var px, py;
+                var halfH = rectH/2 * (1 - 0.3*t);
+                if (maxAngle < 0.1) {
+                    px = cx - rectW/2 + frac * rectW;
+                    py = cy + side * halfH;
+                } else {
+                    var r = rectW / (maxAngle + 0.01);
+                    px = cx + r * Math.sin(angle);
+                    py = cy - r * (1 - Math.cos(angle)) * 0.3 + side * halfH;
+                }
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+        }
+    }
+
+    function drawTwisting(ctx, cx, cy, t, mode) {
+        var nSegs = 40;
+        var maxCurl = Math.PI;
+        var twistAngle = mode === 'mobius' ? Math.PI * t : 0; // 180 deg twist for mobius
+        var gapClosing = 0; // gap doesn't close yet
+
+        for (var i = 0; i <= nSegs; i++) {
+            var frac = i / nSegs;
+            var angle = -maxCurl / 2 + frac * maxCurl;
+            var r = 120;
+
+            var px = cx + r * Math.sin(angle);
+            var py = cy - r * (1 - Math.cos(angle)) * 0.15;
+
+            // The twist rotates the cross-section at each end
+            // Linear interpolation: no twist at center, full twist at right end
+            var localTwist = (frac - 0.5) * twistAngle;
+            var halfH = 30;
+
+            var dx = Math.sin(localTwist) * halfH * 0.5;
+            var dy = Math.cos(localTwist) * halfH;
+
+            // Color based on twist
+            var topColor, botColor;
+            if (Math.cos(localTwist) > 0) {
+                topColor = 'rgba(129,140,248,0.6)';
+                botColor = 'rgba(79,209,197,0.6)';
+            } else {
+                topColor = 'rgba(79,209,197,0.6)';
+                botColor = 'rgba(129,140,248,0.6)';
+            }
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(px - dx, py - dy);
+            ctx.lineTo(px + dx, py + dy);
+            ctx.stroke();
+
+            // Dots at top/bottom to show the twist
+            if (i % 4 === 0) {
+                ctx.fillStyle = topColor;
+                ctx.beginPath();
+                ctx.arc(px - dx, py - dy, 2.5, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = botColor;
+                ctx.beginPath();
+                ctx.arc(px + dx, py + dy, 2.5, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        // Labels
+        ctx.font = '11px Georgia';
+        ctx.fillStyle = '#818cf8';
+        ctx.textAlign = 'center';
+        if (mode === 'mobius' && t > 0.1) {
+            ctx.fillText(Math.round(t * 180) + ' twist', cx + 140, cy + 60);
+        }
+    }
+
+    function drawJoining(ctx, cx, cy, t, mode) {
+        var nSegs = 50;
+        var twistAngle = mode === 'mobius' ? Math.PI : 0;
+        // As t goes 0->1, close the gap to form a loop
+        var totalAngle = Math.PI + t * Math.PI; // goes from PI to 2PI
+        var r = 90;
+
+        for (var i = 0; i <= nSegs; i++) {
+            var frac = i / nSegs;
+            var angle = frac * totalAngle - totalAngle/2;
+
+            var px = cx + r * Math.sin(angle);
+            var py = cy - r * Math.cos(angle) * 0.3;
+
+            var localTwist = frac * twistAngle;
+            var halfH = 25;
+
+            var dx = Math.sin(localTwist) * halfH * 0.3;
+            var dy = Math.cos(localTwist) * halfH;
+
+            // Depth shading
+            var depthFade = 0.4 + 0.6 * (0.5 + 0.5 * Math.cos(angle));
+
+            ctx.strokeStyle = 'rgba(129,140,248,' + (0.3 * depthFade) + ')';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(px - dx, py - dy);
+            ctx.lineTo(px + dx, py + dy);
+            ctx.stroke();
+
+            if (i % 3 === 0) {
+                var topColor = Math.cos(localTwist) > 0
+                    ? 'rgba(129,140,248,' + (0.7*depthFade) + ')'
+                    : 'rgba(79,209,197,' + (0.7*depthFade) + ')';
+                var botColor = Math.cos(localTwist) > 0
+                    ? 'rgba(79,209,197,' + (0.7*depthFade) + ')'
+                    : 'rgba(129,140,248,' + (0.7*depthFade) + ')';
+                ctx.fillStyle = topColor;
+                ctx.beginPath();
+                ctx.arc(px - dx, py - dy, 2, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = botColor;
+                ctx.beginPath();
+                ctx.arc(px + dx, py + dy, 2, 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        // Join indicator
+        if (t > 0.9) {
+            ctx.font = '12px Georgia';
+            ctx.fillStyle = '#818cf8';
+            ctx.textAlign = 'center';
+            ctx.fillText(mode === 'mobius' ? 'Mobius strip!' : 'Cylinder!', cx, cy + 80);
+        }
+    }
+
+    drawBuild();
+})();
+
+
+/* ============================================================
+   SECTION 3: TOPOLOGICAL PROPERTIES
+   ============================================================ */
+
+// 3a: Orientability
+(function(){
+    var cvs = document.getElementById('orientCanvas');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var animT = -1; // -1 = not animating, 0..1 = animation progress
+
+    document.getElementById('btnOrient').addEventListener('click', function(){
+        if (animT >= 0) return;
+        animT = 0;
+        animateOrient();
+    });
+
+    function drawOrient() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        // Draw a Mobius strip as a flat band (schematic top view)
+        var cx = W/2, cy = H/2;
+        var r = 80;
+
+        // Draw the strip outline as a flattened loop
+        ctx.strokeStyle = 'rgba(129,140,248,0.25)';
+        ctx.lineWidth = 20;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, r*2, r*0.7, 0, 0, Math.PI*2);
+        ctx.stroke();
+
+        // Center line
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3,3]);
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, r*2, r*0.7, 0, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Draw the oriented loop (small triangle/arrow)
+        var loopPos = animT >= 0 ? animT : 0;
+        var angle = loopPos * 2 * Math.PI;
+        var px = cx + r*2 * Math.cos(angle);
+        var py = cy + r*0.7 * Math.sin(angle);
+
+        // The orientation flips as we go around: use the half-angle
+        var flipAngle = angle / 2; // This is the Mobius half-twist
+        var orientation = Math.cos(flipAngle); // +1 at start, -1 after one loop
+
+        // Draw a small oriented circle with arrow
+        var arrowR = 12;
+        ctx.strokeStyle = orientation > 0 ? '#818cf8' : '#e06070';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(px, py, arrowR, 0, Math.PI*2);
+        ctx.stroke();
+
+        // Arrow on circle showing direction
+        var arrowAngle = orientation > 0 ? -Math.PI/4 : Math.PI/4;
+        var ax = px + arrowR * Math.cos(arrowAngle);
+        var ay = py + arrowR * Math.sin(arrowAngle);
+        var tangent = orientation > 0 ? arrowAngle - Math.PI/2 : arrowAngle + Math.PI/2;
+        ctx.fillStyle = orientation > 0 ? '#818cf8' : '#e06070';
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax + 6*Math.cos(tangent - 0.5), ay + 6*Math.sin(tangent - 0.5));
+        ctx.lineTo(ax + 6*Math.cos(tangent + 0.5), ay + 6*Math.sin(tangent + 0.5));
+        ctx.closePath();
+        ctx.fill();
+
+        // Label
+        ctx.font = '11px Georgia';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle = orientation > 0 ? '#818cf8' : '#e06070';
+        ctx.fillText(orientation > 0 ? 'clockwise' : 'reversed!', px, py - arrowR - 6);
+
+        // Progress indicator
+        if (animT >= 0) {
+            ctx.font = '11px Georgia';
+            ctx.fillStyle = '#808098';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'top';
+            ctx.fillText(Math.round(loopPos * 100) + '% around', W - 20, 10);
+        }
+
+        // Twist indicator at the "back"
+        ctx.font = '10px Georgia';
+        ctx.fillStyle = '#505068';
+        ctx.textAlign = 'center';
+        ctx.fillText('half-twist here', cx, cy + r*0.7 + 26);
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, cy + r*0.7 + 18);
+        ctx.lineTo(cx, cy + r*0.7 + 14);
+        ctx.lineTo(cx + 8, cy + r*0.7 + 18);
+        ctx.strokeStyle = '#505068';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    function animateOrient() {
+        if (animT > 1) { animT = -1; drawOrient(); return; }
+        animT += 0.004;
+        drawOrient();
+        requestAnimationFrame(animateOrient);
+    }
+
+    drawOrient();
+})();
+
+// 3b: Edge tracing
+(function(){
+    var cvs = document.getElementById('edgeCanvas');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var edgeT = -1;
+
+    document.getElementById('btnTraceEdge').addEventListener('click', function(){
+        if (edgeT >= 0) return;
+        edgeT = 0;
+        animateEdge();
+    });
+
+    function drawEdge() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var cx = W/2, cy = H/2;
+
+        // Draw side by side: cylinder (left) and Mobius (right)
+        var offset = 120;
+
+        // Cylinder
+        ctx.font = '12px Georgia';
+        ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center';
+        ctx.fillText('Cylinder: 2 edges', cx - offset, 20);
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 15;
+        ctx.beginPath();
+        ctx.ellipse(cx - offset, cy, 60, 50, 0, 0, Math.PI*2);
+        ctx.stroke();
+
+        // Two edges of cylinder
+        ctx.strokeStyle = '#818cf8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(cx - offset, cy, 68, 56, 0, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.strokeStyle = '#e06070';
+        ctx.beginPath();
+        ctx.ellipse(cx - offset, cy, 52, 44, 0, 0, Math.PI*2);
+        ctx.stroke();
+
+        ctx.font = '10px Georgia';
+        ctx.fillStyle = '#818cf8';
+        ctx.fillText('edge 1', cx - offset + 75, cy - 40);
+        ctx.fillStyle = '#e06070';
+        ctx.fillText('edge 2', cx - offset - 5, cy + 10);
+
+        // Mobius
+        ctx.fillStyle = '#808098';
+        ctx.font = '12px Georgia';
+        ctx.fillText('Mobius: 1 edge', cx + offset, 20);
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 15;
+        ctx.beginPath();
+        ctx.ellipse(cx + offset, cy, 60, 50, 0, 0, Math.PI*2);
+        ctx.stroke();
+
+        // Single edge of Mobius - draw as a figure-8 like path
+        // The edge of a Mobius strip goes around twice
+        ctx.strokeStyle = '#818cf8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        var edgeSteps = 200;
+        var traceLimit = edgeT >= 0 ? Math.floor(edgeT * edgeSteps) : edgeSteps;
+        for (var i = 0; i <= Math.min(traceLimit, edgeSteps); i++) {
+            var frac = i / edgeSteps;
+            var angle = frac * 4 * Math.PI; // goes around twice!
+            var halfAngle = angle / 2;
+            var edgeOffset = 8 * Math.cos(halfAngle); // oscillates between inner and outer
+            var r = 60 + edgeOffset;
+            var rY = 50 + edgeOffset * 0.8;
+            var px = cx + offset + r * Math.cos(angle / 2);
+            var py = cy + rY * Math.sin(angle / 2);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        if (edgeT >= 0 && edgeT < 1) {
+            // Dot at trace position
+            var angle = edgeT * 4 * Math.PI;
+            var halfAngle = angle / 2;
+            var edgeOffset = 8 * Math.cos(halfAngle);
+            var r = 60 + edgeOffset;
+            var rY = 50 + edgeOffset * 0.8;
+            var px = cx + offset + r * Math.cos(angle / 2);
+            var py = cy + rY * Math.sin(angle / 2);
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(px, py, 4, 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        ctx.fillStyle = '#818cf8';
+        ctx.font = '10px Georgia';
+        ctx.textAlign = 'center';
+        ctx.fillText('single edge', cx + offset + 75, cy - 30);
+
+        // Euler characteristic
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Georgia';
+        ctx.textAlign = 'center';
+        ctx.fillText('X = V - E + F = 0', cx + offset, H - 16);
+    }
+
+    function animateEdge() {
+        if (edgeT > 1) { edgeT = -1; drawEdge(); return; }
+        edgeT += 0.005;
+        drawEdge();
+        requestAnimationFrame(animateEdge);
+    }
+
+    drawEdge();
+})();
+
+// 3c: Cutting demo
+(function(){
+    var cvs = document.getElementById('cutCanvas');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var cutMode = 'none'; // 'none', 'center', 'third'
+    var cutT = -1;
+
+    document.getElementById('btnCutCenter').addEventListener('click', function(){
+        cutMode = 'center'; cutT = 0; animateCut();
+    });
+    document.getElementById('btnCutThird').addEventListener('click', function(){
+        cutMode = 'third'; cutT = 0; animateCut();
+    });
+    document.getElementById('btnCutReset').addEventListener('click', function(){
+        cutMode = 'none'; cutT = -1; drawCut();
+    });
+
+    function drawCut() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var cx = W/2, cy = H/2;
+        var explain = document.getElementById('cutExplain');
+
+        if (cutMode === 'none' || cutT < 0) {
+            // Draw intact Mobius strip
+            drawMobiusBand(ctx, cx, cy, 90, 25, 'rgba(129,140,248,0.3)', 'rgba(129,140,248,0.6)');
+            ctx.font = '11px Georgia';
+            ctx.fillStyle = '#808098';
+            ctx.textAlign = 'center';
+            ctx.fillText('Intact Mobius strip', cx, H - 14);
+            explain.textContent = 'Cutting a Mobius strip along its center line does NOT produce two pieces \u2014 it produces one longer strip with two full twists!';
+        } else if (cutMode === 'center') {
+            var t = Math.min(cutT, 1);
+            if (t < 0.5) {
+                // Show cutting line being drawn
+                drawMobiusBand(ctx, cx, cy, 90, 25, 'rgba(129,140,248,0.3)', 'rgba(129,140,248,0.6)');
+                // Draw cutting line
+                var cutLen = t * 2; // 0 to 1 over first half
+                drawCutLine(ctx, cx, cy, 90, cutLen, '#e06070');
+                explain.textContent = 'Cutting along the center line...';
+            } else {
+                // Show result: one longer strip with 2 twists
+                var morph = (t - 0.5) * 2; // 0 to 1
+                // Fade out original, fade in result
+                var alpha = 1 - morph;
+                if (alpha > 0.05) {
+                    drawMobiusBand(ctx, cx, cy, 90, 25, 'rgba(129,140,248,'+(0.3*alpha)+')', 'rgba(129,140,248,'+(0.6*alpha)+')');
+                }
+                // Result: larger strip with two twists
+                drawMobiusBand(ctx, cx, cy - 10, 120, 15, 'rgba(129,140,248,'+(0.3*morph)+')', 'rgba(129,140,248,'+(0.5*morph)+')');
+                // Two twist markers
+                if (morph > 0.5) {
+                    ctx.font = '10px Georgia';
+                    ctx.fillStyle = '#818cf8';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('twist 1', cx - 110, cy - 60);
+                    ctx.fillText('twist 2', cx + 110, cy - 60);
+                    // Small twist indicators
+                    for (var side = -1; side <= 1; side += 2) {
+                        ctx.strokeStyle = '#818cf8';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.moveTo(cx + side*100 - 5, cy - 40);
+                        ctx.lineTo(cx + side*100 + 5, cy - 50);
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(cx + side*100 + 5, cy - 40);
+                        ctx.lineTo(cx + side*100 - 5, cy - 50);
+                        ctx.stroke();
+                    }
+                }
+                ctx.font = '11px Georgia';
+                ctx.fillStyle = '#808098';
+                ctx.textAlign = 'center';
+                ctx.fillText('Result: ONE strip, twice as long, with 2 full twists', cx, H - 14);
+                explain.textContent = 'Surprise! Instead of two pieces, you get one longer strip with two full twists. The Mobius strip\'s one-sidedness means the "center" cut goes around the entire surface.';
+            }
+        } else if (cutMode === 'third') {
+            var t = Math.min(cutT, 1);
+            if (t < 0.5) {
+                drawMobiusBand(ctx, cx, cy, 90, 25, 'rgba(129,140,248,0.3)', 'rgba(129,140,248,0.6)');
+                // Draw cut line at 1/3 from edge
+                drawCutLine(ctx, cx, cy, 90, t*2, '#fbbf24', 8);
+                explain.textContent = 'Cutting at 1/3 from the edge...';
+            } else {
+                var morph = (t - 0.5) * 2;
+                // Result: a thin Mobius strip linked with a longer strip
+                // Draw two interlinked loops
+                var alpha1 = morph;
+                // Thin Mobius strip
+                drawMobiusBand(ctx, cx - 30, cy, 55, 10, 'rgba(129,140,248,'+(0.3*alpha1)+')', 'rgba(129,140,248,'+(0.5*alpha1)+')');
+                // Longer strip
+                drawMobiusBand(ctx, cx + 30, cy, 80, 12, 'rgba(79,209,197,'+(0.3*alpha1)+')', 'rgba(79,209,197,'+(0.5*alpha1)+')');
+                // Link indicator
+                if (morph > 0.5) {
+                    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([3,3]);
+                    ctx.beginPath();
+                    ctx.moveTo(cx - 30 + 55, cy);
+                    ctx.lineTo(cx + 30 - 80, cy);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+                ctx.font = '10px Georgia';
+                ctx.fillStyle = '#818cf8';
+                ctx.textAlign = 'center';
+                ctx.fillText('Mobius strip', cx - 30, cy + 70);
+                ctx.fillStyle = '#4fd1c5';
+                ctx.fillText('longer strip (2 twists)', cx + 30, cy + 70);
+                ctx.fillStyle = '#808098';
+                ctx.font = '11px Georgia';
+                ctx.fillText('Result: two linked strips!', cx, H - 14);
+                explain.textContent = 'Cutting at 1/3 from the edge produces two linked strips: a thinner Mobius strip and a longer strip with two full twists, interlocked.';
+            }
+        }
+    }
+
+    function drawMobiusBand(ctx, cx, cy, rx, halfW, fillColor, strokeColor) {
+        // Draw a schematic Mobius band as an ellipse with twist indication
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = halfW * 2;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, rx * 0.5, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Center dashed line
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3,3]);
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, rx * 0.5, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    function drawCutLine(ctx, cx, cy, rx, progress, color, offset) {
+        offset = offset || 0;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        var steps = Math.floor(progress * 100);
+        for (var i = 0; i <= steps; i++) {
+            var frac = i / 100;
+            var angle = frac * 2 * Math.PI;
+            var px = cx + (rx + offset) * Math.cos(angle);
+            var py = cy + (rx + offset) * 0.5 * Math.sin(angle);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // Scissors icon at cut position
+        if (progress > 0 && progress < 1) {
+            var angle = progress * 2 * Math.PI;
+            var px = cx + (rx + offset) * Math.cos(angle);
+            var py = cy + (rx + offset) * 0.5 * Math.sin(angle);
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(px, py, 4, 0, Math.PI*2);
+            ctx.fill();
+        }
+    }
+
+    function animateCut() {
+        if (cutT > 1) { cutT = 1; drawCut(); return; }
+        cutT += 0.008;
+        drawCut();
+        requestAnimationFrame(animateCut);
+    }
+
+    drawCut();
+})();
+
+
+/* ============================================================
+   SECTION 4: TOPOLOGY ZOO
+   ============================================================ */
+(function(){
+    var surfaces = [
+        {name: 'Sphere', chi: 2, orientable: true, genus: 0, boundary: false,
+         desc: 'The sphere is the simplest closed orientable surface: genus 0, no boundary. Every closed curve on it can be continuously shrunk to a point.'},
+        {name: 'Torus', chi: 0, orientable: true, genus: 1, boundary: false,
+         desc: 'The torus (donut shape) has genus 1 \u2014 one hole. Loops around the hole or through it cannot be shrunk. It is the product space S\u00B9 \u00D7 S\u00B9.'},
+        {name: 'Mobius Strip', chi: 0, orientable: false, genus: 0, boundary: true,
+         desc: 'The Mobius strip is non-orientable with a single boundary edge. It is the simplest surface demonstrating non-orientability.'},
+        {name: 'Klein Bottle', chi: 0, orientable: false, genus: 0, boundary: false,
+         desc: 'The Klein bottle is a closed non-orientable surface that cannot be embedded in 3D without self-intersection. It is formed by gluing two Mobius strips along their edges.'},
+        {name: 'Projective Plane', chi: 1, orientable: false, genus: 0, boundary: false,
+         desc: 'The real projective plane RP\u00B2 is obtained by identifying antipodal points of a sphere. Like the Klein bottle, it requires self-intersection in 3D. X = 1.'}
+    ];
+
+    var selected = 0;
+    var zooCanvases = [];
+    var zooRotations = [];
+    var grid = document.getElementById('zooGrid');
+
+    for (var si = 0; si < surfaces.length; si++) {
+        var cell = document.createElement('div');
+        cell.className = 'zoo-cell' + (si === 0 ? ' active' : '');
+        cell.dataset.idx = si;
+        var c = document.createElement('canvas');
+        c.width = 160;
+        c.height = 140;
+        c.style.width = '160px';
+        c.style.height = '140px';
+        c.style.cursor = 'pointer';
+        var lbl = document.createElement('div');
+        lbl.className = 'zoo-label';
+        lbl.textContent = surfaces[si].name;
+        cell.appendChild(c);
+        cell.appendChild(lbl);
+        grid.appendChild(cell);
+        zooCanvases.push(c);
+        zooRotations.push(si * 0.7); // stagger initial rotations
+
+        (function(idx, cellEl){
+            cellEl.addEventListener('click', function(){
+                selected = idx;
+                var cells = grid.querySelectorAll('.zoo-cell');
+                for (var i = 0; i < cells.length; i++) cells[i].classList.remove('active');
+                cellEl.classList.add('active');
+                updateZooInfo();
+            });
+        })(si, cell);
+    }
+
+    function updateZooInfo() {
+        var s = surfaces[selected];
+        document.getElementById('zooName').textContent = s.name;
+        var props = [];
+        props.push('Euler characteristic: X = ' + s.chi);
+        props.push(s.orientable ? 'Orientable' : 'Non-orientable');
+        if (s.boundary) props.push('Has boundary');
+        else props.push('No boundary (closed)');
+        if (s.orientable) props.push('Genus: ' + s.genus);
+        document.getElementById('zooDesc').innerHTML = s.desc + '<br><br><span style="color:#818cf8">' + props.join(' | ') + '</span>';
+    }
+    updateZooInfo();
+
+    // 3D rendering functions for each surface
+    var pxPerU = 55;
+    var dd = 5;
+
+    function proj(p, cw, ch) {
+        var z = p[2] + dd;
+        if (z < 0.1) z = 0.1;
+        var f = dd / z * pxPerU;
+        return [cw/2 + p[0]*f, ch/2 - p[1]*f, z];
+    }
+
+    function rY(p, a) {
+        var c = Math.cos(a), s = Math.sin(a);
+        return [c*p[0]+s*p[2], p[1], -s*p[0]+c*p[2]];
+    }
+    function rX(p, a) {
+        var c = Math.cos(a), s = Math.sin(a);
+        return [p[0], c*p[1]-s*p[2], s*p[1]+c*p[2]];
+    }
+
+    function drawSurfaceWireframe(ctx, cw, ch, surfaceIdx, angle) {
+        ctx.clearRect(0, 0, cw, ch);
+
+        var lines = [];
+        var n = 24;
+
+        if (surfaceIdx === 0) {
+            // Sphere
+            for (var i = 0; i <= n; i++) {
+                var u = i * Math.PI / n;
+                for (var j = 0; j < n; j++) {
+                    var v = j * 2 * Math.PI / n;
+                    var v1 = (j+1) * 2 * Math.PI / n;
+                    var p1 = [Math.sin(u)*Math.cos(v), Math.sin(u)*Math.sin(v), Math.cos(u)];
+                    var p2 = [Math.sin(u)*Math.cos(v1), Math.sin(u)*Math.sin(v1), Math.cos(u)];
+                    p1 = rX(rY(p1, angle), 0.3);
+                    p2 = rX(rY(p2, angle), 0.3);
+                    var s1 = proj(p1, cw, ch), s2 = proj(p2, cw, ch);
+                    lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+                }
+            }
+            for (var j = 0; j <= n; j++) {
+                var v = j * 2 * Math.PI / n;
+                for (var i = 0; i < n; i++) {
+                    var u = i * Math.PI / n;
+                    var u1 = (i+1) * Math.PI / n;
+                    var p1 = [Math.sin(u)*Math.cos(v), Math.sin(u)*Math.sin(v), Math.cos(u)];
+                    var p2 = [Math.sin(u1)*Math.cos(v), Math.sin(u1)*Math.sin(v), Math.cos(u1)];
+                    p1 = rX(rY(p1, angle), 0.3);
+                    p2 = rX(rY(p2, angle), 0.3);
+                    var s1 = proj(p1, cw, ch), s2 = proj(p2, cw, ch);
+                    lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+                }
+            }
+        } else if (surfaceIdx === 1) {
+            // Torus
+            var R = 1, r = 0.4;
+            for (var i = 0; i <= n; i++) {
+                var u = i * 2 * Math.PI / n;
+                for (var j = 0; j < n; j++) {
+                    var v = j * 2 * Math.PI / n;
+                    var v1 = (j+1) * 2 * Math.PI / n;
+                    var p1 = [(R+r*Math.cos(v))*Math.cos(u), (R+r*Math.cos(v))*Math.sin(u), r*Math.sin(v)];
+                    var p2 = [(R+r*Math.cos(v1))*Math.cos(u), (R+r*Math.cos(v1))*Math.sin(u), r*Math.sin(v1)];
+                    p1 = rX(rY(p1, angle), 0.4);
+                    p2 = rX(rY(p2, angle), 0.4);
+                    var s1 = proj(p1, cw, ch), s2 = proj(p2, cw, ch);
+                    lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+                }
+            }
+            for (var j = 0; j <= n; j++) {
+                var v = j * 2 * Math.PI / n;
+                for (var i = 0; i < n; i++) {
+                    var u = i * 2 * Math.PI / n;
+                    var u1 = (i+1) * 2 * Math.PI / n;
+                    var p1 = [(R+r*Math.cos(v))*Math.cos(u), (R+r*Math.cos(v))*Math.sin(u), r*Math.sin(v)];
+                    var p2 = [(R+r*Math.cos(v))*Math.cos(u1), (R+r*Math.cos(v))*Math.sin(u1), r*Math.sin(v)];
+                    p1 = rX(rY(p1, angle), 0.4);
+                    p2 = rX(rY(p2, angle), 0.4);
+                    var s1 = proj(p1, cw, ch), s2 = proj(p2, cw, ch);
+                    lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+                }
+            }
+        } else if (surfaceIdx === 2) {
+            // Mobius strip
+            var nu = 40, nv = 6;
+            for (var i = 0; i <= nu; i++) {
+                var u = i * 2 * Math.PI / nu;
+                for (var j = 0; j < nv; j++) {
+                    var v = -0.4 + j * 0.8 / nv;
+                    var v1 = -0.4 + (j+1) * 0.8 / nv;
+                    var p1 = [(1+v/2*Math.cos(u/2))*Math.cos(u), (1+v/2*Math.cos(u/2))*Math.sin(u), v/2*Math.sin(u/2)];
+                    var p2 = [(1+v1/2*Math.cos(u/2))*Math.cos(u), (1+v1/2*Math.cos(u/2))*Math.sin(u), v1/2*Math.sin(u/2)];
+                    p1 = rX(rY(p1, angle), 0.4);
+                    p2 = rX(rY(p2, angle), 0.4);
+                    var s1 = proj(p1, cw, ch), s2 = proj(p2, cw, ch);
+                    lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+                }
+            }
+            for (var j = 0; j <= nv; j++) {
+                var v = -0.4 + j * 0.8 / nv;
+                for (var i = 0; i < nu; i++) {
+                    var u = i * 2 * Math.PI / nu;
+                    var u1 = (i+1) * 2 * Math.PI / nu;
+                    var p1 = [(1+v/2*Math.cos(u/2))*Math.cos(u), (1+v/2*Math.cos(u/2))*Math.sin(u), v/2*Math.sin(u/2)];
+                    var p2 = [(1+v/2*Math.cos(u1/2))*Math.cos(u1), (1+v/2*Math.cos(u1/2))*Math.sin(u1), v/2*Math.sin(u1/2)];
+                    p1 = rX(rY(p1, angle), 0.4);
+                    p2 = rX(rY(p2, angle), 0.4);
+                    var s1 = proj(p1, cw, ch), s2 = proj(p2, cw, ch);
+                    lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+                }
+            }
+        } else if (surfaceIdx === 3) {
+            // Klein bottle (figure-eight immersion)
+            var nu = 30, nv = 20;
+            for (var i = 0; i <= nu; i++) {
+                var u = i * 2 * Math.PI / nu;
+                for (var j = 0; j < nv; j++) {
+                    var v = j * 2 * Math.PI / nv;
+                    var v1 = (j+1) * 2 * Math.PI / nv;
+                    var p1 = kleinPoint(u, v);
+                    var p2 = kleinPoint(u, v1);
+                    p1 = rX(rY(p1, angle), 0.3);
+                    p2 = rX(rY(p2, angle), 0.3);
+                    var s1 = proj(p1, cw, ch), s2 = proj(p2, cw, ch);
+                    lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+                }
+            }
+            for (var j = 0; j <= nv; j++) {
+                var v = j * 2 * Math.PI / nv;
+                for (var i = 0; i < nu; i++) {
+                    var u = i * 2 * Math.PI / nu;
+                    var u1 = (i+1) * 2 * Math.PI / nu;
+                    var p1 = kleinPoint(u, v);
+                    var p2 = kleinPoint(u1, v);
+                    p1 = rX(rY(p1, angle), 0.3);
+                    p2 = rX(rY(p2, angle), 0.3);
+                    var s1 = proj(p1, cw, ch), s2 = proj(p2, cw, ch);
+                    lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+                }
+            }
+        } else if (surfaceIdx === 4) {
+            // Real projective plane (Boy's surface immersion)
+            var nu = 24, nv = 24;
+            for (var i = 0; i <= nu; i++) {
+                var u = i * Math.PI / nu;
+                for (var j = 0; j < nv; j++) {
+                    var v = j * Math.PI / nv;
+                    var v1 = (j+1) * Math.PI / nv;
+                    var p1 = crossCapPoint(u, v);
+                    var p2 = crossCapPoint(u, v1);
+                    p1 = rX(rY(p1, angle), 0.3);
+                    p2 = rX(rY(p2, angle), 0.3);
+                    var s1 = proj(p1, cw, ch), s2 = proj(p2, cw, ch);
+                    lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+                }
+            }
+            for (var j = 0; j <= nv; j++) {
+                var v = j * Math.PI / nv;
+                for (var i = 0; i < nu; i++) {
+                    var u = i * Math.PI / nu;
+                    var u1 = (i+1) * Math.PI / nu;
+                    var p1 = crossCapPoint(u, v);
+                    var p2 = crossCapPoint(u1, v);
+                    p1 = rX(rY(p1, angle), 0.3);
+                    p2 = rX(rY(p2, angle), 0.3);
+                    var s1 = proj(p1, cw, ch), s2 = proj(p2, cw, ch);
+                    lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+                }
+            }
+        }
+
+        // Sort lines by depth (back to front)
+        lines.sort(function(a, b) { return b.z - a.z; });
+
+        // Draw
+        var isSelected = (surfaceIdx === selected);
+        for (var li = 0; li < lines.length; li++) {
+            var l = lines[li];
+            var depth = (l.z - dd + 2) / 4;
+            depth = Math.max(0.15, Math.min(1, depth));
+            if (isSelected) {
+                ctx.strokeStyle = 'rgba(129,140,248,' + (0.15 + 0.45*depth) + ')';
+            } else {
+                ctx.strokeStyle = 'rgba(200,200,220,' + (0.08 + 0.2*depth) + ')';
+            }
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(l.x1, l.y1);
+            ctx.lineTo(l.x2, l.y2);
+            ctx.stroke();
+        }
+    }
+
+    function kleinPoint(u, v) {
+        // Figure-eight Klein bottle
+        var a = 1;
+        var r = 0.3;
+        var x = (a + r * Math.cos(v)) * Math.cos(u);
+        var y = (a + r * Math.cos(v)) * Math.sin(u);
+        var z = r * Math.sin(v) * Math.cos(u/2);
+        var w = r * Math.sin(v) * Math.sin(u/2);
+        // Project from 4D to 3D
+        return [x, y, z + w*0.5];
+    }
+
+    function crossCapPoint(u, v) {
+        // Cross-cap (immersion of RP2)
+        var x = Math.sin(u) * Math.sin(2*v) / 2;
+        var y = Math.sin(2*u) * Math.cos(v) * Math.cos(v);
+        var z = Math.cos(2*u) * Math.cos(v) * Math.cos(v);
+        return [x * 0.8, y * 0.8, z * 0.8];
+    }
+
+    function drawAllZoo() {
+        for (var i = 0; i < zooCanvases.length; i++) {
+            zooRotations[i] += 0.012;
+            var c = zooCanvases[i];
+            var cx = c.getContext('2d');
+            drawSurfaceWireframe(cx, c.width, c.height, i, zooRotations[i]);
+        }
+        requestAnimationFrame(drawAllZoo);
+    }
+    drawAllZoo();
+})();
+
+
+/* ============================================================
+   SECTION 5: HOMEOMORPHISM
+   ============================================================ */
+(function(){
+    var cvs = document.getElementById('morphCanvas');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var morphMode = 'mug'; // 'mug' or 'sphere'
+    var morphT = 0;
+    var morphAngle = 0;
+
+    document.getElementById('btnMugDonut').addEventListener('click', function(){
+        morphMode = 'mug';
+        this.classList.add('active');
+        document.getElementById('btnSphereCube').classList.remove('active');
+        drawMorph();
+    });
+    document.getElementById('btnSphereCube').addEventListener('click', function(){
+        morphMode = 'sphere';
+        this.classList.add('active');
+        document.getElementById('btnMugDonut').classList.remove('active');
+        drawMorph();
+    });
+
+    var slider = document.getElementById('morphSlider');
+    var label = document.getElementById('morphLabel');
+    slider.addEventListener('input', function(){
+        morphT = parseInt(this.value) / 100;
+        label.textContent = morphT.toFixed(2);
+        drawMorph();
+    });
+
+    var pxU = 80;
+    var dd = 5;
+
+    function proj(p) {
+        var z = p[2] + dd;
+        if (z < 0.1) z = 0.1;
+        var f = dd / z * pxU;
+        return [W/2 + p[0]*f, H/2 - p[1]*f, z];
+    }
+
+    function rY(p, a) {
+        var c = Math.cos(a), s = Math.sin(a);
+        return [c*p[0]+s*p[2], p[1], -s*p[0]+c*p[2]];
+    }
+    function rX(p, a) {
+        var c = Math.cos(a), s = Math.sin(a);
+        return [p[0], c*p[1]-s*p[2], s*p[1]+c*p[2]];
+    }
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function drawMorph() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var t = morphT;
+        var explain = document.getElementById('morphExplain');
+
+        if (morphMode === 'mug') {
+            drawMugToTorus(ctx, t, morphAngle);
+            if (t < 0.1) explain.textContent = 'A coffee mug. One hole (the handle). Genus 1.';
+            else if (t > 0.9) explain.textContent = 'A torus (donut). One hole. Genus 1. Topologically identical to the mug!';
+            else explain.textContent = 'Continuously deforming... the handle\'s hole is preserved throughout. t = ' + t.toFixed(2);
+        } else {
+            drawSphereToCube(ctx, t, morphAngle);
+            if (t < 0.1) explain.textContent = 'A sphere. Zero holes. Genus 0.';
+            else if (t > 0.9) explain.textContent = 'A cube. Zero holes. Genus 0. Topologically identical to the sphere!';
+            else explain.textContent = 'Continuously deforming... no holes created or destroyed. t = ' + t.toFixed(2);
+        }
+
+        // Labels
+        ctx.font = '12px Georgia';
+        ctx.fillStyle = '#818cf8';
+        ctx.textAlign = 'left';
+        ctx.fillText(morphMode === 'mug' ? 'Mug' : 'Sphere', 20, 30);
+        ctx.textAlign = 'right';
+        ctx.fillText(morphMode === 'mug' ? 'Torus' : 'Cube', W - 20, 30);
+
+        // Arrow
+        ctx.strokeStyle = '#808098';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(80, 26);
+        ctx.lineTo(W - 80, 26);
+        ctx.stroke();
+        ctx.fillStyle = '#808098';
+        ctx.beginPath();
+        ctx.moveTo(W - 80, 26);
+        ctx.lineTo(W - 88, 22);
+        ctx.lineTo(W - 88, 30);
+        ctx.closePath();
+        ctx.fill();
+
+        // t indicator
+        var tx = 80 + t * (W - 160);
+        ctx.fillStyle = '#818cf8';
+        ctx.beginPath();
+        ctx.arc(tx, 26, 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    function drawMugToTorus(ctx, t, angle) {
+        var lines = [];
+        var n = 28;
+
+        // Parametric interpolation from mug to torus
+        // Torus: (R+r*cos(v))*cos(u), (R+r*cos(v))*sin(u), r*sin(v)
+        // Mug: a cylinder with a handle
+        var R = 1.0, r = 0.35;
+
+        for (var i = 0; i <= n; i++) {
+            for (var j = 0; j < n; j++) {
+                var u = i * 2 * Math.PI / n;
+                var v = j * 2 * Math.PI / n;
+                var v1 = (j+1) * 2 * Math.PI / n;
+
+                var p1 = mugTorusPoint(u, v, t, R, r);
+                var p2 = mugTorusPoint(u, v1, t, R, r);
+
+                p1 = rX(rY(p1, angle), 0.5);
+                p2 = rX(rY(p2, angle), 0.5);
+                var s1 = proj(p1), s2 = proj(p2);
+                lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+            }
+        }
+        for (var j = 0; j <= n; j++) {
+            for (var i = 0; i < n; i++) {
+                var u = i * 2 * Math.PI / n;
+                var u1 = (i+1) * 2 * Math.PI / n;
+                var v = j * 2 * Math.PI / n;
+
+                var p1 = mugTorusPoint(u, v, t, R, r);
+                var p2 = mugTorusPoint(u1, v, t, R, r);
+
+                p1 = rX(rY(p1, angle), 0.5);
+                p2 = rX(rY(p2, angle), 0.5);
+                var s1 = proj(p1), s2 = proj(p2);
+                lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+            }
+        }
+
+        lines.sort(function(a, b) { return b.z - a.z; });
+
+        for (var li = 0; li < lines.length; li++) {
+            var l = lines[li];
+            var depth = (l.z - dd + 2) / 4;
+            depth = Math.max(0.15, Math.min(1, depth));
+            ctx.strokeStyle = 'rgba(129,140,248,' + (0.12 + 0.4*depth) + ')';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(l.x1, l.y1);
+            ctx.lineTo(l.x2, l.y2);
+            ctx.stroke();
+        }
+    }
+
+    function mugTorusPoint(u, v, t, R, r) {
+        // At t=1, pure torus
+        // At t=0, mug shape: body is a cylinder, handle is a torus section
+        var torusX = (R + r * Math.cos(v)) * Math.cos(u);
+        var torusY = (R + r * Math.cos(v)) * Math.sin(u);
+        var torusZ = r * Math.sin(v);
+
+        // Mug: deform the torus so part is a flat cylinder (body) and part is a handle
+        // The body occupies most of u, handle is a small arc
+        // As t->0, flatten the body into a cup shape
+
+        // Split: body region u in [pi/3, 5pi/3], handle region otherwise
+        var bodyCenter = Math.PI; // center of body
+        var bodyHalf = 2*Math.PI/3; // half-width of body arc
+
+        // How much in "body" vs "handle" region
+        var du = u - bodyCenter;
+        while (du > Math.PI) du -= 2*Math.PI;
+        while (du < -Math.PI) du += 2*Math.PI;
+        var bodyness = Math.max(0, 1 - Math.abs(du) / bodyHalf);
+        bodyness = bodyness * bodyness * (3 - 2*bodyness); // smoothstep
+
+        // Body deformation: flatten into cylinder
+        var mugR = R * 0.5; // cylinder radius
+        var mugH = R * 1.2; // cylinder height
+        var bodyX = mugR * Math.cos(v);
+        var bodyY = -mugH/2 + mugH * (u < Math.PI ? u / Math.PI : (2*Math.PI - u) / Math.PI) * 0.5;
+        // Actually let's make the mug simpler: cylinder on one side, handle loop on other
+        // Cylinder: x = mugR*cos(v), y depends on position along u
+        var frac = u / (2 * Math.PI);
+        var bodyXm = mugR * Math.cos(v);
+        var bodyYm = lerp(-mugH/2, mugH/2, Math.min(1, Math.max(0, (frac < 0.5 ? frac*2 : 2-frac*2))));
+        var bodyZm = mugR * Math.sin(v) * (1 - 0.5*bodyness); // flatten bottom
+
+        // Handle: keep torus-like but stretched into a handle shape
+        var handleX = (R*0.5 + r*0.8 * Math.cos(v)) * Math.cos(u);
+        var handleY = R*0.6 * Math.sin(u);
+        var handleZ = r*0.8 * Math.sin(v);
+
+        // Interpolate based on bodyness and t
+        var mugX = lerp(handleX, bodyXm, bodyness);
+        var mugY = lerp(handleY, bodyYm, bodyness);
+        var mugZ = lerp(handleZ, bodyZm, bodyness);
+
+        return [
+            lerp(mugX, torusX, t),
+            lerp(mugY, torusY, t),
+            lerp(mugZ, torusZ, t)
+        ];
+    }
+
+    function drawSphereToCube(ctx, t, angle) {
+        var lines = [];
+        var n = 20;
+
+        for (var i = 0; i <= n; i++) {
+            for (var j = 0; j < n; j++) {
+                var u = i * Math.PI / n;
+                var v = j * 2 * Math.PI / n;
+                var v1 = (j+1) * 2 * Math.PI / n;
+
+                var p1 = sphereCubePoint(u, v, t);
+                var p2 = sphereCubePoint(u, v1, t);
+
+                p1 = rX(rY(p1, angle), 0.4);
+                p2 = rX(rY(p2, angle), 0.4);
+                var s1 = proj(p1), s2 = proj(p2);
+                lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+            }
+        }
+        for (var j = 0; j <= n; j++) {
+            for (var i = 0; i < n; i++) {
+                var u = i * Math.PI / n;
+                var u1 = (i+1) * Math.PI / n;
+                var v = j * 2 * Math.PI / n;
+
+                var p1 = sphereCubePoint(u, v, t);
+                var p2 = sphereCubePoint(u1, v, t);
+
+                p1 = rX(rY(p1, angle), 0.4);
+                p2 = rX(rY(p2, angle), 0.4);
+                var s1 = proj(p1), s2 = proj(p2);
+                lines.push({x1:s1[0],y1:s1[1],x2:s2[0],y2:s2[1],z:(s1[2]+s2[2])/2});
+            }
+        }
+
+        lines.sort(function(a, b) { return b.z - a.z; });
+
+        for (var li = 0; li < lines.length; li++) {
+            var l = lines[li];
+            var depth = (l.z - dd + 2) / 4;
+            depth = Math.max(0.15, Math.min(1, depth));
+            ctx.strokeStyle = 'rgba(79,209,197,' + (0.12 + 0.4*depth) + ')';
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(l.x1, l.y1);
+            ctx.lineTo(l.x2, l.y2);
+            ctx.stroke();
+        }
+    }
+
+    function sphereCubePoint(u, v, t) {
+        // Sphere point
+        var sx = Math.sin(u) * Math.cos(v);
+        var sy = Math.sin(u) * Math.sin(v);
+        var sz = Math.cos(u);
+
+        // Cube: project onto cube surface (supernorm interpolation)
+        // Use supernorm: (|x|^p + |y|^p + |z|^p)^(1/p) = 1
+        // As p -> infinity, sphere -> cube
+        var p = lerp(2, 20, t);
+        var norm = Math.pow(
+            Math.pow(Math.abs(sx), p) + Math.pow(Math.abs(sy), p) + Math.pow(Math.abs(sz), p),
+            1/p
+        );
+        if (norm < 0.001) norm = 0.001;
+        return [sx / norm, sy / norm, sz / norm];
+    }
+
+    function animateMorph() {
+        morphAngle += 0.01;
+        drawMorph();
+        requestAnimationFrame(animateMorph);
+    }
+
+    animateMorph();
+})();
+
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

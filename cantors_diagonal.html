@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity &amp; Cantor's Diagonal</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fbbf24}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.25em;font-weight:400;color:#fbbf24;margin:0 0 4px}
+        h2+.sub2{color:#808098;font-size:0.9em;font-style:italic;margin-bottom:16px}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:28px}
+        .concept{border-left:3px solid #fbbf24;padding-left:20px;color:#a0a0b8;font-size:0.95em;line-height:1.75}
+        .section{margin-bottom:36px}
+        .controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 16px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.9em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(251,191,36,0.13);border-color:rgba(251,191,36,0.4);color:#fbbf24}
+        .label-muted{color:#606078;font-size:0.8em}
+        .result-text{color:#808098;font-size:0.88em;margin-top:12px;line-height:1.7}
+        .result-text .gold{color:#fbbf24}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);margin:0 auto}
+        .zigzag-list{color:#808098;font-size:0.85em;margin-top:10px;font-family:'Courier New',monospace;min-height:1.6em}
+        .zigzag-list .gold{color:#fbbf24}
+
+        .diag-grid{display:inline-grid;gap:0;margin:12px 0}
+        .diag-grid .cell{width:32px;height:32px;display:flex;align-items:center;justify-content:center;
+            font-family:'Courier New',monospace;font-size:1em;border:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background 0.15s,color 0.15s;user-select:none}
+        .diag-grid .cell:hover{background:rgba(251,191,36,0.1)}
+        .diag-grid .cell.hdr{color:#606078;font-size:0.7em;cursor:default;border:none}
+        .diag-grid .cell.hdr:hover{background:transparent}
+        .diag-grid .cell.dot{color:#606078;cursor:default;border:none;font-size:0.8em}
+        .diag-grid .cell.dot:hover{background:transparent}
+        .diag-grid .cell.diag-hl{background:rgba(251,191,36,0.18);color:#fbbf24;font-weight:700}
+        .diag-grid .cell.diff-hl{background:rgba(231,76,60,0.18);color:#e74c3c}
+        .new-num{font-family:'Courier New',monospace;font-size:1.05em;color:#2ecc71;margin:6px 0}
+        .diff-list{font-size:0.82em;color:#808098;line-height:1.8;margin:8px 0}
+        .diff-list .r{color:#e74c3c}.diff-list .g{color:#2ecc71}
+        .hierarchy{display:flex;flex-direction:column;align-items:center;gap:0;margin:16px 0}
+        .h-ring{border:2px solid rgba(251,191,36,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:0.88em;line-height:1.5}
+        .h-outer{width:320px;height:180px;border-color:rgba(251,191,36,0.45)}
+        .h-inner{width:200px;height:100px;margin-top:-30px;background:rgba(251,191,36,0.04);border-color:rgba(251,191,36,0.3)}
+        .h-label{font-size:0.78em;color:#808098;margin-top:6px}
+        .insight{border-left:3px solid #fbbf24;padding-left:20px;color:#a0a0b8;font-size:0.88em;line-height:1.75;margin-top:10px}
+        @media(max-width:600px){.diag-grid .cell{width:26px;height:26px;font-size:0.85em}canvas{width:100%;height:auto}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Infinity &amp; Cantor's Diagonal</h1>
+    <p class="subtitle">Not all infinities are equal &mdash; the most mind-bending proof</p>
+
+    <div class="panel concept">Two sets have the same &ldquo;size&rdquo; (cardinality) if their elements can be paired one-to-one. Cantor showed that while the natural numbers and rationals can be paired (both are &ldquo;countably infinite&rdquo;), the real numbers CANNOT &mdash; they form a strictly larger infinity.</div>
+
+    <!-- SECTION A: Countable Infinity -->
+    <div class="section">
+        <h2>The Rationals Are Countable</h2>
+        <p class="sub2">Every fraction has a place in the list</p>
+        <div class="panel">
+            <canvas id="zigzag" width="520" height="460"></canvas>
+            <div class="controls">
+                <button class="btn" id="btnStart">Start</button>
+                <button class="btn" id="btnReset">Reset</button>
+                <span class="label-muted">Speed</span>
+                <input type="range" id="speedSlider" min="1" max="10" value="5" style="width:100px;accent-color:#fbbf24">
+            </div>
+            <div class="zigzag-list" id="zigzagList"></div>
+            <p class="result-text">Every rational number eventually gets a natural number label. <span class="gold">|Q| = |N| = &#x2135;&#x2080;</span></p>
+        </div>
+    </div>
+
+    <!-- SECTION B: Uncountable Infinity -->
+    <div class="section">
+        <h2>The Reals Are Uncountable</h2>
+        <p class="sub2">No list can contain every real number</p>
+        <div class="panel">
+            <div style="overflow-x:auto">
+                <div class="diag-grid" id="diagGrid"></div>
+            </div>
+            <div class="controls">
+                <button class="btn" id="btnRandom">Randomize List</button>
+                <button class="btn" id="btnChallenge">Try to Defeat It</button>
+            </div>
+            <div id="diagInfo">
+                <div style="font-size:0.88em;color:#808098;margin:4px 0">Diagonal: <span id="diagDigits" style="font-family:'Courier New',monospace;color:#fbbf24"></span></div>
+                <div class="new-num">New number: <span id="newNum"></span></div>
+                <div class="diff-list" id="diffList"></div>
+            </div>
+            <p class="result-text">This new number is between 0 and 1, yet it is NOT on the list. Since this works for ANY supposed list, no list can contain all real numbers. The reals are <span class="gold">UNCOUNTABLE</span>.</p>
+            <p class="result-text"><span class="gold">|R| = c &gt; &#x2135;&#x2080; = |N| = |Q|</span></p>
+        </div>
+    </div>
+
+    <!-- SIZE COMPARISON -->
+    <div class="section">
+        <h2>The Hierarchy of Infinities</h2>
+        <div class="panel">
+            <div class="hierarchy">
+                <div class="h-ring h-outer" style="flex-direction:column">
+                    <span style="color:#e0e0e0;margin-bottom:4px">|R| = |C| = <span style="color:#fbbf24">c</span> = 2<sup style="color:#fbbf24">&#x2135;&#x2080;</sup></span>
+                    <span style="font-size:0.75em;color:#808098">uncountable &mdash; the continuum</span>
+                    <div class="h-ring h-inner">
+                        <span style="color:#e0e0e0">|N| = |Z| = |Q| = <span style="color:#fbbf24">&#x2135;&#x2080;</span></span>
+                    </div>
+                </div>
+                <div class="h-label" style="margin-top:10px"><span style="color:#fbbf24">&#x2135;&#x2080;</span> &lt; <span style="color:#fbbf24">c</span> &mdash; there are strictly more real numbers than natural numbers</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INSIGHT -->
+    <div class="panel insight" id="insightPanel">Georg Cantor published this proof in 1891. It was revolutionary &mdash; mathematicians had never conceived that infinities could have different sizes. Cantor faced fierce opposition, but his work founded modern set theory and changed mathematics forever.</div>
+</div>
+
+<script>
+/* ===== SECTION A: Zigzag Animation ===== */
+const ZC = document.getElementById("zigzag"), ZX = ZC.getContext("2d");
+const GRID = 8, CELL = 52, PAD = 40, PADT = 28;
+
+function gcd(a,b){while(b){[a,b]=[b,a%b]}return a}
+
+/* Build zigzag path through the grid */
+function buildPath(){
+    const path=[];
+    for(let s=2;s<=GRID*2;s++){
+        if(s%2===0){
+            for(let c=1;c<=s-1&&c<=GRID;c++){const r=s-c;if(r>=1&&r<=GRID)path.push([r,c]);}
+        }else{
+            for(let r=1;r<=s-1&&r<=GRID;r++){const c=s-r;if(c>=1&&c<=GRID)path.push([r,c]);}
+        }
+    }
+    return path;
+}
+const fullPath=buildPath();
+
+let animIdx=-1, animRunning=false, animTimer=null, visitedOrder=[];
+
+function getDelay(){return 300-(document.getElementById("speedSlider").value-1)*28}
+
+function drawGrid(){
+    const W=ZC.width, H=ZC.height;
+    ZX.clearRect(0,0,W,H);
+    ZX.fillStyle="#0a0a1a";ZX.fillRect(0,0,W,H);
+
+    /* Column headers (denominators) */
+    ZX.font="13px Georgia";ZX.textAlign="center";ZX.textBaseline="middle";
+    for(let c=1;c<=GRID;c++){
+        ZX.fillStyle="#606078";
+        ZX.fillText("/"+c, PAD+c*CELL-CELL/2, PADT/2+4);
+    }
+    /* Row headers (numerators) */
+    ZX.textAlign="right";
+    for(let r=1;r<=GRID;r++){
+        ZX.fillStyle="#606078";
+        ZX.fillText(r, PAD-8, PADT+r*CELL-CELL/2);
+    }
+
+    /* Cells */
+    for(let r=1;r<=GRID;r++){
+        for(let c=1;c<=GRID;c++){
+            const x=PAD+(c-1)*CELL, y=PADT+(r-1)*CELL;
+            const reduced=gcd(r,c)===1;
+            const vIdx=visitedOrder.findIndex(v=>v[0]===r&&v[1]===c);
+            const isCurrent=animIdx>=0&&animIdx<fullPath.length&&fullPath[animIdx][0]===r&&fullPath[animIdx][1]===c;
+
+            if(isCurrent){
+                ZX.fillStyle="rgba(251,191,36,0.18)";
+                ZX.fillRect(x,y,CELL,CELL);
+            }
+
+            ZX.strokeStyle="rgba(255,255,255,0.04)";ZX.strokeRect(x,y,CELL,CELL);
+
+            ZX.textAlign="center";ZX.textBaseline="middle";
+            const cx=x+CELL/2, cy=y+CELL/2;
+            if(!reduced){
+                ZX.font="12px Georgia";ZX.fillStyle="rgba(255,255,255,0.1)";
+                ZX.fillText(r+"/"+c, cx, cy);
+            }else if(vIdx>=0){
+                ZX.font="12px 'Courier New',monospace";ZX.fillStyle="#fbbf24";
+                ZX.fillText(r+"/"+c, cx, cy-7);
+                ZX.font="bold 10px 'Courier New',monospace";ZX.fillStyle="rgba(251,191,36,0.6)";
+                ZX.fillText(String(vIdx+1), cx, cy+9);
+            }else{
+                ZX.font="12px Georgia";ZX.fillStyle="#808098";
+                ZX.fillText(r+"/"+c, cx, cy);
+            }
+        }
+    }
+
+    /* Draw path arrows */
+    if(visitedOrder.length>0||animIdx>=0){
+        ZX.strokeStyle="rgba(251,191,36,0.35)";ZX.lineWidth=1.5;ZX.setLineDash([4,3]);
+        ZX.beginPath();
+        const limit=Math.min(animIdx+1,fullPath.length);
+        for(let i=0;i<limit;i++){
+            const[r,c]=fullPath[i];
+            const px=PAD+(c-1)*CELL+CELL/2, py=PADT+(r-1)*CELL+CELL/2;
+            if(i===0)ZX.moveTo(px,py);else ZX.lineTo(px,py);
+        }
+        ZX.stroke();ZX.setLineDash([]);ZX.lineWidth=1;
+    }
+}
+
+function updateList(){
+    const el=document.getElementById("zigzagList");
+    if(visitedOrder.length===0){el.innerHTML="";return}
+    const parts=visitedOrder.map((v,i)=>'<span class="gold">'+(i+1)+'.</span> '+v[0]+'/'+v[1]);
+    el.innerHTML="List: "+parts.join(", ")+(animRunning?" ...":"");
+}
+
+function stepAnim(){
+    if(!animRunning)return;
+    animIdx++;
+    if(animIdx>=fullPath.length){animRunning=false;document.getElementById("btnStart").textContent="Start";drawGrid();return}
+    const[r,c]=fullPath[animIdx];
+    if(gcd(r,c)===1)visitedOrder.push([r,c]);
+    drawGrid();updateList();
+    animTimer=setTimeout(stepAnim,getDelay());
+}
+
+document.getElementById("btnStart").addEventListener("click",function(){
+    if(animRunning){animRunning=false;clearTimeout(animTimer);this.textContent="Resume";drawGrid();return}
+    if(animIdx>=fullPath.length-1){animIdx=-1;visitedOrder=[];}
+    animRunning=true;this.textContent="Pause";stepAnim();
+});
+document.getElementById("btnReset").addEventListener("click",function(){
+    animRunning=false;clearTimeout(animTimer);animIdx=-1;visitedOrder=[];
+    document.getElementById("btnStart").textContent="Start";drawGrid();updateList();
+});
+drawGrid();
+
+/* ===== SECTION B: Diagonal Argument ===== */
+const ROWS=10, COLS=10;
+let grid=[];
+let challengeMode=false;
+
+function randDigit(){return Math.floor(Math.random()*10)}
+function initGrid(){grid=[];for(let r=0;r<ROWS;r++){const row=[];for(let c=0;c<COLS;c++)row.push(randDigit());grid.push(row);}}
+initGrid();
+
+function flipDigit(d){return d<5?d+5:d-5}
+
+function renderDiag(){
+    const container=document.getElementById("diagGrid");
+    const cols=COLS+2; /* row label + "0." prefix columns */
+    container.style.gridTemplateColumns="40px 28px "+("32px ".repeat(COLS));
+
+    let html="";
+    /* Column headers */
+    html+='<div class="cell hdr"></div><div class="cell hdr"></div>';
+    for(let c=0;c<COLS;c++) html+='<div class="cell hdr">'+(c+1)+'</div>';
+
+    for(let r=0;r<ROWS;r++){
+        html+='<div class="cell hdr" style="text-align:right;padding-right:4px;font-size:0.82em;color:#606078">'+(r+1)+'.</div>';
+        html+='<div class="cell dot">0.</div>';
+        for(let c=0;c<COLS;c++){
+            const isDiag=r===c;
+            const cls=isDiag?"cell diag-hl":"cell";
+            html+='<div class="'+cls+'" data-r="'+r+'" data-c="'+c+'">'+grid[r][c]+'</div>';
+        }
+    }
+    container.innerHTML=html;
+
+    /* Click handlers */
+    container.querySelectorAll(".cell[data-r]").forEach(cell=>{
+        cell.addEventListener("click",function(){
+            const r=+this.dataset.r, c=+this.dataset.c;
+            grid[r][c]=(grid[r][c]+1)%10;
+            renderDiag();
+        });
+    });
+
+    /* Diagonal digits and new number */
+    const diagDigits=[];for(let i=0;i<ROWS;i++)diagDigits.push(grid[i][i]);
+    const newDigits=diagDigits.map(flipDigit);
+
+    document.getElementById("diagDigits").textContent=diagDigits.join(" ");
+    document.getElementById("newNum").textContent="0."+newDigits.join("");
+
+    /* Difference list */
+    let diffHtml="";
+    for(let i=0;i<ROWS;i++){
+        diffHtml+='Differs from row '+(i+1)+' at position '+(i+1)+': <span class="r">'+diagDigits[i]+'</span> &rarr; <span class="g">'+newDigits[i]+'</span><br>';
+    }
+    document.getElementById("diffList").innerHTML=diffHtml;
+
+    /* Update insight text based on challenge mode */
+    const insight=document.getElementById("insightPanel");
+    if(challengeMode){
+        insight.textContent="No matter how cleverly you arrange the list, the diagonal construction always produces a number that is not on it. This is not a flaw in your list \u2014 it is a fundamental property of the real numbers. Click any digit to change it and try to defeat the argument.";
+    }
+}
+
+document.getElementById("btnRandom").addEventListener("click",function(){initGrid();renderDiag();});
+document.getElementById("btnChallenge").addEventListener("click",function(){
+    challengeMode=!challengeMode;
+    this.classList.toggle("active",challengeMode);
+    this.textContent=challengeMode?"Exit Challenge":"Try to Defeat It";
+    if(!challengeMode){
+        document.getElementById("insightPanel").textContent="Georg Cantor published this proof in 1891. It was revolutionary \u2014 mathematicians had never conceived that infinities could have different sizes. Cantor faced fierce opposition, but his work founded modern set theory and changed mathematics forever.";
+    }
+    renderDiag();
+});
+
+renderDiag();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

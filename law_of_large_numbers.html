@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Law of Large Numbers</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#f472b6}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(244,114,182,0.13);border-color:rgba(244,114,182,0.4);color:#f472b6}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .pink{color:#f472b6}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .green{color:#2ecc71}
+        .math-line .muted{color:#808098}
+        .stats-row{display:flex;gap:20px;flex-wrap:wrap;margin:10px 0}
+        .stat-box{text-align:center}
+        .stat-label{font-size:0.75em;color:#808098;text-transform:uppercase;letter-spacing:0.5px}
+        .stat-val{font-family:'Courier New',monospace;font-size:1.05em;color:#e0e0e0}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#f472b6}
+        .slider-label{color:#f472b6;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#f472b6;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .formal{font-family:'Courier New',monospace;font-size:0.95em;color:#c0c0d8;background:rgba(244,114,182,0.06);border-left:3px solid rgba(244,114,182,0.3);padding:10px 16px;margin:10px 0;border-radius:0 6px 6px 0}
+        .insight-quote{color:#f472b6;font-style:italic;font-size:0.95em;border-left:3px solid rgba(244,114,182,0.3);padding-left:14px;margin:12px 0}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 300px;min-width:280px}
+        @media(max-width:700px){canvas{width:100%!important;height:auto!important}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Law of Large Numbers</h1>
+    <p class="subtitle">Why casinos always win &mdash; the convergence of averages</p>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- SECTION 1 & 2: Coin Flip Simulator + Biased Toggle   -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <h2>Coin Flip Simulator</h2>
+    <canvas id="coinCanvas" width="700" height="350"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Controls</h3>
+        <div class="btn-row">
+            <button class="btn" id="flip1">Flip 1</button>
+            <button class="btn" id="flip10">Flip 10</button>
+            <button class="btn" id="flip100">Flip 100</button>
+            <button class="btn" id="flip1000">Flip 1000</button>
+            <button class="btn" id="autoBtn">Auto</button>
+            <button class="btn" id="resetCoin">Reset</button>
+        </div>
+        <div class="slider-row">
+            <span class="math-line muted">True probability p =</span>
+            <input type="range" id="probSlider" min="10" max="90" value="50" step="1">
+            <span class="slider-label" id="probLabel">0.50</span>
+        </div>
+        <div class="stats-row" id="coinStats"></div>
+        <div class="math-line muted" id="coinConvergeMsg">The average converges to p = 0.50</div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- SECTION 3: Multiple Runs Overlay                      -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <h2>Multiple Runs Overlay</h2>
+    <canvas id="multiCanvas" width="700" height="300"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Controls</h3>
+        <div class="btn-row">
+            <button class="btn" id="run5">Run 5 Trials</button>
+            <button class="btn" id="run20">Run 20 Trials</button>
+            <button class="btn" id="resetMulti">Reset</button>
+        </div>
+        <div class="slider-row">
+            <span class="math-line muted">Flips per trial:</span>
+            <input type="range" id="multiN" min="100" max="5000" value="1000" step="100">
+            <span class="slider-label" id="multiNLabel">1000</span>
+        </div>
+        <div class="math-line muted" id="multiMsg">No matter the path, the destination is the same.</div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- SECTION 4: Dice Average Simulator                     -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <h2>Dice Average Simulator</h2>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start">
+        <canvas id="diceCanvas" width="600" height="300"></canvas>
+    </div>
+    <div class="panel" style="margin-top:14px">
+        <h3>Controls</h3>
+        <div class="btn-row">
+            <button class="btn" id="roll1">Roll 1</button>
+            <button class="btn" id="roll10">Roll 10</button>
+            <button class="btn" id="roll100">Roll 100</button>
+            <button class="btn" id="autoDice">Auto</button>
+            <button class="btn" id="resetDice">Reset</button>
+        </div>
+        <div class="stats-row" id="diceStats"></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- SECTION 5: The Casino's Edge                          -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <h2>The Casino's Edge</h2>
+    <canvas id="casinoCanvas" width="700" height="250"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>American Roulette &mdash; $1 bet on red each spin</h3>
+        <div class="btn-row">
+            <button class="btn" id="spin1">Spin 1</button>
+            <button class="btn" id="spin10">Spin 10</button>
+            <button class="btn" id="spin100">Spin 100</button>
+            <button class="btn" id="spin1000">Spin 1000</button>
+            <button class="btn" id="autoCasino">Auto</button>
+            <button class="btn" id="resetCasino">Reset</button>
+        </div>
+        <div class="stats-row" id="casinoStats"></div>
+        <div class="insight-quote" id="casinoMsg">Place your first bet to begin.</div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- SECTION 6: Formal Statement                           -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <h2>Formal Statement</h2>
+    <canvas id="formalCanvas" width="700" height="280"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>The Two Laws</h3>
+        <div class="formal">
+            <strong style="color:#f472b6">Weak LLN:</strong> For any &epsilon; &gt; 0, &ensp;P(|X&#772;<sub>n</sub> &minus; &mu;| &gt; &epsilon;) &rarr; 0 &ensp;as n &rarr; &infin;
+        </div>
+        <div class="formal">
+            <strong style="color:#f472b6">Strong LLN:</strong> P(X&#772;<sub>n</sub> &rarr; &mu;) = 1
+        </div>
+        <div class="formal">
+            <strong style="color:#808098">Chebyshev bound:</strong> P(|X&#772;<sub>n</sub> &minus; &mu;| &gt; &epsilon;) &le; &sigma;&sup2; / (n&epsilon;&sup2;)
+        </div>
+        <div class="slider-row">
+            <span class="math-line muted">&epsilon; =</span>
+            <input type="range" id="epsSlider" min="1" max="20" value="5" step="1">
+            <span class="slider-label" id="epsLabel">0.05</span>
+        </div>
+        <div class="math-line muted" id="formalMsg"></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════ -->
+    <!-- SECTION 7: What Have We Learnt?                       -->
+    <!-- ══════════════════════════════════════════════════════ -->
+    <div class="explain" style="margin-top:28px">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            <p>The <strong>Law of Large Numbers</strong> guarantees that sample averages converge to expected values as the sample size grows. This single theorem underpins why insurance, casinos, polling, manufacturing quality control, and Monte Carlo simulations all work. Without it, none of these industries could function.</p>
+            <br>
+            <p><strong>Key insight:</strong> Individual outcomes are unpredictable, but the <em>average</em> over many trials becomes increasingly deterministic. The convergence rate is approximately 1/&radic;n &mdash; slow but certain. To halve your estimation error, you need four times as many observations.</p>
+            <br>
+            <p><strong>Common misconception &mdash; the Gambler's Fallacy:</strong> Many people believe that after a streak of heads, tails becomes "due." This is wrong. The LLN says that the <em>proportion</em> converges, not that outcomes somehow "correct" themselves. After 10 heads in a row, the 11th flip is still exactly 50/50. The earlier streak simply becomes a smaller fraction of the total as n grows &mdash; it is diluted, not corrected.</p>
+            <br>
+            <p><strong>What can we improve?</strong> The LLN tells us <em>that</em> convergence happens, but not <em>how fast</em> in distributional terms. For that, we need the Central Limit Theorem, which characterises the shape of the fluctuations around the expected value. Together, the LLN and CLT form the twin pillars of statistical inference.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 1 & 2: Coin Flip Simulator (with biased coin toggle)
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('coinCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const PAD = {top:30, right:30, bottom:40, left:65};
+    const plotW = W - PAD.left - PAD.right;
+    const plotH = H - PAD.top - PAD.bottom;
+
+    let flips = [];        // array of 0 or 1
+    let heads = 0;
+    let autoOn = false;
+    let autoTimer = null;
+
+    function getP(){ return parseInt(document.getElementById('probSlider').value) / 100; }
+
+    document.getElementById('probSlider').addEventListener('input', function(){
+        const p = getP();
+        document.getElementById('probLabel').textContent = p.toFixed(2);
+        document.getElementById('coinConvergeMsg').textContent = 'The average converges to p = ' + p.toFixed(2);
+        draw();
+    });
+
+    function flipN(n){
+        const p = getP();
+        for(let i = 0; i < n; i++){
+            const r = Math.random() < p ? 1 : 0;
+            flips.push(r);
+            heads += r;
+        }
+        draw();
+    }
+
+    function resetCoin(){
+        flips = []; heads = 0;
+        if(autoOn){ autoOn = false; clearInterval(autoTimer); document.getElementById('autoBtn').classList.remove('active'); }
+        draw();
+    }
+
+    document.getElementById('flip1').addEventListener('click', ()=> flipN(1));
+    document.getElementById('flip10').addEventListener('click', ()=> flipN(10));
+    document.getElementById('flip100').addEventListener('click', ()=> flipN(100));
+    document.getElementById('flip1000').addEventListener('click', ()=> flipN(1000));
+    document.getElementById('resetCoin').addEventListener('click', resetCoin);
+    document.getElementById('autoBtn').addEventListener('click', function(){
+        autoOn = !autoOn;
+        this.classList.toggle('active', autoOn);
+        if(autoOn){
+            autoTimer = setInterval(()=> flipN(1), 30);
+        } else {
+            clearInterval(autoTimer);
+        }
+    });
+
+    function subsample(arr, maxPts){
+        if(arr.length <= maxPts) return arr.map((v,i)=>({i:i, v:v}));
+        const pts = [];
+        const step = (arr.length - 1) / (maxPts - 1);
+        for(let k = 0; k < maxPts; k++){
+            const idx = Math.round(k * step);
+            pts.push({i: idx, v: arr[idx]});
+        }
+        return pts;
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        const N = flips.length;
+        const p = getP();
+
+        // axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, H - PAD.bottom); ctx.lineTo(W - PAD.right, H - PAD.bottom); ctx.stroke();
+
+        // y-axis: 0 to 1
+        ctx.font = '10px Courier New'; ctx.fillStyle = '#808098'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for(let y = 0; y <= 1; y += 0.25){
+            const sy = PAD.top + plotH * (1 - y);
+            ctx.fillText(y.toFixed(2), PAD.left - 8, sy);
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(PAD.left, sy); ctx.lineTo(W - PAD.right, sy); ctx.stroke();
+        }
+
+        // axis labels
+        ctx.font = '11px Georgia'; ctx.fillStyle = '#808098'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText('Number of flips', PAD.left + plotW/2, H - 14);
+        ctx.save(); ctx.translate(14, PAD.top + plotH/2); ctx.rotate(-Math.PI/2);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('Proportion of heads', 0, 0);
+        ctx.restore();
+
+        if(N === 0){
+            ctx.font = '14px Georgia'; ctx.fillStyle = '#606078'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('Click a button to begin flipping', W/2, H/2);
+            updateCoinStats(0,0,0,0.5);
+            return;
+        }
+
+        // x-axis range
+        const maxX = Math.max(N, 10);
+
+        // x-axis ticks
+        ctx.font = '10px Courier New'; ctx.fillStyle = '#808098'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const xTicks = niceTicksLog(1, maxX);
+        for(let xt of xTicks){
+            const sx = PAD.left + (xt / maxX) * plotW;
+            ctx.fillText(xt >= 1000 ? (xt/1000)+'k' : xt, sx, H - PAD.bottom + 6);
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(sx, PAD.top); ctx.lineTo(sx, H - PAD.bottom); ctx.stroke();
+        }
+
+        // compute running proportions
+        const runProp = [];
+        let runHeads = 0;
+        for(let i = 0; i < N; i++){
+            runHeads += flips[i];
+            runProp.push(runHeads / (i + 1));
+        }
+
+        function toSx(idx){ return PAD.left + ((idx+1) / maxX) * plotW; }
+        function toSy(val){ return PAD.top + plotH * (1 - val); }
+
+        // confidence band: p +/- 1/sqrt(n)
+        ctx.fillStyle = 'rgba(255,255,255,0.03)';
+        ctx.beginPath();
+        const bandPts = subsample(runProp, 600);
+        // upper edge
+        for(let k = 0; k < bandPts.length; k++){
+            const n = bandPts[k].i + 1;
+            const upper = Math.min(1, p + 1/Math.sqrt(n));
+            const sx = toSx(bandPts[k].i), sy = toSy(upper);
+            if(k === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+        }
+        // lower edge (reverse)
+        for(let k = bandPts.length - 1; k >= 0; k--){
+            const n = bandPts[k].i + 1;
+            const lower = Math.max(0, p - 1/Math.sqrt(n));
+            const sx = toSx(bandPts[k].i), sy = toSy(lower);
+            ctx.lineTo(sx, sy);
+        }
+        ctx.closePath(); ctx.fill();
+
+        // confidence band edges
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1; ctx.setLineDash([3,4]);
+        ctx.beginPath();
+        for(let k = 0; k < bandPts.length; k++){
+            const n = bandPts[k].i + 1;
+            const upper = Math.min(1, p + 1/Math.sqrt(n));
+            const sx = toSx(bandPts[k].i), sy = toSy(upper);
+            if(k === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+        ctx.beginPath();
+        for(let k = 0; k < bandPts.length; k++){
+            const n = bandPts[k].i + 1;
+            const lower = Math.max(0, p - 1/Math.sqrt(n));
+            const sx = toSx(bandPts[k].i), sy = toSy(lower);
+            if(k === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // true probability line
+        ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
+        const pY = toSy(p);
+        ctx.beginPath(); ctx.moveTo(PAD.left, pY); ctx.lineTo(W - PAD.right, pY); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = '10px Courier New'; ctx.fillStyle = '#f472b6'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText('p = ' + p.toFixed(2), W - PAD.right - 60, pY - 4);
+
+        // running proportion line
+        const pts = subsample(runProp, 1200);
+        ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        for(let k = 0; k < pts.length; k++){
+            const sx = toSx(pts[k].i), sy = toSy(pts[k].v);
+            if(k === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+
+        // dot at end
+        if(N > 0){
+            const lastX = toSx(N - 1), lastY = toSy(runProp[N - 1]);
+            ctx.fillStyle = '#22d3ee'; ctx.beginPath(); ctx.arc(lastX, lastY, 4, 0, Math.PI*2); ctx.fill();
+        }
+
+        // band label
+        ctx.font = '9px Georgia'; ctx.fillStyle = 'rgba(255,255,255,0.2)'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+        if(N > 20){
+            const bandUpper = Math.min(1, p + 1/Math.sqrt(N));
+            ctx.fillText('+/- 1/sqrt(n)', W - PAD.right - 4, toSy(bandUpper) - 2);
+        }
+
+        const prop = N > 0 ? heads / N : 0;
+        updateCoinStats(N, heads, N - heads, prop);
+    }
+
+    function updateCoinStats(n, h, t, prop){
+        document.getElementById('coinStats').innerHTML =
+            stat('Total Flips', n) + stat('Heads', h) + stat('Tails', t) +
+            stat('Proportion', prop.toFixed(4));
+    }
+
+    function stat(label, val){
+        return '<div class="stat-box"><div class="stat-label">' + label + '</div><div class="stat-val">' + val + '</div></div>';
+    }
+
+    function niceTicksLog(lo, hi){
+        if(hi <= 10) return [1, 2, 5, 10].filter(v => v <= hi);
+        const ticks = [];
+        const candidates = [1,2,5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000];
+        for(const c of candidates){
+            if(c >= lo && c <= hi) ticks.push(c);
+        }
+        if(ticks.length > 8){
+            const step = Math.ceil(ticks.length / 6);
+            return ticks.filter((_,i) => i % step === 0 || _ === ticks[ticks.length-1]);
+        }
+        return ticks;
+    }
+
+    draw();
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 3: Multiple Runs Overlay
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('multiCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const PAD = {top:25, right:30, bottom:40, left:65};
+    const plotW = W - PAD.left - PAD.right;
+    const plotH = H - PAD.top - PAD.bottom;
+
+    const COLORS = ['#f472b6','#22d3ee','#fbbf24','#2ecc71','#818cf8'];
+    let trials = []; // array of arrays of running proportions
+
+    document.getElementById('multiN').addEventListener('input', function(){
+        document.getElementById('multiNLabel').textContent = this.value;
+    });
+
+    function runTrials(count){
+        const N = parseInt(document.getElementById('multiN').value);
+        const p = parseInt(document.getElementById('probSlider').value) / 100;
+        for(let t = 0; t < count; t++){
+            const run = [];
+            let h = 0;
+            for(let i = 0; i < N; i++){
+                h += Math.random() < p ? 1 : 0;
+                run.push(h / (i + 1));
+            }
+            trials.push(run);
+        }
+        draw();
+    }
+
+    document.getElementById('run5').addEventListener('click', ()=> runTrials(5));
+    document.getElementById('run20').addEventListener('click', ()=> runTrials(20));
+    document.getElementById('resetMulti').addEventListener('click', ()=>{ trials = []; draw(); });
+
+    function subsample(arr, maxPts){
+        if(arr.length <= maxPts) return arr.map((v,i)=>({i:i, v:v}));
+        const pts = [];
+        const step = (arr.length - 1) / (maxPts - 1);
+        for(let k = 0; k < maxPts; k++){
+            const idx = Math.round(k * step);
+            pts.push({i: idx, v: arr[idx]});
+        }
+        return pts;
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        const p = parseInt(document.getElementById('probSlider').value) / 100;
+
+        // axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, H - PAD.bottom); ctx.lineTo(W - PAD.right, H - PAD.bottom); ctx.stroke();
+
+        // y ticks
+        ctx.font = '10px Courier New'; ctx.fillStyle = '#808098'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for(let y = 0; y <= 1; y += 0.25){
+            const sy = PAD.top + plotH * (1 - y);
+            ctx.fillText(y.toFixed(2), PAD.left - 8, sy);
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.beginPath(); ctx.moveTo(PAD.left, sy); ctx.lineTo(W - PAD.right, sy); ctx.stroke();
+        }
+
+        ctx.font = '11px Georgia'; ctx.fillStyle = '#808098'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText('Number of flips', PAD.left + plotW/2, H - 14);
+
+        if(trials.length === 0){
+            ctx.font = '14px Georgia'; ctx.fillStyle = '#606078'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('Click "Run 5 Trials" to overlay independent runs', W/2, H/2);
+            return;
+        }
+
+        const maxN = trials.reduce((mx, t)=> Math.max(mx, t.length), 0);
+
+        // x ticks
+        ctx.font = '10px Courier New'; ctx.fillStyle = '#808098'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const xSteps = [1,2,5,10,20,50,100,200,500,1000,2000,5000];
+        for(const s of xSteps){
+            if(s <= maxN){
+                const sx = PAD.left + (s / maxN) * plotW;
+                ctx.fillText(s >= 1000 ? (s/1000)+'k' : s, sx, H - PAD.bottom + 6);
+            }
+        }
+
+        function toSx(idx){ return PAD.left + ((idx+1) / maxN) * plotW; }
+        function toSy(val){ return PAD.top + plotH * (1 - val); }
+
+        // true probability line
+        ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
+        const pY = toSy(p);
+        ctx.beginPath(); ctx.moveTo(PAD.left, pY); ctx.lineTo(W - PAD.right, pY); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = '10px Courier New'; ctx.fillStyle = '#f472b6'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText('p = ' + p.toFixed(2), W - PAD.right - 60, pY - 4);
+
+        // draw each trial
+        for(let t = 0; t < trials.length; t++){
+            const color = COLORS[t % COLORS.length];
+            const pts = subsample(trials[t], 800);
+            ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.7;
+            ctx.beginPath();
+            for(let k = 0; k < pts.length; k++){
+                const sx = toSx(pts[k].i), sy = toSy(pts[k].v);
+                if(k === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+            }
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+
+        // message
+        document.getElementById('multiMsg').textContent =
+            trials.length + ' trial(s) plotted. No matter the path, the destination is the same.';
+    }
+
+    draw();
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 4: Dice Average Simulator
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('diceCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const PAD = {top:25, right:110, bottom:40, left:55};
+    const plotW = W - PAD.left - PAD.right;
+    const plotH = H - PAD.top - PAD.bottom;
+    const HIST_W = 80;
+
+    let rolls = [];
+    let sum = 0;
+    let freq = [0,0,0,0,0,0]; // index 0 = face 1, etc.
+    let autoOn = false;
+    let autoTimer = null;
+
+    function rollN(n){
+        for(let i = 0; i < n; i++){
+            const face = Math.floor(Math.random() * 6) + 1;
+            rolls.push(face);
+            sum += face;
+            freq[face - 1]++;
+        }
+        draw();
+    }
+
+    function resetDice(){
+        rolls = []; sum = 0; freq = [0,0,0,0,0,0];
+        if(autoOn){ autoOn = false; clearInterval(autoTimer); document.getElementById('autoDice').classList.remove('active'); }
+        draw();
+    }
+
+    document.getElementById('roll1').addEventListener('click', ()=> rollN(1));
+    document.getElementById('roll10').addEventListener('click', ()=> rollN(10));
+    document.getElementById('roll100').addEventListener('click', ()=> rollN(100));
+    document.getElementById('resetDice').addEventListener('click', resetDice);
+    document.getElementById('autoDice').addEventListener('click', function(){
+        autoOn = !autoOn;
+        this.classList.toggle('active', autoOn);
+        if(autoOn){ autoTimer = setInterval(()=> rollN(1), 30); }
+        else { clearInterval(autoTimer); }
+    });
+
+    function subsample(arr, maxPts){
+        if(arr.length <= maxPts) return arr.map((v,i)=>({i:i, v:v}));
+        const pts = [];
+        const step = (arr.length - 1) / (maxPts - 1);
+        for(let k = 0; k < maxPts; k++){
+            const idx = Math.round(k * step);
+            pts.push({i: idx, v: arr[idx]});
+        }
+        return pts;
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        const N = rolls.length;
+
+        // axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, H - PAD.bottom); ctx.lineTo(W - PAD.right, H - PAD.bottom); ctx.stroke();
+
+        // y range: 1 to 6
+        ctx.font = '10px Courier New'; ctx.fillStyle = '#808098'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for(let y = 1; y <= 6; y++){
+            const sy = PAD.top + plotH * (1 - (y - 1)/5);
+            ctx.fillText(y, PAD.left - 8, sy);
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(PAD.left, sy); ctx.lineTo(W - PAD.right, sy); ctx.stroke();
+        }
+
+        ctx.font = '11px Georgia'; ctx.fillStyle = '#808098'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText('Number of rolls', PAD.left + plotW/2, H - 14);
+
+        // histogram area
+        const histX = W - PAD.right + 14;
+        const histH = plotH;
+        const histTop = PAD.top;
+        const barH = histH / 6 - 4;
+
+        if(N === 0){
+            ctx.font = '14px Georgia'; ctx.fillStyle = '#606078'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('Roll the die to begin', PAD.left + plotW/2, H/2);
+            // empty histogram
+            for(let f = 0; f < 6; f++){
+                const by = histTop + f * (barH + 4);
+                ctx.fillStyle = 'rgba(255,255,255,0.03)';
+                ctx.fillRect(histX, by, HIST_W, barH);
+                ctx.font = '9px Courier New'; ctx.fillStyle = '#808098'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+                ctx.fillText((f+1), histX - 4, by + barH/2);
+            }
+            updateDiceStats(0, 0, 3.5, 0);
+            return;
+        }
+
+        const maxX = Math.max(N, 10);
+
+        function toSx(idx){ return PAD.left + ((idx+1) / maxX) * plotW; }
+        function toSy(val){ return PAD.top + plotH * (1 - (val - 1)/5); }
+
+        // expected value line at 3.5
+        ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
+        const eY = toSy(3.5);
+        ctx.beginPath(); ctx.moveTo(PAD.left, eY); ctx.lineTo(W - PAD.right, eY); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = '10px Courier New'; ctx.fillStyle = '#f472b6'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+        ctx.fillText('E = 3.5', W - PAD.right - 4, eY - 4);
+
+        // running average line
+        const runAvg = [];
+        let rSum = 0;
+        for(let i = 0; i < N; i++){
+            rSum += rolls[i];
+            runAvg.push(rSum / (i + 1));
+        }
+
+        const pts = subsample(runAvg, 1000);
+        ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        for(let k = 0; k < pts.length; k++){
+            const sx = toSx(pts[k].i), sy = toSy(pts[k].v);
+            if(k === 0) ctx.moveTo(sx, sy); else ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+
+        // individual roll dots (last 100 visible)
+        const dotStart = Math.max(0, N - 200);
+        ctx.globalAlpha = 0.25;
+        for(let i = dotStart; i < N; i++){
+            const sx = toSx(i);
+            const sy = H - PAD.bottom + 2;
+            const faceColors = ['#f472b6','#22d3ee','#fbbf24','#2ecc71','#818cf8','#e0e0e0'];
+            ctx.fillStyle = faceColors[rolls[i] - 1];
+            ctx.beginPath(); ctx.arc(sx, sy - 6, 2, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // endpoint dot
+        const lastSx = toSx(N-1), lastSy = toSy(runAvg[N-1]);
+        ctx.fillStyle = '#22d3ee'; ctx.beginPath(); ctx.arc(lastSx, lastSy, 4, 0, Math.PI*2); ctx.fill();
+
+        // histogram
+        const maxFreq = Math.max(...freq, 1);
+        for(let f = 0; f < 6; f++){
+            const by = histTop + f * (barH + 4);
+            const bw = (freq[f] / maxFreq) * HIST_W;
+            // bg
+            ctx.fillStyle = 'rgba(255,255,255,0.03)';
+            ctx.fillRect(histX, by, HIST_W, barH);
+            // bar
+            ctx.fillStyle = 'rgba(244,114,182,0.35)';
+            ctx.fillRect(histX, by, bw, barH);
+            // label
+            ctx.font = '9px Courier New'; ctx.fillStyle = '#808098'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            ctx.fillText((f+1), histX - 4, by + barH/2);
+            // count
+            if(freq[f] > 0){
+                ctx.font = '8px Courier New'; ctx.fillStyle = '#e0e0e0'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                ctx.fillText(freq[f], histX + bw + 3, by + barH/2);
+            }
+        }
+
+        const avg = sum / N;
+        const dev = avg - 3.5;
+        updateDiceStats(N, avg, 3.5, dev);
+    }
+
+    function updateDiceStats(n, avg, exp, dev){
+        document.getElementById('diceStats').innerHTML =
+            stat('Rolls', n) +
+            stat('Average', n > 0 ? avg.toFixed(4) : '---') +
+            stat('Expected', exp.toFixed(1)) +
+            stat('Deviation', n > 0 ? (dev >= 0 ? '+' : '') + dev.toFixed(4) : '---');
+    }
+
+    function stat(label, val){
+        return '<div class="stat-box"><div class="stat-label">' + label + '</div><div class="stat-val">' + val + '</div></div>';
+    }
+
+    draw();
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 5: The Casino's Edge (American Roulette)
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('casinoCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const PAD = {top:25, right:30, bottom:40, left:70};
+    const plotW = W - PAD.left - PAD.right;
+    const plotH = H - PAD.top - PAD.bottom;
+
+    // American roulette: 18 red, 18 black, 2 green (0, 00)
+    // Bet $1 on red: win $1 with prob 18/38, lose $1 with prob 20/38
+    const WIN_PROB = 18/38;
+    const HOUSE_EDGE = -2/38; // expected profit per spin
+
+    let spins = [];   // 1 (win) or -1 (loss)
+    let netProfit = 0;
+    let autoOn = false;
+    let autoTimer = null;
+
+    function spinN(n){
+        for(let i = 0; i < n; i++){
+            const win = Math.random() < WIN_PROB ? 1 : -1;
+            spins.push(win);
+            netProfit += win;
+        }
+        draw();
+    }
+
+    function resetCasino(){
+        spins = []; netProfit = 0;
+        if(autoOn){ autoOn = false; clearInterval(autoTimer); document.getElementById('autoCasino').classList.remove('active'); }
+        draw();
+    }
+
+    document.getElementById('spin1').addEventListener('click', ()=> spinN(1));
+    document.getElementById('spin10').addEventListener('click', ()=> spinN(10));
+    document.getElementById('spin100').addEventListener('click', ()=> spinN(100));
+    document.getElementById('spin1000').addEventListener('click', ()=> spinN(1000));
+    document.getElementById('resetCasino').addEventListener('click', resetCasino);
+    document.getElementById('autoCasino').addEventListener('click', function(){
+        autoOn = !autoOn;
+        this.classList.toggle('active', autoOn);
+        if(autoOn){ autoTimer = setInterval(()=> spinN(1), 30); }
+        else { clearInterval(autoTimer); }
+    });
+
+    function subsample(arr, maxPts){
+        if(arr.length <= maxPts) return arr.map((v,i)=>({i:i, v:v}));
+        const pts = [];
+        const step = (arr.length - 1) / (maxPts - 1);
+        for(let k = 0; k < maxPts; k++){
+            const idx = Math.round(k * step);
+            pts.push({i: idx, v: arr[idx]});
+        }
+        return pts;
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        const N = spins.length;
+
+        // axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, H - PAD.bottom); ctx.lineTo(W - PAD.right, H - PAD.bottom); ctx.stroke();
+
+        ctx.font = '11px Georgia'; ctx.fillStyle = '#808098'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText('Number of spins', PAD.left + plotW/2, H - 14);
+        ctx.save(); ctx.translate(14, PAD.top + plotH/2); ctx.rotate(-Math.PI/2);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('Avg profit per spin ($)', 0, 0);
+        ctx.restore();
+
+        if(N === 0){
+            ctx.font = '14px Georgia'; ctx.fillStyle = '#606078'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('Place your first bet to begin', W/2, H/2);
+            updateCasinoStats(0, 0, 0);
+            return;
+        }
+
+        // compute running avg profit per spin
+        const runAvg = [];
+        let rSum = 0;
+        for(let i = 0; i < N; i++){
+            rSum += spins[i];
+            runAvg.push(rSum / (i + 1));
+        }
+
+        // y range: auto based on data
+        let yMin = Math.min(-0.3, ...runAvg, HOUSE_EDGE - 0.05);
+        let yMax = Math.max(0.3, ...runAvg);
+        // ensure zero is visible
+        yMin = Math.min(yMin, -0.05);
+        yMax = Math.max(yMax, 0.05);
+        const yRange = yMax - yMin;
+
+        function toSx(idx){ return PAD.left + ((idx+1) / Math.max(N, 10)) * plotW; }
+        function toSy(val){ return PAD.top + plotH * (1 - (val - yMin) / yRange); }
+
+        // zero line
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1;
+        const zeroY = toSy(0);
+        ctx.beginPath(); ctx.moveTo(PAD.left, zeroY); ctx.lineTo(W - PAD.right, zeroY); ctx.stroke();
+        ctx.font = '9px Courier New'; ctx.fillStyle = '#808098'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+        ctx.fillText('$0.00', PAD.left - 6, zeroY - 2);
+
+        // house edge line
+        ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
+        const heY = toSy(HOUSE_EDGE);
+        ctx.beginPath(); ctx.moveTo(PAD.left, heY); ctx.lineTo(W - PAD.right, heY); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = '10px Courier New'; ctx.fillStyle = '#f472b6'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText('House edge: -5.26%', W - PAD.right - 150, heY + 3);
+
+        // y-axis ticks
+        ctx.font = '9px Courier New'; ctx.fillStyle = '#808098'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        const yStep = niceStep(yRange, 5);
+        for(let y = Math.ceil(yMin / yStep) * yStep; y <= yMax; y += yStep){
+            const sy = toSy(y);
+            if(sy > PAD.top + 5 && sy < H - PAD.bottom - 5){
+                ctx.fillText((y >= 0 ? '+' : '') + y.toFixed(2), PAD.left - 6, sy);
+                ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(PAD.left, sy); ctx.lineTo(W - PAD.right, sy); ctx.stroke();
+            }
+        }
+
+        // running avg profit line
+        const pts = subsample(runAvg, 1200);
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        for(let k = 0; k < pts.length; k++){
+            const sx = toSx(pts[k].i), sy = toSy(pts[k].v);
+            // color: green if positive, red if negative
+            if(k === 0){ ctx.moveTo(sx, sy); }
+            else { ctx.lineTo(sx, sy); }
+        }
+        // gradient stroke: just use a single color based on final value
+        ctx.strokeStyle = runAvg[N-1] >= 0 ? '#2ecc71' : '#ef4444';
+        ctx.stroke();
+
+        // endpoint
+        const lastSx = toSx(N-1), lastSy = toSy(runAvg[N-1]);
+        ctx.fillStyle = runAvg[N-1] >= 0 ? '#2ecc71' : '#ef4444';
+        ctx.beginPath(); ctx.arc(lastSx, lastSy, 4, 0, Math.PI*2); ctx.fill();
+
+        const avgProfit = netProfit / N;
+        updateCasinoStats(N, netProfit, avgProfit);
+
+        // message
+        const msg = document.getElementById('casinoMsg');
+        if(N < 50){
+            msg.textContent = 'Early spins are volatile -- anything can happen in the short run.';
+        } else if(N < 500){
+            msg.textContent = 'The pattern is emerging. The average is drifting toward the house edge of -5.26%.';
+        } else {
+            msg.textContent = 'This is why casinos always win in the long run. The house edge is relentless.';
+        }
+    }
+
+    function updateCasinoStats(n, net, avg){
+        const statsEl = document.getElementById('casinoStats');
+        statsEl.innerHTML =
+            stat('Total Spins', n) +
+            stat('Net Profit', n > 0 ? (net >= 0 ? '+$' + net : '-$' + Math.abs(net)) : '---') +
+            stat('Avg/Spin', n > 0 ? (avg >= 0 ? '+' : '') + avg.toFixed(4) : '---') +
+            stat('House Edge', '-5.26%');
+    }
+
+    function stat(label, val){
+        return '<div class="stat-box"><div class="stat-label">' + label + '</div><div class="stat-val">' + val + '</div></div>';
+    }
+
+    function niceStep(range, targetTicks){
+        const rough = range / targetTicks;
+        const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+        const norm = rough / mag;
+        let nice;
+        if(norm <= 1.5) nice = 1;
+        else if(norm <= 3.5) nice = 2;
+        else if(norm <= 7.5) nice = 5;
+        else nice = 10;
+        return nice * mag;
+    }
+
+    draw();
+})();
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION 6: Formal Statement (epsilon-band visualization)
+   ═══════════════════════════════════════════════════════════════ */
+(function(){
+    const cvs = document.getElementById('formalCanvas');
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const PAD = {top:25, right:30, bottom:40, left:65};
+    const plotW = W - PAD.left - PAD.right;
+    const plotH = H - PAD.top - PAD.bottom;
+
+    // pre-generate a single long run for visualization
+    const TOTAL = 5000;
+    const flips = [];
+    const runProp = [];
+    let heads = 0;
+    for(let i = 0; i < TOTAL; i++){
+        const f = Math.random() < 0.5 ? 1 : 0;
+        flips.push(f);
+        heads += f;
+        runProp.push(heads / (i + 1));
+    }
+
+    function getEps(){ return parseInt(document.getElementById('epsSlider').value) / 100; }
+
+    document.getElementById('epsSlider').addEventListener('input', function(){
+        const eps = getEps();
+        document.getElementById('epsLabel').textContent = eps.toFixed(2);
+        draw();
+    });
+
+    function subsample(arr, maxPts){
+        if(arr.length <= maxPts) return arr.map((v,i)=>({i:i, v:v}));
+        const pts = [];
+        const step = (arr.length - 1) / (maxPts - 1);
+        for(let k = 0; k < maxPts; k++){
+            const idx = Math.round(k * step);
+            pts.push({i: idx, v: arr[idx]});
+        }
+        return pts;
+    }
+
+    function draw(){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        const eps = getEps();
+        const mu = 0.5;
+
+        // axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, H - PAD.bottom); ctx.lineTo(W - PAD.right, H - PAD.bottom); ctx.stroke();
+
+        // y range
+        const yMin = 0, yMax = 1;
+        function toSx(idx){ return PAD.left + ((idx+1) / TOTAL) * plotW; }
+        function toSy(val){ return PAD.top + plotH * (1 - val); }
+
+        // y ticks
+        ctx.font = '10px Courier New'; ctx.fillStyle = '#808098'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for(let y = 0; y <= 1; y += 0.25){
+            const sy = toSy(y);
+            ctx.fillText(y.toFixed(2), PAD.left - 8, sy);
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(PAD.left, sy); ctx.lineTo(W - PAD.right, sy); ctx.stroke();
+        }
+
+        ctx.font = '11px Georgia'; ctx.fillStyle = '#808098'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText('n (number of observations)', PAD.left + plotW/2, H - 14);
+
+        // x ticks
+        ctx.font = '10px Courier New'; ctx.textAlign = 'center';
+        const xMarks = [100, 500, 1000, 2000, 3000, 4000, 5000];
+        for(const xm of xMarks){
+            const sx = PAD.left + (xm / TOTAL) * plotW;
+            ctx.fillText(xm >= 1000 ? (xm/1000)+'k' : xm, sx, H - PAD.bottom + 6);
+        }
+
+        // epsilon band
+        const bandTop = toSy(mu + eps);
+        const bandBot = toSy(mu - eps);
+        ctx.fillStyle = 'rgba(244,114,182,0.08)';
+        ctx.fillRect(PAD.left, bandTop, plotW, bandBot - bandTop);
+        ctx.strokeStyle = 'rgba(244,114,182,0.4)'; ctx.lineWidth = 1; ctx.setLineDash([4,3]);
+        ctx.beginPath(); ctx.moveTo(PAD.left, bandTop); ctx.lineTo(W - PAD.right, bandTop); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(PAD.left, bandBot); ctx.lineTo(W - PAD.right, bandBot); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // label the band
+        ctx.font = '10px Courier New'; ctx.fillStyle = '#f472b6'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText('mu + eps = ' + (mu + eps).toFixed(2), PAD.left + 4, bandTop - 2);
+        ctx.textBaseline = 'top';
+        ctx.fillText('mu - eps = ' + (mu - eps).toFixed(2), PAD.left + 4, bandBot + 2);
+
+        // mu line
+        ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 1.5; ctx.setLineDash([6,4]);
+        ctx.beginPath(); ctx.moveTo(PAD.left, toSy(mu)); ctx.lineTo(W - PAD.right, toSy(mu)); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = '10px Courier New'; ctx.fillStyle = '#f472b6'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+        ctx.fillText('mu = 0.50', W - PAD.right - 4, toSy(mu) - 4);
+
+        // draw running proportion, color segments inside/outside band
+        const pts = subsample(runProp, 1200);
+        // inside = cyan, outside = red
+        for(let k = 1; k < pts.length; k++){
+            const inside = Math.abs(pts[k].v - mu) <= eps;
+            ctx.strokeStyle = inside ? '#22d3ee' : '#ef4444';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(toSx(pts[k-1].i), toSy(pts[k-1].v));
+            ctx.lineTo(toSx(pts[k].i), toSy(pts[k].v));
+            ctx.stroke();
+        }
+
+        // compute % of time outside band, in rolling windows
+        let outsideCount = 0;
+        let outsideLateCount = 0;
+        const lateStart = Math.floor(TOTAL * 0.5);
+        for(let i = 0; i < TOTAL; i++){
+            if(Math.abs(runProp[i] - mu) > eps) outsideCount++;
+            if(i >= lateStart && Math.abs(runProp[i] - mu) > eps) outsideLateCount++;
+        }
+        const pctOutside = (outsideCount / TOTAL * 100).toFixed(1);
+        const pctOutsideLate = (outsideLateCount / (TOTAL - lateStart) * 100).toFixed(1);
+
+        // Chebyshev bound at n = TOTAL: sigma^2 / (n * eps^2), sigma^2 for Bernoulli(0.5) = 0.25
+        const cheby = Math.min(1, 0.25 / (TOTAL * eps * eps));
+
+        const msgEl = document.getElementById('formalMsg');
+        msgEl.innerHTML =
+            'With eps = ' + eps.toFixed(2) + ': &ensp;' +
+            '<span style="color:#ef4444">' + pctOutside + '%</span> of all n are outside the band. &ensp;' +
+            'In the second half (n > 2500): <span style="color:#ef4444">' + pctOutsideLate + '%</span> outside. &ensp;' +
+            'Chebyshev bound at n=' + TOTAL + ': <span style="color:#f472b6">' + (cheby * 100).toFixed(2) + '%</span>';
+    }
+
+    draw();
+})();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

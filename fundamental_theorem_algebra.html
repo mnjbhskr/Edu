@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fundamental Theorem of Algebra — Visual Exploration</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a1a;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { font-size: 22px; margin-bottom: 2px; color: #f0f0f0; }
+        .subtitle { font-size: 13px; color: #aaa; margin-bottom: 4px; }
+        .analogy {
+            max-width: 960px;
+            text-align: center;
+            font-size: 13px;
+            color: #f0c040;
+            margin: 4px 0 12px 0;
+        }
+        .main-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .canvas-col { display: flex; flex-direction: column; gap: 4px; }
+        .two-plane { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+        .plane-wrap { text-align: center; }
+        .section-label {
+            font-size: 10px;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+        canvas {
+            background: #0d0d24;
+            border-radius: 10px;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+        }
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 260px;
+            max-width: 280px;
+        }
+        .card {
+            background: #16213e;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+            padding: 12px 14px;
+        }
+        .card-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #7da2e0;
+            margin-bottom: 6px;
+        }
+        .poly-display {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #f0f0f0;
+            text-align: center;
+            padding: 6px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            line-height: 1.4;
+            word-break: break-all;
+        }
+        .btn-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+        button {
+            background: #0f3460;
+            color: #e0e0e0;
+            border: 1px solid #1a5276;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        button:hover { background: #1a5276; }
+        button.active { background: #e94560; border-color: #e94560; }
+        button.deg-btn { min-width: 32px; text-align: center; }
+        .coeff-grid {
+            display: grid;
+            grid-template-columns: 28px 1fr 34px 1fr 34px;
+            gap: 2px 4px;
+            align-items: center;
+            font-size: 11px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .coeff-grid label { color: #888; font-family: monospace; }
+        .coeff-grid input[type=range] { width: 100%; height: 14px; }
+        .coeff-grid .val { font-family: monospace; font-size: 10px; color: #aaa; text-align: right; }
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin: 3px 0;
+            font-size: 11px;
+        }
+        .slider-row label { min-width: 20px; color: #888; }
+        .slider-row input[type=range] { flex: 1; height: 14px; }
+        .slider-row .val { font-family: monospace; font-size: 11px; min-width: 30px; text-align: right; color: #aaa; }
+        .winding-display {
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(46,204,113,0.1);
+            border: 1px solid rgba(46,204,113,0.2);
+        }
+        .winding-num {
+            font-size: 28px;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        .insight-box {
+            background: rgba(240,192,64,0.08);
+            border: 1px solid rgba(240,192,64,0.15);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            margin: 3px 0;
+        }
+        .check-row input { accent-color: #e94560; }
+    </style>
+</head>
+<body>
+    <h1>Fundamental Theorem of Algebra</h1>
+    <div class="subtitle">Every polynomial of degree n has exactly n roots in the complex plane</div>
+    <div class="analogy">
+        The winding number proof: as z traces a circle in the input plane, P(z) traces a curve in the output plane.
+        Count how many times that curve winds around the origin — that's exactly how many roots lie inside the circle.
+    </div>
+
+    <div class="main-row">
+        <div class="canvas-col">
+            <div class="two-plane">
+                <div class="plane-wrap">
+                    <div class="section-label">z-plane (input) — roots shown as dots</div>
+                    <canvas id="zCanvas" width="380" height="380"></canvas>
+                </div>
+                <div class="plane-wrap">
+                    <div class="section-label">w = P(z) plane — winding around origin</div>
+                    <canvas id="wCanvas" width="380" height="380"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="side-panel">
+            <div class="card">
+                <div class="card-title">Polynomial P(z)</div>
+                <div class="poly-display" id="polyDisp"></div>
+                <div class="card-title" style="margin-top:4px;">Degree</div>
+                <div class="btn-row" id="degBtns"></div>
+                <div class="card-title" style="margin-top:6px;">Presets</div>
+                <div class="btn-row" id="presetBtns"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Coefficients (c<sub>0</sub> ... c<sub>n-1</sub>)</div>
+                <div class="coeff-grid" id="coeffGrid"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Winding Circle</div>
+                <div class="slider-row">
+                    <label>R</label>
+                    <input type="range" id="radiusSlider" min="0.1" max="5" step="0.05" value="2.0">
+                    <span class="val" id="radiusVal">2.0</span>
+                </div>
+                <div class="check-row">
+                    <input type="checkbox" id="chkDomain" checked><label for="chkDomain">Show phase portrait (domain coloring)</label>
+                </div>
+                <div class="check-row">
+                    <input type="checkbox" id="chkPause"><label for="chkPause">Pause animation</label>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">Homotopy: P<sub>t</sub>(z) = z<sup>n</sup> + t(c<sub>n-1</sub>z<sup>n-1</sup>+...+c<sub>0</sub>)</div>
+                <div class="slider-row">
+                    <label>t</label>
+                    <input type="range" id="homoSlider" min="0" max="1" step="0.01" value="1">
+                    <span class="val" id="homoVal">1.00</span>
+                </div>
+                <div class="btn-row">
+                    <button id="btnHomoPlay" onclick="playHomotopy()">Play t: 0 &rarr; 1</button>
+                    <button onclick="document.getElementById('homoSlider').value=1;onParamChange();">Reset t=1</button>
+                </div>
+                <div style="font-size:10px;color:#666;margin-top:4px;">At t=0, all n roots collapse to the origin. As t&rarr;1, they spread to their true positions and can never escape.</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Winding Number</div>
+                <div class="winding-display" id="windingBox"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Insight</div>
+                <div id="insightBox" class="insight-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---- Canvases ----
+        const zC = document.getElementById('zCanvas'), zCtx = zC.getContext('2d');
+        const wC = document.getElementById('wCanvas'), wCtx = wC.getContext('2d');
+        const ZW = zC.width, ZH = zC.height;
+        const WW = wC.width, WH = wC.height;
+
+        // ---- Complex arithmetic ----
+        function cadd(a, b) { return { re: a.re + b.re, im: a.im + b.im }; }
+        function csub(a, b) { return { re: a.re - b.re, im: a.im - b.im }; }
+        function cmul(a, b) { return { re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re }; }
+        function cdiv(a, b) { const d = b.re * b.re + b.im * b.im; return d < 1e-30 ? { re: 0, im: 0 } : { re: (a.re * b.re + a.im * b.im) / d, im: (a.im * b.re - a.re * b.im) / d }; }
+        function cabs(z) { return Math.sqrt(z.re * z.re + z.im * z.im); }
+
+        // ---- State ----
+        let degree = 2;
+        let coeffs = []; // coeffs[i] = { re, im } for z^i, i=0..degree-1 (leading coeff z^n = 1 implicit)
+        let circleR = 2.0;
+        let homoT = 1.0;
+        let theta = 0;
+        let paused = false;
+        let showDomain = false;
+        let currentRoots = [];
+        let windingCurve = [];
+        let windingNumber = 0;
+        let dcImageData = null;
+        let dcDirty = true;
+        let homoAnimating = false;
+
+        const zViewR = 3.5; // z-plane shows [-3.5, 3.5]
+        let wViewR = 5;     // w-plane auto-scaled
+
+        // ---- Coordinate transforms ----
+        function zToSX(re) { return (re + zViewR) / (2 * zViewR) * ZW; }
+        function zToSY(im) { return (zViewR - im) / (2 * zViewR) * ZH; }
+        function sxToZ(px) { return px / ZW * 2 * zViewR - zViewR; }
+        function syToZ(py) { return zViewR - py / ZH * 2 * zViewR; }
+        function wToSX(re) { return (re + wViewR) / (2 * wViewR) * WW; }
+        function wToSY(im) { return (wViewR - im) / (2 * wViewR) * WH; }
+
+        // ---- Polynomial evaluation (Horner, monic, with homotopy) ----
+        function evalPoly(z) {
+            let result = { re: 1, im: 0 };
+            for (let i = degree - 1; i >= 0; i--) {
+                result = cmul(result, z);
+                result = cadd(result, { re: homoT * coeffs[i].re, im: homoT * coeffs[i].im });
+            }
+            return result;
+        }
+
+        // ---- Root finding: Durand-Kerner ----
+        function findRoots() {
+            const n = degree;
+            if (n === 0) return [];
+            // Initial guesses — use previous roots if same degree, else spread on circle
+            let roots;
+            if (currentRoots.length === n) {
+                roots = currentRoots.map(r => ({ re: r.re, im: r.im }));
+            } else {
+                roots = [];
+                for (let i = 0; i < n; i++) {
+                    const a = (2 * Math.PI * i / n) + 0.37;
+                    roots.push({ re: 1.2 * Math.cos(a), im: 1.2 * Math.sin(a) });
+                }
+            }
+            for (let iter = 0; iter < 300; iter++) {
+                let maxD = 0;
+                const nr = [];
+                for (let i = 0; i < n; i++) {
+                    const pz = evalPoly(roots[i]);
+                    let denom = { re: 1, im: 0 };
+                    for (let j = 0; j < n; j++) {
+                        if (j === i) continue;
+                        denom = cmul(denom, csub(roots[i], roots[j]));
+                    }
+                    if (cabs(denom) < 1e-20) { nr.push(roots[i]); continue; }
+                    const delta = cdiv(pz, denom);
+                    nr.push(csub(roots[i], delta));
+                    maxD = Math.max(maxD, cabs(delta));
+                }
+                roots = nr;
+                if (maxD < 1e-12) break;
+            }
+            return roots;
+        }
+
+        // ---- Winding curve & number ----
+        function computeWindingCurve() {
+            windingCurve = [];
+            const N = 600;
+            for (let i = 0; i <= N; i++) {
+                const t = (i / N) * 2 * Math.PI;
+                const z = { re: circleR * Math.cos(t), im: circleR * Math.sin(t) };
+                windingCurve.push({ t: t, z: z, w: evalPoly(z) });
+            }
+        }
+
+        function computeWindingNumber() {
+            let total = 0;
+            for (let i = 1; i < windingCurve.length; i++) {
+                const a1 = Math.atan2(windingCurve[i - 1].w.im, windingCurve[i - 1].w.re);
+                const a2 = Math.atan2(windingCurve[i].w.im, windingCurve[i].w.re);
+                let da = a2 - a1;
+                if (da > Math.PI) da -= 2 * Math.PI;
+                if (da < -Math.PI) da += 2 * Math.PI;
+                total += da;
+            }
+            return Math.round(total / (2 * Math.PI));
+        }
+
+        function countRootsInside() {
+            return currentRoots.filter(r => cabs(r) < circleR + 0.001).length;
+        }
+
+        // ---- Auto-scale w-plane ----
+        function autoScaleW() {
+            let maxW = 1;
+            windingCurve.forEach(p => { maxW = Math.max(maxW, cabs(p.w)); });
+            wViewR = Math.max(2, maxW * 1.3);
+        }
+
+        // ---- HSL to RGB ----
+        function hslToRgb(h, s, l) {
+            h = ((h % 1) + 1) % 1;
+            const c = (1 - Math.abs(2 * l - 1)) * s;
+            const x = c * (1 - Math.abs((h * 6) % 2 - 1));
+            const m = l - c / 2;
+            let r, g, b;
+            const sec = Math.floor(h * 6) % 6;
+            if (sec === 0) { r = c; g = x; b = 0; }
+            else if (sec === 1) { r = x; g = c; b = 0; }
+            else if (sec === 2) { r = 0; g = c; b = x; }
+            else if (sec === 3) { r = 0; g = x; b = c; }
+            else if (sec === 4) { r = x; g = 0; b = c; }
+            else { r = c; g = 0; b = x; }
+            return [(r + m) * 255, (g + m) * 255, (b + m) * 255];
+        }
+
+        // ---- Domain coloring ----
+        function computeDomainColoring() {
+            dcImageData = zCtx.createImageData(ZW, ZH);
+            const d = dcImageData.data;
+            for (let py = 0; py < ZH; py++) {
+                const im = syToZ(py);
+                for (let px = 0; px < ZW; px++) {
+                    const re = sxToZ(px);
+                    const w = evalPoly({ re, im });
+                    const arg = Math.atan2(w.im, w.re);
+                    const mag = Math.sqrt(w.re * w.re + w.im * w.im);
+                    const hue = (arg + Math.PI) / (2 * Math.PI);
+                    const logM = Math.log(mag + 1e-10);
+                    const frac = logM - Math.floor(logM);
+                    const bright = 0.45 + 0.12 * Math.cos(frac * Math.PI * 2);
+                    const [r, g, b] = hslToRgb(hue, 0.85, bright);
+                    const idx = (py * ZW + px) * 4;
+                    d[idx] = r; d[idx + 1] = g; d[idx + 2] = b; d[idx + 3] = 255;
+                }
+            }
+            dcDirty = false;
+        }
+
+        // ---- Drawing: z-plane ----
+        function drawZPlane() {
+            zCtx.clearRect(0, 0, ZW, ZH);
+
+            // Background: domain coloring or plain
+            if (showDomain) {
+                if (dcDirty) computeDomainColoring();
+                zCtx.putImageData(dcImageData, 0, 0);
+                // Darken slightly for contrast
+                zCtx.fillStyle = 'rgba(0,0,0,0.15)';
+                zCtx.fillRect(0, 0, ZW, ZH);
+            } else {
+                // Grid
+                zCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+                zCtx.lineWidth = 1;
+                for (let v = Math.ceil(-zViewR); v <= Math.floor(zViewR); v++) {
+                    const sx = zToSX(v);
+                    zCtx.beginPath(); zCtx.moveTo(sx, 0); zCtx.lineTo(sx, ZH); zCtx.stroke();
+                    const sy = zToSY(v);
+                    zCtx.beginPath(); zCtx.moveTo(0, sy); zCtx.lineTo(ZW, sy); zCtx.stroke();
+                }
+                // Axes
+                zCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+                zCtx.lineWidth = 1.5;
+                const ox = zToSX(0), oy = zToSY(0);
+                zCtx.beginPath(); zCtx.moveTo(ox, 0); zCtx.lineTo(ox, ZH); zCtx.stroke();
+                zCtx.beginPath(); zCtx.moveTo(0, oy); zCtx.lineTo(ZW, oy); zCtx.stroke();
+                // Labels
+                zCtx.fillStyle = 'rgba(255,255,255,0.2)';
+                zCtx.font = '10px monospace';
+                zCtx.textAlign = 'center';
+                for (let v = Math.ceil(-zViewR); v <= Math.floor(zViewR); v++) {
+                    if (v === 0) continue;
+                    zCtx.fillText(v, zToSX(v), oy + 12);
+                }
+                zCtx.textAlign = 'right';
+                for (let v = Math.ceil(-zViewR); v <= Math.floor(zViewR); v++) {
+                    if (v === 0) continue;
+                    zCtx.fillText(v + 'i', ox - 5, zToSY(v) + 4);
+                }
+            }
+
+            // Axis labels
+            zCtx.fillStyle = 'rgba(255,255,255,0.35)';
+            zCtx.font = 'italic 12px serif';
+            zCtx.textAlign = 'left';
+            zCtx.fillText('Re', ZW - 22, zToSY(0) - 6);
+            zCtx.textAlign = 'center';
+            zCtx.fillText('Im', zToSX(0) + 14, 14);
+
+            // Winding circle
+            zCtx.beginPath();
+            zCtx.arc(zToSX(0), zToSY(0), circleR / (2 * zViewR) * ZW, 0, Math.PI * 2);
+            zCtx.strokeStyle = 'rgba(255,255,255,0.25)';
+            zCtx.lineWidth = 1.5;
+            zCtx.setLineDash([6, 4]);
+            zCtx.stroke();
+            zCtx.setLineDash([]);
+
+            // Roots
+            const rootColors = ['#e94560', '#3b82f6', '#2ecc71', '#f0c040', '#a78bfa', '#ff6b35'];
+            currentRoots.forEach((r, i) => {
+                const sx = zToSX(r.re), sy = zToSY(r.im);
+                // Glow
+                zCtx.beginPath(); zCtx.arc(sx, sy, 10, 0, Math.PI * 2);
+                zCtx.fillStyle = rootColors[i % rootColors.length] + '30';
+                zCtx.fill();
+                // Dot
+                zCtx.beginPath(); zCtx.arc(sx, sy, 5, 0, Math.PI * 2);
+                zCtx.fillStyle = rootColors[i % rootColors.length];
+                zCtx.fill();
+                zCtx.strokeStyle = '#fff'; zCtx.lineWidth = 1.5; zCtx.stroke();
+                // Label
+                zCtx.font = '9px monospace';
+                zCtx.fillStyle = rootColors[i % rootColors.length];
+                zCtx.textAlign = 'left';
+                const lbl = fmtC(r);
+                zCtx.fillText('r' + (i + 1) + '=' + lbl, sx + 9, sy - 8);
+            });
+
+            // Animated point z on circle
+            const zPt = { re: circleR * Math.cos(theta), im: circleR * Math.sin(theta) };
+            const zpx = zToSX(zPt.re), zpy = zToSY(zPt.im);
+            zCtx.beginPath(); zCtx.arc(zpx, zpy, 6, 0, Math.PI * 2);
+            zCtx.fillStyle = '#ff9f43';
+            zCtx.fill();
+            zCtx.strokeStyle = '#fff'; zCtx.lineWidth = 1.5; zCtx.stroke();
+            zCtx.font = 'bold 10px sans-serif';
+            zCtx.fillStyle = '#ff9f43';
+            zCtx.textAlign = 'center';
+            zCtx.fillText('z', zpx, zpy - 10);
+
+            // Circle radius label
+            zCtx.font = '10px monospace';
+            zCtx.fillStyle = 'rgba(255,255,255,0.3)';
+            zCtx.textAlign = 'left';
+            zCtx.fillText('R=' + circleR.toFixed(2), zToSX(0) + 5, zToSY(0) - circleR / (2 * zViewR) * ZH - 6);
+        }
+
+        // ---- Drawing: w-plane ----
+        function drawWPlane() {
+            wCtx.clearRect(0, 0, WW, WH);
+
+            // Grid
+            const step = Math.max(1, Math.floor(wViewR / 3));
+            wCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+            wCtx.lineWidth = 1;
+            for (let v = -Math.floor(wViewR); v <= Math.floor(wViewR); v += step) {
+                const sx = wToSX(v);
+                wCtx.beginPath(); wCtx.moveTo(sx, 0); wCtx.lineTo(sx, WH); wCtx.stroke();
+                const sy = wToSY(v);
+                wCtx.beginPath(); wCtx.moveTo(0, sy); wCtx.lineTo(WW, sy); wCtx.stroke();
+            }
+            // Axes
+            wCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+            wCtx.lineWidth = 1.5;
+            const ox = wToSX(0), oy = wToSY(0);
+            wCtx.beginPath(); wCtx.moveTo(ox, 0); wCtx.lineTo(ox, WH); wCtx.stroke();
+            wCtx.beginPath(); wCtx.moveTo(0, oy); wCtx.lineTo(WW, oy); wCtx.stroke();
+
+            // Origin crosshairs (target)
+            wCtx.strokeStyle = 'rgba(233,69,96,0.5)';
+            wCtx.lineWidth = 2;
+            const cr = 12;
+            wCtx.beginPath(); wCtx.moveTo(ox - cr, oy); wCtx.lineTo(ox + cr, oy); wCtx.stroke();
+            wCtx.beginPath(); wCtx.moveTo(ox, oy - cr); wCtx.lineTo(ox, oy + cr); wCtx.stroke();
+            wCtx.beginPath(); wCtx.arc(ox, oy, 8, 0, Math.PI * 2);
+            wCtx.strokeStyle = 'rgba(233,69,96,0.3)';
+            wCtx.stroke();
+            wCtx.font = '9px monospace';
+            wCtx.fillStyle = 'rgba(233,69,96,0.5)';
+            wCtx.textAlign = 'left';
+            wCtx.fillText('origin', ox + 12, oy - 10);
+
+            // Winding curve — draw as color-gradient path
+            if (windingCurve.length > 1) {
+                for (let i = 1; i < windingCurve.length; i++) {
+                    const p0 = windingCurve[i - 1].w;
+                    const p1 = windingCurve[i].w;
+                    const frac = i / windingCurve.length;
+                    const hue = frac * 300; // cyan -> magenta
+                    wCtx.strokeStyle = 'hsl(' + hue + ',80%,55%)';
+                    wCtx.lineWidth = 2;
+                    wCtx.beginPath();
+                    wCtx.moveTo(wToSX(p0.re), wToSY(p0.im));
+                    wCtx.lineTo(wToSX(p1.re), wToSY(p1.im));
+                    wCtx.stroke();
+                }
+            }
+
+            // Animated point w = P(z)
+            const idx = Math.floor((theta / (2 * Math.PI)) * (windingCurve.length - 1));
+            if (windingCurve[idx]) {
+                const w = windingCurve[idx].w;
+                const wpx = wToSX(w.re), wpy = wToSY(w.im);
+                wCtx.beginPath(); wCtx.arc(wpx, wpy, 6, 0, Math.PI * 2);
+                wCtx.fillStyle = '#ff9f43';
+                wCtx.fill();
+                wCtx.strokeStyle = '#fff'; wCtx.lineWidth = 1.5; wCtx.stroke();
+                wCtx.font = 'bold 10px sans-serif';
+                wCtx.fillStyle = '#ff9f43';
+                wCtx.textAlign = 'center';
+                wCtx.fillText('P(z)', wpx, wpy - 10);
+            }
+
+            // Winding number text on canvas
+            wCtx.font = 'bold 16px monospace';
+            wCtx.fillStyle = windingNumber > 0 ? '#2ecc71' : '#e94560';
+            wCtx.textAlign = 'left';
+            wCtx.fillText('Winding: ' + windingNumber, 10, 22);
+
+            // Axis labels
+            wCtx.fillStyle = 'rgba(255,255,255,0.3)';
+            wCtx.font = 'italic 12px serif';
+            wCtx.textAlign = 'left';
+            wCtx.fillText('Re', WW - 22, wToSY(0) - 6);
+            wCtx.textAlign = 'center';
+            wCtx.fillText('Im', wToSX(0) + 14, 14);
+        }
+
+        // ---- Polynomial display ----
+        function fmtN(v) {
+            if (Math.abs(v - Math.round(v)) < 0.01) return Math.round(v).toString();
+            return v.toFixed(1);
+        }
+        function fmtC(z) {
+            const re = z.re, im = z.im;
+            if (Math.abs(re) < 0.01 && Math.abs(im) < 0.01) return '0';
+            if (Math.abs(im) < 0.01) return fmtN(re);
+            if (Math.abs(re) < 0.01) return fmtN(im) + 'i';
+            return fmtN(re) + (im >= 0 ? '+' : '') + fmtN(im) + 'i';
+        }
+
+        function updatePolyDisplay() {
+            let html = 'P(z) = z';
+            if (degree > 1) html += '<sup>' + degree + '</sup>';
+            for (let i = degree - 1; i >= 0; i--) {
+                const c = { re: homoT * coeffs[i].re, im: homoT * coeffs[i].im };
+                if (Math.abs(c.re) < 0.005 && Math.abs(c.im) < 0.005) continue;
+                let cStr;
+                const hasIm = Math.abs(c.im) >= 0.005;
+                const hasRe = Math.abs(c.re) >= 0.005;
+                if (hasRe && hasIm) cStr = '(' + fmtN(c.re) + (c.im >= 0 ? '+' : '') + fmtN(c.im) + 'i)';
+                else if (hasIm) cStr = fmtN(c.im) + 'i';
+                else cStr = fmtN(c.re);
+
+                if (i > 0) {
+                    const zPart = i === 1 ? 'z' : 'z<sup>' + i + '</sup>';
+                    if (cStr === '1') html += ' + ' + zPart;
+                    else if (cStr === '-1') html += ' - ' + zPart;
+                    else if (cStr.startsWith('-') || cStr.startsWith('(')) html += ' + ' + cStr + zPart;
+                    else html += ' + ' + cStr + zPart;
+                } else {
+                    if (!cStr.startsWith('-') && !cStr.startsWith('(')) html += ' + ' + cStr;
+                    else if (cStr.startsWith('-')) html += ' - ' + cStr.substring(1);
+                    else html += ' + ' + cStr;
+                }
+            }
+            // Clean up "+-" to "-"
+            html = html.replace(/\+ -/g, '- ');
+            document.getElementById('polyDisp').innerHTML = html;
+        }
+
+        // ---- Winding display ----
+        function updateWindingDisplay() {
+            const n = countRootsInside();
+            const box = document.getElementById('windingBox');
+            const col = windingNumber > 0 ? '#2ecc71' : (windingNumber === 0 ? '#888' : '#e94560');
+            box.innerHTML = '<div class="winding-num" style="color:' + col + ';">' + windingNumber + '</div>'
+                + '<div style="font-size:11px;color:#aaa;margin-top:4px;">Roots inside circle: <b>' + n + '</b></div>'
+                + '<div style="font-size:10px;color:#666;margin-top:2px;">Winding number = roots inside (argument principle)</div>';
+        }
+
+        // ---- Presets ----
+        const presets = [
+            {
+                name: 'z\u00B2-1',
+                deg: 2,
+                c: [{ re: -1, im: 0 }, { re: 0, im: 0 }],
+                insight: '<b>z\u00B2 \u2212 1 = (z\u22121)(z+1)</b><br>Two real roots at \u00B11. The simplest factorisation. Set R < 1 and the winding number drops to 0 (no roots inside). Increase R past 1 and each root adds +1 to the winding count.',
+            },
+            {
+                name: 'z\u00B2+1',
+                deg: 2,
+                c: [{ re: 1, im: 0 }, { re: 0, im: 0 }],
+                insight: '<b>z\u00B2 + 1 = (z\u2212i)(z+i)</b><br>No real roots! But the FTA guarantees two roots in \u2102: they are \u00B1i on the imaginary axis. This is the fundamental insight: \u211D is not algebraically closed, but \u2102 is. Every polynomial splits completely over \u2102.',
+            },
+            {
+                name: 'z\u00B3-1',
+                deg: 3,
+                c: [{ re: -1, im: 0 }, { re: 0, im: 0 }, { re: 0, im: 0 }],
+                insight: '<b>z\u00B3 \u2212 1</b>: the cube roots of unity.<br>Three roots equally spaced on the unit circle at angles 0\u00B0, 120\u00B0, 240\u00B0. This is the cyclic group \u2124\u2083 made visible. The winding number is 3 for R > 1.',
+            },
+            {
+                name: 'z\u2074+1',
+                deg: 4,
+                c: [{ re: 1, im: 0 }, { re: 0, im: 0 }, { re: 0, im: 0 }, { re: 0, im: 0 }],
+                insight: '<b>z\u2074 + 1</b>: four complex roots, none real.<br>The 4th roots of \u22121 sit at e<sup>i\u03C0/4</sup>, e<sup>i3\u03C0/4</sup>, e<sup>i5\u03C0/4</sup>, e<sup>i7\u03C0/4</sup> \u2014 a square rotated 45\u00B0 from the axes. Even a "positive" polynomial like z\u2074+1 is forced by the FTA to have roots.',
+            },
+            {
+                name: '(z-1)\u00B3',
+                deg: 3,
+                c: [{ re: -1, im: 0 }, { re: 3, im: 0 }, { re: -3, im: 0 }],
+                insight: '<b>(z\u22121)\u00B3 = z\u00B3 \u2212 3z\u00B2 + 3z \u2212 1</b><br>A triple root at z=1. The FTA counts <b>with multiplicity</b>: degree 3 means 3 roots, all at the same point. Watch the winding: the curve winds 3 times even with just one visible root. Try the homotopy \u2014 three roots converge to a single point.',
+            },
+            {
+                name: 'z\u2075-z',
+                deg: 5,
+                c: [{ re: 0, im: 0 }, { re: -1, im: 0 }, { re: 0, im: 0 }, { re: 0, im: 0 }, { re: 0, im: 0 }],
+                insight: '<b>z\u2075 \u2212 z = z(z\u22121)(z+1)(z\u2212i)(z+i)</b><br>Five roots forming a cross: 0, \u00B11, \u00B1i. Increase R slowly from 0: winding jumps 0\u21921 at R=0 (root at origin), then 1\u21923 at R=1 (\u00B11), then 3\u21925 at R=1 (\u00B1i). Each root you enclose adds exactly +1.',
+            },
+            {
+                name: 'z\u00B3+iz-(1+i)',
+                deg: 3,
+                c: [{ re: -1, im: -1 }, { re: 0, im: 1 }, { re: 0, im: 0 }],
+                insight: '<b>Complex coefficients:</b> z\u00B3 + iz \u2212 (1+i).<br>The FTA works even when coefficients are complex, not just real. With real coefficients, complex roots come in conjugate pairs. With complex coefficients, that symmetry breaks \u2014 roots can be anywhere in \u2102. Toggle domain coloring to see the phase vortices.',
+            },
+        ];
+
+        // ---- UI builders ----
+        function buildDegreeButtons() {
+            const div = document.getElementById('degBtns');
+            div.innerHTML = '';
+            for (let d = 2; d <= 6; d++) {
+                const btn = document.createElement('button');
+                btn.className = 'deg-btn' + (d === degree ? ' active' : '');
+                btn.textContent = d;
+                btn.onclick = () => { setDegree(d); };
+                div.appendChild(btn);
+            }
+        }
+
+        function buildPresetButtons() {
+            const div = document.getElementById('presetBtns');
+            div.innerHTML = '';
+            presets.forEach((p, i) => {
+                const btn = document.createElement('button');
+                btn.textContent = p.name;
+                btn.onclick = () => { loadPreset(i); };
+                div.appendChild(btn);
+            });
+        }
+
+        function buildCoeffSliders() {
+            const grid = document.getElementById('coeffGrid');
+            grid.innerHTML = '';
+            for (let i = 0; i < degree; i++) {
+                if (!coeffs[i]) coeffs[i] = { re: 0, im: 0 };
+                // Label
+                const lbl = document.createElement('label');
+                lbl.textContent = 'c' + i;
+                grid.appendChild(lbl);
+                // Re slider
+                const reSlider = document.createElement('input');
+                reSlider.type = 'range'; reSlider.min = -3; reSlider.max = 3; reSlider.step = 0.1;
+                reSlider.value = coeffs[i].re;
+                reSlider.id = 'cRe' + i;
+                reSlider.oninput = onCoeffChange;
+                grid.appendChild(reSlider);
+                // Re value
+                const reVal = document.createElement('span');
+                reVal.className = 'val';
+                reVal.id = 'cReV' + i;
+                reVal.textContent = fmtN(coeffs[i].re);
+                grid.appendChild(reVal);
+                // Im slider
+                const imSlider = document.createElement('input');
+                imSlider.type = 'range'; imSlider.min = -3; imSlider.max = 3; imSlider.step = 0.1;
+                imSlider.value = coeffs[i].im;
+                imSlider.id = 'cIm' + i;
+                imSlider.oninput = onCoeffChange;
+                grid.appendChild(imSlider);
+                // Im value
+                const imVal = document.createElement('span');
+                imVal.className = 'val';
+                imVal.id = 'cImV' + i;
+                imVal.textContent = fmtN(coeffs[i].im) + 'i';
+                grid.appendChild(imVal);
+            }
+        }
+
+        // ---- Event handlers ----
+        function onCoeffChange() {
+            for (let i = 0; i < degree; i++) {
+                coeffs[i] = {
+                    re: parseFloat(document.getElementById('cRe' + i).value),
+                    im: parseFloat(document.getElementById('cIm' + i).value),
+                };
+                document.getElementById('cReV' + i).textContent = fmtN(coeffs[i].re);
+                document.getElementById('cImV' + i).textContent = fmtN(coeffs[i].im) + 'i';
+            }
+            onParamChange();
+        }
+
+        function onParamChange() {
+            circleR = parseFloat(document.getElementById('radiusSlider').value);
+            document.getElementById('radiusVal').textContent = circleR.toFixed(2);
+            homoT = parseFloat(document.getElementById('homoSlider').value);
+            document.getElementById('homoVal').textContent = homoT.toFixed(2);
+            showDomain = document.getElementById('chkDomain').checked;
+            paused = document.getElementById('chkPause').checked;
+            recompute();
+        }
+
+        function recompute() {
+            currentRoots = findRoots();
+            computeWindingCurve();
+            windingNumber = computeWindingNumber();
+            autoScaleW();
+            dcDirty = true;
+            updatePolyDisplay();
+            updateWindingDisplay();
+        }
+
+        function setDegree(d) {
+            degree = d;
+            // Pad or trim coefficients
+            while (coeffs.length < degree) coeffs.push({ re: 0, im: 0 });
+            coeffs.length = degree;
+            currentRoots = []; // force fresh root finding
+            buildDegreeButtons();
+            buildCoeffSliders();
+            onParamChange();
+        }
+
+        function loadPreset(i) {
+            const p = presets[i];
+            degree = p.deg;
+            coeffs = p.c.map(c => ({ re: c.re, im: c.im }));
+            currentRoots = []; // force fresh
+            document.getElementById('homoSlider').value = 1;
+            buildDegreeButtons();
+            buildCoeffSliders();
+            onParamChange();
+            document.getElementById('insightBox').innerHTML = p.insight;
+        }
+
+        function playHomotopy() {
+            if (homoAnimating) return;
+            homoAnimating = true;
+            document.getElementById('btnHomoPlay').classList.add('active');
+            let t = 0;
+            const slider = document.getElementById('homoSlider');
+            function step() {
+                t += 0.008;
+                if (t > 1) { t = 1; homoAnimating = false; document.getElementById('btnHomoPlay').classList.remove('active'); }
+                slider.value = t;
+                onParamChange();
+                if (homoAnimating) requestAnimationFrame(step);
+            }
+            step();
+        }
+
+        // ---- Listeners ----
+        document.getElementById('radiusSlider').addEventListener('input', onParamChange);
+        document.getElementById('homoSlider').addEventListener('input', onParamChange);
+        document.getElementById('chkDomain').addEventListener('change', onParamChange);
+        document.getElementById('chkPause').addEventListener('change', onParamChange);
+
+        // ---- Animation ----
+        function animate() {
+            if (!paused && !homoAnimating) {
+                theta += 0.015;
+                if (theta > 2 * Math.PI) theta -= 2 * Math.PI;
+            }
+            drawZPlane();
+            drawWPlane();
+            requestAnimationFrame(animate);
+        }
+
+        // ---- Initialise ----
+        function init() {
+            buildDegreeButtons();
+            buildPresetButtons();
+            loadPreset(0);
+            document.getElementById('insightBox').innerHTML =
+                '<b>Welcome!</b> This visualisation demonstrates the <b>Fundamental Theorem of Algebra</b>: every polynomial of degree n has exactly n roots in \u2102 (counting multiplicity).'
+                + '<br><br><b>Key idea (winding number):</b> As z traces the dashed circle in the left plane, P(z) traces the colored curve in the right plane. The number of times this curve <b>winds around the origin</b> (the red crosshair) equals the number of roots inside the circle.'
+                + '<br><br><b>Try:</b> Adjust the circle radius R and watch the winding number change as the circle passes over roots. Toggle "phase portrait" to see roots as colour vortices. Use the homotopy slider to watch roots emerge from the origin.'
+                + '<br><br><b>Presets:</b> Start with z\u00B2\u22121 (two real roots) then try z\u00B2+1 (pure imaginary roots \u2014 the FTA in action).';
+            animate();
+        }
+        init();
+    </script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

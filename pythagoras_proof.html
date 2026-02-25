@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Proof of the Pythagorean Theorem</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #f0f0f0;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 14px;
+        }
+        canvas {
+            background: #16213e;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        .controls {
+            margin-top: 16px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #0f3460;
+            color: #e0e0e0;
+            border: 1px solid #1a5276;
+            padding: 8px 22px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #1a5276; }
+        button.primary { background: #e94560; border-color: #e94560; }
+        button.primary:hover { background: #c73750; }
+        button:disabled { opacity: 0.4; cursor: default; }
+        .step-label {
+            font-size: 14px;
+            color: #ccc;
+            min-width: 100px;
+            text-align: center;
+        }
+        .equation-bar {
+            margin-top: 16px;
+            font-size: 22px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            min-height: 32px;
+        }
+        .info {
+            margin-top: 12px;
+            max-width: 750px;
+            text-align: center;
+            font-size: 13px;
+            color: #999;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <h1>Visual Proof of the Pythagorean Theorem</h1>
+    <p class="subtitle">a&sup2; + b&sup2; = c&sup2; &mdash; watch the squares rearrange to prove it</p>
+    <canvas id="canvas" width="900" height="500"></canvas>
+    <div class="controls">
+        <button onclick="prevStep()">&larr; Back</button>
+        <span class="step-label" id="stepLabel">Step 1 / 6</span>
+        <button class="primary" onclick="nextStep()">Next &rarr;</button>
+        <button onclick="resetAll()" style="margin-left:16px">Reset</button>
+    </div>
+    <div class="equation-bar" id="equation"></div>
+    <div class="info" id="narration"></div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Triangle sides (in abstract units, scaled to pixels)
+        const a = 3, b = 4, c = 5;
+        const S = 52;  // pixels per unit
+
+        // Colours
+        const COL_A   = '#ff6b6b';  // side a / a-square
+        const COL_B   = '#4ecdc4';  // side b / b-square
+        const COL_C   = '#f0c040';  // side c / c-square
+        const COL_TRI = 'rgba(100, 140, 220, 0.55)';  // triangle fill
+        const COL_TRI_STROKE = '#7da2e0';
+
+        let step = 0;
+        const totalSteps = 6;
+        let animProgress = 1;  // 0..1 for animated transitions
+        let animDir = 0;       // 0 = idle, 1 = forward
+        let animRAF = null;
+
+        // ---- Narration per step ----
+        const narrations = [
+            'Here is a <b>right triangle</b> with sides <b style="color:#ff6b6b">a = 3</b>, <b style="color:#4ecdc4">b = 4</b>, and hypotenuse <b style="color:#f0c040">c = 5</b>. We want to prove that a&sup2; + b&sup2; = c&sup2;.',
+            'We build a large square with side length <b>(a + b)</b>. Inside it, we arrange <b>four copies</b> of our triangle. The space left in the middle is a tilted square with side <b style="color:#f0c040">c</b>.',
+            'The area of the big square is <b>(a+b)&sup2;</b>. It equals the <b>4 triangles</b> plus the <b style="color:#f0c040">yellow c&sup2; square</b> in the middle: &nbsp; (a+b)&sup2; = 4 &times; &frac12;ab + c&sup2;',
+            'Now watch: we <b>slide the triangles</b> into a new arrangement inside the <b>same big square</b>. The total area hasn\'t changed &mdash; only the triangles moved.',
+            'In this new arrangement, the four triangles leave two gaps: a <b style="color:#ff6b6b">red square of area a&sup2;</b> and a <b style="color:#4ecdc4">teal square of area b&sup2;</b>. So: &nbsp; (a+b)&sup2; = 4 &times; &frac12;ab + a&sup2; + b&sup2;',
+            'Both arrangements fill the <b>same big square</b>, so the leftover areas must be equal:<br><b style="color:#f0c040">c&sup2;</b> = <b style="color:#ff6b6b">a&sup2;</b> + <b style="color:#4ecdc4">b&sup2;</b> &nbsp;&mdash;&nbsp; <b>Q.E.D.</b>'
+        ];
+
+        const equations = [
+            '',
+            '',
+            '(a+b)\u00B2 = 4 \u00D7 \u00BDab + c\u00B2',
+            '',
+            '(a+b)\u00B2 = 4 \u00D7 \u00BDab + a\u00B2 + b\u00B2',
+            'c\u00B2 = a\u00B2 + b\u00B2  \u2714'
+        ];
+
+        const eqColours = ['', '', '#f0c040', '', '#4ecdc4', '#4f8'];
+
+        // ---- Triangle corner positions for the two arrangements ----
+        // Big square top-left at (ox, oy), side = (a+b)*S
+        const side = (a + b) * S;
+
+        // Arrangement 1: four triangles forming c² hole in centre
+        //   Triangle vertices as offsets from big-square top-left
+        //   Each triangle: [x1,y1, x2,y2, x3,y3] (the right-angle is at vertex 2)
+        function arr1(ox, oy) {
+            return [
+                // Top-left triangle: right angle at top-right
+                [ox,        oy + a*S,   ox,        oy,         ox + b*S,  oy        ],
+                // Top-right triangle: right angle at bottom-right
+                [ox + b*S,  oy,         ox + side, oy,         ox + side, oy + a*S  ],
+                // Bottom-right triangle: right angle at bottom-left
+                [ox + side, oy + a*S,   ox + side, oy + side,  ox + a*S,  oy + side ],
+                // Bottom-left triangle: right angle at top-left
+                [ox + a*S,  oy + side,  ox,        oy + side,  ox,        oy + a*S  ],
+            ];
+        }
+
+        // Arrangement 2: four triangles with a² + b² gap
+        function arr2(ox, oy) {
+            return [
+                // Top-left triangle: fits in top-left, right angle at top-left
+                [ox + a*S,  oy,         ox,        oy,         ox,        oy + a*S  ],
+                // Top-right triangle: right angle at top-right
+                [ox + a*S,  oy,         ox + side, oy,         ox + side, oy + b*S  ],
+                // Bottom-right triangle: right angle at bottom-right
+                [ox + a*S,  oy + side,  ox + side, oy + side,  ox + side, oy + b*S  ],
+                // Bottom-left triangle: right angle at bottom-left
+                [ox,        oy + a*S,   ox,        oy + side,  ox + a*S,  oy + side ],
+            ];
+        }
+
+        function lerp(a, b, t) { return a + (b - a) * t; }
+
+        function lerpTri(t1, t2, t) {
+            return t1.map((v, i) => lerp(v, t2[i], t));
+        }
+
+        // ---- Drawing ----
+
+        function drawBigSquare(ox, oy, alpha) {
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(ox, oy, side, side);
+            // Label (a+b)
+            ctx.fillStyle = '#ccc';
+            ctx.font = '13px Segoe UI, Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('a + b', ox + side/2, oy - 8);
+            ctx.save();
+            ctx.translate(ox - 10, oy + side/2);
+            ctx.rotate(-Math.PI/2);
+            ctx.fillText('a + b', 0, 0);
+            ctx.restore();
+            ctx.restore();
+        }
+
+        function drawTriangle(verts, alpha) {
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = COL_TRI;
+            ctx.strokeStyle = COL_TRI_STROKE;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(verts[0], verts[1]);
+            ctx.lineTo(verts[2], verts[3]);
+            ctx.lineTo(verts[4], verts[5]);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawCSquare(ox, oy, alpha) {
+            // The tilted c² square in arrangement 1
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = 'rgba(240, 192, 64, 0.25)';
+            ctx.strokeStyle = COL_C;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(ox + b*S,  oy);
+            ctx.lineTo(ox + side, oy + a*S);
+            ctx.lineTo(ox + a*S,  oy + side);
+            ctx.lineTo(ox,        oy + a*S);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            // Label
+            ctx.fillStyle = COL_C;
+            ctx.font = 'bold 18px Segoe UI, Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('c\u00B2', ox + side/2, oy + side/2 + 6);
+            ctx.restore();
+        }
+
+        function drawABSquares(ox, oy, alpha) {
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            // a² square (top-right area)
+            ctx.fillStyle = 'rgba(255, 107, 107, 0.25)';
+            ctx.strokeStyle = COL_A;
+            ctx.lineWidth = 2;
+            ctx.fillRect(ox + a*S, oy, b*S, b*S);
+            ctx.strokeRect(ox + a*S, oy, b*S, b*S);
+            // Wait, let me reconsider the arrangement 2 geometry.
+            // In arrangement 2:
+            //   Top-left: triangle with vertices (a*S, 0), (0, 0), (0, a*S) -> fills top-left corner
+            //   Top-right: triangle with vertices (a*S, 0), (side, 0), (side, b*S) -> fills top-right
+            //   Bottom-right: triangle with vertices (a*S, side), (side, side), (side, b*S) -> fills bottom-right
+            //   Bottom-left: triangle with vertices (0, a*S), (0, side), (a*S, side) -> fills bottom-left
+            // Gaps:
+            //   a² square: top-right corner gap = from (a*S, b*S) to... no.
+            //   Actually: the square from (0, a*S) to (a*S, side) is covered by bottom-left triangle.
+            //   Let me recalculate.
+            //   Big square = [0, side] x [0, side]
+            //   Top-left tri covers: triangle (a*S,0)-(0,0)-(0,a*S) -> area = ½*a*a... no that's wrong.
+            //
+            //   Let me re-think arrangement 2 properly.
+            //   The standard arrangement 2 has triangles arranged so they leave an a×a square and a b×b square.
+            //
+            //   With the triangles having legs a and b:
+            //   - Two triangles stacked on the left, forming a rectangle a × b on the left side
+            //     top-left corner, leaving a square a × a at bottom-left
+            //   - Two triangles stacked on the right side, leaving b × b at top-right
+            //
+            //   Actually the classic arrangement is:
+            //   Divide the big square (a+b) into 4 regions:
+            //   Top-left: a×a square
+            //   Top-right: a×b rectangle (two triangles)
+            //   Bottom-left: b×a rectangle (two triangles)
+            //   Bottom-right: b×b square
+            //
+            //   So the a² is top-left and b² is bottom-right.
+
+            // a² square: top-left, from (ox, oy) size a*S
+            ctx.fillStyle = 'rgba(255, 107, 107, 0.25)';
+            ctx.strokeStyle = COL_A;
+            ctx.lineWidth = 2;
+            ctx.fillRect(ox, oy, a*S, a*S);
+            ctx.strokeRect(ox, oy, a*S, a*S);
+            ctx.fillStyle = COL_A;
+            ctx.font = 'bold 18px Segoe UI, Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('a\u00B2', ox + a*S/2, oy + a*S/2 + 6);
+
+            // b² square: bottom-right, from (ox + a*S, oy + a*S) size b*S
+            ctx.fillStyle = 'rgba(78, 205, 196, 0.25)';
+            ctx.strokeStyle = COL_B;
+            ctx.lineWidth = 2;
+            ctx.fillRect(ox + a*S, oy + a*S, b*S, b*S);
+            ctx.strokeRect(ox + a*S, oy + a*S, b*S, b*S);
+            ctx.fillStyle = COL_B;
+            ctx.font = 'bold 18px Segoe UI, Arial';
+            ctx.fillText('b\u00B2', ox + a*S + b*S/2, oy + a*S + b*S/2 + 6);
+            ctx.restore();
+        }
+
+        function drawSingleTriangle(ox, oy) {
+            // Draw a nice labelled right triangle
+            const tx = ox, ty = oy + a*S;  // right-angle corner at bottom-left
+            const bx = ox + b*S, by = oy + a*S;  // bottom-right
+            const ax = ox, ay = oy;  // top-left
+
+            // Fill
+            ctx.fillStyle = COL_TRI;
+            ctx.beginPath();
+            ctx.moveTo(tx, ty);
+            ctx.lineTo(bx, by);
+            ctx.lineTo(ax, ay);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = COL_TRI_STROKE;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Right angle mark
+            const m = 12;
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(tx + m, ty);
+            ctx.lineTo(tx + m, ty - m);
+            ctx.lineTo(tx, ty - m);
+            ctx.stroke();
+
+            // Side labels
+            ctx.font = 'bold 16px Segoe UI, Arial';
+            ctx.textAlign = 'center';
+
+            // a (vertical left side)
+            ctx.fillStyle = COL_A;
+            ctx.fillText('a = ' + a, tx - 28, ty - a*S/2 + 5);
+
+            // b (horizontal bottom)
+            ctx.fillStyle = COL_B;
+            ctx.fillText('b = ' + b, tx + b*S/2, ty + 22);
+
+            // c (hypotenuse)
+            ctx.fillStyle = COL_C;
+            ctx.save();
+            ctx.translate(tx + b*S/2 + 16, ty - a*S/2 - 8);
+            ctx.rotate(Math.atan2(-a, b));
+            ctx.fillText('c = ' + c, 0, -10);
+            ctx.restore();
+        }
+
+        function drawStep0() {
+            // Single triangle with labels
+            drawSingleTriangle(350, 140);
+
+            // Goal text
+            ctx.fillStyle = '#ccc';
+            ctx.font = '15px Segoe UI, Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Can we prove that a\u00B2 + b\u00B2 = c\u00B2 ?', 450, 420);
+            ctx.font = '13px Segoe UI, Arial';
+            ctx.fillStyle = '#999';
+            ctx.fillText('3\u00B2 + 4\u00B2 = 9 + 16 = 25 = 5\u00B2  \u2714', 450, 445);
+            ctx.fillText('But does it work for ALL right triangles?', 450, 468);
+        }
+
+        // Positions for the two big squares (side by side in later steps)
+        const ox1 = 80, oy1 = 70;    // left arrangement
+        const ox2 = 510, oy2 = 70;   // right arrangement
+
+        function drawStep1() {
+            // Show arrangement 1: four triangles + c² in middle
+            const ox = 250, oy = 60;
+            drawBigSquare(ox, oy, 1);
+            const tris = arr1(ox, oy);
+            for (const t of tris) drawTriangle(t, 1);
+            drawCSquare(ox, oy, 1);
+
+            // Number the triangles
+            ctx.font = '11px Segoe UI, Arial';
+            ctx.fillStyle = '#b0c4e8';
+            ctx.textAlign = 'center';
+            // Approximate centres of each triangle
+            const centres = [
+                [ox + b*S/3,      oy + a*S/3],
+                [ox + b*S + (side-b*S)*2/3, oy + a*S/3],
+                [ox + a*S + (side-a*S)*2/3, oy + a*S + (side-a*S)*2/3],
+                [ox + a*S/3,      oy + a*S + (side-a*S)*2/3],
+            ];
+            for (let i = 0; i < 4; i++) {
+                ctx.fillText('\u0394' + (i+1), centres[i][0], centres[i][1]);
+            }
+        }
+
+        function drawStep2() {
+            // Same as step 1 but with area equation highlighted
+            drawStep1();
+        }
+
+        function drawStep3() {
+            // Animated transition: morph triangles from arrangement 1 to 2
+            // Show both squares side by side
+            const t = easeInOut(animProgress);
+
+            // Left square: arrangement 1 (fading out if t > 0)
+            drawBigSquare(ox1, oy1, 1);
+            const tris1 = arr1(ox1, oy1);
+            const tris2 = arr2_correct(ox1, oy1);
+            for (let i = 0; i < 4; i++) {
+                const interp = lerpTri(tris1[i], tris2[i], t);
+                drawTriangle(interp, 1);
+            }
+            // Fade c² out, fade a²+b² in
+            if (t < 0.5) {
+                drawCSquare(ox1, oy1, 1 - t * 2);
+            } else {
+                drawABSquares(ox1, oy1, (t - 0.5) * 2);
+            }
+
+            // Right side: show both arrangements as ghost references
+            ctx.save();
+            ctx.globalAlpha = 0.25;
+            if (t < 0.5) {
+                // Show target arrangement as ghost
+                drawBigSquare(ox2, oy2, 0.3);
+                const target = arr2_correct(ox2, oy2);
+                for (const tr of target) drawTriangle(tr, 0.4);
+                drawABSquares(ox2, oy2, 0.3);
+                ctx.fillStyle = '#ccc';
+                ctx.font = '14px Segoe UI, Arial';
+                ctx.textAlign = 'center';
+                ctx.globalAlpha = 0.5;
+                ctx.fillText('Target arrangement', ox2 + side/2, oy2 - 10);
+            }
+            ctx.restore();
+        }
+
+        function drawStep4() {
+            // Show arrangement 2 fully
+            const ox = 250, oy = 60;
+            drawBigSquare(ox, oy, 1);
+            const tris = arr2_correct(ox, oy);
+            for (const t of tris) drawTriangle(t, 1);
+            drawABSquares(ox, oy, 1);
+        }
+
+        function drawStep5() {
+            // Side by side comparison + equation
+            drawBigSquare(ox1, oy1, 1);
+            const tris1 = arr1(ox1, oy1);
+            for (const t of tris1) drawTriangle(t, 1);
+            drawCSquare(ox1, oy1, 1);
+
+            drawBigSquare(ox2, oy2, 1);
+            const tris2 = arr2_correct(ox2, oy2);
+            for (const t of tris2) drawTriangle(t, 1);
+            drawABSquares(ox2, oy2, 1);
+
+            // Equals sign between
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 36px Segoe UI, Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('=', (ox1 + side + ox2) / 2, oy1 + side/2 + 10);
+
+            // Labels below
+            ctx.font = '13px Segoe UI, Arial';
+            ctx.fillStyle = '#ccc';
+            ctx.textAlign = 'center';
+            ctx.fillText('4 triangles + c\u00B2', ox1 + side/2, oy1 + side + 30);
+            ctx.fillText('4 triangles + a\u00B2 + b\u00B2', ox2 + side/2, oy2 + side + 30);
+
+            // Arrow pointing to conclusion
+            ctx.fillStyle = '#aaa';
+            ctx.fillText('Same big square, same 4 triangles  \u2192  leftover areas must be equal', 450, oy1 + side + 55);
+
+            // Highlight equation
+            const eqY = oy1 + side + 80;
+            ctx.fillStyle = '#4f8';
+            ctx.font = 'bold 22px Segoe UI, Arial';
+            ctx.fillText('c\u00B2 = a\u00B2 + b\u00B2', 450, eqY);
+
+            // Animated glow
+            const glow = 0.3 + 0.3 * Math.sin(Date.now() / 400);
+            ctx.save();
+            ctx.globalAlpha = glow;
+            ctx.strokeStyle = '#4f8';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(350, eqY - 22, 200, 32);
+            ctx.restore();
+        }
+
+        // Corrected arrangement 2: triangles leave a² top-left and b² bottom-right
+        function arr2_correct(ox, oy) {
+            return [
+                // Top-right rectangle: triangle occupying upper-right triangle of top-right rect
+                [ox + a*S, oy,         ox + side, oy,         ox + side, oy + a*S],
+                // Top-right rectangle: triangle occupying lower-left triangle
+                [ox + a*S, oy,         ox + a*S,  oy + a*S,   ox + side, oy + a*S],
+                // Bottom-left rectangle: triangle occupying upper-right
+                [ox,       oy + a*S,   ox + a*S,  oy + a*S,   ox + a*S,  oy + side],
+                // Bottom-left rectangle: triangle occupying lower-left
+                [ox,       oy + a*S,   ox,        oy + side,   ox + a*S, oy + side],
+            ];
+        }
+
+        function easeInOut(t) {
+            return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        }
+
+        // ---- Step management ----
+
+        function updateUI() {
+            document.getElementById('stepLabel').textContent = `Step ${step + 1} / ${totalSteps}`;
+            document.getElementById('narration').innerHTML = narrations[step];
+            const eq = equations[step];
+            const eqEl = document.getElementById('equation');
+            eqEl.textContent = eq;
+            eqEl.style.color = eqColours[step] || '#ccc';
+        }
+
+        function nextStep() {
+            if (step >= totalSteps - 1) return;
+            step++;
+            if (step === 3) {
+                // Animate the rearrangement
+                animProgress = 0;
+                animDir = 1;
+            } else {
+                animProgress = 1;
+                animDir = 0;
+            }
+            updateUI();
+        }
+
+        function prevStep() {
+            if (step <= 0) return;
+            step--;
+            animProgress = 1;
+            animDir = 0;
+            updateUI();
+        }
+
+        function resetAll() {
+            step = 0;
+            animProgress = 1;
+            animDir = 0;
+            updateUI();
+        }
+
+        // ---- Main loop ----
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Animate transition
+            if (animDir === 1 && animProgress < 1) {
+                animProgress = Math.min(1, animProgress + 0.008);
+            }
+
+            switch (step) {
+                case 0: drawStep0(); break;
+                case 1: drawStep1(); break;
+                case 2: drawStep2(); break;
+                case 3: drawStep3(); break;
+                case 4: drawStep4(); break;
+                case 5: drawStep5(); break;
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        updateUI();
+        draw();
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') nextStep();
+            if (e.key === 'ArrowLeft') prevStep();
+        });
+    </script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

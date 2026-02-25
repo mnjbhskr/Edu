@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Derivatives — A Visual Introduction</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { font-size: 24px; margin-bottom: 2px; color: #f0f0f0; }
+        .subtitle { font-size: 14px; color: #aaa; margin-bottom: 6px; }
+        .analogy {
+            max-width: 900px;
+            text-align: center;
+            font-size: 14px;
+            color: #f0c040;
+            margin: 6px 0 14px 0;
+        }
+        .main-row {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        canvas {
+            background: #16213e;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+        }
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 260px;
+            max-width: 280px;
+        }
+        .card {
+            background: #16213e;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+            padding: 14px 16px;
+        }
+        .card-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #7da2e0;
+            margin-bottom: 8px;
+        }
+        .func-btns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        button {
+            background: #0f3460;
+            color: #e0e0e0;
+            border: 1px solid #1a5276;
+            padding: 6px 12px;
+            border-radius: 7px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #1a5276; }
+        button.active { background: #e94560; border-color: #e94560; }
+        .eq-box {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        .eq-label { font-size: 11px; color: #888; margin-bottom: 2px; }
+        .eq-f { color: #4ecdc4; }
+        .eq-fp { color: #ff6b6b; }
+        .eq-fpp { color: #f0c040; }
+        .readout {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        .readout-row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .slider-section { margin-top: 4px; }
+        .slider-section label {
+            font-size: 12px;
+            color: #aaa;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .slider-section input[type="range"] {
+            flex: 1;
+            accent-color: #e94560;
+        }
+        .slider-section .val {
+            min-width: 42px;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #ccc;
+        }
+        .insight {
+            max-width: 900px;
+            width: 100%;
+            margin: 12px 0;
+            padding: 12px 20px;
+            background: rgba(15, 52, 96, 0.4);
+            border-radius: 10px;
+            border-left: 3px solid #7da2e0;
+            font-size: 13px;
+            color: #bbb;
+            line-height: 1.6;
+            text-align: center;
+        }
+        .insight b { color: #e0e0e0; }
+        .section-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+        .legend {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin: 6px 0;
+            font-size: 12px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-line {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        .toggle-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            font-size: 12px;
+            color: #aaa;
+        }
+        .toggle-row input { accent-color: #e94560; }
+    </style>
+</head>
+<body>
+    <h1>Derivatives — A Visual Introduction</h1>
+    <p class="subtitle">The derivative measures how fast a function is changing at any point</p>
+    <p class="analogy">
+        Imagine driving a car: the <b style="color:#4ecdc4">position</b> is where you are,
+        the <b style="color:#ff6b6b">speed</b> (1st derivative) is how fast you're going,
+        and the <b style="color:#f0c040">acceleration</b> (2nd derivative) is whether you're speeding up or slowing down.
+    </p>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-line" style="background:#4ecdc4;"></div>
+            <span><b style="color:#4ecdc4">f(x)</b> — the function</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line" style="background:#ff6b6b;"></div>
+            <span><b style="color:#ff6b6b">f'(x)</b> — 1st derivative (slope)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-line" style="background:#f0c040;"></div>
+            <span><b style="color:#f0c040">f''(x)</b> — 2nd derivative (curvature)</span>
+        </div>
+    </div>
+
+    <div class="main-row">
+        <div style="display:flex; flex-direction:column; align-items:center;">
+            <canvas id="cMain" width="600" height="420"></canvas>
+        </div>
+        <div class="side-panel">
+            <!-- Function selector -->
+            <div class="card">
+                <div class="card-title">Choose a Function</div>
+                <div class="func-btns" id="funcBtns"></div>
+            </div>
+
+            <!-- Equations -->
+            <div class="card">
+                <div class="card-title">The Equations</div>
+                <div class="eq-box" id="eqBox"></div>
+            </div>
+
+            <!-- Live readout at point x -->
+            <div class="card">
+                <div class="card-title">Values at the Red Point</div>
+                <div class="readout" id="readout"></div>
+                <div class="slider-section">
+                    <label>
+                        <span>x =</span>
+                        <input type="range" id="sliderX" min="-300" max="300" value="50">
+                        <span class="val" id="valX">0.50</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Delta h slider -->
+            <div class="card">
+                <div class="card-title">Secant Line &rarr; Tangent Line</div>
+                <div style="font-size:12px; color:#aaa; margin-bottom:8px; line-height:1.5;">
+                    The derivative is the slope when the two points get
+                    <b style="color:#e0e0e0">infinitely close</b>. Drag &Delta;h toward zero to see the
+                    secant line become the tangent line.
+                </div>
+                <div class="slider-section">
+                    <label>
+                        <span>&Delta;h =</span>
+                        <input type="range" id="sliderH" min="1" max="200" value="100">
+                        <span class="val" id="valH">1.00</span>
+                    </label>
+                </div>
+                <div style="font-size:12px; color:#999; margin-top:6px;" id="slopeCompare"></div>
+            </div>
+
+            <!-- Toggles -->
+            <div class="card">
+                <div class="card-title">Show / Hide</div>
+                <div class="toggle-row">
+                    <input type="checkbox" id="togTangent" checked>
+                    <label for="togTangent" style="color:#ff6b6b">Tangent line (true slope)</label>
+                </div>
+                <div class="toggle-row">
+                    <input type="checkbox" id="togSecant" checked>
+                    <label for="togSecant" style="color:#ff9f43">Secant line (&Delta;h approx.)</label>
+                </div>
+                <div class="toggle-row">
+                    <input type="checkbox" id="togFp" checked>
+                    <label for="togFp" style="color:#ff6b6b">f'(x) curve</label>
+                </div>
+                <div class="toggle-row">
+                    <input type="checkbox" id="togFpp">
+                    <label for="togFpp" style="color:#f0c040">f''(x) curve</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="insight" id="insight"></div>
+
+    <script>
+        // ---- Canvas setup ----
+        const canvas = document.getElementById('cMain');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+
+        // Graph coordinate system
+        // pixel to math and back
+        const originX = W / 2, originY = H / 2;
+        const scaleX = 80;  // pixels per unit
+        const scaleY = 80;
+
+        function toPixX(x) { return originX + x * scaleX; }
+        function toPixY(y) { return originY - y * scaleY; }
+        function toMathX(px) { return (px - originX) / scaleX; }
+        function toMathY(py) { return (originY - py) / scaleY; }
+
+        // ---- Functions ----
+        const functions = [
+            {
+                name: 'x\u00B2',
+                label: 'x\u00B2',
+                f:   x => x * x,
+                fp:  x => 2 * x,
+                fpp: x => 2,
+                eqF:   'f(x)  = x\u00B2',
+                eqFp:  "f'(x) = 2x",
+                eqFpp: "f''(x)= 2",
+                insight: '<b>Parabola (x\u00B2):</b> The derivative <b style="color:#ff6b6b">2x</b> is a straight line through zero — '
+                    + 'the slope is negative on the left (function going down), zero at x=0 (the bottom of the curve), '
+                    + 'and positive on the right (going up). The second derivative is constant at 2 — the curve always bends upward at the same rate.',
+            },
+            {
+                name: 'x\u00B3',
+                label: 'x\u00B3',
+                f:   x => x * x * x,
+                fp:  x => 3 * x * x,
+                fpp: x => 6 * x,
+                eqF:   'f(x)  = x\u00B3',
+                eqFp:  "f'(x) = 3x\u00B2",
+                eqFpp: "f''(x)= 6x",
+                insight: '<b>Cubic (x\u00B3):</b> The derivative <b style="color:#ff6b6b">3x\u00B2</b> is always positive (except at x=0) — '
+                    + 'the cubic always rises, just more slowly near zero. The 2nd derivative <b style="color:#f0c040">6x</b> '
+                    + 'changes sign at x=0: the curve bends downward on the left and upward on the right. That sign change is the <b>inflection point</b>.',
+            },
+            {
+                name: 'sin(x)',
+                label: 'sin(x)',
+                f:   x => Math.sin(x),
+                fp:  x => Math.cos(x),
+                fpp: x => -Math.sin(x),
+                eqF:   'f(x)  = sin(x)',
+                eqFp:  "f'(x) = cos(x)",
+                eqFpp: "f''(x)= -sin(x)",
+                insight: '<b>Sine wave:</b> The derivative of sin is cos — it is the <b>same wave shifted left</b> by 90\u00B0! '
+                    + 'When sin is at its peak (slope=0), cos crosses zero. When sin crosses zero (steepest), cos is at its peak. '
+                    + 'The 2nd derivative is <b style="color:#f0c040">-sin(x)</b> — an upside-down copy of the original. Sine waves are <b>self-referential</b> under differentiation.',
+            },
+            {
+                name: 'e\u02E3',
+                label: 'e\u02E3',
+                f:   x => Math.exp(x),
+                fp:  x => Math.exp(x),
+                fpp: x => Math.exp(x),
+                eqF:   'f(x)  = e\u02E3',
+                eqFp:  "f'(x) = e\u02E3",
+                eqFpp: "f''(x)= e\u02E3",
+                insight: '<b>Exponential (e\u02E3):</b> The most remarkable function in mathematics — <b>it is its own derivative!</b> '
+                    + 'f = f\' = f\'\' = e\u02E3. The rate of growth is always equal to the current value. '
+                    + 'This is why exponentials model compound interest, population growth, and radioactive decay — the speed of change is proportional to the amount.',
+            },
+            {
+                name: '1/x',
+                label: '1/x',
+                f:   x => x === 0 ? NaN : 1 / x,
+                fp:  x => x === 0 ? NaN : -1 / (x * x),
+                fpp: x => x === 0 ? NaN : 2 / (x * x * x),
+                eqF:   'f(x)  = 1/x',
+                eqFp:  "f'(x) = -1/x\u00B2",
+                eqFpp: "f''(x)= 2/x\u00B3",
+                insight: '<b>Reciprocal (1/x):</b> The derivative <b style="color:#ff6b6b">-1/x\u00B2</b> is always negative — '
+                    + 'the function is always decreasing (getting closer to zero). The x\u00B2 in the denominator means '
+                    + 'the slope is steepest near x=0 and flattens out as you move away. There is a discontinuity at x=0 where the function is undefined.',
+            },
+            {
+                name: '\u221Ax',
+                label: '\u221Ax',
+                f:   x => x >= 0 ? Math.sqrt(x) : NaN,
+                fp:  x => x > 0 ? 1 / (2 * Math.sqrt(x)) : NaN,
+                fpp: x => x > 0 ? -1 / (4 * x * Math.sqrt(x)) : NaN,
+                eqF:   'f(x)  = \u221Ax',
+                eqFp:  "f'(x) = 1/(2\u221Ax)",
+                eqFpp: "f''(x)= -1/(4x\u221Ax)",
+                insight: '<b>Square root (\u221Ax):</b> The derivative <b style="color:#ff6b6b">1/(2\u221Ax)</b> starts infinitely steep at x=0 '
+                    + 'and gets flatter as x grows. The function rises quickly at first, then slows down — diminishing returns. '
+                    + 'This is the <b>inverse</b> of x\u00B2: their derivatives are reciprocals of each other (by the chain rule).',
+            },
+        ];
+
+        let currentFunc = 0;
+        let pointX = 0.5;
+        let deltaH = 1.0;
+
+        // ---- UI setup ----
+        const funcBtnsDiv = document.getElementById('funcBtns');
+        functions.forEach((fn, i) => {
+            const btn = document.createElement('button');
+            btn.textContent = fn.name;
+            btn.id = `funcBtn${i}`;
+            btn.onclick = () => selectFunc(i);
+            if (i === 0) btn.className = 'active';
+            funcBtnsDiv.appendChild(btn);
+        });
+
+        function selectFunc(i) {
+            currentFunc = i;
+            document.querySelectorAll('.func-btns button').forEach(b => b.classList.remove('active'));
+            document.getElementById(`funcBtn${i}`).classList.add('active');
+            updateEquations();
+            updateInsight();
+        }
+
+        // Sliders
+        const sliderX = document.getElementById('sliderX');
+        const sliderH = document.getElementById('sliderH');
+        sliderX.addEventListener('input', () => {
+            pointX = parseInt(sliderX.value) / 100;
+            document.getElementById('valX').textContent = pointX.toFixed(2);
+        });
+        sliderH.addEventListener('input', () => {
+            deltaH = parseInt(sliderH.value) / 100;
+            document.getElementById('valH').textContent = deltaH.toFixed(2);
+        });
+
+        function updateEquations() {
+            const fn = functions[currentFunc];
+            document.getElementById('eqBox').innerHTML =
+                `<div class="eq-label">Function:</div>`
+                + `<div class="eq-f">${fn.eqF}</div>`
+                + `<div class="eq-label" style="margin-top:6px;">1st Derivative (slope):</div>`
+                + `<div class="eq-fp">${fn.eqFp}</div>`
+                + `<div class="eq-label" style="margin-top:6px;">2nd Derivative (curvature):</div>`
+                + `<div class="eq-fpp">${fn.eqFpp}</div>`;
+        }
+
+        function updateInsight() {
+            document.getElementById('insight').innerHTML = functions[currentFunc].insight;
+        }
+
+        function updateReadout() {
+            const fn = functions[currentFunc];
+            const x = pointX;
+            const fv = fn.f(x);
+            const fpv = fn.fp(x);
+            const fppv = fn.fpp(x);
+
+            const fmt = v => isNaN(v) || !isFinite(v) ? 'undef' : v.toFixed(3);
+
+            document.getElementById('readout').innerHTML =
+                `<div class="readout-row"><span style="color:#888">x =</span> <span style="color:#fff">${x.toFixed(2)}</span></div>`
+                + `<div class="readout-row"><span class="eq-f">f(x) =</span> <span style="color:#4ecdc4">${fmt(fv)}</span></div>`
+                + `<div class="readout-row"><span class="eq-fp">f'(x) =</span> <span style="color:#ff6b6b">${fmt(fpv)}</span></div>`
+                + `<div class="readout-row"><span class="eq-fpp">f''(x)=</span> <span style="color:#f0c040">${fmt(fppv)}</span></div>`;
+
+            // Secant vs tangent slope comparison
+            const secSlope = (fn.f(x + deltaH) - fn.f(x)) / deltaH;
+            const tanSlope = fn.fp(x);
+            const err = Math.abs(secSlope - tanSlope);
+            document.getElementById('slopeCompare').innerHTML =
+                `Secant slope: <b style="color:#ff9f43">${isFinite(secSlope) ? secSlope.toFixed(4) : 'undef'}</b><br>`
+                + `True slope:&nbsp;&nbsp; <b style="color:#ff6b6b">${isFinite(tanSlope) ? tanSlope.toFixed(4) : 'undef'}</b><br>`
+                + `Difference:&nbsp;&nbsp; <b style="color:${err < 0.01 ? '#5cd85c' : '#e94560'}">${isFinite(err) ? err.toFixed(4) : 'undef'}</b>`
+                + (err < 0.05 && isFinite(err) ? ' &larr; close!' : '');
+        }
+
+        // ---- Drawing ----
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.lineWidth = 1;
+            // Vertical grid lines
+            const xMin = toMathX(0), xMax = toMathX(W);
+            for (let gx = Math.ceil(xMin); gx <= Math.floor(xMax); gx++) {
+                ctx.beginPath();
+                ctx.moveTo(toPixX(gx), 0);
+                ctx.lineTo(toPixX(gx), H);
+                ctx.stroke();
+            }
+            // Horizontal grid lines
+            const yMin = toMathY(H), yMax = toMathY(0);
+            for (let gy = Math.ceil(yMin); gy <= Math.floor(yMax); gy++) {
+                ctx.beginPath();
+                ctx.moveTo(0, toPixY(gy));
+                ctx.lineTo(W, toPixY(gy));
+                ctx.stroke();
+            }
+
+            // Axes
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+            ctx.lineWidth = 1.5;
+            // X axis
+            ctx.beginPath();
+            ctx.moveTo(0, originY);
+            ctx.lineTo(W, originY);
+            ctx.stroke();
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(originX, 0);
+            ctx.lineTo(originX, H);
+            ctx.stroke();
+
+            // Axis labels
+            ctx.fillStyle = '#666';
+            ctx.font = '10px Segoe UI, Arial';
+            ctx.textAlign = 'center';
+            for (let gx = Math.ceil(xMin); gx <= Math.floor(xMax); gx++) {
+                if (gx === 0) continue;
+                ctx.fillText(gx, toPixX(gx), originY + 14);
+            }
+            ctx.textAlign = 'right';
+            for (let gy = Math.ceil(yMin); gy <= Math.floor(yMax); gy++) {
+                if (gy === 0) continue;
+                ctx.fillText(gy, originX - 6, toPixY(gy) + 4);
+            }
+            ctx.fillStyle = '#888';
+            ctx.font = '11px Segoe UI, Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('x', W - 14, originY - 6);
+            ctx.fillText('y', originX + 6, 14);
+        }
+
+        function drawCurve(fn, colour, lineWidth, dashed) {
+            ctx.strokeStyle = colour;
+            ctx.lineWidth = lineWidth || 2.5;
+            if (dashed) ctx.setLineDash(dashed);
+            else ctx.setLineDash([]);
+            ctx.beginPath();
+            let started = false;
+            for (let px = 0; px < W; px++) {
+                const x = toMathX(px);
+                const y = fn(x);
+                if (isNaN(y) || !isFinite(y) || Math.abs(y) > 50) {
+                    started = false;
+                    continue;
+                }
+                const py = toPixY(y);
+                if (!started) { ctx.moveTo(px, py); started = true; }
+                else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawTangentLine(x, fn, fpFn, colour, lineWidth, dashed) {
+            const y = fn(x);
+            const slope = fpFn(x);
+            if (isNaN(y) || !isFinite(y) || isNaN(slope) || !isFinite(slope)) return;
+
+            // Draw a line through (x, y) with the given slope, extending across visible area
+            const extent = 3;  // math units each direction
+            const x1 = x - extent, y1 = y - slope * extent;
+            const x2 = x + extent, y2 = y + slope * extent;
+
+            ctx.strokeStyle = colour;
+            ctx.lineWidth = lineWidth || 2;
+            if (dashed) ctx.setLineDash(dashed);
+            else ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(toPixX(x1), toPixY(y1));
+            ctx.lineTo(toPixX(x2), toPixY(y2));
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawSecantLine(x, h, fn) {
+            const y1 = fn(x);
+            const y2 = fn(x + h);
+            if (isNaN(y1) || !isFinite(y1) || isNaN(y2) || !isFinite(y2)) return;
+
+            const slope = (y2 - y1) / h;
+            const extent = 3;
+            const xa = x - extent, ya = y1 - slope * extent;
+            const xb = x + extent, yb = y1 + slope * extent;
+
+            ctx.strokeStyle = '#ff9f43';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            ctx.moveTo(toPixX(xa), toPixY(ya));
+            ctx.lineTo(toPixX(xb), toPixY(yb));
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw the second point
+            ctx.fillStyle = '#ff9f43';
+            ctx.beginPath();
+            ctx.arc(toPixX(x + h), toPixY(y2), 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Delta h bracket
+            const bracketY = Math.max(toPixY(y1), toPixY(y2)) + 20;
+            ctx.strokeStyle = 'rgba(255, 159, 67, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(toPixX(x), bracketY);
+            ctx.lineTo(toPixX(x + h), bracketY);
+            ctx.stroke();
+            // Arrowheads
+            ctx.beginPath();
+            ctx.moveTo(toPixX(x) + 4, bracketY - 3);
+            ctx.lineTo(toPixX(x), bracketY);
+            ctx.lineTo(toPixX(x) + 4, bracketY + 3);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(toPixX(x + h) - 4, bracketY - 3);
+            ctx.lineTo(toPixX(x + h), bracketY);
+            ctx.lineTo(toPixX(x + h) - 4, bracketY + 3);
+            ctx.stroke();
+            // Label
+            if (h * scaleX > 20) {
+                ctx.fillStyle = '#ff9f43';
+                ctx.font = '10px Courier New, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('\u0394h=' + h.toFixed(2), (toPixX(x) + toPixX(x + h)) / 2, bracketY + 13);
+            }
+
+            // Rise bracket (vertical)
+            const rise = y2 - y1;
+            if (Math.abs(rise * scaleY) > 10) {
+                const riseX = toPixX(x + h) + 12;
+                ctx.strokeStyle = 'rgba(255, 159, 67, 0.4)';
+                ctx.beginPath();
+                ctx.moveTo(riseX, toPixY(y1));
+                ctx.lineTo(riseX, toPixY(y2));
+                ctx.stroke();
+                ctx.fillStyle = '#ff9f43';
+                ctx.font = '10px Courier New, monospace';
+                ctx.textAlign = 'left';
+                ctx.fillText('\u0394y=' + rise.toFixed(2), riseX + 4, (toPixY(y1) + toPixY(y2)) / 2 + 4);
+            }
+        }
+
+        function drawPoint(x, fn) {
+            const y = fn(x);
+            if (isNaN(y) || !isFinite(y)) return;
+
+            // Projection lines to axes
+            ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(toPixX(x), toPixY(y));
+            ctx.lineTo(toPixX(x), originY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(toPixX(x), toPixY(y));
+            ctx.lineTo(originX, toPixY(y));
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // The point
+            ctx.fillStyle = '#e94560';
+            ctx.beginPath();
+            ctx.arc(toPixX(x), toPixY(y), 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function drawDerivativeFormula() {
+            // Show the limit definition in the top-left
+            ctx.fillStyle = 'rgba(22, 33, 62, 0.85)';
+            ctx.fillRect(8, 8, 250, 46);
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(8, 8, 250, 46);
+
+            ctx.fillStyle = '#aaa';
+            ctx.font = '11px Courier New, monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText("Definition of derivative:", 16, 24);
+            ctx.fillStyle = '#ff6b6b';
+            ctx.font = '13px Courier New, monospace';
+            ctx.fillText("f'(x) = lim  [f(x+h)-f(x)] / h", 16, 44);
+            ctx.fillStyle = '#888';
+            ctx.font = '9px Courier New, monospace';
+            ctx.fillText("h\u21920", 90, 44);
+        }
+
+        // ---- Main draw loop ----
+        function draw() {
+            ctx.clearRect(0, 0, W, H);
+            const fn = functions[currentFunc];
+            const showTangent = document.getElementById('togTangent').checked;
+            const showSecant = document.getElementById('togSecant').checked;
+            const showFp = document.getElementById('togFp').checked;
+            const showFpp = document.getElementById('togFpp').checked;
+
+            drawGrid();
+
+            // Draw f''(x) first (behind)
+            if (showFpp) {
+                drawCurve(fn.fpp, 'rgba(240, 192, 64, 0.5)', 1.5, [4, 3]);
+            }
+
+            // Draw f'(x)
+            if (showFp) {
+                drawCurve(fn.fp, 'rgba(255, 107, 107, 0.7)', 2, [6, 3]);
+            }
+
+            // Draw f(x) — main curve
+            drawCurve(fn.f, '#4ecdc4', 3);
+
+            // Secant line (behind tangent)
+            if (showSecant) {
+                drawSecantLine(pointX, deltaH, fn.f);
+            }
+
+            // Tangent line
+            if (showTangent) {
+                drawTangentLine(pointX, fn.f, fn.fp, '#ff6b6b', 2);
+            }
+
+            // The point on the curve
+            drawPoint(pointX, fn.f);
+
+            // Slope indicator arrow at the point
+            const slope = fn.fp(pointX);
+            if (isFinite(slope)) {
+                const angle = Math.atan(slope);
+                const arrowLen = 30;
+                const px = toPixX(pointX);
+                const py = toPixY(fn.f(pointX));
+                if (!isNaN(py)) {
+                    ctx.strokeStyle = '#ff6b6b';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(px, py);
+                    ctx.lineTo(px + arrowLen * Math.cos(angle), py - arrowLen * Math.sin(angle));
+                    ctx.stroke();
+                    // Arrowhead
+                    const ax = px + arrowLen * Math.cos(angle);
+                    const ay = py - arrowLen * Math.sin(angle);
+                    ctx.beginPath();
+                    ctx.moveTo(ax, ay);
+                    ctx.lineTo(ax - 8 * Math.cos(angle - 0.4), ay + 8 * Math.sin(angle - 0.4));
+                    ctx.moveTo(ax, ay);
+                    ctx.lineTo(ax - 8 * Math.cos(angle + 0.4), ay + 8 * Math.sin(angle + 0.4));
+                    ctx.stroke();
+
+                    // Slope text near point
+                    ctx.fillStyle = '#ff6b6b';
+                    ctx.font = 'bold 11px Courier New, monospace';
+                    ctx.textAlign = 'left';
+                    ctx.fillText("slope=" + slope.toFixed(2), px + 14, py - 14);
+                }
+            }
+
+            // Derivative limit definition
+            drawDerivativeFormula();
+
+            // Curve labels
+            const labelX = W - 10;
+            ctx.font = 'bold 12px Segoe UI, Arial';
+            ctx.textAlign = 'right';
+            // Find a visible y for each curve at right edge
+            const rightX = toMathX(W - 20);
+            const fy = fn.f(rightX);
+            if (isFinite(fy) && toPixY(fy) > 10 && toPixY(fy) < H - 10) {
+                ctx.fillStyle = '#4ecdc4';
+                ctx.fillText('f(x)', labelX, toPixY(fy) - 6);
+            }
+            if (showFp) {
+                const fpy = fn.fp(rightX);
+                if (isFinite(fpy) && toPixY(fpy) > 10 && toPixY(fpy) < H - 10) {
+                    ctx.fillStyle = '#ff6b6b';
+                    ctx.fillText("f'(x)", labelX, toPixY(fpy) - 6);
+                }
+            }
+            if (showFpp) {
+                const fppy = fn.fpp(rightX);
+                if (isFinite(fppy) && toPixY(fppy) > 10 && toPixY(fppy) < H - 10) {
+                    ctx.fillStyle = '#f0c040';
+                    ctx.fillText("f''(x)", labelX, toPixY(fppy) - 6);
+                }
+            }
+
+            // Update readout
+            updateReadout();
+
+            requestAnimationFrame(draw);
+        }
+
+        // ---- Dragging the point with mouse on canvas ----
+        let dragging = false;
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            const fn = functions[currentFunc];
+            const px = toPixX(pointX);
+            const py = toPixY(fn.f(pointX));
+            const dist = Math.sqrt((mx - px) ** 2 + (my - py) ** 2);
+            if (dist < 20) dragging = true;
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            pointX = toMathX(mx);
+            pointX = Math.max(-3, Math.min(3, pointX));
+            sliderX.value = Math.round(pointX * 100);
+            document.getElementById('valX').textContent = pointX.toFixed(2);
+        });
+        canvas.addEventListener('mouseup', () => { dragging = false; });
+        canvas.addEventListener('mouseleave', () => { dragging = false; });
+
+        // ---- Init ----
+        updateEquations();
+        updateInsight();
+        draw();
+    </script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

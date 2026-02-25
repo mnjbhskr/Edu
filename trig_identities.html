@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trigonometric Identities</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#34d399}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 20px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .tab-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+        .tab-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s}
+        .tab-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .tab-btn.active{background:rgba(52,211,153,0.13);border-color:rgba(52,211,153,0.4);color:#34d399}
+        .main-row{display:flex;gap:24px;margin-bottom:20px;flex-wrap:wrap}
+        .canvas-col{flex:0 0 480px}
+        .values-col{flex:1 1 200px;min-width:200px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .slider-row{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+        .slider-row label{font-size:0.85em;color:#808098;min-width:20px}
+        .slider-row input[type=range]{flex:1;accent-color:#34d399}
+        .slider-row .angle-val{font-size:0.85em;color:#34d399;min-width:140px;text-align:right;font-family:'Courier New',monospace}
+        .preset-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+        .preset-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:3px 10px;border-radius:5px;cursor:pointer;font-family:Georgia,serif;font-size:0.8em;transition:all 0.2s}
+        .preset-btn:hover{background:rgba(52,211,153,0.1);color:#34d399}
+        .val-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 16px}
+        .val-item{font-size:0.88em;font-family:'Courier New',monospace}
+        .val-item .fn-name{color:#808098}
+        .val-item .fn-val{color:#e0e0e0}
+        .val-item .fn-val.emerald{color:#34d399}
+        .val-item .fn-val.coral{color:#f87171}
+        .verify{font-family:'Courier New',monospace;font-size:0.88em;line-height:1.8;color:#b0b0c4}
+        .verify .lhs{color:#34d399}
+        .verify .rhs{color:#34d399}
+        .verify .check{color:#34d399}
+        .explain-name{color:#34d399;font-size:1.05em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        @media(max-width:768px){.canvas-col{flex:1 1 100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Trigonometric Identities</h1>
+    <p class="subtitle">Why sin&sup2; + cos&sup2; = 1 and other visual proofs</p>
+
+    <div class="tab-row" id="tabs"></div>
+
+    <div class="main-row">
+        <div class="canvas-col"><canvas id="cv" width="480" height="480"></canvas></div>
+        <div class="values-col">
+            <div class="panel"><h3>Trig Values</h3><div class="val-grid" id="vals"></div></div>
+            <div class="panel"><h3>Identity Verification</h3><div class="verify" id="verify"></div></div>
+        </div>
+    </div>
+
+    <div class="panel" id="sliderPanel">
+        <h3>Angle Control</h3>
+        <div class="slider-row">
+            <label id="sLabel1">&theta;</label>
+            <input type="range" id="slider1" min="0" max="720" value="68">
+            <span class="angle-val" id="sVal1"></span>
+        </div>
+        <div class="slider-row" id="s2row" style="display:none">
+            <label id="sLabel2">&beta;</label>
+            <input type="range" id="slider2" min="0" max="720" value="90">
+            <span class="angle-val" id="sVal2"></span>
+        </div>
+        <div class="preset-row" id="presets"></div>
+    </div>
+
+    <div class="panel"><div class="explain-name" id="eName"></div><div class="explain-text" id="eText"></div></div>
+</div>
+
+<script>
+const TAU=Math.PI*2, PI=Math.PI, DEG=PI/180;
+const TABS=[
+    {id:"pyth",label:"Pythagorean"},
+    {id:"double",label:"Double Angle"},
+    {id:"sum",label:"Sum / Difference"},
+    {id:"evenodd",label:"Even / Odd"},
+    {id:"comp",label:"Complementary"},
+    {id:"half",label:"Half Angle"}
+];
+const PRESETS=[0,30,45,60,90,120,180,270,360];
+const INSIGHTS={
+    pyth:"This is simply the Pythagorean theorem applied to the unit circle. The radius is always 1, so the horizontal and vertical components must satisfy cos\u00B2 + sin\u00B2 = 1. It is geometry, not just algebra.",
+    double:"sin(2\u03B8) = 2sin\u03B8cos\u03B8 emerges naturally from the geometry of the unit circle. The rectangle with sides sin\u03B8 and cos\u03B8 has area sin\u03B8cos\u03B8; two of those rectangles give sin(2\u03B8).",
+    sum:"The sum formula is the key to almost all other identities. Double angle? Set \u03B1 = \u03B2 = \u03B8. Half angle? Replace \u03B8 with \u03B8/2. Everything connects.",
+    evenodd:"Even and odd symmetry is visible on the unit circle: reflecting across the x-axis negates the y-coordinate (sin) but preserves the x-coordinate (cos). Cosine is even, sine is odd.",
+    comp:"Complementary angles add to 90 degrees. When you swap the angle with its complement, the opposite and adjacent sides of the right triangle switch roles \u2014 so sin and cos swap.",
+    half:"The half-angle formulas derive from the double-angle formula for cosine. Setting cos(2\u03C6) = 2cos\u00B2\u03C6 \u2212 1 and solving for cos\u03C6 (where \u03C6 = \u03B8/2) yields the result."
+};
+
+let mode="pyth", theta=68*DEG*0.5, alpha=68*DEG*0.5, beta=PI/4;
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d"), W=cv.width, H=cv.height;
+const CX=W/2, CY=H/2, R=190;
+
+function fmt(v){return v.toFixed(4);}
+function fmtDeg(rad){return (rad/DEG).toFixed(1)+"\u00B0";}
+function fmtRad(rad){
+    const v=rad/PI;
+    if(Math.abs(v-Math.round(v))<0.001){const n=Math.round(v);return n===0?"0":n===1?"\u03C0":n===-1?"-\u03C0":n+"\u03C0";}
+    return fmt(rad)+" rad";
+}
+function angleStr(rad){return fmtDeg(rad)+" ("+fmtRad(rad)+")";}
+
+/* ---- tabs ---- */
+function buildTabs(){
+    const el=document.getElementById("tabs");
+    el.innerHTML=TABS.map(t=>"<button class='tab-btn"+(t.id===mode?" active":"")+"' data-m='"+t.id+"'>"+t.label+"</button>").join("");
+    el.querySelectorAll(".tab-btn").forEach(b=>b.onclick=()=>{mode=b.dataset.m;update();});
+}
+
+/* ---- presets ---- */
+function buildPresets(){
+    const el=document.getElementById("presets");
+    el.innerHTML=PRESETS.map(d=>"<button class='preset-btn' data-d='"+d+"'>"+d+"\u00B0</button>").join("");
+    el.querySelectorAll(".preset-btn").forEach(b=>b.onclick=()=>{
+        const d=parseInt(b.dataset.d);
+        theta=d*DEG; document.getElementById("slider1").value=d*2;
+        if(mode==="sum"){alpha=d*DEG;}
+        update();
+    });
+}
+
+/* ---- sliders ---- */
+function syncSliders(){
+    const s1=document.getElementById("slider1"), s2=document.getElementById("slider2");
+    const r2=document.getElementById("s2row"), lb1=document.getElementById("sLabel1");
+    if(mode==="sum"){
+        lb1.innerHTML="\u03B1"; r2.style.display="flex";
+        s1.value=Math.round(alpha/DEG)*2; s2.value=Math.round(beta/DEG)*2;
+    }else{
+        lb1.innerHTML="\u03B8"; r2.style.display="none";
+        s1.value=Math.round(theta/DEG)*2;
+    }
+    updateSliderLabels();
+}
+function updateSliderLabels(){
+    const s1=document.getElementById("slider1"), s2=document.getElementById("slider2");
+    if(mode==="sum"){
+        document.getElementById("sVal1").textContent=angleStr(alpha);
+        document.getElementById("sVal2").textContent=angleStr(beta);
+    }else{
+        document.getElementById("sVal1").textContent=angleStr(theta);
+    }
+}
+document.getElementById("slider1").oninput=function(){
+    const v=this.value*0.5*DEG;
+    if(mode==="sum")alpha=v; else theta=v;
+    update();
+};
+document.getElementById("slider2").oninput=function(){
+    beta=this.value*0.5*DEG; update();
+};
+
+/* ---- draw helpers ---- */
+function toCanvas(x,y){return[CX+x*R, CY-y*R];}
+function drawLine(x1,y1,x2,y2,color,w,dash){
+    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=w||1;ctx.setLineDash(dash||[]);
+    ctx.beginPath();ctx.moveTo(...toCanvas(x1,y1));ctx.lineTo(...toCanvas(x2,y2));ctx.stroke();ctx.restore();
+}
+function drawArc(a1,a2,r,color,w){
+    ctx.save();ctx.strokeStyle=color;ctx.lineWidth=w||1.5;
+    ctx.beginPath();ctx.arc(CX,CY,r,-a2,-a1);ctx.stroke();ctx.restore();
+}
+function drawDot(x,y,color,r){
+    const[cx,cy]=toCanvas(x,y);
+    ctx.beginPath();ctx.arc(cx,cy,r||4,0,TAU);ctx.fillStyle=color;ctx.fill();
+}
+function drawLabel(x,y,text,color,offx,offy,size){
+    const[cx,cy]=toCanvas(x,y);
+    ctx.save();ctx.font=(size||13)+"px Georgia";ctx.fillStyle=color||"#e0e0e0";
+    ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(text,cx+(offx||0),cy+(offy||0));ctx.restore();
+}
+function drawSquare(ox,oy,dx,dy,side,color){
+    /* draw a square of given side on the segment from (ox,oy) along direction (dx,dy) */
+    const nx=-dy, ny=dx;
+    const pts=[[ox,oy],[ox+dx*side,oy+dy*side],[ox+dx*side+nx*side,oy+dy*side+ny*side],[ox+nx*side,oy+ny*side]];
+    ctx.save();ctx.fillStyle=color;ctx.strokeStyle=color.replace(/[\d.]+\)$/,"0.6)");ctx.lineWidth=1;
+    ctx.beginPath();pts.forEach((p,i)=>{const c=toCanvas(p[0],p[1]);i?ctx.lineTo(...c):ctx.moveTo(...c);});
+    ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+}
+
+/* ---- base circle ---- */
+function drawBase(){
+    ctx.clearRect(0,0,W,H);ctx.fillStyle="#0a0a1a";ctx.fillRect(0,0,W,H);
+    /* grid */
+    ctx.save();ctx.strokeStyle="rgba(255,255,255,0.04)";ctx.lineWidth=1;
+    for(let i=-1;i<=1;i+=0.5){
+        ctx.beginPath();ctx.moveTo(CX+i*R,CY-R-20);ctx.lineTo(CX+i*R,CY+R+20);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(CX-R-20,CY-i*R);ctx.lineTo(CX+R+20,CY-i*R);ctx.stroke();
+    }
+    ctx.restore();
+    /* axes */
+    drawLine(-1.15,0,1.15,0,"rgba(255,255,255,0.18)",1);
+    drawLine(0,-1.15,0,1.15,"rgba(255,255,255,0.18)",1);
+    /* unit circle */
+    ctx.save();ctx.strokeStyle="rgba(255,255,255,0.2)";ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(CX,CY,R,0,TAU);ctx.stroke();ctx.restore();
+    /* axis labels */
+    drawLabel(1.12,0,"1","#606078",14,0,11);drawLabel(-1.12,0,"-1","#606078",-16,0,11);
+    drawLabel(0,1.12,"1","#606078",0,-12,11);drawLabel(0,-1.12,"-1","#606078",0,14,11);
+}
+
+/* ---- identity-specific drawing ---- */
+function drawPyth(){
+    const c=Math.cos(theta), s=Math.sin(theta);
+    /* right triangle */
+    drawLine(0,0,c,0,"#34d399",2.5);
+    drawLine(c,0,c,s,"#f87171",2.5);
+    drawLine(0,0,c,s,"rgba(255,255,255,0.7)",2);
+    /* dashed projections */
+    drawLine(c,s,c,0,"rgba(255,255,255,0.15)",1,[4,4]);
+    drawLine(c,s,0,s,"rgba(255,255,255,0.15)",1,[4,4]);
+    /* squares on sides */
+    const absC=Math.abs(c), absS=Math.abs(s);
+    const sgnC=c>=0?1:-1, sgnS=s>=0?1:-1;
+    /* cos squared */
+    drawSquare(0,0,sgnC,0,absC,"rgba(52,211,153,0.12)");
+    /* sin squared */
+    drawSquare(c,0,0,sgnS,absS,"rgba(248,113,113,0.12)");
+    /* labels */
+    drawLabel(c/2,0,"cos\u03B8","#34d399",0,sgnS>0?16:-16,12);
+    drawLabel(c,s/2,"sin\u03B8","#f87171",c>=0?28:-28,0,12);
+    drawLabel(c/2,s/2,"1","rgba(255,255,255,0.6)",(s>=0?-12:12),(c>=0?-8:8),12);
+    /* angle arc */
+    if(Math.abs(theta)>0.05)drawArc(0,theta,30,"#34d399",1.5);
+    drawLabel(Math.cos(theta/2)*0.18,Math.sin(theta/2)*0.18,"\u03B8","#34d399",0,0,12);
+    /* point */
+    drawDot(c,s,"#fff",5);
+    drawLabel(c,s,"P("+fmt(c)+", "+fmt(s)+")","#e0e0e0",0,s>=0?-16:16,11);
+}
+
+function drawDouble(){
+    const c=Math.cos(theta), s=Math.sin(theta);
+    const c2=Math.cos(2*theta), s2=Math.sin(2*theta);
+    /* radius theta */
+    drawLine(0,0,c,s,"rgba(255,255,255,0.5)",1.5);
+    drawDot(c,s,"#34d399",5);
+    drawLabel(c,s,"P(\u03B8)","#34d399",c>=0?20:-20,s>=0?-14:14,12);
+    /* radius 2theta */
+    drawLine(0,0,c2,s2,"rgba(255,255,255,0.5)",1.5);
+    drawDot(c2,s2,"#f87171",5);
+    drawLabel(c2,s2,"Q(2\u03B8)","#f87171",c2>=0?22:-22,s2>=0?-14:14,12);
+    /* angle arcs */
+    if(Math.abs(theta)>0.03)drawArc(0,theta,35,"#34d399",1.5);
+    if(Math.abs(2*theta)>0.03)drawArc(0,2*theta,50,"#f87171",1.5);
+    drawLabel(Math.cos(theta/2)*0.22,Math.sin(theta/2)*0.22,"\u03B8","#34d399",0,0,11);
+    drawLabel(Math.cos(theta)*0.32,Math.sin(theta)*0.32,"2\u03B8","#f87171",0,0,11);
+    /* rectangle showing sin*cos area */
+    const rx=Math.abs(c), ry=Math.abs(s);
+    if(rx>0.02&&ry>0.02){
+        const x0=c>0?0:c, y0=0;
+        ctx.save();ctx.fillStyle="rgba(52,211,153,0.08)";ctx.strokeStyle="rgba(52,211,153,0.3)";ctx.lineWidth=1;
+        const[ax,ay]=toCanvas(x0,0);
+        ctx.fillRect(ax,CY-ry*R,rx*R,ry*R);ctx.strokeRect(ax,CY-ry*R,rx*R,ry*R);
+        ctx.fillRect(ax+(c>0?rx*R:-rx*R-rx*R),CY-ry*R,rx*R,ry*R);
+        ctx.strokeRect(ax+(c>0?rx*R:-rx*R-rx*R),CY-ry*R,rx*R,ry*R);
+        ctx.restore();
+        drawLabel(c>0?rx:c-rx/2, ry/2, "sin\u03B8\u00D7cos\u03B8","rgba(52,211,153,0.5)",0,0,10);
+    }
+    /* right triangle at theta */
+    drawLine(0,0,c,0,"#34d399",1,[3,3]);
+    drawLine(c,0,c,s,"#f87171",1,[3,3]);
+}
+
+function drawSum(){
+    const ca=Math.cos(alpha), sa=Math.sin(alpha);
+    const cb=Math.cos(beta), sb=Math.sin(beta);
+    const cab=Math.cos(alpha+beta), sab=Math.sin(alpha+beta);
+    /* radii */
+    drawLine(0,0,ca,sa,"#34d399",1.8);drawDot(ca,sa,"#34d399",5);
+    drawLabel(ca,sa,"\u03B1","#34d399",ca>=0?18:-18,sa>=0?-14:14,12);
+    drawLine(0,0,cb,sb,"#60a5fa",1.8);drawDot(cb,sb,"#60a5fa",5);
+    drawLabel(cb,sb,"\u03B2","#60a5fa",cb>=0?18:-18,sb>=0?-14:14,12);
+    drawLine(0,0,cab,sab,"#f87171",2);drawDot(cab,sab,"#f87171",5);
+    drawLabel(cab,sab,"\u03B1+\u03B2","#f87171",cab>=0?24:-24,sab>=0?-14:14,12);
+    /* angle arcs */
+    if(Math.abs(alpha)>0.03)drawArc(0,alpha,30,"#34d399",1.5);
+    if(Math.abs(beta)>0.03)drawArc(0,beta,42,"#60a5fa",1.2);
+    if(Math.abs(alpha+beta)>0.03)drawArc(0,alpha+beta,55,"#f87171",1.2);
+    /* projections for sum point */
+    drawLine(cab,sab,cab,0,"rgba(255,255,255,0.15)",1,[4,4]);
+    drawLine(cab,sab,0,sab,"rgba(255,255,255,0.15)",1,[4,4]);
+    /* component decomposition on the alpha+beta radius */
+    /* Show how sin(a+b) decomposes: rotate beta from alpha */
+    /* draw the rotated coordinate frame at angle alpha */
+    const len=0.7;
+    drawLine(0,0,ca*len,sa*len,"rgba(52,211,153,0.2)",1,[2,4]);
+    /* perpendicular at P(alpha+beta) to the alpha line */
+    const proj=cab*ca+sab*sa; /* dot product = cos(beta) */
+    const px=proj*ca, py=proj*sa;
+    drawLine(cab,sab,px,py,"rgba(248,113,113,0.3)",1,[3,3]);
+    drawLine(0,0,px,py,"rgba(52,211,153,0.3)",1,[3,3]);
+}
+
+function drawEvenOdd(){
+    const c=Math.cos(theta), s=Math.sin(theta);
+    /* P at theta */
+    drawLine(0,0,c,s,"rgba(255,255,255,0.5)",1.5);drawDot(c,s,"#34d399",5);
+    drawLabel(c,s,"P(\u03B8)","#34d399",c>=0?20:-20,s>=0?-14:14,12);
+    /* P' at -theta */
+    drawLine(0,0,c,-s,"rgba(255,255,255,0.5)",1.5);drawDot(c,-s,"#f87171",5);
+    drawLabel(c,-s,"P'(-\u03B8)","#f87171",c>=0?24:-24,-s>=0?-14:14,12);
+    /* vertical dashed line connecting P and P' */
+    drawLine(c,s,c,-s,"rgba(255,255,255,0.2)",1,[5,5]);
+    /* horizontal projections: same x */
+    drawLine(c,s,0,s,"rgba(52,211,153,0.3)",1,[3,3]);
+    drawLine(c,-s,0,-s,"rgba(248,113,113,0.3)",1,[3,3]);
+    drawLine(c,s,c,0,"rgba(255,255,255,0.15)",1,[3,3]);
+    drawLine(c,-s,c,0,"rgba(255,255,255,0.15)",1,[3,3]);
+    /* mark that cos is same */
+    drawLabel(c/2,0,"cos\u03B8 = cos(-\u03B8)","#34d399",0,16,11);
+    /* mark sin opposite */
+    drawLabel(0,s,"sin\u03B8","#34d399",-28,0,11);
+    drawLabel(0,-s,"-sin\u03B8","#f87171",-28,0,11);
+    /* angle arcs */
+    if(Math.abs(theta)>0.03){
+        drawArc(0,theta,35,"#34d399",1.5);
+        drawArc(-theta,0,45,"#f87171",1.5);
+    }
+    /* x-axis emphasis */
+    drawLine(-1.1,0,1.1,0,"rgba(255,255,255,0.12)",2);
+    drawLabel(0.15,0.08,"\u03B8","#34d399",0,0,11);
+    drawLabel(0.2,-0.08,"-\u03B8","#f87171",0,0,11);
+}
+
+function drawComp(){
+    const c=Math.cos(theta), s=Math.sin(theta);
+    const comp=PI/2-theta;
+    const cc=Math.cos(comp), sc=Math.sin(comp);
+    /* P at theta */
+    drawLine(0,0,c,s,"#34d399",2);drawDot(c,s,"#34d399",5);
+    drawLabel(c,s,"P(\u03B8)","#34d399",c>=0?20:-20,s>=0?-14:14,12);
+    /* Q at pi/2 - theta */
+    drawLine(0,0,cc,sc,"#f87171",2);drawDot(cc,sc,"#f87171",5);
+    drawLabel(cc,sc,"Q(\u03C0/2-\u03B8)","#f87171",cc>=0?30:-30,sc>=0?-14:14,12);
+    /* right triangles */
+    drawLine(0,0,c,0,"#34d399",1.5,[3,3]);drawLine(c,0,c,s,"#f87171",1.5,[3,3]);
+    drawLine(0,0,cc,0,"#f87171",1.5,[3,3]);drawLine(cc,0,cc,sc,"#34d399",1.5,[3,3]);
+    /* labels showing swap */
+    const offy=s>=0?14:-14;
+    drawLabel(c/2,0,"cos\u03B8","#34d399",0,offy,10);
+    drawLabel(c,s/2,"sin\u03B8","#f87171",c>=0?22:-22,0,10);
+    drawLabel(cc/2,0,"sin\u03B8","#f87171",0,-offy,10);
+    drawLabel(cc,sc/2,"cos\u03B8","#34d399",cc>=0?22:-22,0,10);
+    /* angle arcs */
+    if(Math.abs(theta)>0.03)drawArc(0,theta,30,"#34d399",1.5);
+    if(Math.abs(comp)>0.03)drawArc(0,comp,42,"#f87171",1.2);
+    drawLabel(Math.cos(theta/2)*0.18,Math.sin(theta/2)*0.18,"\u03B8","#34d399",0,0,11);
+    drawLabel(Math.cos(comp/2)*0.26,Math.sin(comp/2)*0.26,"\u03C0/2-\u03B8","#f87171",0,0,10);
+}
+
+function drawHalf(){
+    const c=Math.cos(theta), s=Math.sin(theta);
+    const ht=theta/2;
+    const ch=Math.cos(ht), sh=Math.sin(ht);
+    /* radius at theta */
+    drawLine(0,0,c,s,"rgba(255,255,255,0.4)",1.5);drawDot(c,s,"#f87171",5);
+    drawLabel(c,s,"P(\u03B8)","#f87171",c>=0?20:-20,s>=0?-14:14,12);
+    /* radius at theta/2 */
+    drawLine(0,0,ch,sh,"#34d399",2);drawDot(ch,sh,"#34d399",5);
+    drawLabel(ch,sh,"Q(\u03B8/2)","#34d399",ch>=0?24:-24,sh>=0?-14:14,12);
+    /* geometric construction: chord from (1,0) to P(theta), midpoint relates to theta/2 */
+    drawLine(1,0,c,s,"rgba(255,255,255,0.25)",1.5);
+    /* midpoint of chord */
+    const mx=(1+c)/2, my=s/2;
+    drawDot(mx,my,"rgba(255,255,255,0.4)",3);
+    /* line from origin to midpoint */
+    drawLine(0,0,mx,my,"rgba(255,255,255,0.15)",1,[3,3]);
+    /* projections */
+    drawLine(ch,sh,ch,0,"rgba(52,211,153,0.3)",1,[3,3]);
+    drawLine(ch,sh,0,sh,"rgba(248,113,113,0.3)",1,[3,3]);
+    /* angle arcs */
+    if(Math.abs(theta)>0.03)drawArc(0,theta,48,"#f87171",1.2);
+    if(Math.abs(ht)>0.03)drawArc(0,ht,32,"#34d399",1.5);
+    drawLabel(Math.cos(ht/2)*0.2,Math.sin(ht/2)*0.2,"\u03B8/2","#34d399",0,0,11);
+    drawLabel(Math.cos(theta*0.5)*0.32,Math.sin(theta*0.5)*0.32,"\u03B8","#f87171",6,0,11);
+    drawDot(1,0,"rgba(255,255,255,0.5)",4);
+    drawLabel(1,0,"(1,0)","#808098",0,14,10);
+}
+
+/* ---- values panel ---- */
+function updateValues(){
+    const a=mode==="sum"?alpha:theta;
+    const s=Math.sin(a), c=Math.cos(a);
+    const t=Math.abs(Math.cos(a))<1e-10?null:Math.tan(a);
+    const csc=Math.abs(s)<1e-10?null:1/s;
+    const sec=Math.abs(c)<1e-10?null:1/c;
+    const cot=t===null?null:(Math.abs(t)<1e-10?null:1/t);
+    const pairs=[
+        ["sin \u03B8",s,"coral"],["cos \u03B8",c,"emerald"],
+        ["tan \u03B8",t,""],["csc \u03B8",csc,""],
+        ["sec \u03B8",sec,""],["cot \u03B8",cot,""]
+    ];
+    const lbl=mode==="sum"?"\u03B1":"\u03B8";
+    document.getElementById("vals").innerHTML=pairs.map(([n,v,cls])=>{
+        const nm=n.replace("\u03B8",lbl);
+        const val=v===null?"undefined":fmt(v);
+        return "<div class='val-item'><span class='fn-name'>"+nm+" = </span><span class='fn-val "+(cls||"")+"'>"+val+"</span></div>";
+    }).join("");
+}
+
+/* ---- verification panel ---- */
+function updateVerify(){
+    const el=document.getElementById("verify");
+    let html="";
+    const chk=" <span class='check'>\u2713</span>";
+    if(mode==="pyth"){
+        const s=Math.sin(theta),c=Math.cos(theta);
+        const lhs=c*c+s*s;
+        html+="<div>cos\u00B2\u03B8 + sin\u00B2\u03B8 = "+fmt(c*c)+" + "+fmt(s*s)+" = <span class='lhs'>"+fmt(lhs)+"</span>"+chk+"</div>";
+        if(Math.abs(c)>1e-10){const l=1+Math.tan(theta)**2,r=1/(c*c);html+="<div>1 + tan\u00B2\u03B8 = "+fmt(l)+" = sec\u00B2\u03B8 = <span class='rhs'>"+fmt(r)+"</span>"+chk+"</div>";}
+        if(Math.abs(s)>1e-10){const l=1+1/Math.tan(theta)**2,r=1/(s*s);html+="<div>1 + cot\u00B2\u03B8 = "+fmt(l)+" = csc\u00B2\u03B8 = <span class='rhs'>"+fmt(r)+"</span>"+chk+"</div>";}
+    }else if(mode==="double"){
+        const s=Math.sin(theta),c=Math.cos(theta);
+        const lhs=Math.sin(2*theta),rhs=2*s*c;
+        html+="<div>sin(2\u03B8) = <span class='lhs'>"+fmt(lhs)+"</span> = 2sin\u03B8cos\u03B8 = 2 \u00D7 "+fmt(s)+" \u00D7 "+fmt(c)+" = <span class='rhs'>"+fmt(rhs)+"</span>"+chk+"</div>";
+        const lhs2=Math.cos(2*theta),rhs2=c*c-s*s;
+        html+="<div>cos(2\u03B8) = <span class='lhs'>"+fmt(lhs2)+"</span> = cos\u00B2\u03B8 - sin\u00B2\u03B8 = "+fmt(c*c)+" - "+fmt(s*s)+" = <span class='rhs'>"+fmt(rhs2)+"</span>"+chk+"</div>";
+    }else if(mode==="sum"){
+        const sa=Math.sin(alpha),ca=Math.cos(alpha),sb=Math.sin(beta),cb=Math.cos(beta);
+        const lhs=Math.sin(alpha+beta),rhs=sa*cb+ca*sb;
+        html+="<div>sin(\u03B1+\u03B2) = <span class='lhs'>"+fmt(lhs)+"</span> = sin\u03B1cos\u03B2 + cos\u03B1sin\u03B2 = <span class='rhs'>"+fmt(rhs)+"</span>"+chk+"</div>";
+        const lhs2=Math.cos(alpha+beta),rhs2=ca*cb-sa*sb;
+        html+="<div>cos(\u03B1+\u03B2) = <span class='lhs'>"+fmt(lhs2)+"</span> = cos\u03B1cos\u03B2 - sin\u03B1sin\u03B2 = <span class='rhs'>"+fmt(rhs2)+"</span>"+chk+"</div>";
+    }else if(mode==="evenodd"){
+        const s=Math.sin(theta),c=Math.cos(theta);
+        html+="<div>sin(-\u03B8) = <span class='lhs'>"+fmt(Math.sin(-theta))+"</span> = -sin\u03B8 = <span class='rhs'>"+fmt(-s)+"</span>"+chk+"</div>";
+        html+="<div>cos(-\u03B8) = <span class='lhs'>"+fmt(Math.cos(-theta))+"</span> = cos\u03B8 = <span class='rhs'>"+fmt(c)+"</span>"+chk+"</div>";
+        html+="<div>tan(-\u03B8) = <span class='lhs'>"+fmt(Math.tan(-theta))+"</span> = -tan\u03B8 = <span class='rhs'>"+fmt(-Math.tan(theta))+"</span>"+chk+"</div>";
+    }else if(mode==="comp"){
+        const s=Math.sin(theta),c=Math.cos(theta);
+        html+="<div>sin(\u03C0/2 - \u03B8) = <span class='lhs'>"+fmt(Math.sin(PI/2-theta))+"</span> = cos\u03B8 = <span class='rhs'>"+fmt(c)+"</span>"+chk+"</div>";
+        html+="<div>cos(\u03C0/2 - \u03B8) = <span class='lhs'>"+fmt(Math.cos(PI/2-theta))+"</span> = sin\u03B8 = <span class='rhs'>"+fmt(s)+"</span>"+chk+"</div>";
+    }else if(mode==="half"){
+        const ht=theta/2;
+        const sh=Math.sin(ht),ch=Math.cos(ht),c=Math.cos(theta);
+        const rS=Math.sqrt(Math.abs((1-c)/2)),rC=Math.sqrt(Math.abs((1+c)/2));
+        html+="<div>sin(\u03B8/2) = <span class='lhs'>"+fmt(sh)+"</span>, \u00B1\u221A((1-cos\u03B8)/2) = \u00B1\u221A("+fmt(Math.abs((1-c)/2))+") = <span class='rhs'>\u00B1"+fmt(rS)+"</span>"+chk+"</div>";
+        html+="<div>cos(\u03B8/2) = <span class='lhs'>"+fmt(ch)+"</span>, \u00B1\u221A((1+cos\u03B8)/2) = \u00B1\u221A("+fmt(Math.abs((1+c)/2))+") = <span class='rhs'>\u00B1"+fmt(rC)+"</span>"+chk+"</div>";
+    }
+    el.innerHTML=html;
+}
+
+/* ---- insight ---- */
+function updateInsight(){
+    const names={pyth:"Pythagorean Identities",double:"Double Angle Formulas",sum:"Sum & Difference Formulas",evenodd:"Even & Odd Symmetry",comp:"Complementary Angle Identities",half:"Half Angle Formulas"};
+    document.getElementById("eName").textContent=names[mode]||"";
+    document.getElementById("eText").textContent=INSIGHTS[mode]||"";
+}
+
+/* ---- main update ---- */
+function update(){
+    buildTabs();syncSliders();
+    drawBase();
+    if(mode==="pyth")drawPyth();
+    else if(mode==="double")drawDouble();
+    else if(mode==="sum")drawSum();
+    else if(mode==="evenodd")drawEvenOdd();
+    else if(mode==="comp")drawComp();
+    else if(mode==="half")drawHalf();
+    updateValues();updateVerify();updateInsight();
+}
+buildPresets();update();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

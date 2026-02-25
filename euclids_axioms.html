@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euclid's Axioms & Constructions</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#f87171}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+
+        .postulates{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+        .p-card{flex:1 1 170px;min-width:160px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all 0.2s}
+        .p-card:hover{background:rgba(255,255,255,0.045)}
+        .p-card.active{background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.35)}
+        .p-card.p5{border-color:rgba(251,191,36,0.35)}
+        .p-card.p5.active{border-color:rgba(251,191,36,0.6);background:rgba(251,191,36,0.06)}
+        .p-num{font-size:0.72em;color:#f87171;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:4px}
+        .p-card.p5 .p-num{color:#fbbf24}
+        .p-text{font-size:0.82em;color:#a0a0b8;line-height:1.5}
+        .p-canvas{display:block;margin:8px auto 4px;border-radius:4px}
+        .p5-note{font-size:0.72em;color:#fbbf24;margin-top:6px;line-height:1.4;opacity:0.8}
+
+        .canvas-section{margin-bottom:24px}
+        .canvas-wrap{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;position:relative}
+        .toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+        .tool-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s}
+        .tool-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .tool-btn.active{background:rgba(248,113,113,0.13);border-color:rgba(248,113,113,0.4);color:#f87171}
+        .tool-sep{width:1px;height:22px;background:rgba(255,255,255,0.08)}
+        .step-label{font-size:0.82em;color:#f87171;margin-left:auto;max-width:360px;text-align:right}
+        #mainCanvas{display:block;border-radius:8px;cursor:crosshair;width:100%;height:auto}
+
+        .guided{margin-bottom:24px}
+        .group-label{font-size:0.72em;color:#606078;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+        .guide-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s}
+        .guide-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .guide-btn.running{background:rgba(248,113,113,0.13);border-color:rgba(248,113,113,0.4);color:#f87171}
+
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px}
+        .explain-name{color:#f87171;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+
+        @media(max-width:768px){.postulates{flex-direction:column}.p-card{flex:1 1 100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Euclid's Axioms &amp; Constructions</h1>
+    <p class="subtitle">Build geometry from five postulates with compass and straightedge</p>
+
+    <div class="postulates" id="postulates"></div>
+
+    <div class="canvas-section">
+        <div class="canvas-wrap">
+            <div class="toolbar">
+                <button class="tool-btn active" data-tool="point">Point</button>
+                <button class="tool-btn" data-tool="line">Line</button>
+                <button class="tool-btn" data-tool="circle">Circle</button>
+                <div class="tool-sep"></div>
+                <button class="tool-btn" id="clearBtn">Clear</button>
+                <span class="step-label" id="stepLabel"></span>
+            </div>
+            <canvas id="mainCanvas" width="700" height="500"></canvas>
+        </div>
+    </div>
+
+    <div class="guided">
+        <div class="group-label">Guided Constructions</div>
+        <div class="btn-row" id="guidedBtns"></div>
+    </div>
+
+    <div class="explain">
+        <div class="explain-name" id="eName">The Foundation of Geometry</div>
+        <div class="explain-text" id="eText">Euclid's Elements (c. 300 BCE) built all of geometry from just five postulates. Everything &mdash; the Pythagorean theorem, properties of circles, parallel lines &mdash; follows from these five simple statements. Select a postulate above or try a guided construction.</div>
+    </div>
+</div>
+
+<script>
+const POST = [
+    {n:1, text:"A straight line can be drawn between any two points."},
+    {n:2, text:"A straight line can be extended indefinitely."},
+    {n:3, text:"A circle can be drawn with any centre and any radius."},
+    {n:4, text:"All right angles are equal."},
+    {n:5, text:"If a line crosses two other lines so that the interior angles on one side sum to less than two right angles, those two lines will meet on that side."}
+];
+
+/* --- Postulate cards --- */
+const pCont = document.getElementById("postulates");
+POST.forEach((p,i) => {
+    const card = document.createElement("div");
+    card.className = "p-card" + (i===4?" p5":"");
+    card.dataset.idx = i;
+    let html = '<div class="p-num">Postulate ' + p.n + '</div>';
+    html += '<canvas class="p-canvas" width="150" height="100"></canvas>';
+    html += '<div class="p-text">' + p.text + '</div>';
+    if(i===4) html += '<div class="p5-note">This postulate troubled mathematicians for 2,000 years. Unlike the others, it felt like it should be provable from the first four. Attempts to prove it led to the discovery of non-Euclidean geometry.</div>';
+    card.innerHTML = html;
+    card.addEventListener("click", () => highlightPostulate(i));
+    pCont.appendChild(card);
+});
+
+function drawPostulateCanvases(){
+    document.querySelectorAll(".p-card").forEach(card => {
+        const idx = +card.dataset.idx;
+        const cvs = card.querySelector("canvas");
+        const c = cvs.getContext("2d");
+        const w=150, h=100;
+        c.clearRect(0,0,w,h);
+        c.fillStyle = "#0e0e22"; c.fillRect(0,0,w,h);
+        if(idx===0){
+            c.fillStyle="#fbbf24"; c.beginPath(); c.arc(30,50,4,0,Math.PI*2); c.fill();
+            c.beginPath(); c.arc(120,50,4,0,Math.PI*2); c.fill();
+            c.strokeStyle="#e0e0e0"; c.lineWidth=1.5; c.beginPath(); c.moveTo(30,50); c.lineTo(120,50); c.stroke();
+        } else if(idx===1){
+            c.strokeStyle="#e0e0e0"; c.lineWidth=1.5; c.beginPath(); c.moveTo(20,50); c.lineTo(130,50); c.stroke();
+            c.fillStyle="#f87171"; c.beginPath(); c.moveTo(130,50); c.lineTo(122,45); c.lineTo(122,55); c.fill();
+            c.beginPath(); c.moveTo(20,50); c.lineTo(28,45); c.lineTo(28,55); c.fill();
+        } else if(idx===2){
+            c.fillStyle="#fbbf24"; c.beginPath(); c.arc(75,50,3,0,Math.PI*2); c.fill();
+            c.strokeStyle="#f87171"; c.lineWidth=1.5; c.beginPath(); c.arc(75,50,32,0,Math.PI*2); c.stroke();
+            c.setLineDash([4,4]); c.strokeStyle="rgba(255,255,255,0.3)"; c.lineWidth=1;
+            c.beginPath(); c.moveTo(75,50); c.lineTo(107,50); c.stroke(); c.setLineDash([]);
+        } else if(idx===3){
+            function drawRA(c,x,y,dx,dy,s){
+                c.strokeStyle="#e0e0e0"; c.lineWidth=1.5;
+                c.beginPath(); c.moveTo(x+dx*35,y); c.lineTo(x,y); c.lineTo(x,y+dy*35); c.stroke();
+                c.strokeStyle="rgba(248,113,113,0.7)"; c.lineWidth=1;
+                c.beginPath(); c.moveTo(x+dx*10,y); c.lineTo(x+dx*10,y+dy*10); c.lineTo(x,y+dy*10); c.stroke();
+            }
+            drawRA(c,35,55,1,-1,10); drawRA(c,115,55,-1,-1,10);
+            c.fillStyle="#808098"; c.font="12px Georgia"; c.textAlign="center";
+            c.fillText("=",75,48);
+        } else {
+            c.strokeStyle="rgba(255,255,255,0.3)"; c.lineWidth=1;
+            c.beginPath(); c.moveTo(75,5); c.lineTo(75,95); c.stroke();
+            c.strokeStyle="#e0e0e0"; c.lineWidth=1.5;
+            c.beginPath(); c.moveTo(30,10); c.lineTo(55,90); c.stroke();
+            c.beginPath(); c.moveTo(120,10); c.lineTo(95,90); c.stroke();
+            c.fillStyle="#fbbf24"; c.font="10px Georgia"; c.textAlign="center";
+            c.fillText("\u03b1",58,42); c.fillText("\u03b2",92,42);
+            c.fillStyle="rgba(248,113,113,0.6)"; c.font="9px Georgia";
+            c.fillText("\u03b1+\u03b2 < 180\u00b0",75,80);
+        }
+    });
+}
+drawPostulateCanvases();
+
+let activePostulate = -1;
+function highlightPostulate(idx){
+    activePostulate = idx;
+    document.querySelectorAll(".p-card").forEach((c,i) => {
+        c.classList.toggle("active", i===idx);
+    });
+}
+function highlightPostulates(idxs){
+    document.querySelectorAll(".p-card").forEach((c,i) => {
+        c.classList.toggle("active", idxs.includes(i));
+    });
+}
+
+/* --- Main construction canvas --- */
+const mc = document.getElementById("mainCanvas"), mx = mc.getContext("2d");
+const MW = mc.width, MH = mc.height;
+let points=[], lines=[], circles=[], nextLabel=0;
+let tool="point", firstPt=null, animating=false;
+
+function label(){ return String.fromCharCode(65 + (nextLabel++) % 26); }
+function dist(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+
+/* intersection math */
+function lineLineInt(p1,p2,p3,p4){
+    const d=(p1.x-p2.x)*(p3.y-p4.y)-(p1.y-p2.y)*(p3.x-p4.x);
+    if(Math.abs(d)<1e-10) return [];
+    const t=((p1.x-p3.x)*(p3.y-p4.y)-(p1.y-p3.y)*(p3.x-p4.x))/d;
+    return [{x:p1.x+t*(p2.x-p1.x), y:p1.y+t*(p2.y-p1.y)}];
+}
+function lineCircleInt(p1,p2,cc,r){
+    const dx=p2.x-p1.x, dy=p2.y-p1.y;
+    const fx=p1.x-cc.x, fy=p1.y-cc.y;
+    const a=dx*dx+dy*dy, b=2*(fx*dx+fy*dy), c_=fx*fx+fy*fy-r*r;
+    let disc=b*b-4*a*c_;
+    if(disc<0) return [];
+    disc=Math.sqrt(disc);
+    const res=[];
+    for(const s of [(-b-disc)/(2*a), (-b+disc)/(2*a)]){
+        res.push({x:p1.x+s*dx, y:p1.y+s*dy});
+    }
+    return res;
+}
+function circleCircleInt(c1,r1,c2,r2){
+    const d=dist(c1,c2);
+    if(d>r1+r2+1e-9 || d<Math.abs(r1-r2)-1e-9 || d<1e-9) return [];
+    const a_=(r1*r1-r2*r2+d*d)/(2*d);
+    const h=Math.sqrt(Math.max(0,r1*r1-a_*a_));
+    const px=c1.x+a_*(c2.x-c1.x)/d, py=c1.y+a_*(c2.y-c1.y)/d;
+    const rx=-(c2.y-c1.y)*(h/d), ry=(c2.x-c1.x)*(h/d);
+    const res=[{x:px+rx, y:py+ry}];
+    if(h>1e-9) res.push({x:px-rx, y:py-ry});
+    return res;
+}
+
+function allIntersections(){
+    const pts=[];
+    for(let i=0;i<lines.length;i++)
+        for(let j=i+1;j<lines.length;j++)
+            pts.push(...lineLineInt(lines[i].a, lines[i].b, lines[j].a, lines[j].b));
+    for(const l of lines)
+        for(const ci of circles)
+            pts.push(...lineCircleInt(l.a, l.b, ci.c, ci.r));
+    for(let i=0;i<circles.length;i++)
+        for(let j=i+1;j<circles.length;j++)
+            pts.push(...circleCircleInt(circles[i].c, circles[i].r, circles[j].c, circles[j].r));
+    return pts.filter(p=>p.x>=0 && p.x<=MW && p.y>=0 && p.y<=MH);
+}
+
+function snap(x,y){
+    const thresh=12;
+    let best=null, bd=thresh;
+    for(const p of points){ const d=Math.hypot(p.x-x,p.y-y); if(d<bd){bd=d;best=p;} }
+    if(best) return best;
+    for(const ip of allIntersections()){
+        const d=Math.hypot(ip.x-x,ip.y-y);
+        if(d<bd){bd=d;best={x:ip.x,y:ip.y,lbl:null};}
+    }
+    return best || {x,y,lbl:null};
+}
+
+function addPoint(x,y,lbl){
+    const existing = points.find(p=>Math.hypot(p.x-x,p.y-y)<5);
+    if(existing) return existing;
+    const p={x,y,lbl:lbl||label()};
+    points.push(p);
+    return p;
+}
+
+function extendLine(a,b){
+    const dx=b.x-a.x, dy=b.y-a.y, len=Math.hypot(dx,dy);
+    if(len<1e-9) return {ax:a.x,ay:a.y,bx:b.x,by:b.y};
+    const ux=dx/len, uy=dy/len, ext=2000;
+    return {ax:a.x-ux*ext, ay:a.y-uy*ext, bx:a.x+ux*ext, by:a.y+uy*ext};
+}
+
+function draw(){
+    mx.fillStyle="#0a0a1a"; mx.fillRect(0,0,MW,MH);
+    /* grid dots */
+    mx.fillStyle="rgba(255,255,255,0.04)";
+    for(let x=25;x<MW;x+=25) for(let y=25;y<MH;y+=25){
+        mx.beginPath(); mx.arc(x,y,1,0,Math.PI*2); mx.fill();
+    }
+    /* lines */
+    mx.strokeStyle="rgba(224,224,224,0.7)"; mx.lineWidth=1.2;
+    for(const l of lines){
+        const e=extendLine(l.a,l.b);
+        mx.beginPath(); mx.moveTo(e.ax,e.ay); mx.lineTo(e.bx,e.by); mx.stroke();
+    }
+    /* circles */
+    mx.strokeStyle="rgba(248,113,113,0.6)"; mx.lineWidth=1.2;
+    for(const ci of circles){
+        mx.beginPath(); mx.arc(ci.c.x, ci.c.y, ci.r, 0, Math.PI*2); mx.stroke();
+    }
+    /* points */
+    for(const p of points){
+        mx.fillStyle="#fbbf24"; mx.beginPath(); mx.arc(p.x,p.y,4,0,Math.PI*2); mx.fill();
+        if(p.lbl){
+            mx.fillStyle="rgba(251,191,36,0.85)"; mx.font="13px Georgia"; mx.textAlign="left"; mx.textBaseline="bottom";
+            mx.fillText(p.lbl, p.x+7, p.y-5);
+        }
+    }
+    /* highlight first point in tool mode */
+    if(firstPt && (tool==="line"||tool==="circle")){
+        mx.strokeStyle="#f87171"; mx.lineWidth=2;
+        mx.beginPath(); mx.arc(firstPt.x,firstPt.y,8,0,Math.PI*2); mx.stroke();
+    }
+}
+draw();
+
+/* toolbar */
+document.querySelectorAll(".tool-btn[data-tool]").forEach(b=>{
+    b.addEventListener("click",()=>{
+        if(animating) return;
+        tool=b.dataset.tool; firstPt=null;
+        document.querySelectorAll(".tool-btn[data-tool]").forEach(x=>x.classList.toggle("active",x===b));
+        draw();
+    });
+});
+document.getElementById("clearBtn").addEventListener("click",()=>{
+    if(animating) return;
+    points=[]; lines=[]; circles=[]; nextLabel=0; firstPt=null;
+    document.getElementById("stepLabel").textContent="";
+    draw();
+});
+
+mc.addEventListener("click", e=>{
+    if(animating) return;
+    const rect=mc.getBoundingClientRect();
+    const sx=MW/rect.width, sy=MH/rect.height;
+    const cx=(e.clientX-rect.left)*sx, cy=(e.clientY-rect.top)*sy;
+    const snapped = snap(cx,cy);
+
+    if(tool==="point"){
+        addPoint(snapped.x, snapped.y);
+        draw();
+    } else if(tool==="line"){
+        if(!firstPt){
+            firstPt = addPoint(snapped.x, snapped.y);
+            draw();
+        } else {
+            const sp = addPoint(snapped.x, snapped.y);
+            if(dist(firstPt,sp)>3) lines.push({a:firstPt, b:sp});
+            firstPt=null; draw();
+        }
+    } else if(tool==="circle"){
+        if(!firstPt){
+            firstPt = addPoint(snapped.x, snapped.y);
+            draw();
+        } else {
+            const sp = addPoint(snapped.x, snapped.y);
+            const r=dist(firstPt,sp);
+            if(r>3) circles.push({c:firstPt, r});
+            firstPt=null; draw();
+        }
+    }
+});
+
+/* --- Guided constructions --- */
+const GUIDES = [
+    {name:"Equilateral Triangle", postulates:[0,2],
+     insight:"This construction uses only Postulates 1 and 3. Euclid used it as his very first proposition (Book I, Proposition 1).",
+     build(){ return buildEquilateral(); }},
+    {name:"Perpendicular Bisector", postulates:[0,2],
+     insight:"The perpendicular bisector uses Postulates 1 and 3. Every point on it is equidistant from the segment's endpoints \u2014 a fact Euclid proved in Book I.",
+     build(){ return buildPerpBisector(); }},
+    {name:"Angle Bisector", postulates:[0,2],
+     insight:"Bisecting an angle requires only Postulates 1 and 3. Euclid presented this as Proposition 9 of Book I.",
+     build(){ return buildAngleBisector(); }},
+    {name:"Copy an Angle", postulates:[0,2],
+     insight:"Copying an angle to a new location uses Postulates 1 and 3. This is Euclid's Proposition 23 and is essential for many later constructions.",
+     build(){ return buildCopyAngle(); }},
+    {name:"Parallel Line", postulates:[0,2,4],
+     insight:"This is the only construction that requires reasoning from the Fifth Postulate. Without it, we cannot guarantee parallel lines exist \u2014 leading to hyperbolic and elliptic non-Euclidean geometries.",
+     build(){ return buildParallel(); }}
+];
+
+const gCont = document.getElementById("guidedBtns");
+GUIDES.forEach((g,i) => {
+    const b = document.createElement("button");
+    b.className = "guide-btn"; b.textContent = g.name; b.dataset.idx = i;
+    b.addEventListener("click", () => runGuided(i));
+    gCont.appendChild(b);
+});
+
+async function runGuided(idx){
+    if(animating) return;
+    animating = true;
+    const g = GUIDES[idx];
+    document.querySelectorAll(".guide-btn").forEach((b,i)=>b.classList.toggle("running",i===idx));
+    points=[]; lines=[]; circles=[]; nextLabel=0; firstPt=null;
+    document.getElementById("eName").textContent = g.name;
+    document.getElementById("eText").textContent = g.insight;
+    highlightPostulates(g.postulates);
+
+    const steps = g.build();
+    for(const s of steps){
+        document.getElementById("stepLabel").textContent = s.label;
+        s.action();
+        draw();
+        await new Promise(r=>setTimeout(r, 550));
+    }
+    document.getElementById("stepLabel").textContent = "Construction complete.";
+    animating = false;
+    document.querySelectorAll(".guide-btn").forEach(b=>b.classList.remove("running"));
+}
+
+function buildEquilateral(){
+    const A={x:225,y:340}, B={x:475,y:340};
+    const r=dist(A,B);
+    const cx=(A.x+B.x)/2, h=Math.sqrt(r*r - (r/2)*(r/2));
+    const C={x:cx, y:A.y - h};
+    return [
+        {label:"Step 1: Place points A and B", action(){addPoint(A.x,A.y,"A"); addPoint(B.x,B.y,"B");}},
+        {label:"Step 2: Draw segment AB (P1)", action(){
+            const a=points[0],b=points[1]; lines.push({a,b});
+        }},
+        {label:"Step 3: Draw circle at A, radius AB (P3)", action(){
+            circles.push({c:points[0], r});
+        }},
+        {label:"Step 4: Draw circle at B, radius BA (P3)", action(){
+            circles.push({c:points[1], r});
+        }},
+        {label:"Step 5: Mark intersection C", action(){addPoint(C.x,C.y,"C");}},
+        {label:"Step 6: Draw AC and BC (P1)", action(){
+            lines.push({a:points[0],b:points[2]}); lines.push({a:points[1],b:points[2]});
+        }}
+    ];
+}
+
+function buildPerpBisector(){
+    const A={x:225,y:280}, B={x:475,y:280};
+    const r=dist(A,B)*0.7;
+    const ints=circleCircleInt(A,r,B,r);
+    return [
+        {label:"Step 1: Place points A and B", action(){addPoint(A.x,A.y,"A"); addPoint(B.x,B.y,"B");}},
+        {label:"Step 2: Draw segment AB (P1)", action(){lines.push({a:points[0],b:points[1]});}},
+        {label:"Step 3: Draw circle at A, radius > AB/2 (P3)", action(){circles.push({c:points[0],r});}},
+        {label:"Step 4: Draw circle at B, same radius (P3)", action(){circles.push({c:points[1],r});}},
+        {label:"Step 5: Mark intersections C and D", action(){
+            addPoint(ints[0].x,ints[0].y,"C"); addPoint(ints[1].x,ints[1].y,"D");
+        }},
+        {label:"Step 6: Draw line through C and D (P1)", action(){
+            lines.push({a:points[2],b:points[3]});
+        }}
+    ];
+}
+
+function buildAngleBisector(){
+    const V={x:200,y:350}, P1={x:500,y:350}, P2={x:350,y:100};
+    const r=150;
+    const ang1=Math.atan2(P1.y-V.y, P1.x-V.x), ang2=Math.atan2(P2.y-V.y, P2.x-V.x);
+    const D={x:V.x+r*Math.cos(ang1), y:V.y+r*Math.sin(ang1)};
+    const E={x:V.x+r*Math.cos(ang2), y:V.y+r*Math.sin(ang2)};
+    const r2=dist(D,E)*0.65;
+    const ints=circleCircleInt(D,r2,E,r2);
+    const F = ints.length>0 ? (ints[0].x>V.x ? ints[0] : (ints[1]||ints[0])) : {x:350,y:250};
+    return [
+        {label:"Step 1: Mark vertex V and rays", action(){
+            addPoint(V.x,V.y,"V"); addPoint(P1.x,P1.y,""); addPoint(P2.x,P2.y,"");
+            lines.push({a:points[0],b:points[1]}); lines.push({a:points[0],b:points[2]});
+        }},
+        {label:"Step 2: Draw arc from V (P3)", action(){
+            circles.push({c:points[0], r});
+        }},
+        {label:"Step 3: Mark intersections D and E", action(){
+            addPoint(D.x,D.y,"D"); addPoint(E.x,E.y,"E");
+        }},
+        {label:"Step 4: Draw arc from D (P3)", action(){circles.push({c:points[3], r:r2});}},
+        {label:"Step 5: Draw arc from E (P3)", action(){circles.push({c:points[4], r:r2});}},
+        {label:"Step 6: Mark intersection F", action(){addPoint(F.x,F.y,"F");}},
+        {label:"Step 7: Draw bisector VF (P1)", action(){lines.push({a:points[0],b:points[5]});}}
+    ];
+}
+
+function buildCopyAngle(){
+    /* Source angle at left, copy to right */
+    const A={x:80,y:380}, B={x:280,y:380}, C={x:170,y:180};
+    const D={x:400,y:380}, E={x:600,y:380};
+    const r=120;
+    const angAB=Math.atan2(B.y-A.y,B.x-A.x), angAC=Math.atan2(C.y-A.y,C.x-A.x);
+    const P={x:A.x+r*Math.cos(angAB),y:A.y+r*Math.sin(angAB)};
+    const Q={x:A.x+r*Math.cos(angAC),y:A.y+r*Math.sin(angAC)};
+    const pqDist=dist(P,Q);
+    const angDE=Math.atan2(E.y-D.y,E.x-D.x);
+    const R={x:D.x+r*Math.cos(angDE), y:D.y+r*Math.sin(angDE)};
+    const ints=circleCircleInt(D,r,R,pqDist);
+    const S=ints.length>0 ? (ints[0].y<D.y?ints[0]:(ints[1]||ints[0])) : {x:490,y:260};
+    return [
+        {label:"Step 1: Draw source angle BAC", action(){
+            addPoint(A.x,A.y,"A"); addPoint(B.x,B.y,"B"); addPoint(C.x,C.y,"C");
+            lines.push({a:points[0],b:points[1]}); lines.push({a:points[0],b:points[2]});
+        }},
+        {label:"Step 2: Place point D for copy, draw ray DE (P1)", action(){
+            addPoint(D.x,D.y,"D"); addPoint(E.x,E.y,"E");
+            lines.push({a:points[3],b:points[4]});
+        }},
+        {label:"Step 3: Draw arc radius r from A (P3)", action(){circles.push({c:points[0],r});}},
+        {label:"Step 4: Mark P and Q on original angle", action(){
+            addPoint(P.x,P.y,"P"); addPoint(Q.x,Q.y,"Q");
+        }},
+        {label:"Step 5: Draw arc radius r from D (P3)", action(){circles.push({c:points[3],r});}},
+        {label:"Step 6: Mark R on new ray", action(){addPoint(R.x,R.y,"R");}},
+        {label:"Step 7: Draw arc from R, radius PQ (P3)", action(){circles.push({c:points[8],r:pqDist});}},
+        {label:"Step 8: Mark intersection S", action(){addPoint(S.x,S.y,"S");}},
+        {label:"Step 9: Draw ray DS (P1)", action(){lines.push({a:points[3],b:points[9]});}}
+    ];
+}
+
+function buildParallel(){
+    /* Given line AB and point P, construct parallel through P */
+    const A={x:100,y:300}, B={x:600,y:300}, P={x:350,y:140};
+    /* Use copy-angle approach: draw transversal, copy angle */
+    const Q={x:350,y:300}; /* foot on line from P */
+    const r=120;
+    const angQA=Math.atan2(A.y-Q.y,A.x-Q.x);
+    const angQP=Math.atan2(P.y-Q.y,P.x-Q.x);
+    const D={x:Q.x+r*Math.cos(angQA),y:Q.y+r*Math.sin(angQA)};
+    const E_pt={x:Q.x+r*Math.cos(angQP),y:Q.y+r*Math.sin(angQP)};
+    const deDist=dist(D,E_pt);
+    const angPQ=Math.atan2(Q.y-P.y,Q.x-P.x);
+    const F={x:P.x+r*Math.cos(angPQ),y:P.y+r*Math.sin(angPQ)};
+    /* arc at P, radius r: intersection with circle from F radius DE */
+    const ints=circleCircleInt(P,r,F,deDist);
+    const G=ints.length>0 ? (ints[0].x<P.x?ints[0]:(ints[1]||ints[0])) : {x:200,y:140};
+    return [
+        {label:"Step 1: Draw line AB (given)", action(){
+            addPoint(A.x,A.y,"A"); addPoint(B.x,B.y,"B"); lines.push({a:points[0],b:points[1]});
+        }},
+        {label:"Step 2: Place point P above the line", action(){addPoint(P.x,P.y,"P");}},
+        {label:"Step 3: Draw transversal PQ (P1)", action(){
+            addPoint(Q.x,Q.y,"Q"); lines.push({a:points[2],b:points[3]});
+        }},
+        {label:"Step 4: Draw arc at Q, radius r (P3)", action(){circles.push({c:points[3],r});}},
+        {label:"Step 5: Mark D and E on arcs", action(){
+            addPoint(D.x,D.y,"D"); addPoint(E_pt.x,E_pt.y,"E");
+        }},
+        {label:"Step 6: Draw arc at P, same radius (P3)", action(){circles.push({c:points[2],r});}},
+        {label:"Step 7: Mark F on arc at P", action(){addPoint(F.x,F.y,"F");}},
+        {label:"Step 8: Draw arc from F, radius DE (P3)", action(){circles.push({c:points[7],r:deDist});}},
+        {label:"Step 9: Mark intersection G", action(){addPoint(G.x,G.y,"G");}},
+        {label:"Step 10: Draw parallel through P and G (P1, P5)", action(){
+            lines.push({a:points[2],b:points[8]});
+        }}
+    ];
+}
+
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

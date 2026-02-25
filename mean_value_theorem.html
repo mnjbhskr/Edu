@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mean Value Theorem</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fb923c}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:20px}
+        .panel h2{font-size:1.05em;font-weight:400;color:#fb923c;margin-bottom:10px}
+        .panel h3{font-size:0.8em;font-weight:400;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);margin-bottom:16px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .fn-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .fn-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .fn-btn.active{background:rgba(251,146,60,0.13);border-color:rgba(251,146,60,0.4);color:#fb923c}
+        .anim-btn{background:rgba(251,146,60,0.12);border:1px solid rgba(251,146,60,0.35);color:#fb923c;padding:7px 18px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .anim-btn:hover{background:rgba(251,146,60,0.22)}
+        .slider-row{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+        .slider-row label{font-size:0.88em;color:#808098;min-width:36px}
+        .slider-row input[type=range]{flex:1;min-width:120px;accent-color:#fb923c}
+        .slider-row .val{color:#fb923c;font-family:'Courier New',monospace;font-size:0.92em;min-width:42px}
+        .theorem-box{text-align:center;padding:18px 20px}
+        .theorem-box .formula{font-size:1.35em;color:#fb923c;margin:12px 0;font-style:italic}
+        .theorem-box p{color:#a0a0b8;font-size:0.9em}
+        .calc{font-family:'Courier New',monospace;font-size:0.88em;line-height:1.9;color:#a0a0b8}
+        .calc .gold{color:#fbbf24}
+        .calc .green{color:#2ecc71}
+        .calc .orange{color:#fb923c}
+        .calc .check{color:#2ecc71}
+        .speed-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:10px}
+        .speed-row label{font-size:0.88em;color:#808098}
+        .speed-row input[type=number]{width:70px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:5px;color:#e0e0e0;padding:4px 8px;font-family:'Courier New',monospace;font-size:0.9em}
+        .speed-result{color:#fb923c;font-size:0.95em;margin-top:8px}
+        .insight{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        @media(max-width:768px){canvas{width:100%;height:auto}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Mean Value Theorem</h1>
+    <p class="subtitle">Somewhere the tangent must equal the secant</p>
+
+    <div class="panel">
+        <h3>Function</h3>
+        <div class="btn-row" id="fnBtns"></div>
+        <canvas id="graph" width="700" height="400"></canvas>
+        <div class="slider-row">
+            <label>a =</label><input type="range" id="sliderA" min="0" max="100" value="20"><span class="val" id="valA"></span>
+            <label>b =</label><input type="range" id="sliderB" min="0" max="100" value="80"><span class="val" id="valB"></span>
+            <button class="anim-btn" id="animBtn">Animate Tangent</button>
+        </div>
+    </div>
+
+    <div class="panel theorem-box">
+        <p>If <i>f</i> is continuous on [<i>a</i>, <i>b</i>] and differentiable on (<i>a</i>, <i>b</i>), then there exists at least one <i>c</i> in (<i>a</i>, <i>b</i>) such that:</p>
+        <div class="formula">f'(c) = ( f(b) - f(a) ) / ( b - a )</div>
+        <p>The instantaneous rate of change at <i>c</i> equals the average rate of change over [<i>a</i>, <i>b</i>].</p>
+    </div>
+
+    <div class="panel">
+        <h2>Calculation</h2>
+        <div class="calc" id="calcDisplay"></div>
+    </div>
+
+    <div class="panel">
+        <h2>Speed Analogy</h2>
+        <p class="insight">If you drove <b id="speedDist">100</b> miles in <b id="speedTime">1.5</b> hours, then at some moment during your trip your speedometer read exactly <b id="speedAvg">66.7</b> mph.</p>
+        <div class="speed-row">
+            <label>Distance (mi):</label><input type="number" id="inDist" value="100" min="1">
+            <label>Time (hr):</label><input type="number" id="inTime" value="1.5" min="0.1" step="0.1">
+        </div>
+        <div class="speed-result" id="speedResult"></div>
+    </div>
+
+    <div class="panel">
+        <h2>Rolle's Theorem (Special Case)</h2>
+        <p class="insight">When f(a) = f(b), the secant line is horizontal. Then there must exist a point <i>c</i> where f'(c) = 0 -- a horizontal tangent. "If you start and end at the same height, you must turn around somewhere."</p>
+        <div style="margin-top:10px">
+            <button class="fn-btn" id="rolleBtn">Show: f(x) = x&#178; &#8722; 4x + 3 on [1, 3]</button>
+        </div>
+    </div>
+
+    <div class="panel">
+        <h2>Insight</h2>
+        <p class="insight" id="insightText"></p>
+    </div>
+</div>
+
+<script>
+const FUNCS = [
+    { label:"f(x) = x\u00B2", id:"x2",
+      f:x=>x*x, fp:x=>2*x, fpLabel:"2x",
+      solveC(a,b,slope){ return [(a+b)/2]; },
+      range:[-1,5], ypad:[0,1] },
+    { label:"f(x) = x\u00B3 \u2212 3x", id:"x3",
+      f:x=>x*x*x-3*x, fp:x=>3*x*x-3, fpLabel:"3x\u00B2 \u2212 3",
+      solveC(a,b,slope){ const d=(slope+3)/3; if(d<0)return[]; const s=Math.sqrt(d);
+        const r=[]; if(-s>a+1e-9&&-s<b-1e-9)r.push(-s); if(s>a+1e-9&&s<b-1e-9)r.push(s); return r; },
+      range:[-2.5,3], ypad:[1,1] },
+    { label:"f(x) = sin(x)", id:"sin",
+      f:x=>Math.sin(x), fp:x=>Math.cos(x), fpLabel:"cos(x)",
+      solveC(a,b,slope){ const r=[]; if(Math.abs(slope)>1)return r;
+        const base=Math.acos(slope);
+        for(let k=-4;k<=4;k++){
+            const c1=base+2*Math.PI*k, c2=-base+2*Math.PI*k;
+            if(c1>a+1e-9&&c1<b-1e-9)r.push(c1);
+            if(c2>a+1e-9&&c2<b-1e-9&&Math.abs(c2-c1)>1e-6)r.push(c2);
+        }
+        r.sort((u,v)=>u-v); return r; },
+      range:[-0.5,7], ypad:[0.3,0.3] },
+    { label:"f(x) = \u221Ax", id:"sqrt",
+      f:x=>x>=0?Math.sqrt(x):NaN, fp:x=>x>0?1/(2*Math.sqrt(x)):NaN, fpLabel:"1/(2\u221Ax)",
+      solveC(a,b,slope){ if(slope<=0)return[]; const c=1/(4*slope*slope);
+        return(c>a+1e-9&&c<b-1e-9)?[c]:[]; },
+      range:[0.01,6], ypad:[0,0.3] },
+    { label:"f(x) = e\u02E3", id:"exp",
+      f:x=>Math.exp(x), fp:x=>Math.exp(x), fpLabel:"e\u02E3",
+      solveC(a,b,slope){ if(slope<=0)return[]; const c=Math.log(slope);
+        return(c>a+1e-9&&c<b-1e-9)?[c]:[]; },
+      range:[-1,3], ypad:[0,1] },
+    { label:"f(x) = |x|", id:"abs",
+      f:x=>Math.abs(x), fp:x=>x>0?1:(x<0?-1:NaN), fpLabel:"sign(x)",
+      solveC(a,b,slope){
+        // |x| differentiable everywhere except x=0
+        if(a>=0){ return [(a+b)/2]; } // f'=1 everywhere, any c works; show midpoint
+        if(b<=0){ return [(a+b)/2]; } // f'=-1 everywhere, any c works; show midpoint
+        // 0 in (a,b): not differentiable at 0, MVT fails
+        return [];
+      },
+      range:[-2,3], ypad:[0,0.3], mayFail:true },
+    { label:"f(x) = x\u00B2 \u2212 4x + 3", id:"rolle",
+      f:x=>x*x-4*x+3, fp:x=>2*x-4, fpLabel:"2x \u2212 4",
+      solveC(a,b,slope){ const c=(slope+4)/2; return(c>a+1e-9&&c<b-1e-9)?[c]:[]; },
+      range:[0,4], ypad:[0.2,0.5] }
+];
+
+let curFn=0, paramA=20, paramB=80, animId=null, animX=0, rolleMode=false;
+const cvs=document.getElementById("graph"), ctx=cvs.getContext("2d"), W=cvs.width, H=cvs.height;
+const PAD={l:52,r:20,t:20,b:36};
+
+function lerp(t,a,b){return a+t*(b-a);}
+function fmt(v){
+    if(Math.abs(v)<1e-8)return'0';
+    if(Math.abs(v-Math.round(v))<1e-8)return Math.round(v).toString();
+    return v.toFixed(3).replace(/0+$/,'').replace(/\.$/,'');
+}
+
+function getFunc(){return FUNCS[curFn];}
+function getRange(){const fn=getFunc();return{xMin:fn.range[0],xMax:fn.range[1]};}
+function getAB(){
+    const r=getRange(),span=r.xMax-r.xMin;
+    let a=r.xMin+(paramA/100)*span, b=r.xMin+(paramB/100)*span;
+    if(b-a<0.05*span){b=a+0.05*span;}
+    return{a,b};
+}
+function toCanvasX(x){const r=getRange();return PAD.l+(x-r.xMin)/(r.xMax-r.xMin)*(W-PAD.l-PAD.r);}
+function toCanvasY(y,yMin,yMax){return PAD.t+(yMax-y)/(yMax-yMin)*(H-PAD.t-PAD.b);}
+
+function computeYRange(){
+    const fn=getFunc(),r=getRange();
+    let yMin=Infinity,yMax=-Infinity;
+    for(let i=0;i<=500;i++){
+        const x=lerp(i/500,r.xMin,r.xMax),y=fn.f(x);
+        if(!isNaN(y)&&isFinite(y)){yMin=Math.min(yMin,y);yMax=Math.max(yMax,y);}
+    }
+    const pad=Math.max((yMax-yMin)*0.12,0.3);
+    return{yMin:yMin-pad-(fn.ypad[0]||0),yMax:yMax+pad+(fn.ypad[1]||0)};
+}
+
+function niceStep(range,ticks){
+    const raw=range/ticks,mag=Math.pow(10,Math.floor(Math.log10(raw))),norm=raw/mag;
+    if(norm<=1.5)return mag;if(norm<=3)return 2*mag;if(norm<=7)return 5*mag;return 10*mag;
+}
+
+function mvtApplies(fn,a,b){
+    if(fn.id!=='abs')return true;
+    // |x| fails only when 0 is strictly inside (a,b)
+    return!(a<0&&b>0);
+}
+
+function drawGraph(sweepX){
+    const fn=getFunc(),r=getRange(),yr=computeYRange(),ab=getAB();
+    const{yMin,yMax}=yr;
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+
+    // Grid
+    ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+    const xStep=niceStep(r.xMax-r.xMin,8),yStep=niceStep(yMax-yMin,6);
+    ctx.font='11px Georgia';ctx.fillStyle='#606078';ctx.textAlign='center';ctx.textBaseline='top';
+    for(let x=Math.ceil(r.xMin/xStep)*xStep;x<=r.xMax;x+=xStep){
+        const cx=toCanvasX(x);ctx.beginPath();ctx.moveTo(cx,PAD.t);ctx.lineTo(cx,H-PAD.b);ctx.stroke();
+        ctx.fillText(fmt(x),cx,H-PAD.b+4);
+    }
+    ctx.textAlign='right';ctx.textBaseline='middle';
+    for(let y=Math.ceil(yMin/yStep)*yStep;y<=yMax;y+=yStep){
+        const cy=toCanvasY(y,yMin,yMax);ctx.beginPath();ctx.moveTo(PAD.l,cy);ctx.lineTo(W-PAD.r,cy);ctx.stroke();
+        ctx.fillText(fmt(y),PAD.l-6,cy);
+    }
+
+    // Axes
+    ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+    if(yMin<=0&&yMax>=0){const y0=toCanvasY(0,yMin,yMax);ctx.beginPath();ctx.moveTo(PAD.l,y0);ctx.lineTo(W-PAD.r,y0);ctx.stroke();}
+    if(r.xMin<=0&&r.xMax>=0){const x0=toCanvasX(0);ctx.beginPath();ctx.moveTo(x0,PAD.t);ctx.lineTo(x0,H-PAD.b);ctx.stroke();}
+
+    // Vertical dashed lines at a, b
+    ctx.setLineDash([5,5]);ctx.strokeStyle='rgba(251,191,36,0.3)';ctx.lineWidth=1;
+    [ab.a,ab.b].forEach(x=>{
+        const cx=toCanvasX(x);ctx.beginPath();ctx.moveTo(cx,PAD.t);ctx.lineTo(cx,H-PAD.b);ctx.stroke();
+    });
+    ctx.setLineDash([]);
+
+    // Function curve
+    ctx.strokeStyle='#fb923c';ctx.lineWidth=2.5;ctx.beginPath();
+    let started=false;
+    for(let i=0;i<=600;i++){
+        const x=lerp(i/600,r.xMin,r.xMax),y=fn.f(x);
+        if(isNaN(y)||!isFinite(y)){started=false;continue;}
+        const cx=toCanvasX(x),cy=toCanvasY(y,yMin,yMax);
+        if(!started){ctx.moveTo(cx,cy);started=true;}else ctx.lineTo(cx,cy);
+    }
+    ctx.stroke();
+
+    // Mark corner for |x|
+    if(fn.id==='abs'&&r.xMin<=0&&r.xMax>=0){
+        ctx.fillStyle='#e74c3c';ctx.beginPath();
+        ctx.arc(toCanvasX(0),toCanvasY(0,yMin,yMax),4,0,Math.PI*2);ctx.fill();
+    }
+
+    // Secant line
+    const fa=fn.f(ab.a),fb=fn.f(ab.b);
+    if(isNaN(fa)||isNaN(fb))return;
+    const slope=(fb-fa)/(ab.b-ab.a);
+
+    ctx.setLineDash([8,6]);ctx.strokeStyle='#fbbf24';ctx.lineWidth=1.8;
+    const ext=(ab.b-ab.a)*0.35;
+    ctx.beginPath();
+    ctx.moveTo(toCanvasX(ab.a-ext),toCanvasY(fa+slope*(-ext),yMin,yMax));
+    ctx.lineTo(toCanvasX(ab.b+ext),toCanvasY(fb+slope*(ext),yMin,yMax));
+    ctx.stroke();ctx.setLineDash([]);
+
+    // Endpoint dots
+    [[ab.a,fa],[ab.b,fb]].forEach(([x,y])=>{
+        ctx.fillStyle='#fbbf24';ctx.beginPath();
+        ctx.arc(toCanvasX(x),toCanvasY(y,yMin,yMax),5,0,Math.PI*2);ctx.fill();
+    });
+    ctx.font='13px Georgia';ctx.fillStyle='#fbbf24';ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillText('a',toCanvasX(ab.a),H-PAD.b+18);
+    ctx.fillText('b',toCanvasX(ab.b),H-PAD.b+18);
+
+    // MVT points c
+    const applies=mvtApplies(fn,ab.a,ab.b);
+    const cVals=applies?fn.solveC(ab.a,ab.b,slope):[];
+    const cLabels=cVals.length>1?cVals.map((_,i)=>'c\u2081\u2082\u2083\u2084'[i]||'c'):'c';
+
+    cVals.forEach((c,i)=>{
+        const fc=fn.f(c);
+        const tSlope=fn.fp(c),tExt=(ab.b-ab.a)*0.3;
+        // Tangent line
+        ctx.strokeStyle='#2ecc71';ctx.lineWidth=2;ctx.beginPath();
+        ctx.moveTo(toCanvasX(c-tExt),toCanvasY(fc+tSlope*(-tExt),yMin,yMax));
+        ctx.lineTo(toCanvasX(c+tExt),toCanvasY(fc+tSlope*(tExt),yMin,yMax));
+        ctx.stroke();
+        // Point
+        ctx.fillStyle='#2ecc71';ctx.beginPath();
+        ctx.arc(toCanvasX(c),toCanvasY(fc,yMin,yMax),5,0,Math.PI*2);ctx.fill();
+        // Vertical dashed
+        ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(46,204,113,0.3)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(toCanvasX(c),PAD.t);ctx.lineTo(toCanvasX(c),H-PAD.b);ctx.stroke();
+        ctx.setLineDash([]);
+        // Label
+        ctx.font='13px Georgia';ctx.fillStyle='#2ecc71';ctx.textAlign='center';ctx.textBaseline='top';
+        const lbl=cVals.length>1?'c'+'\u2081\u2082\u2083\u2084'[i]:'c';
+        ctx.fillText(lbl,toCanvasX(c),H-PAD.b+18);
+    });
+
+    // Sweep tangent animation overlay
+    if(sweepX!==undefined){
+        const sy=fn.f(sweepX),sp=fn.fp(sweepX);
+        if(!isNaN(sy)&&!isNaN(sp)&&isFinite(sy)&&isFinite(sp)){
+            const isMatch=Math.abs(sp-slope)<0.04;
+            ctx.strokeStyle=isMatch?'#fff':'rgba(46,204,113,0.5)';
+            ctx.lineWidth=isMatch?3:1.5;
+            const tExt=(ab.b-ab.a)*0.22;
+            ctx.beginPath();
+            ctx.moveTo(toCanvasX(sweepX-tExt),toCanvasY(sy+sp*(-tExt),yMin,yMax));
+            ctx.lineTo(toCanvasX(sweepX+tExt),toCanvasY(sy+sp*(tExt),yMin,yMax));
+            ctx.stroke();
+            ctx.fillStyle=isMatch?'#fff':'rgba(46,204,113,0.7)';ctx.beginPath();
+            ctx.arc(toCanvasX(sweepX),toCanvasY(sy,yMin,yMax),isMatch?7:4,0,Math.PI*2);ctx.fill();
+        }
+    }
+
+    // Top-left label
+    ctx.font='14px Georgia';ctx.fillStyle='#fb923c';ctx.textAlign='left';ctx.textBaseline='top';
+    ctx.fillText(fn.label,PAD.l+8,PAD.t+6);
+    if(!applies){
+        ctx.fillStyle='#e74c3c';
+        ctx.fillText('MVT does not apply (not differentiable at x = 0)',PAD.l+8,PAD.t+24);
+    }
+
+    // Legend
+    ctx.font='11px Georgia';ctx.textAlign='right';ctx.textBaseline='top';
+    ctx.fillStyle='#fbbf24';ctx.fillText('--- secant',W-PAD.r-8,PAD.t+6);
+    ctx.fillStyle='#2ecc71';ctx.fillText('\u2014 tangent',W-PAD.r-8,PAD.t+20);
+}
+
+function updateCalc(){
+    const fn=getFunc(),ab=getAB();
+    const fa=fn.f(ab.a),fb=fn.f(ab.b);
+    if(isNaN(fa)||isNaN(fb)){document.getElementById('calcDisplay').innerHTML='';return;}
+    const slope=(fb-fa)/(ab.b-ab.a);
+    const applies=mvtApplies(fn,ab.a,ab.b);
+    let html='';
+
+    html+='<span class="gold">Secant slope = (f(b) - f(a)) / (b - a)</span><br>';
+    html+='<span class="gold">&nbsp;&nbsp;= ('+fmt(fb)+' - '+fmt(fa)+') / ('+fmt(ab.b)+' - '+fmt(ab.a)+') = '+fmt(slope)+'</span><br><br>';
+
+    if(!applies){
+        html+='<span class="orange">f(x) = |x| is not differentiable at x = 0.</span><br>';
+        html+='The derivative does not exist at x = 0 (corner point), so the MVT hypotheses are not satisfied.<br>';
+        html+='<span style="color:#e74c3c">No point c exists where f\'(c) = '+fmt(slope)+
+              ' because f\'(x) is either -1 or +1, never '+fmt(slope)+'.</span>';
+    } else {
+        html+='We need <span class="green">f\'(c)</span> = <span class="gold">'+fmt(slope)+'</span><br>';
+        html+='f\'(x) = <span class="orange">'+fn.fpLabel+'</span><br><br>';
+        const cVals=fn.solveC(ab.a,ab.b,slope);
+        if(cVals.length===0){
+            html+='<span style="color:#808098">No c found in ('+fmt(ab.a)+', '+fmt(ab.b)+') -- try adjusting the interval.</span>';
+        } else {
+            cVals.forEach((c,i)=>{
+                const fpc=fn.fp(c);
+                const lbl=cVals.length>1?'c'+'\u2081\u2082\u2083\u2084'[i]:'c';
+                html+='Solving f\'('+lbl+') = '+fmt(slope)+': <span class="green">'+lbl+' = '+fmt(c)+'</span><br>';
+                html+='<span class="check">Check: f\'('+fmt(c)+') = '+fmt(fpc)+' = secant slope</span><br>';
+                if(i<cVals.length-1)html+='<br>';
+            });
+        }
+    }
+    document.getElementById('calcDisplay').innerHTML=html;
+}
+
+function updateInsight(){
+    const fn=getFunc(),ab=getAB();
+    let text;
+    if(fn.id==='abs'){
+        if(ab.a<0&&ab.b>0){
+            text='The MVT requires differentiability on (a, b). The function |x| has a corner at x = 0 where the derivative does not exist. Without this condition, the theorem can fail -- there may be no point where the tangent matches the secant.';
+        } else {
+            text='With the current interval, x = 0 is not in (a, b), so |x| is differentiable here. Move the endpoints so that 0 lies strictly between a and b to see the MVT fail.';
+        }
+    } else if(fn.id==='rolle'||rolleMode){
+        text='Rolle\'s Theorem is the MVT with a horizontal secant. If you start and end at the same height, you must turn around somewhere -- that turning point has zero slope. For f(x) = x\u00B2 \u2212 4x + 3 on [1, 3]: f(1) = f(3) = 0, so there must be a c in (1, 3) where f\'(c) = 0. Indeed, f\'(2) = 2(2) \u2212 4 = 0.';
+    } else {
+        text='The Mean Value Theorem (Cauchy, 1823) is the workhorse of calculus. It guarantees that a function\'s average behaviour over an interval must be matched by its instantaneous behaviour at some point. It is the foundation of many proofs: L\'Hopital\'s rule, the monotonicity test, and the error bounds for Taylor series.';
+    }
+    document.getElementById('insightText').textContent=text;
+}
+
+function updateAll(){
+    const ab=getAB();
+    document.getElementById('valA').textContent=fmt(ab.a);
+    document.getElementById('valB').textContent=fmt(ab.b);
+    stopAnim();
+    drawGraph();
+    updateCalc();
+    updateInsight();
+}
+
+function renderFnBtns(){
+    const c=document.getElementById('fnBtns');
+    c.innerHTML=FUNCS.map((fn,i)=>
+        '<button class="fn-btn'+(i===curFn?' active':'')+'" data-i="'+i+'">'+fn.label+'</button>'
+    ).join('');
+    c.querySelectorAll('.fn-btn').forEach(b=>b.addEventListener('click',()=>{
+        curFn=parseInt(b.dataset.i);rolleMode=false;
+        paramA=20;paramB=80;
+        document.getElementById('sliderA').value=paramA;
+        document.getElementById('sliderB').value=paramB;
+        renderFnBtns();updateAll();
+    }));
+}
+
+// Sliders
+document.getElementById('sliderA').addEventListener('input',e=>{
+    paramA=parseFloat(e.target.value);
+    if(paramA>=paramB-3){paramA=paramB-3;e.target.value=paramA;}
+    rolleMode=false;updateAll();
+});
+document.getElementById('sliderB').addEventListener('input',e=>{
+    paramB=parseFloat(e.target.value);
+    if(paramB<=paramA+3){paramB=paramA+3;e.target.value=paramB;}
+    rolleMode=false;updateAll();
+});
+
+// Animation
+function stopAnim(){if(animId){cancelAnimationFrame(animId);animId=null;}}
+
+document.getElementById('animBtn').addEventListener('click',()=>{
+    if(animId){stopAnim();drawGraph();return;}
+    const fn=getFunc(),ab=getAB();
+    if(!mvtApplies(fn,ab.a,ab.b)){return;}
+    const slope=(fn.f(ab.b)-fn.f(ab.a))/(ab.b-ab.a);
+    const cVals=fn.solveC(ab.a,ab.b,slope);
+    const margin=(ab.b-ab.a)*0.02;
+    animX=ab.a+margin;
+    const speed=0.006*(ab.b-ab.a);
+    let matchIdx=0,pauseFrames=0;
+
+    function step(){
+        if(pauseFrames>0){pauseFrames--;drawGraph(animX);animId=requestAnimationFrame(step);return;}
+        animX+=speed;
+        if(animX>=ab.b-margin){stopAnim();drawGraph();return;}
+        if(matchIdx<cVals.length&&Math.abs(animX-cVals[matchIdx])<speed*1.5){
+            animX=cVals[matchIdx];matchIdx++;pauseFrames=50;
+        }
+        drawGraph(animX);
+        animId=requestAnimationFrame(step);
+    }
+    animId=requestAnimationFrame(step);
+});
+
+// Rolle's button
+document.getElementById('rolleBtn').addEventListener('click',()=>{
+    curFn=FUNCS.findIndex(f=>f.id==='rolle');
+    rolleMode=true;
+    // f(x)=x^2-4x+3 on [1,3]: range is [0,4], so a=1 -> 25%, b=3 -> 75%
+    paramA=25;paramB=75;
+    document.getElementById('sliderA').value=paramA;
+    document.getElementById('sliderB').value=paramB;
+    renderFnBtns();updateAll();
+});
+
+// Speed analogy
+function updateSpeed(){
+    const d=parseFloat(document.getElementById('inDist').value)||100;
+    const t=parseFloat(document.getElementById('inTime').value)||1;
+    const avg=d/t;
+    document.getElementById('speedDist').textContent=d;
+    document.getElementById('speedTime').textContent=t;
+    document.getElementById('speedAvg').textContent=avg.toFixed(1);
+    document.getElementById('speedResult').textContent=
+        'Average speed = '+d+' / '+t+' = '+avg.toFixed(1)+' mph. By the MVT, at some instant your speedometer read exactly '+avg.toFixed(1)+' mph.';
+}
+document.getElementById('inDist').addEventListener('input',updateSpeed);
+document.getElementById('inTime').addEventListener('input',updateSpeed);
+
+renderFnBtns();
+updateAll();
+updateSpeed();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

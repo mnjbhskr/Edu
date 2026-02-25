@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prime Numbers &amp; the Sieve of Eratosthenes</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fbbf24}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:24px}
+        .concept{border-left:3px solid #fbbf24;padding-left:20px}
+        .concept p{color:#a0a0b8;font-size:0.92em;line-height:1.75}
+
+        .grid-wrap{display:flex;justify-content:center;margin-bottom:24px}
+        .grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
+        .cell{width:45px;height:45px;display:flex;align-items:center;justify-content:center;font-size:0.88em;border-radius:4px;background:rgba(255,255,255,0.04);color:#c8c8d8;transition:background 0.15s,color 0.15s,transform 0.12s;position:relative;cursor:default;font-family:'Courier New',monospace}
+        .cell.one{color:#404058;background:rgba(255,255,255,0.015)}
+        .cell.current-prime{color:#fbbf24;background:rgba(251,191,36,0.12);box-shadow:0 0 12px rgba(251,191,36,0.3);animation:pulse 0.8s ease-in-out infinite alternate}
+        .cell.crossing{color:#e74c3c;background:rgba(231,76,60,0.18);transform:scale(1.15);z-index:2}
+        .cell.crossed{color:#404058;background:rgba(255,255,255,0.015);text-decoration:line-through}
+        .cell.confirmed{color:#fbbf24;background:rgba(251,191,36,0.08);text-shadow:0 0 6px rgba(251,191,36,0.3)}
+        @keyframes pulse{from{box-shadow:0 0 8px rgba(251,191,36,0.2)}to{box-shadow:0 0 18px rgba(251,191,36,0.45)}}
+
+        .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:24px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:7px 18px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(251,191,36,0.13);border-color:rgba(251,191,36,0.4);color:#fbbf24}
+        .btn:disabled{opacity:0.35;cursor:default}
+        .speed-wrap{display:flex;align-items:center;gap:8px;margin-left:auto}
+        .speed-wrap label{font-size:0.82em;color:#808098}
+        .speed-wrap input[type=range]{width:100px;accent-color:#fbbf24}
+        .size-wrap{display:flex;align-items:center;gap:6px}
+        .size-wrap label{font-size:0.82em;color:#808098;margin-right:2px}
+        .size-btn{padding:4px 12px;font-size:0.84em}
+        .size-btn.active{background:rgba(251,191,36,0.13);border-color:rgba(251,191,36,0.4);color:#fbbf24}
+
+        .status{margin-bottom:24px}
+        .status-line{font-size:0.88em;color:#808098;margin-bottom:6px}
+        .status-line .hl{color:#fbbf24}
+        .primes-list{font-size:0.84em;color:#a0a0b8;max-height:3.6em;overflow-y:auto;line-height:1.8;font-family:'Courier New',monospace}
+        .stats{display:flex;gap:28px;flex-wrap:wrap;margin-top:10px}
+        .stat{font-size:0.86em;color:#808098}
+        .stat .val{color:#fbbf24;font-weight:400}
+
+        .facts{display:none}
+        .facts.show{display:block}
+        .facts h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .fact{color:#a0a0b8;font-size:0.88em;line-height:1.75;margin-bottom:6px}
+        .fact .hl{color:#fbbf24}
+
+        .insight{font-size:0.9em;color:#a0a0b8;line-height:1.75}
+        .insight .hl{color:#fbbf24}
+
+        @media(max-width:560px){
+            .grid{grid-template-columns:repeat(5,1fr)}
+            .cell{width:52px;height:48px;font-size:0.85em}
+            .controls{flex-direction:column;align-items:stretch}
+            .speed-wrap{margin-left:0}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Prime Numbers &amp; the Sieve of Eratosthenes</h1>
+    <p class="subtitle">The atoms of arithmetic &mdash; watch them emerge</p>
+
+    <div class="panel concept">
+        <p>A prime number is divisible only by 1 and itself. The Sieve of Eratosthenes (c. 240 BCE) finds all primes up to N by systematically crossing out multiples of each prime, starting from 2.</p>
+    </div>
+
+    <div class="grid-wrap"><div class="grid" id="grid"></div></div>
+
+    <div class="controls">
+        <button class="btn" id="startBtn" onclick="toggleRun()">Start Sieve</button>
+        <button class="btn" id="stepBtn" onclick="stepOnce()">Step</button>
+        <button class="btn" id="resetBtn" onclick="resetSieve()">Reset</button>
+        <div class="size-wrap">
+            <label>Grid:</label>
+            <button class="btn size-btn" data-n="100" onclick="setSize(100)">100</button>
+            <button class="btn size-btn active" data-n="200" onclick="setSize(200)">200</button>
+            <button class="btn size-btn" data-n="400" onclick="setSize(400)">400</button>
+        </div>
+        <div class="speed-wrap">
+            <label>Slow</label>
+            <input type="range" id="speedSlider" min="1" max="10" value="5">
+            <label>Fast</label>
+        </div>
+    </div>
+
+    <div class="panel status" id="statusPanel">
+        <div class="status-line" id="statusLine">Press <span class="hl">Start Sieve</span> or <span class="hl">Step</span> to begin.</div>
+        <div class="primes-list" id="primesList"></div>
+        <div class="stats" id="statsRow"></div>
+    </div>
+
+    <div class="panel insight" id="insightPanel">
+        <span class="hl">How it works:</span> Each new prime eliminates its multiples. We start crossing out from p&sup2;, since smaller multiples of p were already eliminated by smaller primes. Any number that survives all crossings must be prime.</div>
+
+    <div class="panel facts" id="factsPanel">
+        <h3>Prime Facts</h3>
+        <div id="factsContent"></div>
+    </div>
+</div>
+
+<script>
+let N = 200;
+let cells = [];        // DOM elements
+let state = [];        // 0=unmarked, 1=crossed, 2=current-prime, 3=confirmed
+let primes = [];       // found primes
+let running = false;
+let paused = false;
+let timer = null;
+let sieveGen = null;   // generator for the sieve steps
+let complete = false;
+
+function getDelay() {
+    const v = document.getElementById("speedSlider").value;
+    return 220 - v * 20;
+}
+
+function buildGrid() {
+    const grid = document.getElementById("grid");
+    grid.innerHTML = "";
+    const cols = window.innerWidth <= 560 ? 5 : 10;
+    grid.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
+    cells = [];
+    state = new Array(N + 1).fill(0);
+    primes = [];
+    complete = false;
+    for (let i = 1; i <= N; i++) {
+        const d = document.createElement("div");
+        d.className = "cell";
+        d.textContent = i;
+        if (i === 1) { d.classList.add("one"); state[i] = -1; }
+        grid.appendChild(d);
+        cells[i] = d;
+    }
+    updateStatus("Press <span class='hl'>Start Sieve</span> or <span class='hl'>Step</span> to begin.");
+    document.getElementById("primesList").textContent = "";
+    document.getElementById("statsRow").innerHTML = "";
+    document.getElementById("factsPanel").classList.remove("show");
+    document.getElementById("insightPanel").innerHTML = "<span class='hl'>How it works:</span> Each new prime eliminates its multiples. We start crossing out from p&sup2;, since smaller multiples of p were already eliminated by smaller primes. Any number that survives all crossings must be prime.";
+    document.getElementById("startBtn").textContent = "Start Sieve";
+    running = false;
+    paused = false;
+    sieveGen = null;
+}
+
+function setSize(n) {
+    if (running && !paused) toggleRun();
+    N = n;
+    document.querySelectorAll(".size-btn").forEach(b => {
+        b.classList.toggle("active", parseInt(b.dataset.n) === n);
+    });
+    clearTimeout(timer);
+    running = false;
+    paused = false;
+    sieveGen = null;
+    buildGrid();
+}
+
+function setCellState(i, s) {
+    if (i < 1 || i > N) return;
+    state[i] = s;
+    const c = cells[i];
+    c.className = "cell";
+    if (s === -1) c.classList.add("one");
+    else if (s === 1) c.classList.add("crossed");
+    else if (s === 2) c.classList.add("current-prime");
+    else if (s === 3) c.classList.add("confirmed");
+    else if (s === 9) c.classList.add("crossing");
+}
+
+function updateStatus(html) {
+    document.getElementById("statusLine").innerHTML = html;
+}
+
+function updatePrimesList() {
+    document.getElementById("primesList").textContent = "Primes: " + primes.join(", ");
+    const el = document.getElementById("primesList");
+    el.scrollTop = el.scrollHeight;
+}
+
+function updateStats() {
+    const pct = (primes.length / N * 100).toFixed(1);
+    const largest = primes.length > 0 ? primes[primes.length - 1] : "--";
+    document.getElementById("statsRow").innerHTML =
+        "<div class='stat'>Primes found: <span class='val'>" + primes.length + "</span></div>" +
+        "<div class='stat'>Percentage: <span class='val'>" + pct + "%</span></div>" +
+        "<div class='stat'>&pi;(" + N + ") = <span class='val'>" + primes.length + "</span></div>" +
+        "<div class='stat'>Largest: <span class='val'>" + largest + "</span></div>";
+}
+
+function* sieveSteps() {
+    const limit = Math.floor(Math.sqrt(N));
+    // Phase 1: cross out multiples of each prime up to sqrt(N)
+    for (let p = 2; p <= limit; p++) {
+        if (state[p] === 1) continue;
+        // Mark p as current prime
+        setCellState(p, 2);
+        primes.push(p);
+        updatePrimesList();
+        updateStats();
+        updateStatus("Crossing out multiples of <span class='hl'>" + p + "</span>...");
+        yield { type: "prime", p: p };
+
+        const start = p * p;
+        for (let m = start; m <= N; m += p) {
+            if (state[m] !== 1) {
+                setCellState(m, 9);
+                yield { type: "cross", p: p, m: m };
+                setCellState(m, 1);
+            } else {
+                setCellState(m, 9);
+                yield { type: "cross-already", p: p, m: m };
+                setCellState(m, 1);
+            }
+        }
+        setCellState(p, 3);
+    }
+    // Phase 2: all remaining unmarked numbers are prime -- reveal them
+    updateStatus("Past &radic;" + N + " &mdash; all surviving numbers are prime. Revealing...");
+    for (let p = limit + 1; p <= N; p++) {
+        if (state[p] === 0) {
+            primes.push(p);
+            setCellState(p, 3);
+        }
+    }
+    updatePrimesList();
+    updateStats();
+    yield { type: "done" };
+}
+
+function finishSieve() {
+    complete = true;
+    running = false;
+    paused = false;
+    clearTimeout(timer);
+    document.getElementById("startBtn").textContent = "Start Sieve";
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("stepBtn").disabled = true;
+
+    updateStatus("Sieve complete. <span class='hl'>" + primes.length + "</span> primes found up to " + N + ".");
+    updateStats();
+    showFacts();
+
+    document.getElementById("insightPanel").innerHTML = "<span class='hl'>The primes thin out</span> as numbers grow larger, but they never stop entirely. They are the atoms of arithmetic &mdash; every positive integer greater than 1 is either prime itself or can be expressed as a unique product of primes.";
+}
+
+function showFacts() {
+    const panel = document.getElementById("factsPanel");
+    const lnN = Math.log(N);
+    const estimate = (N / lnN).toFixed(1);
+    // Find twin primes
+    const twins = [];
+    for (let i = 0; i < primes.length - 1; i++) {
+        if (primes[i + 1] - primes[i] === 2) {
+            twins.push("(" + primes[i] + "," + primes[i + 1] + ")");
+        }
+    }
+    let html = "";
+    html += "<div class='fact'>There are <span class='hl'>" + primes.length + "</span> primes up to " + N + ".</div>";
+    html += "<div class='fact'>The Prime Number Theorem estimates &pi;(N) &approx; N/ln(N). For N=" + N + ": " + N + "/ln(" + N + ") &approx; " + estimate + " &mdash; the actual count (" + primes.length + ") is higher, but they converge for large N.</div>";
+    html += "<div class='fact'>Twin primes found: <span class='hl'>" + twins.join(", ") + "</span></div>";
+    html += "<div class='fact'>Euclid proved there are infinitely many primes (c. 300 BCE).</div>";
+    document.getElementById("factsContent").innerHTML = html;
+    panel.classList.add("show");
+}
+
+function advance() {
+    if (!sieveGen) sieveGen = sieveSteps();
+    const result = sieveGen.next();
+    if (result.done || result.value.type === "done") {
+        finishSieve();
+        return false;
+    }
+    return true;
+}
+
+function runLoop() {
+    if (!running || paused) return;
+    const more = advance();
+    if (more) {
+        timer = setTimeout(runLoop, getDelay());
+    }
+}
+
+function toggleRun() {
+    if (complete) return;
+    if (!running) {
+        running = true;
+        paused = false;
+        document.getElementById("startBtn").textContent = "Pause";
+        runLoop();
+    } else if (!paused) {
+        paused = true;
+        clearTimeout(timer);
+        document.getElementById("startBtn").textContent = "Resume";
+    } else {
+        paused = false;
+        document.getElementById("startBtn").textContent = "Pause";
+        runLoop();
+    }
+}
+
+function stepOnce() {
+    if (complete) return;
+    if (running && !paused) {
+        paused = true;
+        clearTimeout(timer);
+        document.getElementById("startBtn").textContent = "Resume";
+    }
+    if (!sieveGen) {
+        sieveGen = sieveSteps();
+        running = true;
+        paused = true;
+        document.getElementById("startBtn").textContent = "Resume";
+    }
+    advance();
+}
+
+function resetSieve() {
+    clearTimeout(timer);
+    running = false;
+    paused = false;
+    sieveGen = null;
+    complete = false;
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("stepBtn").disabled = false;
+    buildGrid();
+}
+
+buildGrid();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

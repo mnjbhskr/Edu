@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Through the Ages</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fcd34d}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(252,211,77,0.13);border-color:rgba(252,211,77,0.4);color:#fcd34d}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .gold{color:#fcd34d}.math-line .blue{color:#60a5fa}.math-line .green{color:#2ecc71}
+        .math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#fcd34d;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#fcd34d}
+        .slider-label{color:#fcd34d;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 340px;min-width:280px}
+        hr.sep{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:8px 0}
+        .timeline-outer{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;margin-bottom:20px;padding-bottom:8px}
+        .timeline-track{display:flex;gap:0;min-width:max-content;position:relative;padding:18px 0 14px}
+        .timeline-line{position:absolute;top:50%;left:20px;right:20px;height:2px;background:rgba(255,255,255,0.08)}
+        .tl-card{width:140px;flex-shrink:0;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px 12px;cursor:pointer;transition:all 0.2s;position:relative;z-index:1}
+        .tl-card:hover,.tl-card.active{border-color:rgba(252,211,77,0.4);background:rgba(252,211,77,0.06)}
+        .tl-card .tl-era{font-size:0.72em;color:#fcd34d;margin-bottom:2px}
+        .tl-card .tl-who{font-size:0.82em;color:#e0e0e0;margin-bottom:2px}
+        .tl-card .tl-val{font-family:'Courier New',monospace;font-size:0.78em;color:#a0a0b8}
+        .tl-card .tl-method{font-size:0.7em;color:#606078;margin-top:3px}
+        .series-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+        .series-tab{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:4px 12px;cursor:pointer;font-size:0.82em;color:#808098;transition:all 0.2s}
+        .series-tab:hover{color:#e0e0e0}
+        .series-tab.active{background:rgba(252,211,77,0.1);border-color:rgba(252,211,77,0.35);color:#fcd34d}
+        .digits-grid{font-family:'Courier New',monospace;font-size:0.82em;line-height:1.9;word-break:break-all;letter-spacing:1px;max-height:220px;overflow-y:auto;padding:8px;border-radius:6px;background:rgba(0,0,0,0.25)}
+        .digits-grid .hl{background:rgba(252,211,77,0.35);border-radius:2px}
+        .freq-bar-row{display:flex;align-items:flex-end;gap:6px;height:80px;margin-top:10px}
+        .freq-bar{display:flex;flex-direction:column;align-items:center;flex:1}
+        .freq-bar .bar{width:100%;border-radius:3px 3px 0 0;transition:height 0.3s}
+        .freq-bar .lbl{font-size:0.72em;color:#808098;margin-top:3px;font-family:'Courier New',monospace}
+        .freq-bar .cnt{font-size:0.68em;color:#606078;margin-bottom:2px;font-family:'Courier New',monospace}
+        .search-row{display:flex;gap:8px;align-items:center;margin:10px 0}
+        .search-row input[type=text]{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:5px 10px;color:#e0e0e0;font-family:'Courier New',monospace;font-size:0.88em;width:160px}
+        .search-row input[type=text]::placeholder{color:#505068}
+        .fun-facts{margin-top:14px}
+        .fun-facts div{font-size:0.85em;color:#a0a0b8;margin:6px 0;padding-left:14px;border-left:2px solid rgba(252,211,77,0.25)}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}.flex-row>.flex-half{flex:1 1 100%;min-width:0}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Pi Through the Ages</h1>
+    <p class="subtitle">4,000 years of computing the most famous constant</p>
+
+    <!-- ============ SECTION 1: ARCHIMEDES ============ -->
+    <h2>Archimedes' Method</h2>
+    <div class="panel">
+        <h3>Inscribed &amp; Circumscribed Polygons</h3>
+        <canvas id="archCanvas" width="650" height="450" style="cursor:default"></canvas>
+        <div class="slider-row" style="margin-top:14px">
+            <span class="math-line muted">Sides:</span>
+            <input type="range" id="archSides" min="3" max="96" value="6">
+            <span class="slider-label" id="archSidesLabel">6</span>
+        </div>
+        <div class="btn-row" style="margin-top:8px">
+            <button class="btn" id="archPlay">Play (3 to 96)</button>
+            <button class="btn" id="archReset">Reset</button>
+        </div>
+        <div id="archMath" style="margin-top:10px"></div>
+    </div>
+
+    <!-- ============ SECTION 2: TIMELINE ============ -->
+    <h2>Historical Timeline</h2>
+    <div class="panel">
+        <h3>4,000 Years of Pi</h3>
+        <div class="timeline-outer" id="timelineOuter">
+            <div class="timeline-track" id="timelineTrack">
+                <div class="timeline-line"></div>
+            </div>
+        </div>
+        <div id="timelineDetail" class="math-line muted" style="min-height:36px"></div>
+    </div>
+
+    <!-- ============ SECTION 3: INFINITE SERIES ============ -->
+    <h2>Infinite Series Methods</h2>
+    <div class="panel">
+        <h3>Convergence Comparison</h3>
+        <div class="series-tabs" id="seriesTabs"></div>
+        <canvas id="seriesCanvas" width="600" height="350" style="cursor:default"></canvas>
+        <div class="slider-row" style="margin-top:10px">
+            <span class="math-line muted">Terms:</span>
+            <input type="range" id="seriesN" min="1" max="100" value="10">
+            <span class="slider-label" id="seriesNLabel">10</span>
+        </div>
+        <div id="seriesMath" style="margin-top:8px"></div>
+    </div>
+
+    <!-- ============ SECTION 4: MONTE CARLO ============ -->
+    <h2>Monte Carlo Methods</h2>
+    <div class="flex-row">
+        <div class="flex-half">
+            <div class="panel">
+                <h3>Random Points</h3>
+                <canvas id="mcCanvas" width="350" height="350" style="cursor:default"></canvas>
+                <div class="btn-row" style="margin-top:10px">
+                    <button class="btn" id="mcDrop1">+1</button>
+                    <button class="btn" id="mcDrop10">+10</button>
+                    <button class="btn" id="mcDrop100">+100</button>
+                    <button class="btn" id="mcDrop1000">+1000</button>
+                    <button class="btn" id="mcClear">Clear</button>
+                </div>
+                <div id="mcStats" class="math-line" style="margin-top:6px"></div>
+            </div>
+        </div>
+        <div class="flex-half">
+            <div class="panel">
+                <h3>Buffon's Needle</h3>
+                <canvas id="buffonCanvas" width="350" height="350" style="cursor:default"></canvas>
+                <div class="btn-row" style="margin-top:10px">
+                    <button class="btn" id="bufDrop1">+1</button>
+                    <button class="btn" id="bufDrop10">+10</button>
+                    <button class="btn" id="bufDrop100">+100</button>
+                    <button class="btn" id="bufDrop1000">+1000</button>
+                    <button class="btn" id="bufClear">Clear</button>
+                </div>
+                <div id="bufStats" class="math-line" style="margin-top:6px"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ SECTION 5: DIGITS EXPLORER ============ -->
+    <h2>Pi Digits Explorer</h2>
+    <div class="panel">
+        <h3>First 1,000 Digits of Pi</h3>
+        <div id="digitsGrid" class="digits-grid"></div>
+        <div class="search-row" style="margin-top:12px">
+            <span class="math-line muted">Search:</span>
+            <input type="text" id="digitSearch" placeholder="e.g. 999999" maxlength="20">
+            <button class="btn" id="digitSearchBtn">Find</button>
+            <span class="math-line muted" id="digitSearchResult" style="margin-left:8px"></span>
+        </div>
+        <div class="search-row">
+            <span class="math-line muted">Birthday (MMDDYY):</span>
+            <input type="text" id="birthdaySearch" placeholder="031490" maxlength="6">
+            <button class="btn" id="birthdayBtn">Find</button>
+            <span class="math-line muted" id="birthdayResult" style="margin-left:8px"></span>
+        </div>
+        <h3 style="margin-top:16px">Digit Frequency (0-9)</h3>
+        <div class="freq-bar-row" id="freqBars"></div>
+        <div class="fun-facts" id="funFacts"></div>
+    </div>
+
+    <!-- ============ SECTION 6: EXPLANATION ============ -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            Pi is not just a geometric constant &mdash; it appears everywhere: probability (Buffon's needle), number theory (distribution of primes), complex analysis (the zeta function), and physics (quantum mechanics, general relativity). The history of computing pi mirrors the history of mathematics itself.
+            <br><br>
+            From geometry (Archimedes' polygons, ~250 BC) to analysis (Madhava's and Leibniz's infinite series, 1400&ndash;1700) to modern computation (Ramanujan, Chudnovsky) &mdash; each era brought fundamentally new tools. The quest for digits drove the invention of better algorithms and faster machines.
+            <br><br>
+            Pi is irrational (Lambert, 1761): it cannot be expressed as a fraction. It is transcendental (Lindemann, 1882): it is not the root of any polynomial with integer coefficients &mdash; which finally proved that squaring the circle with compass and straightedge is impossible. And it is probably normal (every digit sequence appears with equal frequency) &mdash; but this remains unproven after centuries of study.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ================================================================
+   PI DIGITS — first 1000 digits after the decimal point
+   ================================================================ */
+const PI_DIGITS = '1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679821480865132823066470938446095505822317253594081284811174502841027019385211055596446229489549303819644288109756659334461284756482337867831652712019091456485669234603486104543266482133936072602491412737245870066063155881748815209209628292540917153643678925903600113305305488204665213841469519415116094330572703657595919530921861173819326117931051185480744623799627495673518857527248912279381830119491298336733624406566430860213949463952247371907021798609437027705392171762931767523846748184676694051320005681271452635608277857713427577896091736371787214684409012249534301465495853710507922796892589235420199561121290219608640344181598136297747713099605187072113499999983729780499510597317328160963185950244594553469083026425223082533446850352619311881710100031378387528865875332083814206171776691473035982534904287554687311595628638823537875937519577818577805321712268066130019278766111959092164201989';
+
+const DIGIT_COLORS = ['#f87171','#fb923c','#fcd34d','#2ecc71','#22d3ee','#818cf8','#a78bfa','#f472b6','#e0e0e0','#94a3b8'];
+
+/* ================================================================
+   SECTION 1 — ARCHIMEDES' METHOD
+   ================================================================ */
+(function(){
+    const cvs = document.getElementById('archCanvas'), ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const slider = document.getElementById('archSides');
+    const label = document.getElementById('archSidesLabel');
+    const mathOut = document.getElementById('archMath');
+    let animId = null;
+
+    function draw(n){
+        label.textContent = n;
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        const cx = 240, cy = H/2, R = 170;
+
+        // Grid lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 1;
+        for(let i = -5; i <= 5; i++){
+            ctx.beginPath(); ctx.moveTo(cx+i*40,0); ctx.lineTo(cx+i*40,H); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0,cy+i*40); ctx.lineTo(W,cy+i*40); ctx.stroke();
+        }
+
+        // Circle
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.stroke();
+
+        // Inner polygon (inscribed)
+        ctx.fillStyle = 'rgba(252,211,77,0.08)';
+        ctx.strokeStyle = '#fcd34d'; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for(let i = 0; i <= n; i++){
+            const a = (2*Math.PI*i)/n - Math.PI/2;
+            const px = cx + R*Math.cos(a), py = cy + R*Math.sin(a);
+            if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+        }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+
+        // Outer polygon (circumscribed)
+        const Ro = R / Math.cos(Math.PI/n);
+        ctx.strokeStyle = '#818cf8'; ctx.lineWidth = 1.5;
+        ctx.setLineDash([5,4]);
+        ctx.beginPath();
+        for(let i = 0; i <= n; i++){
+            const a = (2*Math.PI*i)/n - Math.PI/2;
+            const px = cx + Ro*Math.cos(a), py = cy + Ro*Math.sin(a);
+            if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+        }
+        ctx.closePath(); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Center dot
+        ctx.fillStyle = '#808098'; ctx.beginPath(); ctx.arc(cx,cy,3,0,Math.PI*2); ctx.fill();
+
+        // Radius line
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+R,cy); ctx.stroke();
+        ctx.font = '11px Georgia'; ctx.fillStyle = '#808098'; ctx.textAlign = 'center';
+        ctx.fillText('r', cx+R/2, cy-8);
+
+        // Calculations
+        const innerPerim = n * 2 * R * Math.sin(Math.PI/n);
+        const outerPerim = n * 2 * R * Math.tan(Math.PI/n);
+        const diameter = 2 * R;
+        const lower = innerPerim / diameter;
+        const upper = outerPerim / diameter;
+        const width = upper - lower;
+
+        // Right side: info panel
+        const rx = 500, ry = 40;
+        ctx.font = '13px Georgia'; ctx.fillStyle = '#fcd34d'; ctx.textAlign = 'left';
+        ctx.fillText(n + '-sided polygons', rx, ry);
+
+        ctx.font = '11px Courier New'; ctx.fillStyle = '#c0c0d8';
+        ctx.fillText('Inner perimeter / diameter', rx, ry+30);
+        ctx.fillStyle = '#fcd34d';
+        ctx.fillText('= ' + lower.toFixed(8), rx, ry+48);
+
+        ctx.fillStyle = '#c0c0d8';
+        ctx.fillText('Outer perimeter / diameter', rx, ry+76);
+        ctx.fillStyle = '#818cf8';
+        ctx.fillText('= ' + upper.toFixed(8), rx, ry+94);
+
+        ctx.fillStyle = '#c0c0d8';
+        ctx.fillText('Bounds:', rx, ry+126);
+        ctx.fillStyle = '#fcd34d';
+        ctx.fillText(lower.toFixed(6), rx, ry+146);
+        ctx.fillStyle = '#808098';
+        ctx.fillText(' < ', rx + 72, ry+146);
+        ctx.fillStyle = '#fff';
+        ctx.font = '13px Georgia';
+        ctx.fillText('pi', rx + 90, ry+146);
+        ctx.font = '11px Courier New';
+        ctx.fillStyle = '#808098';
+        ctx.fillText(' < ', rx + 105, ry+146);
+        ctx.fillStyle = '#818cf8';
+        ctx.fillText(upper.toFixed(6), rx + 120, ry+146);
+
+        ctx.fillStyle = '#808098'; ctx.font = '11px Courier New';
+        ctx.fillText('Width of bounds: ' + width.toExponential(4), rx, ry+174);
+
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillText('Actual pi:       3.14159265...', rx, ry+200);
+
+        // Archimedes' result
+        if(n >= 96){
+            ctx.fillStyle = '#fcd34d'; ctx.font = '11px Georgia';
+            ctx.fillText('Archimedes (96-gon):', rx, ry+236);
+            ctx.font = '11px Courier New'; ctx.fillStyle = '#c0c0d8';
+            ctx.fillText('3 + 10/71 < pi < 3 + 1/7', rx, ry+254);
+            ctx.fillText('3.14084... < pi < 3.14285...', rx, ry+272);
+        }
+
+        // Convergence bar at bottom
+        const barY = H - 40, barX = 40, barW = W - 80;
+        ctx.fillStyle = 'rgba(255,255,255,0.03)';
+        ctx.fillRect(barX, barY-6, barW, 12);
+
+        const piNorm = (Math.PI - 3) / 0.3;
+        const lowNorm = (lower - 3) / 0.3;
+        const highNorm = (upper - 3) / 0.3;
+
+        // pi marker
+        ctx.fillStyle = '#2ecc71';
+        ctx.fillRect(barX + piNorm * barW - 1, barY - 10, 2, 20);
+        ctx.font = '9px Courier New'; ctx.textAlign = 'center';
+        ctx.fillText('pi', barX + piNorm * barW, barY - 14);
+
+        // bounds
+        const lx = barX + Math.max(0, lowNorm) * barW;
+        const hx = barX + Math.min(1, highNorm) * barW;
+        ctx.fillStyle = 'rgba(252,211,77,0.2)';
+        ctx.fillRect(lx, barY-6, hx-lx, 12);
+        ctx.fillStyle = '#fcd34d';
+        ctx.fillRect(lx, barY-6, 2, 12);
+        ctx.fillStyle = '#818cf8';
+        ctx.fillRect(hx-2, barY-6, 2, 12);
+
+        // Legend
+        ctx.font = '10px Georgia'; ctx.textAlign = 'left';
+        ctx.fillStyle = '#fcd34d'; ctx.fillText('Inner polygon (inscribed)', 40, H-8);
+        ctx.fillStyle = '#818cf8'; ctx.fillText('Outer polygon (circumscribed)', 260, H-8);
+        ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.fillText('Circle', 510, H-8);
+
+        // Math output below
+        let html = '<div class="math-line"><span class="gold">Lower bound (n=' + n + '): n sin(pi/n) = ' + lower.toFixed(10) + '</span></div>';
+        html += '<div class="math-line" style="color:#818cf8">Upper bound (n=' + n + '): n tan(pi/n) = ' + upper.toFixed(10) + '</div>';
+        html += '<div class="math-line"><span class="green">Actual pi = 3.1415926535...</span></div>';
+        html += '<div class="math-line muted">Bounds width: ' + width.toExponential(6) + '</div>';
+        if(n === 96){
+            html += '<hr class="sep"><div class="math-line gold">Archimedes\' result (96-gon): 3 + 10/71 &lt; pi &lt; 3 + 1/7</div>';
+        }
+        mathOut.innerHTML = html;
+    }
+
+    slider.addEventListener('input', function(){ draw(parseInt(this.value)); });
+
+    document.getElementById('archPlay').addEventListener('click', function(){
+        if(animId) { cancelAnimationFrame(animId); animId = null; }
+        let sides = 3;
+        slider.value = 3;
+        function step(){
+            draw(sides);
+            slider.value = sides;
+            if(sides < 96){
+                sides++;
+                animId = setTimeout(step, sides < 20 ? 120 : sides < 50 ? 60 : 30);
+            } else { animId = null; }
+        }
+        step();
+    });
+
+    document.getElementById('archReset').addEventListener('click', function(){
+        if(animId) { clearTimeout(animId); animId = null; }
+        slider.value = 6; draw(6);
+    });
+
+    draw(6);
+})();
+
+/* ================================================================
+   SECTION 2 — HISTORICAL TIMELINE
+   ================================================================ */
+(function(){
+    const milestones = [
+        {era:'~1900 BC', who:'Babylon', val:'3.125 (25/8)', digits:'1 digit', method:'Clay tablet calculation: area of circle from circumference'},
+        {era:'~1650 BC', who:'Egypt (Rhind Papyrus)', val:'3.1605 (256/81)', digits:'1 digit', method:'Rule: circle area = (d - d/9)^2, giving pi = 256/81'},
+        {era:'~250 BC', who:'Archimedes', val:'3.1408 < pi < 3.1429', digits:'2 digits', method:'Inscribed and circumscribed 96-gons to bound pi between limits'},
+        {era:'~480 AD', who:'Zu Chongzhi', val:'355/113 = 3.1415929...', digits:'7 digits', method:'Refined polygon method to 24,576-gon; found 355/113 (best rational approx < 5 digits)'},
+        {era:'~1400', who:'Madhava of Sangamagrama', val:'11 digits', digits:'11 digits', method:'First infinite series for pi from the Kerala school: pi/4 = 1 - 1/3 + 1/5 - ...'},
+        {era:'1706', who:'John Machin', val:'100 digits', digits:'100 digits', method:'Arctangent formula: pi/4 = 4 arctan(1/5) - arctan(1/239)'},
+        {era:'1873', who:'William Shanks', val:'707 digits (527 correct)', digits:'527 digits', method:'15 years of hand calculation using Machin-type formula; error discovered at digit 528 in 1944'},
+        {era:'1949', who:'ENIAC', val:'2,037 digits', digits:'2,037 digits', method:'First electronic computation; 70 hours using arctan formula on a 30-ton machine'},
+        {era:'1989', who:'Chudnovsky brothers', val:'1 billion digits', digits:'10^9 digits', method:'Ramanujan-type formula computed on a home-built supercomputer in their apartment'},
+        {era:'2024', who:'StorageTeam (Jordan Ranous)', val:'105 trillion digits', digits:'1.05 x 10^14', method:'Chudnovsky algorithm on cloud hardware; current world record'}
+    ];
+
+    const track = document.getElementById('timelineTrack');
+    const detail = document.getElementById('timelineDetail');
+
+    milestones.forEach(function(m, i){
+        const card = document.createElement('div');
+        card.className = 'tl-card';
+        card.innerHTML = '<div class="tl-era">' + m.era + '</div><div class="tl-who">' + m.who + '</div><div class="tl-val">' + m.val + '</div><div class="tl-method">' + m.digits + '</div>';
+        card.addEventListener('click', function(){
+            track.querySelectorAll('.tl-card').forEach(function(c){ c.classList.remove('active'); });
+            card.classList.add('active');
+            detail.innerHTML = '<span style="color:#fcd34d">' + m.era + ' &mdash; ' + m.who + ':</span> ' + m.method;
+        });
+        track.appendChild(card);
+    });
+})();
+
+/* ================================================================
+   SECTION 3 — INFINITE SERIES METHODS
+   ================================================================ */
+(function(){
+    const cvs = document.getElementById('seriesCanvas'), ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const slider = document.getElementById('seriesN');
+    const sliderLabel = document.getElementById('seriesNLabel');
+    const mathOut = document.getElementById('seriesMath');
+    const tabsDiv = document.getElementById('seriesTabs');
+
+    const methods = [
+        {id:'leibniz', name:'Leibniz', formula:'pi/4 = 1 - 1/3 + 1/5 - 1/7 + ...', color:'#f87171'},
+        {id:'euler', name:'Euler (Basel)', formula:'pi^2/6 = 1 + 1/4 + 1/9 + 1/16 + ...', color:'#22d3ee'},
+        {id:'machin', name:'Machin', formula:'pi/4 = 4 arctan(1/5) - arctan(1/239)', color:'#2ecc71'},
+        {id:'ramanujan', name:'Ramanujan', formula:'1/pi = (sqrt8/9801) sum ...', color:'#fcd34d'}
+    ];
+    let activeMethod = 'all';
+
+    // Precompute Ramanujan terms (factorials get large)
+    function factorial(n){ let r = 1; for(let i = 2; i <= n; i++) r *= i; return r; }
+
+    function leibnizPi(n){
+        let s = 0;
+        for(let k = 0; k < n; k++) s += Math.pow(-1,k) / (2*k+1);
+        return 4*s;
+    }
+
+    function eulerPi(n){
+        let s = 0;
+        for(let k = 1; k <= n; k++) s += 1/(k*k);
+        return Math.sqrt(6*s);
+    }
+
+    function arctanTaylor(x, nTerms){
+        let s = 0;
+        for(let k = 0; k < nTerms; k++){
+            s += Math.pow(-1,k) * Math.pow(x, 2*k+1) / (2*k+1);
+        }
+        return s;
+    }
+
+    function machinPi(n){
+        return 4*(4*arctanTaylor(1/5, n) - arctanTaylor(1/239, n));
+    }
+
+    // Ramanujan: each term gives ~8 digits
+    function ramanujanPi(n){
+        if(n === 0) return 0;
+        let s = 0;
+        const c = Math.sqrt(8) / 9801;
+        for(let k = 0; k < n; k++){
+            const num = factorial(4*k) * (1103 + 26390*k);
+            const den = Math.pow(factorial(k), 4) * Math.pow(396, 4*k);
+            s += num / den;
+        }
+        const invPi = c * s;
+        return invPi === 0 ? 0 : 1 / invPi;
+    }
+
+    function computeAll(n){
+        return {
+            leibniz: leibnizPi(n),
+            euler: eulerPi(n),
+            machin: machinPi(n),
+            ramanujan: ramanujanPi(Math.min(n, 10))
+        };
+    }
+
+    function draw(n){
+        sliderLabel.textContent = n;
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        // Compute errors for 1..n
+        const maxN = Math.max(n, 2);
+        const errData = {leibniz:[], euler:[], machin:[], ramanujan:[]};
+
+        for(let k = 1; k <= maxN; k++){
+            errData.leibniz.push(Math.abs(leibnizPi(k) - Math.PI));
+            errData.euler.push(Math.abs(eulerPi(k) - Math.PI));
+            errData.machin.push(Math.abs(machinPi(k) - Math.PI));
+            errData.ramanujan.push(Math.abs(ramanujanPi(Math.min(k, 10)) - Math.PI));
+        }
+
+        // Chart area
+        const padL = 70, padR = 30, padT = 30, padB = 50;
+        const cw = W - padL - padR, ch = H - padT - padB;
+
+        // Y axis: log10 of error, from 0 (error=1) down to -16
+        const yMin = -16, yMax = 1;
+        function yMap(logErr){
+            return padT + ch * (1 - (logErr - yMin) / (yMax - yMin));
+        }
+        function xMap(k){
+            return padL + (k - 1) / Math.max(maxN - 1, 1) * cw;
+        }
+
+        // Grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+        for(let e = yMin; e <= yMax; e += 2){
+            const y = yMap(e);
+            ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W-padR, y); ctx.stroke();
+            ctx.font = '9px Courier New'; ctx.fillStyle = '#505068'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            ctx.fillText('10^' + e, padL - 6, y);
+        }
+
+        // X axis labels
+        ctx.fillStyle = '#505068'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        const step = maxN <= 20 ? 1 : maxN <= 50 ? 5 : 10;
+        for(let k = 1; k <= maxN; k += step){
+            ctx.fillText(k, xMap(k), H - padB + 6);
+        }
+        ctx.fillText('terms', padL + cw/2, H - 12);
+
+        // Y axis label
+        ctx.save(); ctx.translate(14, padT + ch/2); ctx.rotate(-Math.PI/2);
+        ctx.fillStyle = '#808098'; ctx.textAlign = 'center'; ctx.font = '11px Georgia';
+        ctx.fillText('|approximation - pi|', 0, 0);
+        ctx.restore();
+
+        // Axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, H-padB); ctx.lineTo(W-padR, H-padB); ctx.stroke();
+
+        // Plot each method
+        const methodKeys = ['leibniz','euler','machin','ramanujan'];
+        const methodColors = {'leibniz':'#f87171','euler':'#22d3ee','machin':'#2ecc71','ramanujan':'#fcd34d'};
+
+        methodKeys.forEach(function(mk){
+            if(activeMethod !== 'all' && activeMethod !== mk) return;
+            const data = errData[mk];
+            ctx.strokeStyle = methodColors[mk]; ctx.lineWidth = 2;
+            ctx.beginPath();
+            let started = false;
+            for(let k = 0; k < maxN; k++){
+                const err = data[k];
+                const logErr = err > 0 ? Math.log10(err) : -16;
+                const clipped = Math.max(yMin, Math.min(yMax, logErr));
+                const x = xMap(k+1), y = yMap(clipped);
+                if(!started){ ctx.moveTo(x, y); started = true; }
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // End dot
+            const lastErr = data[maxN-1];
+            const lastLog = lastErr > 0 ? Math.log10(lastErr) : -16;
+            const clipLast = Math.max(yMin, Math.min(yMax, lastLog));
+            ctx.fillStyle = methodColors[mk];
+            ctx.beginPath(); ctx.arc(xMap(maxN), yMap(clipLast), 4, 0, Math.PI*2); ctx.fill();
+        });
+
+        // Legend
+        ctx.font = '10px Georgia'; ctx.textAlign = 'left';
+        let ly = padT + 10;
+        methodKeys.forEach(function(mk){
+            if(activeMethod !== 'all' && activeMethod !== mk) return;
+            ctx.fillStyle = methodColors[mk];
+            ctx.fillRect(W - padR - 120, ly - 4, 12, 3);
+            ctx.fillText(mk.charAt(0).toUpperCase() + mk.slice(1), W - padR - 104, ly);
+            ly += 16;
+        });
+
+        // Math panel
+        const vals = computeAll(n);
+        let html = '';
+        html += '<div class="math-line" style="color:#f87171">Leibniz (' + n + ' terms): ' + vals.leibniz.toFixed(12) + '  error = ' + Math.abs(vals.leibniz - Math.PI).toExponential(4) + '</div>';
+        html += '<div class="math-line" style="color:#22d3ee">Euler (' + n + ' terms): ' + vals.euler.toFixed(12) + '  error = ' + Math.abs(vals.euler - Math.PI).toExponential(4) + '</div>';
+        html += '<div class="math-line" style="color:#2ecc71">Machin (' + n + ' terms): ' + vals.machin.toFixed(12) + '  error = ' + Math.abs(vals.machin - Math.PI).toExponential(4) + '</div>';
+        html += '<div class="math-line" style="color:#fcd34d">Ramanujan (' + Math.min(n,10) + ' terms): ' + vals.ramanujan.toFixed(12) + '  error = ' + Math.abs(vals.ramanujan - Math.PI).toExponential(4) + '</div>';
+        html += '<hr class="sep">';
+        html += '<div class="math-line muted">Leibniz needs ~1000 terms for 3 correct digits; Ramanujan needs 1 term for 8 digits.</div>';
+        mathOut.innerHTML = html;
+    }
+
+    // Tabs
+    function renderTabs(){
+        let html = '<div class="series-tab' + (activeMethod==='all'?' active':'') + '" data-m="all">All</div>';
+        methods.forEach(function(m){
+            html += '<div class="series-tab' + (activeMethod===m.id?' active':'') + '" data-m="' + m.id + '">' + m.name + '</div>';
+        });
+        tabsDiv.innerHTML = html;
+        tabsDiv.querySelectorAll('.series-tab').forEach(function(t){
+            t.addEventListener('click', function(){
+                activeMethod = this.dataset.m;
+                renderTabs();
+                draw(parseInt(slider.value));
+            });
+        });
+    }
+    renderTabs();
+
+    slider.addEventListener('input', function(){ draw(parseInt(this.value)); });
+    draw(10);
+})();
+
+/* ================================================================
+   SECTION 4A — MONTE CARLO RANDOM POINTS
+   ================================================================ */
+(function(){
+    const cvs = document.getElementById('mcCanvas'), ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const stats = document.getElementById('mcStats');
+    let points = [], inside = 0;
+
+    function drawBg(){
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+        // Quarter circle
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(0, 0, W, 0, Math.PI/2); ctx.stroke();
+        // Border
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+        ctx.strokeRect(0,0,W,H);
+    }
+
+    function drawAll(){
+        drawBg();
+        for(let i = 0; i < points.length; i++){
+            const p = points[i];
+            ctx.fillStyle = p.in ? 'rgba(252,211,77,0.6)' : 'rgba(128,128,152,0.35)';
+            ctx.fillRect(p.x * W, p.y * H, 2, 2);
+        }
+        updateStats();
+    }
+
+    function updateStats(){
+        const total = points.length;
+        const piEst = total > 0 ? 4 * inside / total : 0;
+        const err = total > 0 ? Math.abs(piEst - Math.PI) : 0;
+        stats.innerHTML = '<span class="muted">Points:</span> ' + total +
+            '  <span class="muted">Inside:</span> ' + inside +
+            '  <span class="gold">pi ~ ' + piEst.toFixed(6) + '</span>' +
+            '  <span class="muted">error: ' + err.toFixed(6) + '</span>';
+    }
+
+    function dropPoints(n){
+        for(let i = 0; i < n; i++){
+            const x = Math.random(), y = Math.random();
+            const isIn = x*x + y*y <= 1;
+            if(isIn) inside++;
+            points.push({x:x, y:y, in:isIn});
+        }
+        drawAll();
+    }
+
+    function clearAll(){
+        points = []; inside = 0; drawAll();
+    }
+
+    document.getElementById('mcDrop1').addEventListener('click', function(){ dropPoints(1); });
+    document.getElementById('mcDrop10').addEventListener('click', function(){ dropPoints(10); });
+    document.getElementById('mcDrop100').addEventListener('click', function(){ dropPoints(100); });
+    document.getElementById('mcDrop1000').addEventListener('click', function(){ dropPoints(1000); });
+    document.getElementById('mcClear').addEventListener('click', clearAll);
+
+    drawAll();
+})();
+
+/* ================================================================
+   SECTION 4B — BUFFON'S NEEDLE
+   ================================================================ */
+(function(){
+    const cvs = document.getElementById('buffonCanvas'), ctx = cvs.getContext('2d');
+    const W = cvs.width, H = cvs.height;
+    const stats = document.getElementById('bufStats');
+    const lineSpacing = 50; // d in pixels
+    const needleLen = 40;   // l in pixels (l <= d)
+    let needles = [], crossings = 0;
+
+    function drawBg(){
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+        // Parallel lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1;
+        for(let y = lineSpacing; y < H; y += lineSpacing){
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+    }
+
+    function drawAll(){
+        drawBg();
+        for(let i = 0; i < needles.length; i++){
+            const n = needles[i];
+            ctx.strokeStyle = n.cross ? 'rgba(252,211,77,0.8)' : 'rgba(128,128,152,0.3)';
+            ctx.lineWidth = n.cross ? 2 : 1;
+            ctx.beginPath(); ctx.moveTo(n.x1, n.y1); ctx.lineTo(n.x2, n.y2); ctx.stroke();
+        }
+        updateStats();
+    }
+
+    function updateStats(){
+        const total = needles.length;
+        const piEst = crossings > 0 ? (2 * needleLen * total) / (lineSpacing * crossings) : 0;
+        const err = crossings > 0 ? Math.abs(piEst - Math.PI) : 0;
+        stats.innerHTML = '<span class="muted">Needles:</span> ' + total +
+            '  <span class="muted">Crossings:</span> ' + crossings +
+            '  <span class="gold">pi ~ ' + (crossings > 0 ? piEst.toFixed(6) : '---') + '</span>' +
+            (crossings > 0 ? '  <span class="muted">error: ' + err.toFixed(6) + '</span>' : '');
+    }
+
+    function dropNeedles(n){
+        for(let i = 0; i < n; i++){
+            const cx = Math.random() * W;
+            const cy = Math.random() * H;
+            const theta = Math.random() * Math.PI;
+            const dx = (needleLen/2) * Math.cos(theta);
+            const dy = (needleLen/2) * Math.sin(theta);
+            const x1 = cx - dx, y1 = cy - dy;
+            const x2 = cx + dx, y2 = cy + dy;
+
+            // Check crossing: does the needle cross any horizontal line at y = k * lineSpacing?
+            const minY = Math.min(y1, y2), maxY = Math.max(y1, y2);
+            let cross = false;
+            for(let ly = lineSpacing; ly < H; ly += lineSpacing){
+                if(minY <= ly && maxY >= ly){ cross = true; break; }
+            }
+            if(cross) crossings++;
+            needles.push({x1:x1, y1:y1, x2:x2, y2:y2, cross:cross});
+        }
+        drawAll();
+    }
+
+    function clearAll(){
+        needles = []; crossings = 0; drawAll();
+    }
+
+    document.getElementById('bufDrop1').addEventListener('click', function(){ dropNeedles(1); });
+    document.getElementById('bufDrop10').addEventListener('click', function(){ dropNeedles(10); });
+    document.getElementById('bufDrop100').addEventListener('click', function(){ dropNeedles(100); });
+    document.getElementById('bufDrop1000').addEventListener('click', function(){ dropNeedles(1000); });
+    document.getElementById('bufClear').addEventListener('click', clearAll);
+
+    drawAll();
+})();
+
+/* ================================================================
+   SECTION 5 — PI DIGITS EXPLORER
+   ================================================================ */
+(function(){
+    const grid = document.getElementById('digitsGrid');
+    const freqDiv = document.getElementById('freqBars');
+    const funDiv = document.getElementById('funFacts');
+    let highlightPositions = [];
+
+    function renderDigits(){
+        let html = '<span style="color:#fff;font-weight:bold">3.</span>';
+        for(let i = 0; i < PI_DIGITS.length; i++){
+            const d = parseInt(PI_DIGITS[i]);
+            const isHL = highlightPositions.indexOf(i) >= 0;
+            if(isHL) html += '<span class="hl" style="color:' + DIGIT_COLORS[d] + '">' + PI_DIGITS[i] + '</span>';
+            else html += '<span style="color:' + DIGIT_COLORS[d] + '">' + PI_DIGITS[i] + '</span>';
+            if((i+1) % 50 === 0) html += '<br>';
+            else if((i+1) % 10 === 0) html += ' ';
+        }
+        grid.innerHTML = html;
+    }
+
+    function renderFrequency(){
+        const freq = new Array(10).fill(0);
+        for(let i = 0; i < PI_DIGITS.length; i++) freq[parseInt(PI_DIGITS[i])]++;
+        const maxFreq = Math.max.apply(null, freq);
+        let html = '';
+        for(let d = 0; d <= 9; d++){
+            const h = Math.round((freq[d] / maxFreq) * 60);
+            html += '<div class="freq-bar">';
+            html += '<div class="cnt">' + freq[d] + '</div>';
+            html += '<div class="bar" style="height:' + h + 'px;background:' + DIGIT_COLORS[d] + '"></div>';
+            html += '<div class="lbl">' + d + '</div>';
+            html += '</div>';
+        }
+        freqDiv.innerHTML = html;
+    }
+
+    function searchDigits(pattern){
+        highlightPositions = [];
+        if(!pattern || pattern.length === 0) { renderDigits(); return -1; }
+        let idx = PI_DIGITS.indexOf(pattern);
+        if(idx === -1) { renderDigits(); return -1; }
+        // Find all occurrences
+        let start = 0;
+        while(true){
+            const pos = PI_DIGITS.indexOf(pattern, start);
+            if(pos === -1) break;
+            for(let j = 0; j < pattern.length; j++) highlightPositions.push(pos + j);
+            start = pos + 1;
+        }
+        renderDigits();
+        return idx;
+    }
+
+    document.getElementById('digitSearchBtn').addEventListener('click', function(){
+        const val = document.getElementById('digitSearch').value.trim();
+        const pos = searchDigits(val);
+        const result = document.getElementById('digitSearchResult');
+        if(!val) { result.textContent = ''; return; }
+        if(pos >= 0){
+            const count = highlightPositions.length / val.length;
+            result.innerHTML = 'Found at position <span style="color:#fcd34d">' + (pos+1) + '</span> (after decimal point)' + (count > 1 ? ' &mdash; ' + count + ' occurrences total' : '');
+        } else {
+            result.textContent = 'Not found in the first 1000 digits.';
+        }
+    });
+
+    document.getElementById('birthdayBtn').addEventListener('click', function(){
+        const val = document.getElementById('birthdaySearch').value.trim();
+        const result = document.getElementById('birthdayResult');
+        if(!val || val.length !== 6 || !/^\d{6}$/.test(val)){
+            result.textContent = 'Enter exactly 6 digits (MMDDYY).';
+            return;
+        }
+        const pos = searchDigits(val);
+        if(pos >= 0){
+            result.innerHTML = 'Your birthday appears at position <span style="color:#fcd34d">' + (pos+1) + '</span> in pi!';
+        } else {
+            result.textContent = 'Not found in the first 1000 digits. Try searching the first million digits online.';
+        }
+    });
+
+    // Enter key support
+    document.getElementById('digitSearch').addEventListener('keydown', function(e){
+        if(e.key === 'Enter') document.getElementById('digitSearchBtn').click();
+    });
+    document.getElementById('birthdaySearch').addEventListener('keydown', function(e){
+        if(e.key === 'Enter') document.getElementById('birthdayBtn').click();
+    });
+
+    // Fun facts
+    funDiv.innerHTML =
+        '<div><strong style="color:#fcd34d">The Feynman Point:</strong> At position 762, the sequence "999999" appears &mdash; six 9s in a row. Feynman joked he wanted to recite pi up to that point and say "...nine nine nine nine nine nine and so on," implying pi is rational.</div>' +
+        '<div><strong style="color:#fcd34d">Normality conjecture:</strong> Pi is believed to be "normal" &mdash; every digit (and every finite sequence) appears with equal frequency. This has never been proven, despite trillions of computed digits supporting it.</div>' +
+        '<div><strong style="color:#fcd34d">Transcendence:</strong> Pi is transcendental: it is not a root of any polynomial with integer coefficients. This was proven by Ferdinand von Lindemann in 1882, settling the ancient question of "squaring the circle" &mdash; it is impossible with compass and straightedge alone.</div>';
+
+    renderDigits();
+    renderFrequency();
+})();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

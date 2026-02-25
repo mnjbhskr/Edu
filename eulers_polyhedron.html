@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Euler's Polyhedron Formula</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#f87171}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+
+        .concept{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-left:3px solid #f87171;border-radius:10px;padding:18px 24px;margin-bottom:28px;color:#a0a0b8;font-size:0.93em;line-height:1.75}
+
+        .viewer-row{display:flex;gap:28px;margin-bottom:28px;flex-wrap:wrap}
+        .canvas-wrap{flex:0 0 500px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.015);cursor:grab}
+        canvas:active{cursor:grabbing}
+        .info-col{flex:1 1 200px;min-width:200px;display:flex;flex-direction:column;gap:16px}
+
+        .formula-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;text-align:center}
+        .formula-big{font-size:1.6em;color:#fff;margin-bottom:10px;letter-spacing:1px}
+        .formula-big .vc{color:#fbbf24}.formula-big .ec{color:#e0e0e0}.formula-big .fc{color:#f87171}
+        .formula-big .res{transition:text-shadow 0.3s}
+        .formula-big .res.glow{color:#f87171;text-shadow:0 0 12px rgba(248,113,113,0.5)}
+        .formula-counts{font-size:0.95em;color:#808098;margin-bottom:6px}
+        .formula-counts .vc{color:#fbbf24}.formula-counts .ec{color:#ccc}.formula-counts .fc{color:#f87171}
+        .formula-compute{font-size:1.1em;color:#b0b0c4}
+
+        .count-toggles{display:flex;gap:8px}
+        .count-btn{flex:1;background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:6px 10px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.85em;transition:all 0.2s;text-align:center}
+        .count-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .count-btn.active-v{background:rgba(251,191,36,0.13);border-color:rgba(251,191,36,0.4);color:#fbbf24}
+        .count-btn.active-e{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.3);color:#fff}
+        .count-btn.active-f{background:rgba(248,113,113,0.13);border-color:rgba(248,113,113,0.4);color:#f87171}
+
+        .shape-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+        .shape-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:8px 14px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s;text-align:center;line-height:1.4}
+        .shape-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .shape-btn.active{background:rgba(248,113,113,0.13);border-color:rgba(248,113,113,0.4);color:#f87171}
+        .shape-btn .sname{display:block;font-size:0.95em}.shape-btn .svef{display:block;font-size:0.72em;color:#606078;margin-top:2px}
+
+        .platonic{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:28px}
+        .platonic h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+        .platonic p{color:#a0a0b8;font-size:0.9em;line-height:1.75;margin-bottom:14px}
+        .platonic-row{display:flex;gap:12px;justify-content:center}
+        .platonic-thumb{text-align:center}
+        .platonic-thumb canvas{border-radius:8px;border:1px solid rgba(255,255,255,0.06);cursor:pointer}
+        .platonic-thumb .plabel{font-size:0.72em;color:#606078;margin-top:4px}
+
+        .insight{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px}
+        .insight p{color:#a0a0b8;font-size:0.9em;line-height:1.75;margin-bottom:10px}
+        .insight p:last-child{margin-bottom:0}
+        .insight .accent{color:#f87171}
+
+        @media(max-width:768px){.canvas-wrap{flex:1 1 100%}canvas{width:100%;height:auto}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Euler's Polyhedron Formula</h1>
+    <p class="subtitle">V &minus; E + F = 2 for every convex polyhedron &mdash; build and verify</p>
+
+    <div class="concept">Leonhard Euler discovered in 1750 that for any convex polyhedron, the number of vertices minus the number of edges plus the number of faces always equals 2. This simple formula connects three seemingly independent counts in a profound way.</div>
+
+    <div class="viewer-row">
+        <div class="canvas-wrap"><canvas id="view" width="500" height="450"></canvas></div>
+        <div class="info-col">
+            <div class="formula-card">
+                <div class="formula-big"><span class="vc">V</span> &minus; <span class="ec">E</span> + <span class="fc">F</span> = <span class="res" id="resVal">?</span></div>
+                <div class="formula-counts" id="fCounts"></div>
+                <div class="formula-compute" id="fCompute"></div>
+            </div>
+            <div class="count-toggles">
+                <button class="count-btn" id="cntV" onclick="toggleCount('v')">Count V</button>
+                <button class="count-btn" id="cntE" onclick="toggleCount('e')">Count E</button>
+                <button class="count-btn" id="cntF" onclick="toggleCount('f')">Count F</button>
+            </div>
+            <div style="color:#606078;font-size:0.78em;line-height:1.6">Drag to rotate. Toggle the count buttons to label and highlight individual vertices, edges, or faces on the model.</div>
+        </div>
+    </div>
+
+    <div class="shape-grid" id="shapeGrid"></div>
+
+    <div class="platonic">
+        <h3>The Five Platonic Solids</h3>
+        <p>There are exactly five convex regular polyhedra (Platonic solids): tetrahedron, cube, octahedron, dodecahedron, icosahedron. Euclid proved this in the <em>Elements</em> &mdash; the formula V&minus;E+F=2 constrains which regular polyhedra can exist.</p>
+        <div class="platonic-row" id="platonicRow"></div>
+    </div>
+
+    <div class="insight">
+        <p>Euler's formula is one of the first results in <span class="accent">topology</span> &mdash; the study of properties that don't change under continuous deformation. You can stretch and bend a polyhedron (without tearing or gluing), and V&minus;E+F stays 2. The number 2 is the <span class="accent">Euler characteristic</span> of the sphere.</p>
+        <p>For a torus (donut shape), V&minus;E+F = 0. The Euler characteristic reveals the underlying topology &mdash; how many &lsquo;holes&rsquo; the surface has. A surface with <em>g</em> holes has Euler characteristic 2&minus;2<em>g</em>.</p>
+    </div>
+</div>
+
+<script>
+const PHI=(1+Math.sqrt(5))/2;
+
+const SHAPES=[
+  {name:"Tetrahedron",verts:[[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]],
+   edges:[[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]],
+   faces:[[0,1,2],[0,1,3],[0,2,3],[1,2,3]]},
+  {name:"Cube",verts:(()=>{const v=[];for(let a of[-1,1])for(let b of[-1,1])for(let c of[-1,1])v.push([a,b,c]);return v;})(),
+   edges:[[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]],
+   faces:[[0,1,3,2],[4,5,7,6],[0,1,5,4],[2,3,7,6],[0,2,6,4],[1,3,7,5]]},
+  {name:"Octahedron",verts:[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]],
+   edges:[[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,4],[2,5],[3,4],[3,5]],
+   faces:[[0,2,4],[0,2,5],[0,3,4],[0,3,5],[1,2,4],[1,2,5],[1,3,4],[1,3,5]]},
+  {name:"Dodecahedron",verts:(()=>{const v=[], p=PHI, q=1/PHI;
+   for(let a of[-1,1])for(let b of[-1,1])for(let c of[-1,1])v.push([a,b,c]);
+   for(let a of[-q,q])for(let b of[-p,p])v.push([0,a,b]);
+   for(let a of[-p,p])for(let b of[-q,q])v.push([a,0,b]);
+   for(let a of[-q,q])for(let b of[-p,p])v.push([b,a,0]);return v;})(),
+   edges:[],faces:[]},
+  {name:"Icosahedron",verts:(()=>{const v=[],p=PHI;
+   for(let a of[-1,1])for(let b of[-p,p])v.push([0,a,b]);
+   for(let a of[-1,1])for(let b of[-p,p])v.push([a,b,0]);
+   for(let a of[-p,p])for(let b of[-1,1])v.push([a,0,b]);return v;})(),
+   edges:[],faces:[]},
+  {name:"Triangular Prism",verts:(()=>{const v=[],h=Math.sqrt(3)/2;
+   v.push([0,h,-1],[-1,-h/2,-1],[1,-h/2,-1]);
+   v.push([0,h,1],[-1,-h/2,1],[1,-h/2,1]);return v;})(),
+   edges:[[0,1],[1,2],[2,0],[3,4],[4,5],[5,3],[0,3],[1,4],[2,5]],
+   faces:[[0,1,2],[3,4,5],[0,1,4,3],[1,2,5,4],[2,0,3,5]]},
+  {name:"Square Pyramid",verts:[[0,1,0],[-1,-0.5,-1],[1,-0.5,-1],[1,-0.5,1],[-1,-0.5,1]],
+   edges:[[0,1],[0,2],[0,3],[0,4],[1,2],[2,3],[3,4],[4,1]],
+   faces:[[0,1,2],[0,2,3],[0,3,4],[0,4,1],[1,2,3,4]]}
+];
+
+/* Build icosahedron edges & faces */
+(function(){
+  const ico=SHAPES[4], v=ico.verts, eSet=new Set();
+  function ek(a,b){return Math.min(a,b)+','+Math.max(a,b)}
+  function dist(a,b){let s=0;for(let k=0;k<3;k++)s+=(v[a][k]-v[b][k])**2;return Math.sqrt(s)}
+  const dists=[];
+  for(let i=0;i<12;i++)for(let j=i+1;j<12;j++)dists.push(dist(i,j));
+  dists.sort((a,b)=>a-b);
+  const edgeLen=dists[0]*1.01;
+  for(let i=0;i<12;i++)for(let j=i+1;j<12;j++){if(dist(i,j)<=edgeLen+0.3){ico.edges.push([i,j]);eSet.add(ek(i,j));}}
+  for(let i=0;i<12;i++)for(let j=i+1;j<12;j++)for(let k=j+1;k<12;k++){
+    if(eSet.has(ek(i,j))&&eSet.has(ek(j,k))&&eSet.has(ek(i,k)))ico.faces.push([i,j,k]);
+  }
+})();
+
+/* Build dodecahedron edges & faces */
+(function(){
+  const dod=SHAPES[3], v=dod.verts, eSet=new Set();
+  function ek(a,b){return Math.min(a,b)+','+Math.max(a,b)}
+  function dist(a,b){let s=0;for(let k=0;k<3;k++)s+=(v[a][k]-v[b][k])**2;return Math.sqrt(s)}
+  /* Edge length = 2/PHI; find pairs at that distance (30 edges) */
+  const edgeLen=2/PHI;
+  for(let i=0;i<20;i++)for(let j=i+1;j<20;j++){if(Math.abs(dist(i,j)-edgeLen)<0.15){dod.edges.push([i,j]);eSet.add(ek(i,j));}}
+  /* Find pentagonal faces: each face is a cycle of 5 vertices all sharing edges */
+  const adj=Array.from({length:20},()=>[]);
+  dod.edges.forEach(([a,b])=>{adj[a].push(b);adj[b].push(a);});
+  const faceSet=new Set();
+  for(let a=0;a<20;a++){
+    for(const b of adj[a]){
+      for(const c of adj[b]){
+        if(c===a)continue;
+        for(const d of adj[c]){
+          if(d===a||d===b)continue;
+          for(const e of adj[d]){
+            if(e===a||e===b||e===c)continue;
+            if(!adj[e].includes(a))continue;
+            const f=[a,b,c,d,e].slice().sort((x,y)=>x-y).join(',');
+            if(!faceSet.has(f)){faceSet.add(f);dod.faces.push([a,b,c,d,e]);}
+          }
+        }
+      }
+    }
+  }
+})();
+
+/* Normalize all shapes to radius ~1.5 */
+SHAPES.forEach(s=>{
+  let mx=0;s.verts.forEach(v=>{const r=Math.sqrt(v[0]**2+v[1]**2+v[2]**2);if(r>mx)mx=r;});
+  const sc=1.5/mx;s.verts=s.verts.map(v=>[v[0]*sc,v[1]*sc,v[2]*sc]);
+});
+
+let curShape=0, countMode=null;
+let rotX=-0.35, rotY=0.4, autoAngle=0, dragging=false, lastMx=0, lastMy=0;
+
+const cvs=document.getElementById("view"), ctx=cvs.getContext("2d"), W=cvs.width, H=cvs.height;
+
+function rotateVert(v){
+  const cy=Math.cos(rotY+autoAngle),sy=Math.sin(rotY+autoAngle);
+  const cx=Math.cos(rotX),sx=Math.sin(rotX);
+  let x=v[0],y=v[1],z=v[2];
+  let x1=cy*x+sy*z, z1=-sy*x+cy*z;
+  let y1=cx*y-sx*z1, z2=sx*y+cx*z1;
+  return [x1,y1,z2];
+}
+
+function project(v){
+  const d=6;
+  const scale=W*0.28;
+  const f=d/(v[2]+d);
+  return [W/2+v[0]*f*scale, H/2-v[1]*f*scale, v[2]];
+}
+
+function drawShape(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle="rgba(10,10,26,1)";ctx.fillRect(0,0,W,H);
+  const s=SHAPES[curShape];
+  const rv=s.verts.map(v=>rotateVert(v));
+  const pv=rv.map(v=>project(v));
+
+  /* Sort faces by average z (painter's algorithm, back to front) */
+  const fi=s.faces.map((f,i)=>{
+    let zSum=0;f.forEach(vi=>zSum+=rv[vi][2]);return{i,z:zSum/f.length};
+  });
+  fi.sort((a,b)=>a.z-b.z);
+
+  /* Draw faces */
+  fi.forEach(({i:fIdx},order)=>{
+    const face=s.faces[fIdx];
+    ctx.beginPath();
+    ctx.moveTo(pv[face[0]][0],pv[face[0]][1]);
+    for(let k=1;k<face.length;k++)ctx.lineTo(pv[face[k]][0],pv[face[k]][1]);
+    ctx.closePath();
+    if(countMode==='f'){
+      const hue=(fIdx/s.faces.length)*30+350;
+      ctx.fillStyle=`hsla(${hue},80%,65%,0.25)`;
+    } else {
+      ctx.fillStyle="rgba(248,113,113,0.12)";
+    }
+    ctx.fill();
+    ctx.strokeStyle="rgba(255,255,255,0.15)";ctx.lineWidth=0.5;ctx.stroke();
+  });
+
+  /* Draw edges */
+  s.edges.forEach(([a,b],eIdx)=>{
+    ctx.beginPath();
+    ctx.moveTo(pv[a][0],pv[a][1]);ctx.lineTo(pv[b][0],pv[b][1]);
+    if(countMode==='e'){
+      ctx.strokeStyle="rgba(255,255,255,0.85)";ctx.lineWidth=2;
+    } else {
+      ctx.strokeStyle="rgba(255,255,255,0.55)";ctx.lineWidth=1.2;
+    }
+    ctx.stroke();
+  });
+
+  /* Edge labels */
+  if(countMode==='e'){
+    ctx.font="11px Georgia";ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";
+    s.edges.forEach(([a,b],eIdx)=>{
+      const mx=(pv[a][0]+pv[b][0])/2, my=(pv[a][1]+pv[b][1])/2;
+      ctx.fillText(eIdx+1,mx+6,my-6);
+    });
+  }
+
+  /* Draw vertices */
+  pv.forEach((p,i)=>{
+    const r=countMode==='v'?5:3.5;
+    ctx.beginPath();ctx.arc(p[0],p[1],r,0,Math.PI*2);
+    ctx.fillStyle="#fbbf24";ctx.fill();
+    if(countMode==='v'){
+      ctx.strokeStyle="rgba(251,191,36,0.5)";ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(p[0],p[1],8,0,Math.PI*2);ctx.stroke();
+    }
+  });
+
+  /* Vertex labels */
+  if(countMode==='v'){
+    ctx.font="12px Georgia";ctx.fillStyle="#fbbf24";ctx.textAlign="center";ctx.textBaseline="bottom";
+    pv.forEach((p,i)=>{ctx.fillText(i+1,p[0],p[1]-12);});
+  }
+
+  /* Face labels */
+  if(countMode==='f'){
+    ctx.font="13px Georgia";ctx.fillStyle="#f87171";ctx.textAlign="center";ctx.textBaseline="middle";
+    fi.forEach(({i:fIdx})=>{
+      const face=s.faces[fIdx];
+      let cx=0,cy=0;
+      face.forEach(vi=>{cx+=pv[vi][0];cy+=pv[vi][1];});
+      cx/=face.length;cy/=face.length;
+      ctx.fillText(fIdx+1,cx,cy);
+    });
+  }
+
+  /* Shape name top-left */
+  ctx.font="15px Georgia";ctx.fillStyle="#f87171";ctx.textAlign="left";ctx.textBaseline="top";
+  ctx.fillText(s.name,14,14);
+  ctx.font="11px Georgia";ctx.fillStyle="#606078";
+  ctx.fillText("Drag to rotate",14,34);
+}
+
+function updateFormula(){
+  const s=SHAPES[curShape];
+  const V=s.verts.length, E=s.edges.length, F=s.faces.length;
+  const r=V-E+F;
+  document.getElementById("fCounts").innerHTML=
+    '<span class="vc">V = '+V+'</span> &nbsp; <span class="ec">E = '+E+'</span> &nbsp; <span class="fc">F = '+F+'</span>';
+  document.getElementById("fCompute").innerHTML=V+' &minus; '+E+' + '+F+' = '+r;
+  const el=document.getElementById("resVal");
+  el.textContent=r;
+  if(r===2){el.classList.add("glow");}else{el.classList.remove("glow");}
+}
+
+function toggleCount(mode){
+  if(countMode===mode)countMode=null; else countMode=mode;
+  document.getElementById("cntV").className="count-btn"+(countMode==='v'?" active-v":"");
+  document.getElementById("cntE").className="count-btn"+(countMode==='e'?" active-e":"");
+  document.getElementById("cntF").className="count-btn"+(countMode==='f'?" active-f":"");
+}
+
+function buildShapeButtons(){
+  const g=document.getElementById("shapeGrid");
+  g.innerHTML=SHAPES.map((s,i)=>{
+    const V=s.verts.length,E=s.edges.length,F=s.faces.length;
+    return '<button class="shape-btn'+(i===curShape?' active':'')+'" data-i="'+i+'">'+
+      '<span class="sname">'+s.name+'</span>'+
+      '<span class="svef">V='+V+' E='+E+' F='+F+'</span></button>';
+  }).join('');
+  g.querySelectorAll(".shape-btn").forEach(b=>{
+    b.addEventListener("click",()=>{curShape=parseInt(b.dataset.i);countMode=null;
+      document.getElementById("cntV").className="count-btn";
+      document.getElementById("cntE").className="count-btn";
+      document.getElementById("cntF").className="count-btn";
+      buildShapeButtons();updateFormula();});
+  });
+}
+
+/* Platonic solid thumbnails */
+function buildPlatonic(){
+  const row=document.getElementById("platonicRow");
+  const platonicIdx=[0,1,2,3,4];
+  const names=["Tetrahedron","Cube","Octahedron","Dodecahedron","Icosahedron"];
+  platonicIdx.forEach((si,i)=>{
+    const div=document.createElement("div");div.className="platonic-thumb";
+    const c=document.createElement("canvas");c.width=100;c.height=90;
+    div.appendChild(c);
+    const lbl=document.createElement("div");lbl.className="plabel";lbl.textContent=names[i];
+    div.appendChild(lbl);
+    row.appendChild(div);
+    div.style.cursor="pointer";
+    div.addEventListener("click",()=>{curShape=si;countMode=null;
+      document.getElementById("cntV").className="count-btn";
+      document.getElementById("cntE").className="count-btn";
+      document.getElementById("cntF").className="count-btn";
+      buildShapeButtons();updateFormula();});
+    drawThumb(c,si);
+  });
+}
+
+function drawThumb(canvas,shapeIdx){
+  const tc=canvas.getContext("2d"), tw=canvas.width, th=canvas.height;
+  tc.fillStyle="rgba(10,10,26,1)";tc.fillRect(0,0,tw,th);
+  const s=SHAPES[shapeIdx];
+  const angY=0.5, angX=-0.3;
+  const cy=Math.cos(angY),sy=Math.sin(angY),cx=Math.cos(angX),sx=Math.sin(angX);
+  const proj=s.verts.map(v=>{
+    let x=v[0],y=v[1],z=v[2];
+    let x1=cy*x+sy*z, z1=-sy*x+cy*z;
+    let y1=cx*y-sx*z1, z2=sx*y+cx*z1;
+    const d=6,f=d/(z2+d),sc=tw*0.24;
+    return [tw/2+x1*f*sc, th/2-y1*f*sc];
+  });
+  tc.strokeStyle="rgba(255,255,255,0.4)";tc.lineWidth=0.8;
+  s.edges.forEach(([a,b])=>{tc.beginPath();tc.moveTo(proj[a][0],proj[a][1]);tc.lineTo(proj[b][0],proj[b][1]);tc.stroke();});
+  proj.forEach(p=>{tc.beginPath();tc.arc(p[0],p[1],2,0,Math.PI*2);tc.fillStyle="#fbbf24";tc.fill();});
+}
+
+/* Mouse drag interaction */
+cvs.addEventListener("mousedown",(e)=>{dragging=true;lastMx=e.clientX;lastMy=e.clientY;});
+window.addEventListener("mouseup",()=>{dragging=false;});
+window.addEventListener("mousemove",(e)=>{
+  if(!dragging)return;
+  const dx=e.clientX-lastMx, dy=e.clientY-lastMy;
+  rotY+=dx*0.008; rotX+=dy*0.008;
+  rotX=Math.max(-Math.PI/2,Math.min(Math.PI/2,rotX));
+  lastMx=e.clientX;lastMy=e.clientY;
+});
+
+/* Touch support */
+cvs.addEventListener("touchstart",(e)=>{e.preventDefault();dragging=true;lastMx=e.touches[0].clientX;lastMy=e.touches[0].clientY;},{passive:false});
+window.addEventListener("touchend",()=>{dragging=false;});
+window.addEventListener("touchmove",(e)=>{
+  if(!dragging)return;
+  const dx=e.touches[0].clientX-lastMx, dy=e.touches[0].clientY-lastMy;
+  rotY+=dx*0.008; rotX+=dy*0.008;
+  rotX=Math.max(-Math.PI/2,Math.min(Math.PI/2,rotX));
+  lastMx=e.touches[0].clientX;lastMy=e.touches[0].clientY;
+},{passive:false});
+
+/* Animation loop */
+function animate(){
+  if(!dragging)autoAngle+=0.005;
+  drawShape();
+  requestAnimationFrame(animate);
+}
+
+buildShapeButtons();
+updateFormula();
+buildPlatonic();
+animate();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

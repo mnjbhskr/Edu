@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematical Induction</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#c084fc}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:24px}
+        .concept-panel{border-left:3px solid #c084fc}
+        .concept-panel p{color:#a0a0b8;font-size:0.92em;margin-bottom:6px}
+        .concept-panel strong{color:#e0e0e0}
+
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+
+        .domino-section{margin-bottom:24px}
+        .domino-section canvas{width:100%;margin-bottom:12px}
+        .btn-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:7px 18px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(192,132,252,0.13);border-color:rgba(192,132,252,0.4);color:#c084fc}
+
+        .tab-row{display:flex;gap:8px;justify-content:center;margin-bottom:24px;flex-wrap:wrap}
+
+        .proof-row{display:flex;gap:24px;margin-bottom:24px;flex-wrap:wrap}
+        .visual-col{flex:1 1 400px;min-width:300px}
+        .visual-col canvas{width:100%;height:auto}
+        .formal-col{flex:1 1 300px;min-width:280px}
+
+        .formal-panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px}
+        .formal-panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+        .step{margin-bottom:12px}
+        .step-label{color:#808098;font-size:0.78em;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px}
+        .step-body{color:#c8c8d8;font-size:0.92em;font-family:'Courier New',monospace;line-height:1.7}
+        .step-body .hl{color:#c084fc;font-weight:bold}
+        .step-body .ok{color:#2ecc71}
+
+        .slider-section{margin-bottom:24px;text-align:center}
+        .slider-section input[type=range]{width:80%;max-width:600px;accent-color:#c084fc;margin:8px 0}
+        .slider-label{font-size:1.1em;color:#c084fc;margin-bottom:4px}
+        .verify{color:#a0a0b8;font-size:0.92em;margin-top:6px}
+        .verify .ok{color:#2ecc71}
+
+        .insight{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px}
+        .insight p{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+
+        @media(max-width:768px){.proof-row{flex-direction:column}.visual-col,.formal-col{flex:1 1 100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Mathematical Induction</h1>
+    <p class="subtitle">The domino principle &mdash; prove it for one, prove it for all</p>
+
+    <!-- 1. Concept Panel -->
+    <div class="panel concept-panel">
+        <p><strong>Induction proves a statement P(n) for ALL natural numbers in two steps:</strong></p>
+        <p>1. <strong>Base Case:</strong> Prove P(1) is true (push the first domino)</p>
+        <p>2. <strong>Inductive Step:</strong> Prove that IF P(k) is true THEN P(k+1) is true (each domino knocks over the next)</p>
+    </div>
+
+    <!-- 2. Domino Animation -->
+    <div class="domino-section">
+        <canvas id="dominoCanvas" width="920" height="180"></canvas>
+        <div class="btn-row">
+            <button class="btn" id="pushBtn">Push First Domino</button>
+            <button class="btn" id="resetBtn">Reset</button>
+        </div>
+    </div>
+
+    <!-- 3. Example Selector -->
+    <div class="tab-row" id="tabRow">
+        <button class="btn active" data-ex="0">Sum 1+2+...+n</button>
+        <button class="btn" data-ex="1">Sum of Odd Numbers</button>
+        <button class="btn" data-ex="2">Power Sum</button>
+    </div>
+
+    <!-- 4. Visual Proof + Formal Proof -->
+    <div class="proof-row">
+        <div class="visual-col"><canvas id="proofCanvas" width="440" height="360"></canvas></div>
+        <div class="formal-col"><div class="formal-panel" id="formalProof"></div></div>
+    </div>
+
+    <!-- 5. N Slider -->
+    <div class="slider-section">
+        <div class="slider-label">n = <span id="nVal">5</span></div>
+        <input type="range" id="nSlider" min="1" max="12" value="5">
+        <div class="verify" id="verifyLine"></div>
+    </div>
+
+    <!-- 6. Insight Panel -->
+    <div class="insight"><p id="insightText"></p></div>
+</div>
+
+<script>
+const DOMINO_COUNT = 15;
+let dominoes = [], dominoAnim = null, dominoStartTime = 0;
+const dCvs = document.getElementById('dominoCanvas'), dCtx = dCvs.getContext('2d');
+const DW = dCvs.width, DH = dCvs.height;
+const DOMINO_W = 14, DOMINO_H = 90, DOMINO_GAP = (DW - 80) / (DOMINO_COUNT - 1);
+const DOMINO_Y = DH - 30;
+const FALL_DURATION = 300, CASCADE_DELAY = 120, MAX_ANGLE = 80 * Math.PI / 180;
+
+function initDominoes() {
+    dominoes = [];
+    for (let i = 0; i < DOMINO_COUNT; i++) {
+        dominoes.push({ x: 40 + i * DOMINO_GAP, angle: 0, fallen: false, startTime: null });
+    }
+}
+initDominoes();
+
+function drawDominoes(time) {
+    dCtx.clearRect(0, 0, DW, DH);
+    dCtx.fillStyle = '#0a0a1a';
+    dCtx.fillRect(0, 0, DW, DH);
+    // Ground line
+    dCtx.strokeStyle = 'rgba(255,255,255,0.08)';
+    dCtx.beginPath(); dCtx.moveTo(20, DOMINO_Y); dCtx.lineTo(DW - 20, DOMINO_Y); dCtx.stroke();
+
+    let baseShown = false, inductiveShown = false;
+
+    for (let i = 0; i < DOMINO_COUNT; i++) {
+        const d = dominoes[i];
+        if (d.startTime !== null && time !== undefined) {
+            const elapsed = time - d.startTime;
+            const t = Math.min(1, elapsed / FALL_DURATION);
+            // Ease-in quadratic for a natural fall
+            d.angle = MAX_ANGLE * t * t;
+            if (t >= 1) d.fallen = true;
+        }
+
+        dCtx.save();
+        dCtx.translate(d.x, DOMINO_Y);
+        dCtx.rotate(d.angle);
+
+        const falling = d.startTime !== null;
+        const col = falling ? '#c084fc' : '#c0c0d0';
+        // Draw domino as rounded rect
+        const rx = -DOMINO_W / 2, ry = -DOMINO_H, rw = DOMINO_W, rh = DOMINO_H, br = 3;
+        dCtx.beginPath();
+        dCtx.moveTo(rx + br, ry);
+        dCtx.lineTo(rx + rw - br, ry);
+        dCtx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + br);
+        dCtx.lineTo(rx + rw, ry + rh - br);
+        dCtx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - br, ry + rh);
+        dCtx.lineTo(rx + br, ry + rh);
+        dCtx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - br);
+        dCtx.lineTo(rx, ry + br);
+        dCtx.quadraticCurveTo(rx, ry, rx + br, ry);
+        dCtx.closePath();
+        dCtx.fillStyle = col;
+        dCtx.fill();
+        dCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+        dCtx.lineWidth = 1;
+        dCtx.stroke();
+
+        // Number
+        dCtx.fillStyle = falling ? '#1a1a2e' : '#3a3a50';
+        dCtx.font = '11px Georgia';
+        dCtx.textAlign = 'center';
+        dCtx.textBaseline = 'middle';
+        dCtx.fillText(i + 1, 0, -DOMINO_H / 2);
+        dCtx.restore();
+
+        if (i === 0 && falling) baseShown = true;
+        if (i > 0 && falling) inductiveShown = true;
+    }
+
+    // Labels
+    if (baseShown) {
+        dCtx.font = '13px Georgia';
+        dCtx.fillStyle = '#2ecc71';
+        dCtx.textAlign = 'left';
+        dCtx.fillText('Base Case: P(1) is true', 40, 18);
+    }
+    if (inductiveShown) {
+        dCtx.font = '13px Georgia';
+        dCtx.fillStyle = '#60a5fa';
+        dCtx.textAlign = 'right';
+        dCtx.fillText('Inductive Step: P(k) \u2192 P(k+1)', DW - 40, 18);
+    }
+}
+
+function animateDominoes(time) {
+    if (!dominoAnim) return;
+    for (let i = 0; i < DOMINO_COUNT; i++) {
+        const triggerTime = dominoStartTime + i * CASCADE_DELAY;
+        if (time >= triggerTime && dominoes[i].startTime === null) {
+            dominoes[i].startTime = triggerTime;
+        }
+    }
+    drawDominoes(time);
+    if (dominoes[DOMINO_COUNT - 1].fallen) { dominoAnim = null; return; }
+    requestAnimationFrame(animateDominoes);
+}
+
+document.getElementById('pushBtn').addEventListener('click', () => {
+    if (dominoAnim) return;
+    initDominoes();
+    dominoAnim = true;
+    dominoStartTime = performance.now();
+    requestAnimationFrame(animateDominoes);
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+    dominoAnim = null;
+    initDominoes();
+    drawDominoes();
+});
+drawDominoes();
+
+// ---- Examples ----
+let curEx = 0, curN = 5;
+const pCvs = document.getElementById('proofCanvas'), pCtx = pCvs.getContext('2d');
+const PW = pCvs.width, PH = pCvs.height;
+
+const examples = [
+    { name: 'Sum 1+2+...+n = n(n+1)/2',
+      insight: 'Induction creates an infinite chain of implications: P(1) \u2192 P(2) \u2192 P(3) \u2192 ... Once the base case is established and the chain is proven, every domino must fall. For the sum formula, Gauss reportedly discovered this as a schoolchild by pairing numbers from opposite ends.' },
+    { name: 'Sum of Odd Numbers = n\u00B2',
+      insight: 'Each odd number adds an L-shaped border (gnomon) around the previous square, growing it by one row and one column. Induction formalises what the geometry makes visually obvious: every perfect square is a sum of consecutive odd numbers.' },
+    { name: '2\u2070+2\u00B9+...+2\u207F = 2\u207F\u207A\u00B9\u22121',
+      insight: 'The power sum formula reveals a beautiful doubling pattern: the total of all previous powers of 2 is always exactly one less than the next power. This is the mathematical basis behind binary numbers and computer memory addressing.' }
+];
+
+function drawVisual() {
+    const n = curN;
+    pCtx.clearRect(0, 0, PW, PH);
+    pCtx.fillStyle = '#0a0a1a';
+    pCtx.fillRect(0, 0, PW, PH);
+
+    if (curEx === 0) drawStaircase(n);
+    else if (curEx === 1) drawGnomons(n);
+    else drawPowerBars(n);
+}
+
+function drawStaircase(n) {
+    const maxBlocks = n + 1;
+    const bs = Math.min(28, Math.floor((PW - 60) / maxBlocks), Math.floor((PH - 80) / maxBlocks));
+    const ox = 30, oy = PH - 40;
+
+    // Draw the two staircases forming a rectangle
+    for (let col = 0; col < n; col++) {
+        for (let row = 0; row < n + 1; row++) {
+            const x = ox + col * bs, y = oy - (row + 1) * bs;
+            const inFirst = row < col + 1; // first staircase: column col has (col+1) blocks
+            const inSecond = row >= col + 1; // flipped staircase fills the rest
+
+            if (inFirst) {
+                pCtx.fillStyle = '#c084fc';
+                pCtx.fillRect(x + 1, y + 1, bs - 2, bs - 2);
+                pCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+                pCtx.strokeRect(x + 1, y + 1, bs - 2, bs - 2);
+            } else if (inSecond) {
+                pCtx.fillStyle = '#fbbf24';
+                pCtx.fillRect(x + 1, y + 1, bs - 2, bs - 2);
+                pCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+                pCtx.strokeRect(x + 1, y + 1, bs - 2, bs - 2);
+            }
+        }
+    }
+
+    // Labels
+    pCtx.font = '12px Georgia';
+    pCtx.fillStyle = '#808098';
+    pCtx.textAlign = 'center';
+    // Width label
+    pCtx.fillText('n = ' + n, ox + n * bs / 2, oy + 16);
+    // Height label
+    pCtx.save();
+    pCtx.translate(ox - 14, oy - (n + 1) * bs / 2);
+    pCtx.rotate(-Math.PI / 2);
+    pCtx.fillText('n+1 = ' + (n + 1), 0, 0);
+    pCtx.restore();
+
+    pCtx.font = '14px Georgia';
+    pCtx.fillStyle = '#e0e0e0';
+    pCtx.textAlign = 'center';
+    const sum = n * (n + 1) / 2;
+    pCtx.fillText('2 \u00D7 Sum = n \u00D7 (n+1) = ' + n + ' \u00D7 ' + (n + 1) + ' = ' + (n * (n + 1)), PW / 2, 24);
+    pCtx.fillStyle = '#c084fc';
+    pCtx.fillText('Sum = ' + sum, PW / 2, 46);
+
+    // Legend
+    pCtx.fillStyle = '#c084fc';
+    pCtx.fillRect(PW - 130, PH - 50, 12, 12);
+    pCtx.fillStyle = '#fbbf24';
+    pCtx.fillRect(PW - 130, PH - 32, 12, 12);
+    pCtx.font = '11px Georgia';
+    pCtx.fillStyle = '#808098';
+    pCtx.textAlign = 'left';
+    pCtx.fillText('1+2+...+n', PW - 114, PH - 40);
+    pCtx.fillText('Flipped copy', PW - 114, PH - 22);
+}
+
+function drawGnomons(n) {
+    const bs = Math.min(28, Math.floor((PW - 60) / n), Math.floor((PH - 80) / n));
+    const ox = (PW - n * bs) / 2, oy = PH - 40;
+
+    const hues = [280, 220, 160, 40, 340, 200, 100, 300, 60, 260, 180, 20];
+
+    for (let layer = 0; layer < n; layer++) {
+        const hue = hues[layer % hues.length];
+        const col = 'hsl(' + hue + ',60%,55%)';
+        pCtx.fillStyle = col;
+
+        if (layer === 0) {
+            // 1x1 block at bottom-left
+            pCtx.fillRect(ox + 1, oy - bs + 1, bs - 2, bs - 2);
+            pCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+            pCtx.strokeRect(ox + 1, oy - bs + 1, bs - 2, bs - 2);
+        } else {
+            // Bottom row of the L: (layer+1)th row from bottom, columns 0..layer
+            for (let c = 0; c <= layer; c++) {
+                const x = ox + c * bs, y = oy - (layer + 1) * bs;
+                pCtx.fillRect(x + 1, y + 1, bs - 2, bs - 2);
+                pCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+                pCtx.strokeRect(x + 1, y + 1, bs - 2, bs - 2);
+            }
+            // Right column of the L: column=layer, rows 0..layer-1
+            for (let r = 0; r < layer; r++) {
+                const x = ox + layer * bs, y = oy - (r + 1) * bs;
+                pCtx.fillRect(x + 1, y + 1, bs - 2, bs - 2);
+                pCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+                pCtx.strokeRect(x + 1, y + 1, bs - 2, bs - 2);
+            }
+        }
+    }
+
+    // Labels
+    pCtx.font = '14px Georgia';
+    pCtx.fillStyle = '#e0e0e0';
+    pCtx.textAlign = 'center';
+    const terms = [];
+    for (let i = 0; i < n; i++) terms.push(2 * i + 1);
+    pCtx.fillText(terms.join(' + ') + ' = ' + (n * n), PW / 2, 24);
+    pCtx.fillStyle = '#c084fc';
+    pCtx.fillText('n\u00B2 = ' + n + '\u00B2 = ' + (n * n), PW / 2, 46);
+
+    // Size label
+    pCtx.font = '12px Georgia';
+    pCtx.fillStyle = '#808098';
+    pCtx.fillText(n + ' \u00D7 ' + n + ' square', PW / 2, oy + 16);
+}
+
+function drawPowerBars(n) {
+    const vals = [];
+    for (let i = 0; i <= n; i++) vals.push(Math.pow(2, i));
+    const maxVal = Math.pow(2, n + 1);
+    const barW = Math.min(50, Math.floor((PW - 80) / (n + 2)));
+    const maxH = PH - 90;
+    const ox = (PW - (n + 2) * barW) / 2, oy = PH - 40;
+
+    // Sum bars
+    const total = Math.pow(2, n + 1) - 1;
+    for (let i = 0; i <= n; i++) {
+        const h = (vals[i] / maxVal) * maxH;
+        const x = ox + i * barW;
+        pCtx.fillStyle = '#c084fc';
+        pCtx.fillRect(x + 3, oy - h, barW - 6, h);
+        pCtx.strokeStyle = 'rgba(0,0,0,0.3)';
+        pCtx.strokeRect(x + 3, oy - h, barW - 6, h);
+
+        // Power label below
+        pCtx.font = '10px Georgia';
+        pCtx.fillStyle = '#808098';
+        pCtx.textAlign = 'center';
+        pCtx.fillText('2' + sup(i), x + barW / 2, oy + 14);
+    }
+
+    // Next power bar (dotted outline)
+    const nextH = (Math.pow(2, n + 1) / maxVal) * maxH;
+    const nextX = ox + (n + 1) * barW;
+    pCtx.setLineDash([4, 4]);
+    pCtx.strokeStyle = '#fbbf24';
+    pCtx.lineWidth = 2;
+    pCtx.strokeRect(nextX + 3, oy - nextH, barW - 6, nextH);
+    pCtx.setLineDash([]);
+    pCtx.lineWidth = 1;
+
+    // Label for next bar
+    pCtx.font = '10px Georgia';
+    pCtx.fillStyle = '#fbbf24';
+    pCtx.textAlign = 'center';
+    pCtx.fillText('2' + sup(n + 1), nextX + barW / 2, oy + 14);
+
+    // Bracket showing total = next - 1
+    const totalH = (total / maxVal) * maxH;
+    pCtx.strokeStyle = '#60a5fa';
+    pCtx.lineWidth = 1.5;
+    const bx = ox - 8;
+    pCtx.beginPath();
+    pCtx.moveTo(bx, oy);
+    pCtx.lineTo(bx - 6, oy);
+    pCtx.lineTo(bx - 6, oy - totalH);
+    pCtx.lineTo(bx, oy - totalH);
+    pCtx.stroke();
+    pCtx.lineWidth = 1;
+
+    pCtx.font = '11px Georgia';
+    pCtx.fillStyle = '#60a5fa';
+    pCtx.textAlign = 'right';
+    pCtx.fillText('Sum = ' + total, bx - 10, oy - totalH / 2 + 4);
+
+    // Top labels
+    pCtx.font = '14px Georgia';
+    pCtx.fillStyle = '#e0e0e0';
+    pCtx.textAlign = 'center';
+    pCtx.fillText('2\u2070 + 2\u00B9 + ... + 2' + sup(n) + ' = 2' + sup(n + 1) + ' \u2212 1', PW / 2, 24);
+    pCtx.fillStyle = '#c084fc';
+    pCtx.fillText(total + ' = ' + Math.pow(2, n + 1) + ' \u2212 1', PW / 2, 46);
+}
+
+function sup(n) {
+    const map = { '0': '\u2070', '1': '\u00B9', '2': '\u00B2', '3': '\u00B3', '4': '\u2074',
+                  '5': '\u2075', '6': '\u2076', '7': '\u2077', '8': '\u2078', '9': '\u2079' };
+    return String(n).split('').map(c => map[c] || c).join('');
+}
+
+function renderFormal() {
+    const n = curN;
+    const fp = document.getElementById('formalProof');
+    let html = '<h3>Formal Proof</h3>';
+
+    if (curEx === 0) {
+        html += step('Base Case', 'P(1): 1 = 1(1+1)/2 = 1. <span class="ok">True.</span>');
+        html += step('Inductive Hypothesis', 'Assume P(k): 1+2+...+k = k(k+1)/2');
+        html += step('Inductive Step', 'Prove P(k+1): 1+2+...+k+(k+1) = (k+1)(k+2)/2');
+        html += step('Algebra',
+            '= <span class="hl">k(k+1)/2</span> + (k+1)<br>' +
+            '= k(k+1)/2 + 2(k+1)/2<br>' +
+            '= (k+1)(k+2)/2 <span class="ok">&check;</span>');
+        html += step('Verification for n=' + n,
+            '1+2+...+' + n + ' = ' + sumTo(n) + '<br>' +
+            n + '(' + (n + 1) + ')/2 = ' + (n * (n + 1) / 2) + ' <span class="ok">&check;</span>');
+    } else if (curEx === 1) {
+        html += step('Base Case', 'P(1): 1 = 1\u00B2 = 1. <span class="ok">True.</span>');
+        html += step('Inductive Hypothesis', 'Assume P(k): 1+3+...+(2k\u22121) = k\u00B2');
+        html += step('Inductive Step', 'Prove P(k+1): 1+3+...+(2k+1) = (k+1)\u00B2');
+        html += step('Algebra',
+            '= <span class="hl">k\u00B2</span> + (2k+1)<br>' +
+            '= k\u00B2 + 2k + 1<br>' +
+            '= (k+1)\u00B2 <span class="ok">&check;</span>');
+        html += step('Verification for n=' + n,
+            oddTerms(n) + ' = ' + sumOdds(n) + '<br>' +
+            n + '\u00B2 = ' + (n * n) + ' <span class="ok">&check;</span>');
+    } else {
+        html += step('Base Case', 'P(0): 2\u2070 = 2\u00B9\u22121 = 1. <span class="ok">True.</span>');
+        html += step('Inductive Hypothesis', 'Assume P(k): 2\u2070+2\u00B9+...+2\u1D4F = 2\u1D4F\u207A\u00B9\u22121');
+        html += step('Inductive Step', 'Prove P(k+1): 2\u2070+...+2\u1D4F\u207A\u00B9 = 2\u1D4F\u207A\u00B2\u22121');
+        html += step('Algebra',
+            '= <span class="hl">2\u1D4F\u207A\u00B9\u22121</span> + 2\u1D4F\u207A\u00B9<br>' +
+            '= 2 \u00D7 2\u1D4F\u207A\u00B9 \u2212 1<br>' +
+            '= 2\u1D4F\u207A\u00B2 \u2212 1 <span class="ok">&check;</span>');
+        html += step('Verification for n=' + n,
+            powTerms(n) + ' = ' + sumPow(n) + '<br>' +
+            '2' + sup(n + 1) + '\u22121 = ' + (Math.pow(2, n + 1) - 1) + ' <span class="ok">&check;</span>');
+    }
+
+    html += '<div class="step"><div class="step-label">Conclusion</div>' +
+        '<div class="step-body"><span class="ok">By induction, P(n) holds for all n.</span></div></div>';
+    fp.innerHTML = html;
+}
+
+function step(label, body) {
+    return '<div class="step"><div class="step-label">' + label + '</div><div class="step-body">' + body + '</div></div>';
+}
+
+function sumTo(n) { let s = 0; for (let i = 1; i <= n; i++) s += i; return s; }
+function sumOdds(n) { let s = 0; for (let i = 0; i < n; i++) s += 2 * i + 1; return s; }
+function sumPow(n) { let s = 0; for (let i = 0; i <= n; i++) s += Math.pow(2, i); return s; }
+function oddTerms(n) {
+    const t = [];
+    for (let i = 0; i < Math.min(n, 4); i++) t.push(2 * i + 1);
+    if (n > 4) t.push('...');
+    if (n > 4) t.push(2 * (n - 1) + 1);
+    return t.join('+');
+}
+function powTerms(n) {
+    const t = [];
+    for (let i = 0; i <= Math.min(n, 3); i++) t.push('2' + sup(i));
+    if (n > 3) t.push('...');
+    if (n > 3) t.push('2' + sup(n));
+    return t.join('+');
+}
+
+function renderVerify() {
+    const n = curN;
+    let left, right, lbl;
+    if (curEx === 0) {
+        left = sumTo(n); right = n * (n + 1) / 2;
+        lbl = 'Verify: 1+2+...+' + n + ' = ' + left + '  and  n(n+1)/2 = ' + right;
+    } else if (curEx === 1) {
+        left = sumOdds(n); right = n * n;
+        lbl = 'Verify: ' + oddTerms(n) + ' = ' + left + '  and  n\u00B2 = ' + right;
+    } else {
+        left = sumPow(n); right = Math.pow(2, n + 1) - 1;
+        lbl = 'Verify: ' + powTerms(n) + ' = ' + left + '  and  2' + sup(n + 1) + '\u22121 = ' + right;
+    }
+    document.getElementById('verifyLine').innerHTML = lbl + (left === right ? '  <span class="ok">&check;</span>' : '');
+}
+
+function renderInsight() {
+    document.getElementById('insightText').textContent = examples[curEx].insight;
+}
+
+function updateAll() {
+    drawVisual();
+    renderFormal();
+    renderVerify();
+    renderInsight();
+}
+
+// Tab buttons
+document.getElementById('tabRow').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-ex]');
+    if (!btn) return;
+    curEx = parseInt(btn.dataset.ex);
+    document.querySelectorAll('#tabRow .btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updateAll();
+});
+
+// Slider
+const slider = document.getElementById('nSlider');
+slider.addEventListener('input', () => {
+    curN = parseInt(slider.value);
+    document.getElementById('nVal').textContent = curN;
+    updateAll();
+});
+
+updateAll();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

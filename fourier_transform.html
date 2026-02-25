@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fourier Transform — A Visual Introduction</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { font-size: 24px; margin-bottom: 2px; color: #f0f0f0; }
+        h2 {
+            font-size: 16px;
+            color: #7da2e0;
+            margin: 16px 0 8px 0;
+            text-align: center;
+        }
+        .subtitle { font-size: 14px; color: #aaa; margin-bottom: 10px; }
+        .main { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+        .col-left { display: flex; flex-direction: column; align-items: center; }
+        .col-right {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 240px;
+        }
+        canvas {
+            background: #16213e;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+            margin-bottom: 6px;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+            padding: 10px 14px;
+            background: #16213e;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+        }
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        .slider-row .freq-label {
+            min-width: 50px;
+            font-weight: bold;
+        }
+        .slider-row input[type="range"] {
+            flex: 1;
+            height: 6px;
+            accent-color: var(--clr);
+        }
+        .slider-row .val {
+            min-width: 32px;
+            text-align: right;
+            font-size: 12px;
+            color: #aaa;
+        }
+        .presets {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 8px 0;
+        }
+        button {
+            background: #0f3460;
+            color: #e0e0e0;
+            border: 1px solid #1a5276;
+            padding: 6px 14px;
+            border-radius: 7px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #1a5276; }
+        button.active { background: #e94560; border-color: #e94560; }
+        .narration {
+            max-width: 880px;
+            text-align: center;
+            font-size: 13px;
+            color: #bbb;
+            line-height: 1.6;
+            margin: 10px 0;
+            padding: 12px 20px;
+            background: rgba(15, 52, 96, 0.4);
+            border-radius: 10px;
+            border-left: 3px solid #7da2e0;
+        }
+        .narration b { color: #e0e0e0; }
+        .section-label {
+            font-size: 11px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .analogy {
+            max-width: 880px;
+            text-align: center;
+            font-size: 14px;
+            color: #f0c040;
+            margin: 6px 0 14px 0;
+        }
+        .eq-panel {
+            max-width: 900px;
+            width: 100%;
+            margin: 10px 0;
+            padding: 16px 24px;
+            background: rgba(15, 52, 96, 0.35);
+            border-radius: 10px;
+            border: 1px solid rgba(125, 162, 224, 0.2);
+        }
+        .eq-panel .eq-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #7da2e0;
+            margin-bottom: 8px;
+        }
+        .eq-general {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            font-family: 'Courier New', monospace;
+        }
+        .eq-general .eq-highlight { color: #bbb; }
+        .eq-components {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-bottom: 12px;
+        }
+        .eq-comp-row {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .eq-comp-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .eq-combined {
+            margin-top: 10px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .eq-combined-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ccc;
+            margin-bottom: 6px;
+        }
+        .eq-combined-formula {
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            color: #fff;
+            line-height: 1.8;
+            word-break: break-word;
+        }
+        .eq-combined-formula .eq-term { transition: color 0.2s; }
+        .eq-empty {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-style: italic;
+            color: #666;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Fourier Transform — A Visual Introduction</h1>
+    <p class="subtitle">Any complex wave is just simple waves added together</p>
+
+    <p class="analogy">
+        Think of it like a smoothie: the Fourier Transform is the machine that can taste
+        a smoothie and tell you exactly which fruits (frequencies) went in, and how much of each.
+    </p>
+
+    <div class="presets">
+        <span style="color:#888; font-size:12px; padding:6px 0;">Presets:</span>
+        <button onclick="setPreset('single', this)">Single Note</button>
+        <button onclick="setPreset('chord', this)">Two Notes</button>
+        <button id="btnSquare" onclick="setPreset('square', this)">Square Wave</button>
+        <button onclick="setPreset('sawtooth', this)">Sawtooth Wave</button>
+        <button onclick="setPreset('mystery', this)">Mystery Signal</button>
+        <button onclick="setPreset('clear', this)">Clear All</button>
+    </div>
+
+    <div class="main">
+        <div class="col-left">
+            <div class="section-label">The Individual Ingredients (Simple Sine Waves)</div>
+            <canvas id="cComponents" width="620" height="260"></canvas>
+
+            <div class="section-label">The Combined Signal (What You Actually See / Hear)</div>
+            <canvas id="cCombined" width="620" height="160"></canvas>
+        </div>
+
+        <div class="col-right">
+            <div class="section-label">The Recipe (Frequency Spectrum)</div>
+            <canvas id="cSpectrum" width="240" height="260"></canvas>
+
+            <div class="section-label" style="margin-top:8px;">Mix Your Own Wave</div>
+            <div class="controls" id="sliders"></div>
+        </div>
+    </div>
+
+    <div class="eq-panel">
+        <div class="eq-title">The Mathematics — Equations Behind the Waves</div>
+        <div class="eq-general">
+            <span class="eq-highlight">General Fourier Series:</span>&nbsp;
+            f(t) = A<sub>1</sub> sin(1 &middot; 2&pi;t) + A<sub>2</sub> sin(2 &middot; 2&pi;t) + A<sub>3</sub> sin(3 &middot; 2&pi;t) + &hellip;
+            &nbsp; <span style="color:#666;">where A<sub>n</sub> = amplitude of the n-th harmonic</span>
+        </div>
+        <div class="eq-title" style="margin-top:4px;">Your Current Wave — Each Ingredient</div>
+        <div class="eq-components" id="eqComponents"></div>
+        <div class="eq-combined">
+            <div class="eq-combined-label">Combined Function</div>
+            <div class="eq-combined-formula" id="eqCombined"></div>
+        </div>
+    </div>
+
+    <div class="narration" id="narration">
+        <b>The Big Idea:</b> The combined wave at the top-left looks complicated, but it's
+        really just these simple sine waves added together. The <b>Fourier Transform</b>
+        does the reverse — give it any complex signal, and it finds the hidden sine waves inside.
+        The bar chart on the right is what the Fourier Transform outputs: the "recipe" showing
+        how much of each frequency is present.
+    </div>
+
+    <script>
+        // ---- Configuration ----
+        const NUM_HARMONICS = 8;
+        const COLOURS = [
+            '#ff6b6b', '#4ecdc4', '#f0c040', '#a78bfa',
+            '#ff9f43', '#54a0ff', '#ff6b9d', '#5cd85c'
+        ];
+        const W_COMP = 620, H_COMP = 260;
+        const W_COMB = 620, H_COMB = 160;
+        const W_SPEC = 240, H_SPEC = 260;
+
+        // State: amplitude for each harmonic (0..1)
+        let amps = new Array(NUM_HARMONICS).fill(0);
+        let time = 0;
+
+        // Canvas contexts
+        const ctxComp = document.getElementById('cComponents').getContext('2d');
+        const ctxComb = document.getElementById('cCombined').getContext('2d');
+        const ctxSpec = document.getElementById('cSpectrum').getContext('2d');
+
+        // ---- Build sliders ----
+        const slidersDiv = document.getElementById('sliders');
+        for (let i = 0; i < NUM_HARMONICS; i++) {
+            const row = document.createElement('div');
+            row.className = 'slider-row';
+            row.style.setProperty('--clr', COLOURS[i]);
+
+            const label = document.createElement('span');
+            label.className = 'freq-label';
+            label.style.color = COLOURS[i];
+            label.textContent = `${i + 1}x`;
+
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.min = '0';
+            slider.max = '100';
+            slider.value = '0';
+            slider.id = `slider${i}`;
+            slider.addEventListener('input', () => {
+                amps[i] = parseInt(slider.value) / 100;
+                valSpan.textContent = slider.value + '%';
+                clearActivePreset();  // also calls updateEquations()
+            });
+
+            const valSpan = document.createElement('span');
+            valSpan.className = 'val';
+            valSpan.textContent = '0%';
+            valSpan.id = `val${i}`;
+
+            row.appendChild(label);
+            row.appendChild(slider);
+            row.appendChild(valSpan);
+            slidersDiv.appendChild(row);
+        }
+
+        // ---- Presets ----
+        const presets = {
+            single:   [1, 0, 0, 0, 0, 0, 0, 0],
+            chord:    [0.8, 0, 0.6, 0, 0, 0, 0, 0],
+            square:   [1, 0, 0.33, 0, 0.2, 0, 0.14, 0],    // odd harmonics: 1/n
+            sawtooth: [1, 0.5, 0.33, 0.25, 0.2, 0.17, 0.14, 0.125],
+            mystery:  [0.3, 0.7, 0, 0.5, 0, 0, 0.4, 0],
+            clear:    [0, 0, 0, 0, 0, 0, 0, 0],
+        };
+
+        const presetNarrations = {
+            single: '<b>Single Note:</b> A pure sine wave — the simplest possible sound. '
+                   + 'One frequency, one bar in the spectrum. This is what a tuning fork produces.',
+            chord:  '<b>Two Notes (Chord):</b> Two sine waves at different frequencies added together. '
+                   + 'Your ear hears one sound, but the Fourier Transform reveals the two hidden frequencies. '
+                   + 'This is how music works — instruments play many frequencies at once.',
+            square: '<b>Square Wave:</b> That buzzy sound from old video games! It is built from '
+                   + '<b>odd harmonics only</b> (1x, 3x, 5x, 7x...) with amplitudes decreasing as 1/n. '
+                   + 'Notice how adding more sine waves makes the combined signal look more and more square-shaped.',
+            sawtooth: '<b>Sawtooth Wave:</b> A brighter, richer buzz. Built from <b>all harmonics</b> '
+                     + '(1x, 2x, 3x, 4x...) with amplitudes decreasing as 1/n. This is the starting '
+                     + 'point for many synthesiser sounds.',
+            mystery: '<b>Mystery Signal:</b> This complex-looking wave is just 4 sine waves mixed together. '
+                    + 'The frequency spectrum on the right instantly reveals which frequencies are present '
+                    + 'and how strong each one is. That is the power of the Fourier Transform!',
+            clear:  '<b>Silence:</b> No frequencies, no signal. Use the sliders on the right to build '
+                   + 'your own wave from scratch — add one frequency at a time and watch how the combined '
+                   + 'signal changes. This is Fourier synthesis!',
+        };
+
+        function setPreset(name, btn) {
+            const p = presets[name];
+            for (let i = 0; i < NUM_HARMONICS; i++) {
+                amps[i] = p[i];
+                document.getElementById(`slider${i}`).value = Math.round(p[i] * 100);
+                document.getElementById(`val${i}`).textContent = Math.round(p[i] * 100) + '%';
+            }
+            // Highlight active preset button
+            document.querySelectorAll('.presets button').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            document.getElementById('narration').innerHTML = presetNarrations[name];
+            updateEquations();
+        }
+
+        function clearActivePreset() {
+            document.querySelectorAll('.presets button').forEach(b => b.classList.remove('active'));
+            document.getElementById('narration').innerHTML =
+                '<b>Custom Mix:</b> You are building your own wave! Each slider controls the '
+                + 'amplitude of one frequency. The number (1x, 2x, 3x...) is the frequency '
+                + 'multiplier — 2x oscillates twice as fast as 1x. Watch how the combined signal '
+                + 'and the spectrum change as you adjust the mix.';
+            updateEquations();
+        }
+
+        // ---- Equation display ----
+        function updateEquations() {
+            const compDiv = document.getElementById('eqComponents');
+            const combDiv = document.getElementById('eqCombined');
+            const active = [];
+
+            // Build per-component equations
+            let compHTML = '';
+            for (let i = 0; i < NUM_HARMONICS; i++) {
+                if (amps[i] <= 0) continue;
+                const n = i + 1;
+                const A = amps[i];
+                const aStr = A === 1 ? '' : A.toFixed(2) + ' &middot; ';
+                const freqStr = n === 1 ? '2&pi;t' : n + ' &middot; 2&pi;t';
+                const term = `${aStr}sin(${freqStr})`;
+                active.push({ n, A, term, colour: COLOURS[i] });
+
+                compHTML += `<div class="eq-comp-row">`
+                    + `<span class="eq-comp-dot" style="background:${COLOURS[i]}"></span>`
+                    + `<span style="color:${COLOURS[i]}">Frequency ${n}x:</span>&nbsp;`
+                    + `<span style="color:#ddd;">`
+                    + `y<sub>${n}</sub>(t) = ${term}</span>`
+                    + `</div>`;
+            }
+
+            if (active.length === 0) {
+                compDiv.innerHTML = '<span class="eq-empty">Move the sliders to add frequency components</span>';
+                combDiv.innerHTML = '<span class="eq-empty">f(t) = 0</span>';
+                return;
+            }
+            compDiv.innerHTML = compHTML;
+
+            // Build combined equation
+            let combHTML = 'f(t) = ';
+            const terms = [];
+            for (const { n, A, term, colour } of active) {
+                terms.push(`<span class="eq-term" style="color:${colour}">${term}</span>`);
+            }
+            combHTML += terms.join(' <span style="color:#888;">+</span> ');
+            combDiv.innerHTML = combHTML;
+        }
+
+        // ---- Drawing functions ----
+
+        function drawWaveAxes(ctx, w, h, yOffset, rowH, label, colour) {
+            const cy = yOffset + rowH / 2;
+            // Zero line
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(50, cy);
+            ctx.lineTo(w - 10, cy);
+            ctx.stroke();
+            // Label
+            ctx.fillStyle = colour || '#888';
+            ctx.font = 'bold 11px Segoe UI, Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText(label, 46, cy + 4);
+        }
+
+        function sampleWave(freq, amp, phase, x, w) {
+            const t = (x - 50) / (w - 60);
+            return amp * Math.sin(2 * Math.PI * freq * t * 3 + phase);
+        }
+
+        function drawComponents() {
+            ctxComp.clearRect(0, 0, W_COMP, H_COMP);
+            const activeCount = amps.filter(a => a > 0).length;
+            if (activeCount === 0) {
+                ctxComp.fillStyle = '#555';
+                ctxComp.font = '14px Segoe UI, Arial';
+                ctxComp.textAlign = 'center';
+                ctxComp.fillText('Add frequencies with the sliders to see individual waves here',
+                                  W_COMP / 2, H_COMP / 2);
+                return;
+            }
+
+            // Determine layout: evenly divide vertical space among active components
+            const rowH = Math.min(65, (H_COMP - 10) / activeCount);
+            let row = 0;
+
+            for (let i = 0; i < NUM_HARMONICS; i++) {
+                if (amps[i] <= 0) continue;
+                const yOff = 5 + row * rowH;
+                const cy = yOff + rowH / 2;
+                const amp = rowH * 0.38;
+                const freq = i + 1;
+
+                drawWaveAxes(ctxComp, W_COMP, H_COMP, yOff, rowH,
+                             `${freq}x`, COLOURS[i]);
+
+                // Draw the sine wave
+                ctxComp.strokeStyle = COLOURS[i];
+                ctxComp.lineWidth = 2;
+                ctxComp.beginPath();
+                for (let x = 50; x < W_COMP - 10; x++) {
+                    const t = (x - 50) / (W_COMP - 60);
+                    const y = cy - amp * amps[i] *
+                              Math.sin(2 * Math.PI * freq * t * 3 + time * freq);
+                    if (x === 50) ctxComp.moveTo(x, y);
+                    else ctxComp.lineTo(x, y);
+                }
+                ctxComp.stroke();
+
+                // Equation label on the wave
+                const aStr = amps[i] === 1 ? '' : amps[i].toFixed(2) + ' \u00B7 ';
+                const fStr = freq === 1 ? '2\u03C0t' : freq + ' \u00B7 2\u03C0t';
+                ctxComp.fillStyle = COLOURS[i];
+                ctxComp.font = '10px Courier New, monospace';
+                ctxComp.textAlign = 'right';
+                ctxComp.fillText(`${aStr}sin(${fStr})`, W_COMP - 14, cy + 3);
+
+                row++;
+            }
+        }
+
+        function drawCombined() {
+            ctxComb.clearRect(0, 0, W_COMB, H_COMB);
+            const cy = H_COMB / 2;
+            const maxAmpSum = amps.reduce((s, a) => s + a, 0);
+
+            // Zero line
+            ctxComb.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctxComb.lineWidth = 1;
+            ctxComb.beginPath();
+            ctxComb.moveTo(50, cy);
+            ctxComb.lineTo(W_COMB - 10, cy);
+            ctxComb.stroke();
+
+            if (maxAmpSum === 0) {
+                ctxComb.fillStyle = '#555';
+                ctxComb.font = '14px Segoe UI, Arial';
+                ctxComb.textAlign = 'center';
+                ctxComb.fillText('Combined signal will appear here', W_COMB / 2, cy + 5);
+                return;
+            }
+
+            // Normalise so total fits nicely
+            const scale = (H_COMB * 0.38) / Math.max(maxAmpSum, 0.01);
+
+            // Draw filled area
+            ctxComb.fillStyle = 'rgba(255, 255, 255, 0.04)';
+            ctxComb.beginPath();
+            ctxComb.moveTo(50, cy);
+            for (let x = 50; x < W_COMB - 10; x++) {
+                const t = (x - 50) / (W_COMB - 60);
+                let val = 0;
+                for (let i = 0; i < NUM_HARMONICS; i++) {
+                    if (amps[i] <= 0) continue;
+                    val += amps[i] * Math.sin(2 * Math.PI * (i + 1) * t * 3 + time * (i + 1));
+                }
+                ctxComb.lineTo(x, cy - val * scale);
+            }
+            ctxComb.lineTo(W_COMB - 10, cy);
+            ctxComb.closePath();
+            ctxComb.fill();
+
+            // Draw the combined wave line
+            ctxComb.strokeStyle = '#fff';
+            ctxComb.lineWidth = 2.5;
+            ctxComb.beginPath();
+            for (let x = 50; x < W_COMB - 10; x++) {
+                const t = (x - 50) / (W_COMB - 60);
+                let val = 0;
+                for (let i = 0; i < NUM_HARMONICS; i++) {
+                    if (amps[i] <= 0) continue;
+                    val += amps[i] * Math.sin(2 * Math.PI * (i + 1) * t * 3 + time * (i + 1));
+                }
+                const y = cy - val * scale;
+                if (x === 50) ctxComb.moveTo(x, y);
+                else ctxComb.lineTo(x, y);
+            }
+            ctxComb.stroke();
+
+            // Label
+            ctxComb.fillStyle = '#888';
+            ctxComb.font = 'bold 11px Segoe UI, Arial';
+            ctxComb.textAlign = 'right';
+            ctxComb.fillText('SUM', 46, cy + 4);
+
+            // Equation summary on the combined wave canvas
+            let eqParts = [];
+            for (let i = 0; i < NUM_HARMONICS; i++) {
+                if (amps[i] <= 0) continue;
+                const n = i + 1;
+                const aStr = amps[i] === 1 ? '' : amps[i].toFixed(2) + '\u00B7';
+                const fStr = n === 1 ? '2\u03C0t' : n + '\u00B72\u03C0t';
+                eqParts.push(`${aStr}sin(${fStr})`);
+            }
+            if (eqParts.length > 0) {
+                ctxComb.fillStyle = '#aaa';
+                ctxComb.font = '10px Courier New, monospace';
+                ctxComb.textAlign = 'left';
+                const eqText = 'f(t) = ' + eqParts.join(' + ');
+                // Truncate if too long for canvas
+                const displayText = eqText.length > 85 ? eqText.substring(0, 82) + '...' : eqText;
+                ctxComb.fillText(displayText, 56, 14);
+            }
+        }
+
+        function drawSpectrum() {
+            ctxSpec.clearRect(0, 0, W_SPEC, H_SPEC);
+            const padL = 30, padR = 10, padT = 20, padB = 30;
+            const plotW = W_SPEC - padL - padR;
+            const plotH = H_SPEC - padT - padB;
+            const barW = plotW / NUM_HARMONICS;
+
+            // Title
+            ctxSpec.fillStyle = '#888';
+            ctxSpec.font = '10px Segoe UI, Arial';
+            ctxSpec.textAlign = 'center';
+            ctxSpec.fillText('Amplitude', 14, padT + plotH / 2);
+
+            // Y axis
+            ctxSpec.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctxSpec.lineWidth = 1;
+            ctxSpec.beginPath();
+            ctxSpec.moveTo(padL, padT);
+            ctxSpec.lineTo(padL, padT + plotH);
+            ctxSpec.lineTo(padL + plotW, padT + plotH);
+            ctxSpec.stroke();
+
+            // Grid lines
+            for (let g = 0.25; g <= 1; g += 0.25) {
+                const gy = padT + plotH * (1 - g);
+                ctxSpec.strokeStyle = 'rgba(255,255,255,0.05)';
+                ctxSpec.beginPath();
+                ctxSpec.moveTo(padL, gy);
+                ctxSpec.lineTo(padL + plotW, gy);
+                ctxSpec.stroke();
+                ctxSpec.fillStyle = '#555';
+                ctxSpec.font = '9px Segoe UI, Arial';
+                ctxSpec.textAlign = 'right';
+                ctxSpec.fillText((g * 100).toFixed(0) + '%', padL - 4, gy + 3);
+            }
+
+            // Bars
+            for (let i = 0; i < NUM_HARMONICS; i++) {
+                const x = padL + i * barW + barW * 0.15;
+                const w = barW * 0.7;
+                const h = amps[i] * plotH;
+                const y = padT + plotH - h;
+
+                // Bar fill with gradient effect
+                const grad = ctxSpec.createLinearGradient(x, y, x, padT + plotH);
+                grad.addColorStop(0, COLOURS[i]);
+                grad.addColorStop(1, COLOURS[i] + '44');
+                ctxSpec.fillStyle = grad;
+                ctxSpec.fillRect(x, y, w, h);
+
+                // Bar outline
+                ctxSpec.strokeStyle = COLOURS[i];
+                ctxSpec.lineWidth = 1.5;
+                ctxSpec.strokeRect(x, y, w, h);
+
+                // Frequency label
+                ctxSpec.fillStyle = COLOURS[i];
+                ctxSpec.font = 'bold 10px Segoe UI, Arial';
+                ctxSpec.textAlign = 'center';
+                ctxSpec.fillText(`${i + 1}x`, x + w / 2, padT + plotH + 14);
+
+                // Amplitude value on top of bar (if non-zero)
+                if (amps[i] > 0.01) {
+                    ctxSpec.fillStyle = '#fff';
+                    ctxSpec.font = '9px Segoe UI, Arial';
+                    ctxSpec.fillText(Math.round(amps[i] * 100) + '%',
+                                     x + w / 2, y - 5);
+                }
+            }
+
+            // X axis label
+            ctxSpec.fillStyle = '#888';
+            ctxSpec.font = '10px Segoe UI, Arial';
+            ctxSpec.textAlign = 'center';
+            ctxSpec.fillText('Frequency', padL + plotW / 2, H_SPEC - 2);
+
+            // Arrow showing "Fourier Transform outputs this"
+            ctxSpec.fillStyle = '#7da2e0';
+            ctxSpec.font = 'italic 10px Segoe UI, Arial';
+            ctxSpec.textAlign = 'center';
+            ctxSpec.fillText('FT output: the recipe', W_SPEC / 2, 12);
+        }
+
+        // ---- Animation loop ----
+        function draw() {
+            time += 0.015;
+            drawComponents();
+            drawCombined();
+            drawSpectrum();
+            requestAnimationFrame(draw);
+        }
+
+        // Initialise with square wave preset
+        setPreset('square', document.getElementById('btnSquare'));
+        draw();
+    </script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

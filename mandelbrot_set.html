@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Mandelbrot Set</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#fcd34d}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:crosshair}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(252,211,77,0.13);border-color:rgba(252,211,77,0.4);color:#fcd34d}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .gold{color:#fcd34d}.math-line .muted{color:#808098}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#fcd34d;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#fcd34d}
+        .slider-label{color:#fcd34d;font-family:'Courier New',monospace;font-size:1.05em;min-width:50px}
+        .info-row{font-family:'Courier New',monospace;font-size:0.82em;color:#808098;margin:6px 0;line-height:1.7}
+        .info-row .gold{color:#fcd34d}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-row>.flex-half{flex:1 1 300px;min-width:280px}
+        .orbit-info{font-family:'Courier New',monospace;font-size:0.82em;color:#808098;margin-top:8px;line-height:1.7;min-height:60px}
+        .orbit-info .gold{color:#fcd34d}
+        .section-note{color:#808098;font-size:0.88em;line-height:1.7;margin:8px 0}
+        .math-block{background:rgba(252,211,77,0.04);border-left:2px solid rgba(252,211,77,0.3);padding:12px 16px;margin:12px 0;border-radius:0 8px 8px 0}
+        .math-block .formula{font-family:'Courier New',monospace;font-size:1.05em;color:#fcd34d;margin:4px 0}
+        .math-block .note{color:#808098;font-size:0.85em;margin-top:4px}
+        .property-list{margin:10px 0;padding-left:0;list-style:none}
+        .property-list li{color:#a0a0b8;font-size:0.9em;line-height:1.8;padding-left:16px;position:relative}
+        .property-list li::before{content:'';position:absolute;left:0;top:10px;width:6px;height:6px;border-radius:50%;background:rgba(252,211,77,0.4)}
+        .property-list li strong{color:#e0e0e0;font-weight:400}
+        .render-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fcd34d;font-family:'Courier New',monospace;font-size:0.85em;pointer-events:none;opacity:0;transition:opacity 0.2s}
+        .render-overlay.visible{opacity:1}
+        .canvas-wrap{position:relative;display:inline-block}
+        .toggle-row{display:flex;align-items:center;gap:10px;margin:8px 0}
+        .toggle-label{color:#808098;font-size:0.88em;cursor:pointer}
+        .toggle-label input{accent-color:#fcd34d;margin-right:4px}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>The Mandelbrot Set</h1>
+    <p class="subtitle">Infinite complexity from z &rarr; z&sup2; + c</p>
+
+    <!-- Section 1: Main Mandelbrot Explorer -->
+    <h2>Interactive Mandelbrot Explorer</h2>
+    <div class="panel">
+        <h3>Controls</h3>
+        <div class="slider-row">
+            <span class="math-line muted">Max iterations:</span>
+            <input type="range" id="iterSlider" min="50" max="1000" value="200" step="10">
+            <span class="slider-label" id="iterLabel">200</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="resetBtn">Reset View</button>
+        </div>
+        <div class="section-note">Click to zoom in (3x). Shift-click or right-click to zoom out. Click and drag to pan.</div>
+        <div class="canvas-wrap">
+            <canvas id="mandelbrot" width="700" height="500"></canvas>
+            <div class="render-overlay" id="renderStatus">Rendering...</div>
+        </div>
+        <div class="info-row" id="viewInfo">Center: <span class="gold">-0.5 + 0i</span> &ensp; Zoom: <span class="gold">1.0x</span> &ensp; Max iter: <span class="gold">200</span></div>
+    </div>
+
+    <!-- Section 4: Famous Zoom Locations -->
+    <div class="panel">
+        <h3>Famous Zoom Locations</h3>
+        <div class="btn-row" id="zoomPresets"></div>
+    </div>
+
+    <!-- Section 2: Orbit Visualizer + Section 3: Julia Set -->
+    <div class="flex-row">
+        <div class="flex-half">
+            <h2>Orbit Visualizer</h2>
+            <div class="panel">
+                <h3>Orbit of z &rarr; z&sup2; + c</h3>
+                <canvas id="orbitCanvas" width="350" height="350" style="cursor:default"></canvas>
+                <div class="orbit-info" id="orbitInfo">Hover over the Mandelbrot set to see orbits.</div>
+                <h3 style="margin-top:14px">Interesting Points</h3>
+                <div class="btn-row" id="orbitPresets"></div>
+            </div>
+        </div>
+        <div class="flex-half">
+            <h2>Julia Set Companion</h2>
+            <div class="panel">
+                <h3>Julia set for selected c</h3>
+                <div class="toggle-row">
+                    <label class="toggle-label"><input type="checkbox" id="juliaSync"> Sync with cursor</label>
+                </div>
+                <div class="canvas-wrap">
+                    <canvas id="juliaCanvas" width="400" height="400"></canvas>
+                    <div class="render-overlay" id="juliaStatus">Rendering...</div>
+                </div>
+                <div class="info-row" id="juliaInfo">Click the Mandelbrot set to select c for Julia rendering.</div>
+                <div class="section-note">Each point c in the Mandelbrot set has its own Julia set. If c is inside the set, the Julia set is connected; if c is outside, it is disconnected (Cantor dust).</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 5: Mathematics Panel -->
+    <h2>The Mathematics</h2>
+    <div class="panel">
+        <div class="math-block">
+            <div class="formula">z&#8345;&#8330;&#8321; = z&#8345;&sup2; + c, &ensp; z&#8320; = 0</div>
+            <div class="note">For each complex number c, iterate this rule. If the orbit stays bounded, c is in the Mandelbrot set M.</div>
+        </div>
+        <div class="math-block" style="border-left-color:rgba(252,211,77,0.15)">
+            <div class="formula" style="color:#c0c0d8">c &isin; M &hArr; |z&#8345;| &le; 2 for all n</div>
+            <div class="note">Once |z| exceeds 2, the orbit is guaranteed to escape to infinity. This is the bailout condition.</div>
+        </div>
+        <h3 style="margin-top:18px">Key Properties</h3>
+        <ul class="property-list">
+            <li><strong>Self-similarity:</strong> The boundary contains miniature copies of the entire set at every scale, connected by intricate filaments.</li>
+            <li><strong>Area:</strong> Approximately 1.5065... &mdash; computed numerically but not known in closed form.</li>
+            <li><strong>Boundary dimension:</strong> The boundary of the Mandelbrot set has Hausdorff dimension 2 &mdash; as complex as a filled 2D region, despite being a 1D curve.</li>
+            <li><strong>Connected:</strong> The Mandelbrot set is connected (proven by Douady and Hubbard, 1982). No matter how thin the filaments appear, the set is one piece.</li>
+            <li><strong>Julia set map:</strong> The Mandelbrot set is a catalogue of Julia sets. Each point c encodes the topology of the Julia set J(c): connected if c &isin; M, totally disconnected if c &notin; M.</li>
+        </ul>
+    </div>
+
+    <!-- Section 6: Explanation Panel -->
+    <div class="explain">
+        <div class="explain-name">What have we learnt?</div>
+        <div class="explain-text">
+            From the simplest possible iteration &mdash; just squaring and adding &mdash; emerges infinite, self-similar complexity. The Mandelbrot set is a bridge between simplicity and complexity, showing that mathematical beauty can arise from the most elementary operations.<br><br>
+            The set was first visualised by Benoit Mandelbrot at IBM in 1980, though the underlying mathematics had been studied by Fatou and Julia in the early 20th century. Mandelbrot's contribution was to use the computer as a mathematical microscope, revealing structure that no one had imagined.<br><br>
+            As John Hubbard said: "The Mandelbrot set is the most complex object in mathematics." Every zoom reveals new structure &mdash; spiral arms, miniature copies of the whole, seahorses, elephants, lightning bolts &mdash; all generated by a single quadratic map.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ================================================================
+   MANDELBROT SET — Interactive Explorer
+   ================================================================ */
+
+/* ── Color palette ── */
+const PALETTE_SIZE = 2048;
+const palette = new Uint8Array(PALETTE_SIZE * 3);
+(function buildPalette() {
+    for (let i = 0; i < PALETTE_SIZE; i++) {
+        const hue = (i * 10) % 360;
+        const sat = 0.80;
+        const light = 0.10 + 0.50 * (0.5 + 0.5 * Math.sin(i * Math.PI / 256));
+        const c = (1 - Math.abs(2 * light - 1)) * sat;
+        const x = c * (1 - Math.abs((hue / 60) % 2 - 1));
+        const m = light - c / 2;
+        let r, g, b;
+        if (hue < 60) { r = c; g = x; b = 0; }
+        else if (hue < 120) { r = x; g = c; b = 0; }
+        else if (hue < 180) { r = 0; g = c; b = x; }
+        else if (hue < 240) { r = 0; g = x; b = c; }
+        else if (hue < 300) { r = x; g = 0; b = c; }
+        else { r = c; g = 0; b = x; }
+        palette[i * 3] = Math.round((r + m) * 255);
+        palette[i * 3 + 1] = Math.round((g + m) * 255);
+        palette[i * 3 + 2] = Math.round((b + m) * 255);
+    }
+})();
+
+/* ── State ── */
+const DEFAULT_VIEW = { xMin: -2.5, xMax: 1.0, yMin: -1.25, yMax: 1.25 };
+let view = { ...DEFAULT_VIEW };
+let maxIter = 200;
+let rendering = false;
+let renderRequest = 0;
+let currentC = { re: -0.75, im: 0.1 };
+let juliaSync = false;
+let dragState = null; // {startX, startY, origView}
+let isDragging = false;
+
+/* ── Canvas refs ── */
+const mCanvas = document.getElementById('mandelbrot');
+const mCtx = mCanvas.getContext('2d');
+const MW = mCanvas.width, MH = mCanvas.height;
+
+const oCanvas = document.getElementById('orbitCanvas');
+const oCtx = oCanvas.getContext('2d');
+const OW = oCanvas.width, OH = oCanvas.height;
+
+const jCanvas = document.getElementById('juliaCanvas');
+const jCtx = jCanvas.getContext('2d');
+const JW = jCanvas.width, JH = jCanvas.height;
+
+/* ── Helpers ── */
+function pixelToComplex(px, py) {
+    return {
+        re: view.xMin + (px / MW) * (view.xMax - view.xMin),
+        im: view.yMin + (1 - py / MH) * (view.yMax - view.yMin)
+    };
+}
+
+function getZoomLevel() {
+    const defaultWidth = DEFAULT_VIEW.xMax - DEFAULT_VIEW.xMin;
+    const currentWidth = view.xMax - view.xMin;
+    return defaultWidth / currentWidth;
+}
+
+function fmtComplex(re, im) {
+    const rr = Math.round(re * 1e8) / 1e8;
+    const ii = Math.round(im * 1e8) / 1e8;
+    if (Math.abs(ii) < 1e-10) return rr.toFixed(6);
+    if (Math.abs(rr) < 1e-10) return ii.toFixed(6) + 'i';
+    return rr.toFixed(6) + (ii >= 0 ? ' + ' : ' - ') + Math.abs(ii).toFixed(6) + 'i';
+}
+
+function updateViewInfo() {
+    const cx = (view.xMin + view.xMax) / 2;
+    const cy = (view.yMin + view.yMax) / 2;
+    const zoom = getZoomLevel();
+    document.getElementById('viewInfo').innerHTML =
+        'Center: <span class="gold">' + fmtComplex(cx, cy) + '</span> &ensp; ' +
+        'Zoom: <span class="gold">' + (zoom >= 1000 ? zoom.toExponential(2) : zoom.toFixed(1)) + 'x</span> &ensp; ' +
+        'Max iter: <span class="gold">' + maxIter + '</span>';
+}
+
+/* ── Mandelbrot rendering (chunked, non-blocking) ── */
+function renderMandelbrot() {
+    const requestId = ++renderRequest;
+    const overlay = document.getElementById('renderStatus');
+    overlay.classList.add('visible');
+    rendering = true;
+
+    const imgData = mCtx.createImageData(MW, MH);
+    const data = imgData.data;
+    const mi = maxIter;
+    const xMin = view.xMin, xMax = view.xMax, yMin = view.yMin, yMax = view.yMax;
+    const dx = (xMax - xMin) / MW;
+    const dy = (yMax - yMin) / MH;
+
+    let row = 0;
+    const ROWS_PER_FRAME = 10;
+
+    function renderBatch() {
+        if (requestId !== renderRequest) return; // superseded
+        const endRow = Math.min(row + ROWS_PER_FRAME, MH);
+        for (let py = row; py < endRow; py++) {
+            const ci = yMax - py * dy;
+            for (let px = 0; px < MW; px++) {
+                const cr = xMin + px * dx;
+                let zr = 0, zi = 0, zr2 = 0, zi2 = 0;
+                let n = 0;
+                while (n < mi && zr2 + zi2 <= 4) {
+                    zi = 2 * zr * zi + ci;
+                    zr = zr2 - zi2 + cr;
+                    zr2 = zr * zr;
+                    zi2 = zi * zi;
+                    n++;
+                }
+                const idx = (py * MW + px) * 4;
+                if (n === mi) {
+                    data[idx] = 0;
+                    data[idx + 1] = 0;
+                    data[idx + 2] = 0;
+                    data[idx + 3] = 255;
+                } else {
+                    const mag = Math.sqrt(zr2 + zi2);
+                    const smooth = n + 1 - Math.log2(Math.log2(mag));
+                    const ci2 = Math.max(0, Math.floor(smooth * 8)) % PALETTE_SIZE;
+                    data[idx] = palette[ci2 * 3];
+                    data[idx + 1] = palette[ci2 * 3 + 1];
+                    data[idx + 2] = palette[ci2 * 3 + 2];
+                    data[idx + 3] = 255;
+                }
+            }
+        }
+        row = endRow;
+        if (row < MH) {
+            // draw partial progress
+            mCtx.putImageData(imgData, 0, 0);
+            requestAnimationFrame(renderBatch);
+        } else {
+            mCtx.putImageData(imgData, 0, 0);
+            rendering = false;
+            overlay.classList.remove('visible');
+        }
+    }
+    requestAnimationFrame(renderBatch);
+    updateViewInfo();
+}
+
+/* ── Julia set rendering (chunked) ── */
+let juliaRequest = 0;
+function renderJulia(cr, ci) {
+    const requestId = ++juliaRequest;
+    const overlay = document.getElementById('juliaStatus');
+    overlay.classList.add('visible');
+
+    const imgData = jCtx.createImageData(JW, JH);
+    const data = imgData.data;
+    const mi = Math.min(maxIter, 300);
+    // Julia set view: centered at origin, range -2 to 2
+    const jxMin = -2, jxMax = 2, jyMin = -2, jyMax = 2;
+    const dx = (jxMax - jxMin) / JW;
+    const dy = (jyMax - jyMin) / JH;
+
+    let row = 0;
+    const ROWS_PER_FRAME = 12;
+
+    function renderBatch() {
+        if (requestId !== juliaRequest) return;
+        const endRow = Math.min(row + ROWS_PER_FRAME, JH);
+        for (let py = row; py < endRow; py++) {
+            const zi0 = jyMax - py * dy;
+            for (let px = 0; px < JW; px++) {
+                const zr0 = jxMin + px * dx;
+                let zr = zr0, zi = zi0, zr2 = zr * zr, zi2 = zi * zi;
+                let n = 0;
+                while (n < mi && zr2 + zi2 <= 4) {
+                    zi = 2 * zr * zi + ci;
+                    zr = zr2 - zi2 + cr;
+                    zr2 = zr * zr;
+                    zi2 = zi * zi;
+                    n++;
+                }
+                const idx = (py * JW + px) * 4;
+                if (n === mi) {
+                    data[idx] = 0;
+                    data[idx + 1] = 0;
+                    data[idx + 2] = 0;
+                    data[idx + 3] = 255;
+                } else {
+                    const mag = Math.sqrt(zr2 + zi2);
+                    const smooth = n + 1 - Math.log2(Math.log2(mag));
+                    const ci2 = Math.max(0, Math.floor(smooth * 8)) % PALETTE_SIZE;
+                    data[idx] = palette[ci2 * 3];
+                    data[idx + 1] = palette[ci2 * 3 + 1];
+                    data[idx + 2] = palette[ci2 * 3 + 2];
+                    data[idx + 3] = 255;
+                }
+            }
+        }
+        row = endRow;
+        if (row < JH) {
+            jCtx.putImageData(imgData, 0, 0);
+            requestAnimationFrame(renderBatch);
+        } else {
+            jCtx.putImageData(imgData, 0, 0);
+            overlay.classList.remove('visible');
+        }
+    }
+    requestAnimationFrame(renderBatch);
+
+    const inSet = isInMandelbrot(cr, ci);
+    document.getElementById('juliaInfo').innerHTML =
+        'c = <span class="gold">' + fmtComplex(cr, ci) + '</span>' +
+        (inSet ? ' &ensp;(c is in M &mdash; Julia set is connected)' : ' &ensp;(c is outside M &mdash; Julia set is disconnected)');
+}
+
+function isInMandelbrot(cr, ci) {
+    let zr = 0, zi = 0, zr2 = 0, zi2 = 0;
+    for (let n = 0; n < 200; n++) {
+        zi = 2 * zr * zi + ci;
+        zr = zr2 - zi2 + cr;
+        zr2 = zr * zr;
+        zi2 = zi * zi;
+        if (zr2 + zi2 > 4) return false;
+    }
+    return true;
+}
+
+/* ── Orbit visualizer ── */
+function drawOrbit(cr, ci) {
+    const ctx = oCtx;
+    const w = OW, h = OH;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(0, 0, w, h);
+
+    // axes and grid
+    const scale = 70;
+    const cx = w / 2, cy = h / 2;
+
+    // grid lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    for (let i = -2; i <= 2; i++) {
+        const sx = cx + i * scale;
+        ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, h); ctx.stroke();
+        const sy = cy - i * scale;
+        ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(w, sy); ctx.stroke();
+    }
+
+    // axes
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(w, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, h); ctx.stroke();
+
+    // axis labels
+    ctx.font = '10px Georgia';
+    ctx.fillStyle = '#808098';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Re', w - 20, cy - 4);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Im', cx + 4, 4);
+
+    // tick marks
+    ctx.font = '9px Georgia';
+    ctx.fillStyle = '#505068';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let i = -2; i <= 2; i++) {
+        if (i === 0) continue;
+        ctx.fillText(i, cx + i * scale, cy + 3);
+    }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let i = -2; i <= 2; i++) {
+        if (i === 0) continue;
+        ctx.fillText(i + 'i', cx - 4, cy - i * scale);
+    }
+
+    // bailout circle |z|=2
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(252,211,77,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2 * scale, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // compute orbit
+    let zr = 0, zi = 0;
+    const orbitPoints = [{ re: 0, im: 0 }];
+    let escaped = false;
+    let finalMag = 0;
+    const mi = Math.min(maxIter, 500);
+    for (let n = 0; n < mi; n++) {
+        const newZr = zr * zr - zi * zi + cr;
+        const newZi = 2 * zr * zi + ci;
+        zr = newZr;
+        zi = newZi;
+        orbitPoints.push({ re: zr, im: zi });
+        if (zr * zr + zi * zi > 100) {
+            escaped = true;
+            finalMag = Math.sqrt(zr * zr + zi * zi);
+            break;
+        }
+    }
+    if (!escaped) {
+        finalMag = Math.sqrt(zr * zr + zi * zi);
+    }
+
+    // draw orbit path
+    const maxDraw = Math.min(orbitPoints.length, 200);
+    ctx.strokeStyle = 'rgba(252,211,77,0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < maxDraw; i++) {
+        const sx = cx + orbitPoints[i].re * scale;
+        const sy = cy - orbitPoints[i].im * scale;
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+
+    // draw orbit dots
+    for (let i = 0; i < maxDraw; i++) {
+        const sx = cx + orbitPoints[i].re * scale;
+        const sy = cy - orbitPoints[i].im * scale;
+        if (sx < -20 || sx > w + 20 || sy < -20 || sy > h + 20) continue;
+        const alpha = 0.3 + 0.7 * (i / maxDraw);
+        const radius = i === 0 ? 4 : (i === maxDraw - 1 ? 3.5 : 2);
+        ctx.fillStyle = i === 0 ? '#fcd34d' : (escaped ? 'rgba(252,211,77,' + alpha + ')' : 'rgba(200,200,255,' + alpha + ')');
+        ctx.beginPath();
+        ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // label z0
+    if (orbitPoints.length > 0) {
+        const sx = cx + orbitPoints[0].re * scale;
+        const sy = cy - orbitPoints[0].im * scale;
+        ctx.font = '10px Georgia';
+        ctx.fillStyle = '#fcd34d';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText('z\u2080', sx + 6, sy - 4);
+    }
+
+    // mark c point
+    const csx = cx + cr * scale;
+    const csy = cy - ci * scale;
+    if (csx >= 0 && csx <= w && csy >= 0 && csy <= h) {
+        ctx.strokeStyle = '#fcd34d';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(csx, csy, 6, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.font = '10px Georgia';
+        ctx.fillStyle = '#fcd34d';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText('c', csx + 8, csy - 4);
+    }
+
+    // update info
+    const nIter = orbitPoints.length - 1;
+    document.getElementById('orbitInfo').innerHTML =
+        'c = <span class="gold">' + fmtComplex(cr, ci) + '</span><br>' +
+        'Iterations: <span class="gold">' + nIter + '</span> &ensp; |z| = <span class="gold">' + finalMag.toFixed(4) + '</span><br>' +
+        (escaped ? 'Escaped (outside the set)' : 'Bounded (in the set)');
+}
+
+/* ── Mandelbrot canvas interactions ── */
+function getCanvasPos(e) {
+    const rect = mCanvas.getBoundingClientRect();
+    return {
+        x: (e.clientX - rect.left) * (MW / rect.width),
+        y: (e.clientY - rect.top) * (MH / rect.height)
+    };
+}
+
+let mouseDownPos = null;
+let mouseDownTime = 0;
+
+mCanvas.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    const pos = getCanvasPos(e);
+    mouseDownPos = pos;
+    mouseDownTime = Date.now();
+    dragState = {
+        startX: e.clientX,
+        startY: e.clientY,
+        origView: { ...view }
+    };
+    isDragging = false;
+});
+
+mCanvas.addEventListener('mousemove', function(e) {
+    const pos = getCanvasPos(e);
+    const c = pixelToComplex(pos.x, pos.y);
+
+    // handle drag
+    if (dragState) {
+        const dx = e.clientX - dragState.startX;
+        const dy = e.clientY - dragState.startY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+            isDragging = true;
+            const rect = mCanvas.getBoundingClientRect();
+            const scaleX = (dragState.origView.xMax - dragState.origView.xMin) / rect.width;
+            const scaleY = (dragState.origView.yMax - dragState.origView.yMin) / rect.height;
+            view.xMin = dragState.origView.xMin - dx * scaleX;
+            view.xMax = dragState.origView.xMax - dx * scaleX;
+            view.yMin = dragState.origView.yMin + dy * scaleY;
+            view.yMax = dragState.origView.yMax + dy * scaleY;
+            renderMandelbrot();
+        }
+    }
+
+    // orbit on hover
+    drawOrbit(c.re, c.im);
+
+    // julia sync
+    if (juliaSync && !dragState) {
+        currentC = { re: c.re, im: c.im };
+        renderJulia(c.re, c.im);
+    }
+});
+
+mCanvas.addEventListener('mouseup', function(e) {
+    e.preventDefault();
+    if (!isDragging && mouseDownPos) {
+        const pos = getCanvasPos(e);
+        const c = pixelToComplex(pos.x, pos.y);
+        const zoomIn = !(e.shiftKey);
+        const factor = zoomIn ? 1 / 3 : 3;
+        const w = (view.xMax - view.xMin) * factor;
+        const h = (view.yMax - view.yMin) * factor;
+        view.xMin = c.re - w / 2;
+        view.xMax = c.re + w / 2;
+        view.yMin = c.im - h / 2;
+        view.yMax = c.im + h / 2;
+        renderMandelbrot();
+
+        // also set Julia c
+        if (!juliaSync) {
+            currentC = { re: c.re, im: c.im };
+            renderJulia(c.re, c.im);
+            drawOrbit(c.re, c.im);
+        }
+    }
+    dragState = null;
+    isDragging = false;
+    mouseDownPos = null;
+});
+
+mCanvas.addEventListener('mouseleave', function() {
+    dragState = null;
+    isDragging = false;
+    mouseDownPos = null;
+});
+
+// right-click to zoom out
+mCanvas.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    const pos = getCanvasPos(e);
+    const c = pixelToComplex(pos.x, pos.y);
+    const w = (view.xMax - view.xMin) * 3;
+    const h = (view.yMax - view.yMin) * 3;
+    view.xMin = c.re - w / 2;
+    view.xMax = c.re + w / 2;
+    view.yMin = c.im - h / 2;
+    view.yMax = c.im + h / 2;
+    renderMandelbrot();
+});
+
+// touch support
+let touchStartPos = null;
+let touchStartTime = 0;
+let touchDragState = null;
+let touchIsDragging = false;
+let longPressTimer = null;
+
+mCanvas.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+        const t = e.touches[0];
+        const rect = mCanvas.getBoundingClientRect();
+        touchStartPos = {
+            x: (t.clientX - rect.left) * (MW / rect.width),
+            y: (t.clientY - rect.top) * (MH / rect.height)
+        };
+        touchStartTime = Date.now();
+        touchDragState = {
+            startX: t.clientX,
+            startY: t.clientY,
+            origView: { ...view }
+        };
+        touchIsDragging = false;
+        // long press for zoom out
+        longPressTimer = setTimeout(function() {
+            if (!touchIsDragging && touchStartPos) {
+                const c = pixelToComplex(touchStartPos.x, touchStartPos.y);
+                const w = (view.xMax - view.xMin) * 3;
+                const h = (view.yMax - view.yMin) * 3;
+                view.xMin = c.re - w / 2;
+                view.xMax = c.re + w / 2;
+                view.yMin = c.im - h / 2;
+                view.yMax = c.im + h / 2;
+                renderMandelbrot();
+                touchStartPos = null; // prevent tap zoom
+            }
+        }, 600);
+    }
+}, { passive: false });
+
+mCanvas.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+    if (e.touches.length === 1 && touchDragState) {
+        const t = e.touches[0];
+        const dx = t.clientX - touchDragState.startX;
+        const dy = t.clientY - touchDragState.startY;
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+            touchIsDragging = true;
+            const rect = mCanvas.getBoundingClientRect();
+            const scaleX = (touchDragState.origView.xMax - touchDragState.origView.xMin) / rect.width;
+            const scaleY = (touchDragState.origView.yMax - touchDragState.origView.yMin) / rect.height;
+            view.xMin = touchDragState.origView.xMin - dx * scaleX;
+            view.xMax = touchDragState.origView.xMax - dx * scaleX;
+            view.yMin = touchDragState.origView.yMin + dy * scaleY;
+            view.yMax = touchDragState.origView.yMax + dy * scaleY;
+            renderMandelbrot();
+        }
+    }
+}, { passive: false });
+
+mCanvas.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+    if (!touchIsDragging && touchStartPos) {
+        // tap to zoom in
+        const c = pixelToComplex(touchStartPos.x, touchStartPos.y);
+        const w = (view.xMax - view.xMin) / 3;
+        const h = (view.yMax - view.yMin) / 3;
+        view.xMin = c.re - w / 2;
+        view.xMax = c.re + w / 2;
+        view.yMin = c.im - h / 2;
+        view.yMax = c.im + h / 2;
+        renderMandelbrot();
+        if (!juliaSync) {
+            currentC = { re: c.re, im: c.im };
+            renderJulia(c.re, c.im);
+            drawOrbit(c.re, c.im);
+        }
+    }
+    touchStartPos = null;
+    touchDragState = null;
+    touchIsDragging = false;
+}, { passive: false });
+
+/* ── Iteration slider ── */
+const iterSlider = document.getElementById('iterSlider');
+const iterLabel = document.getElementById('iterLabel');
+iterSlider.addEventListener('input', function() {
+    maxIter = parseInt(this.value);
+    iterLabel.textContent = maxIter;
+    renderMandelbrot();
+});
+
+/* ── Reset button ── */
+document.getElementById('resetBtn').addEventListener('click', function() {
+    view = { ...DEFAULT_VIEW };
+    renderMandelbrot();
+});
+
+/* ── Julia sync toggle ── */
+document.getElementById('juliaSync').addEventListener('change', function() {
+    juliaSync = this.checked;
+});
+
+/* ── Orbit preset points ── */
+const orbitPresetData = [
+    { label: 'c = -0.75', re: -0.75, im: 0, desc: 'Near boundary (chaotic)' },
+    { label: 'c = 0.25', re: 0.25, im: 0, desc: 'Just outside (slow escape)' },
+    { label: 'c = -1', re: -1, im: 0, desc: 'Period-2 cycle' },
+    { label: 'c = -0.123+0.745i', re: -0.123, im: 0.745, desc: 'Douady rabbit (period-3)' },
+    { label: 'c = -1.755', re: -1.755, im: 0, desc: 'Misiurewicz point' },
+    { label: 'c = 0', re: 0, im: 0, desc: 'Fixed point (in set)' }
+];
+
+(function renderOrbitPresets() {
+    const container = document.getElementById('orbitPresets');
+    container.innerHTML = orbitPresetData.map(function(p, i) {
+        return '<button class="btn" data-idx="' + i + '" title="' + p.desc + '">' + p.label + '</button>';
+    }).join('');
+    container.querySelectorAll('.btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const p = orbitPresetData[parseInt(this.dataset.idx)];
+            currentC = { re: p.re, im: p.im };
+            drawOrbit(p.re, p.im);
+            renderJulia(p.re, p.im);
+            // highlight active
+            container.querySelectorAll('.btn').forEach(function(b) { b.classList.remove('active'); });
+            this.classList.add('active');
+        });
+    });
+})();
+
+/* ── Zoom presets ── */
+const zoomPresetData = [
+    { label: 'Full Set', xMin: -2.5, xMax: 1.0, yMin: -1.25, yMax: 1.25, iter: 200 },
+    { label: 'Seahorse Valley', xMin: -0.78, xMax: -0.72, yMin: 0.07, yMax: 0.13, iter: 400 },
+    { label: 'Elephant Valley', xMin: 0.26, xMax: 0.30, yMin: -0.012, yMax: 0.028, iter: 400 },
+    { label: 'Mini Mandelbrot', xMin: -1.790, xMax: -1.746, yMin: -0.022, yMax: 0.022, iter: 600 },
+    { label: 'Spiral', xMin: -0.0502, xMax: -0.0402, yMin: 0.9818, yMax: 0.9918, iter: 500 },
+    { label: 'Lightning', xMin: -1.34, xMax: -1.29, yMin: -0.025, yMax: 0.025, iter: 400 }
+];
+
+(function renderZoomPresets() {
+    const container = document.getElementById('zoomPresets');
+    container.innerHTML = zoomPresetData.map(function(p, i) {
+        return '<button class="btn" data-idx="' + i + '">' + p.label + '</button>';
+    }).join('');
+    container.querySelectorAll('.btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const p = zoomPresetData[parseInt(this.dataset.idx)];
+            view.xMin = p.xMin;
+            view.xMax = p.xMax;
+            view.yMin = p.yMin;
+            view.yMax = p.yMax;
+            if (p.iter) {
+                maxIter = p.iter;
+                iterSlider.value = maxIter;
+                iterLabel.textContent = maxIter;
+            }
+            renderMandelbrot();
+            // highlight active
+            container.querySelectorAll('.btn').forEach(function(b) { b.classList.remove('active'); });
+            this.classList.add('active');
+        });
+    });
+})();
+
+/* ── Initial render ── */
+renderMandelbrot();
+drawOrbit(-0.75, 0.1);
+renderJulia(-0.75, 0.1);
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

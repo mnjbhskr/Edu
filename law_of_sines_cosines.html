@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Law of Sines &amp; Cosines</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#34d399}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:20px}
+        .panel h2{font-weight:400;font-size:1.1em;color:#34d399;margin-bottom:12px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+        .tab-row{display:flex;gap:8px;margin-bottom:20px}
+        .tab-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:8px 20px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.95em;transition:all 0.2s}
+        .tab-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .tab-btn.active{background:rgba(52,211,153,0.13);border-color:rgba(52,211,153,0.4);color:#34d399}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);margin:0 auto 16px;cursor:grab;max-width:100%;touch-action:none}
+        .ratios{font-family:'Courier New',monospace;font-size:0.88em;line-height:2}
+        .ratios .ca{color:#34d399}.ratios .cb{color:#f87171}.ratios .cc{color:#60a5fa}.ratios .cg{color:#fbbf24}
+        .chk{color:#34d399;margin-left:4px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+        .sm-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s}
+        .sm-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .sm-btn.active{background:rgba(52,211,153,0.13);border-color:rgba(52,211,153,0.4);color:#34d399}
+        .solver-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+        .solver-grid label{font-size:0.82em;color:#808098;display:block;margin-bottom:3px}
+        .solver-grid input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#e0e0e0;padding:6px 10px;border-radius:6px;font-family:Georgia,serif;font-size:0.95em}
+        .solver-grid input:focus{outline:none;border-color:rgba(52,211,153,0.5)}
+        .solver-grid input:disabled{opacity:0.3}
+        .solve-btn{background:rgba(52,211,153,0.15);border:1px solid rgba(52,211,153,0.4);color:#34d399;padding:8px 24px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.95em;transition:all 0.2s}
+        .solve-btn:hover{background:rgba(52,211,153,0.25)}
+        .result-text{font-family:'Courier New',monospace;font-size:0.85em;color:#a0a0b8;margin-top:8px;line-height:1.8}
+        .warn{color:#f87171;font-size:0.85em;margin-top:6px}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:20px}
+        .explain-name{color:#34d399;font-size:1.05em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.88em;line-height:1.75;margin-bottom:14px}
+        .explain-text:last-child{margin-bottom:0}
+        .pyth-panel{font-size:0.9em;color:#a0a0b8;line-height:1.8}
+        .pyth-panel .hl{color:#34d399;font-weight:600}
+        @media(max-width:640px){.container{padding:16px 14px 36px}canvas{height:auto}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Law of Sines &amp; Cosines</h1>
+    <p class="subtitle">Solve any triangle &mdash; animated constructions</p>
+
+    <div class="tab-row" id="lawTabs"></div>
+    <canvas id="triCanvas" width="600" height="450"></canvas>
+    <div class="panel" id="formulaPanel"></div>
+
+    <div class="panel" id="solverPanel">
+        <h2>Triangle Solver</h2>
+        <div class="btn-row" id="modeBtns"></div>
+        <div class="solver-grid" id="solverGrid"></div>
+        <button class="solve-btn" id="solveBtn">Solve</button>
+        <div class="result-text" id="solverResult"></div>
+    </div>
+
+    <div class="panel">
+        <h3>Special Cases</h3>
+        <div class="btn-row" id="presets"></div>
+    </div>
+
+    <div class="panel pyth-panel" id="pythPanel">
+        <h2>Pythagorean Connection</h2>
+        <div id="pythText"></div>
+    </div>
+
+    <div class="explain" id="insightPanel"></div>
+</div>
+
+<script>
+const CVS=document.getElementById("triCanvas"),CTX=CVS.getContext("2d"),CW=CVS.width,CH=CVS.height;
+const DEG=180/Math.PI,RAD=Math.PI/180;
+
+/* ---- STATE ---- */
+let law="sines", cosCheck=2; // which side to verify (0=a,1=b,2=c)
+let verts=[{x:150,y:360},{x:480,y:360},{x:300,y:80}]; // A, B, C
+let drag=-1,dragOff={x:0,y:0};
+let solverMode="SSS";
+
+/* ---- GEOMETRY HELPERS ---- */
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+const angleBetween=(p,v,q)=>{const d1=Math.atan2(p.y-v.y,p.x-v.x),d2=Math.atan2(q.y-v.y,q.x-v.x);let a=Math.abs(d1-d2);if(a>Math.PI)a=2*Math.PI-a;return a;};
+function triData(){
+    const [A,B,C]=verts;
+    const a=dist(B,C),b=dist(A,C),c=dist(A,B);
+    const angA=angleBetween(B,A,C),angB=angleBetween(A,B,C),angC=angleBetween(A,C,B);
+    return{A,B,C,a,b,c,angA,angB,angC};
+}
+function circumcircle(A,B,C){
+    const ax=A.x,ay=A.y,bx=B.x,by=B.y,cx=C.x,cy=C.y;
+    const D=2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));
+    if(Math.abs(D)<1e-10)return null;
+    const ux=((ax*ax+ay*ay)*(by-cy)+(bx*bx+by*by)*(cy-ay)+(cx*cx+cy*cy)*(ay-by))/D;
+    const uy=((ax*ax+ay*ay)*(cx-bx)+(bx*bx+by*by)*(ax-cx)+(cx*cx+cy*cy)*(bx-ax))/D;
+    return{cx:ux,cy:uy,r:Math.hypot(ux-ax,uy-ay)};
+}
+function footOfPerp(C,A,B){
+    const dx=B.x-A.x,dy=B.y-A.y,t=((C.x-A.x)*dx+(C.y-A.y)*dy)/(dx*dx+dy*dy);
+    return{x:A.x+t*dx,y:A.y+t*dy,t};
+}
+
+/* ---- DRAWING ---- */
+function drawGrid(){
+    CTX.strokeStyle="rgba(255,255,255,0.025)";CTX.lineWidth=1;
+    for(let x=0;x<=CW;x+=40){CTX.beginPath();CTX.moveTo(x,0);CTX.lineTo(x,CH);CTX.stroke();}
+    for(let y=0;y<=CH;y+=40){CTX.beginPath();CTX.moveTo(0,y);CTX.lineTo(CW,y);CTX.stroke();}
+}
+function drawArc(v,p1,p2,color,r){
+    const a1=Math.atan2(p1.y-v.y,p1.x-v.x),a2=Math.atan2(p2.y-v.y,p2.x-v.x);
+    CTX.strokeStyle=color;CTX.lineWidth=1.5;CTX.beginPath();
+    let s=a1,e=a2;
+    if(e-s>Math.PI)s+=2*Math.PI; else if(s-e>Math.PI)e+=2*Math.PI;
+    if(s>e){const t=s;s=e;e=t;}
+    CTX.arc(v.x,v.y,r||28,s,e);CTX.stroke();
+}
+function labelPos(v,p1,p2,off){
+    const mx=(p1.x+p2.x)/2-v.x,my=(p1.y+p2.y)/2-v.y;
+    const l=Math.hypot(mx,my)||1;
+    return{x:v.x+mx/l*(off||22),y:v.y+my/l*(off||22)};
+}
+const COLORS=["#34d399","#f87171","#60a5fa"];
+const SIDE_COLORS=["#34d399","#f87171","#60a5fa"]; // a=emerald, b=coral, c=blue
+function draw(){
+    CTX.clearRect(0,0,CW,CH);CTX.fillStyle="#0a0a1a";CTX.fillRect(0,0,CW,CH);
+    drawGrid();
+    const t=triData();
+    const pts=[t.A,t.B,t.C];
+    const sides=[[1,2,t.a,"a",0],[0,2,t.b,"b",1],[0,1,t.c,"c",2]];
+
+    // circumcircle (sines mode)
+    if(law==="sines"){
+        const cc=circumcircle(t.A,t.B,t.C);
+        if(cc){
+            CTX.setLineDash([6,4]);CTX.strokeStyle="#fbbf24";CTX.lineWidth=1.2;
+            CTX.beginPath();CTX.arc(cc.cx,cc.cy,cc.r,0,Math.PI*2);CTX.stroke();
+            CTX.setLineDash([]);
+            CTX.fillStyle="#fbbf24";CTX.font="13px Georgia";CTX.textAlign="center";
+            CTX.fillText("R = "+cc.r.toFixed(1),cc.cx,cc.cy+5);
+            CTX.beginPath();CTX.arc(cc.cx,cc.cy,3,0,Math.PI*2);CTX.fill();
+        }
+    }
+    // height h from C to AB (cosines mode)
+    if(law==="cosines"){
+        const sel=cosCheck;
+        const opp=pts[sel]; // vertex opposite
+        const p1=pts[(sel+1)%3],p2=pts[(sel+2)%3];
+        const ft=footOfPerp(opp,p1,p2);
+        CTX.setLineDash([4,4]);CTX.strokeStyle="rgba(255,255,255,0.25)";CTX.lineWidth=1;
+        CTX.beginPath();CTX.moveTo(opp.x,opp.y);CTX.lineTo(ft.x,ft.y);CTX.stroke();
+        CTX.setLineDash([]);
+        const h=dist(opp,ft);
+        CTX.fillStyle="rgba(255,255,255,0.35)";CTX.font="12px Georgia";
+        CTX.textAlign="center";CTX.fillText("h="+h.toFixed(1),(opp.x+ft.x)/2-12,(opp.y+ft.y)/2);
+    }
+    // draw triangle sides
+    for(const s of sides){
+        CTX.strokeStyle=SIDE_COLORS[s[4]];CTX.lineWidth=2;CTX.beginPath();
+        CTX.moveTo(pts[s[0]].x,pts[s[0]].y);CTX.lineTo(pts[s[1]].x,pts[s[1]].y);CTX.stroke();
+        const mx=(pts[s[0]].x+pts[s[1]].x)/2, my=(pts[s[0]].y+pts[s[1]].y)/2;
+        // push label outward from opposite vertex
+        const opp=pts[3-s[0]-s[1]];
+        let nx=mx-opp.x,ny=my-opp.y,nl=Math.hypot(nx,ny)||1;
+        nx/=nl;ny/=nl;
+        CTX.fillStyle=SIDE_COLORS[s[4]];CTX.font="14px Georgia";CTX.textAlign="center";CTX.textBaseline="middle";
+        CTX.fillText(s[3]+" = "+s[2].toFixed(1),mx+nx*16,my+ny*16);
+    }
+    // draw angle arcs + labels
+    const angVals=[t.angA,t.angB,t.angC];
+    const angLabels=["A","B","C"];
+    for(let i=0;i<3;i++){
+        const v=pts[i],p1=pts[(i+1)%3],p2=pts[(i+2)%3];
+        drawArc(v,p1,p2,COLORS[i],26);
+        const lp=labelPos(v,p1,p2,44);
+        CTX.fillStyle=COLORS[i];CTX.font="13px Georgia";CTX.textAlign="center";CTX.textBaseline="middle";
+        CTX.fillText(angLabels[i]+"="+(angVals[i]*DEG).toFixed(1)+"\u00b0",lp.x,lp.y);
+    }
+    // draw vertices
+    for(let i=0;i<3;i++){
+        CTX.beginPath();CTX.arc(pts[i].x,pts[i].y,6,0,Math.PI*2);
+        CTX.fillStyle=COLORS[i];CTX.fill();
+        CTX.strokeStyle="#0a0a1a";CTX.lineWidth=2;CTX.stroke();
+    }
+    updateFormula(t);
+    updatePyth(t);
+}
+
+/* ---- FORMULA PANEL ---- */
+function fmt(v){return v.toFixed(2);}
+function updateFormula(t){
+    const fp=document.getElementById("formulaPanel");
+    if(law==="sines"){
+        const cc=circumcircle(t.A,t.B,t.C);
+        const R=cc?cc.r:0;
+        const ra=t.a/Math.sin(t.angA), rb=t.b/Math.sin(t.angB), rc=t.c/Math.sin(t.angC), r2=2*R;
+        const ok=Math.abs(ra-rb)<0.5&&Math.abs(rb-rc)<0.5&&Math.abs(rc-r2)<0.5;
+        const chk=ok?' <span class="chk">&#10003;</span>':"";
+        fp.innerHTML='<h2>Law of Sines</h2><div class="ratios">'
+            +'<span class="ca">a</span>/sin(<span class="ca">A</span>) = '
+            +'<span class="cb">b</span>/sin(<span class="cb">B</span>) = '
+            +'<span class="cc">c</span>/sin(<span class="cc">C</span>) = 2R<br>'
+            +'<span class="ca">'+fmt(t.a)+'</span>/sin(<span class="ca">'+fmt(t.angA*DEG)+'\u00b0</span>) = <span class="ca">'+fmt(ra)+'</span><br>'
+            +'<span class="cb">'+fmt(t.b)+'</span>/sin(<span class="cb">'+fmt(t.angB*DEG)+'\u00b0</span>) = <span class="cb">'+fmt(rb)+'</span><br>'
+            +'<span class="cc">'+fmt(t.c)+'</span>/sin(<span class="cc">'+fmt(t.angC*DEG)+'\u00b0</span>) = <span class="cc">'+fmt(rc)+'</span><br>'
+            +'<span class="cg">2R = '+fmt(r2)+'</span>'+chk+'</div>';
+    }else{
+        const labels=["a","b","c"],cls=["ca","cb","cc"];
+        const ss=[t.a,t.b,t.c],aa=[t.angA,t.angB,t.angC];
+        const i=cosCheck, j=(i+1)%3, k=(i+2)%3;
+        const lhs=ss[i]*ss[i], a2=ss[j]*ss[j], b2=ss[k]*ss[k], corr=2*ss[j]*ss[k]*Math.cos(aa[i]);
+        const rhs=a2+b2-corr;
+        const ok=Math.abs(lhs-rhs)<0.5;
+        const chk=ok?' <span class="chk">&#10003;</span>':"";
+        let btns='<div class="btn-row" style="margin-bottom:10px">';
+        for(let q=0;q<3;q++) btns+='<button class="sm-btn'+(q===cosCheck?' active':'')+'" onclick="cosCheck='+q+';draw();">Check '+labels[q]+'&sup2;</button>';
+        btns+='</div>';
+        fp.innerHTML='<h2>Law of Cosines</h2>'+btns+'<div class="ratios">'
+            +'<span class="'+cls[i]+'">'+labels[i]+'</span>&sup2; = '
+            +'<span class="'+cls[j]+'">'+labels[j]+'</span>&sup2; + '
+            +'<span class="'+cls[k]+'">'+labels[k]+'</span>&sup2; - 2'
+            +'<span class="'+cls[j]+'">'+labels[j]+'</span>'
+            +'<span class="'+cls[k]+'">'+labels[k]+'</span>cos(<span class="'+cls[i]+'">'+labels[i].toUpperCase()+'</span>)<br>'
+            +'<span class="'+cls[i]+'">'+fmt(lhs)+'</span> = '
+            +'<span class="'+cls[j]+'">'+fmt(a2)+'</span> + '
+            +'<span class="'+cls[k]+'">'+fmt(b2)+'</span> - '
+            +'2 x '+fmt(ss[j])+' x '+fmt(ss[k])+' x cos('+fmt(aa[i]*DEG)+'\u00b0)<br>'
+            +'<span class="'+cls[i]+'">'+fmt(lhs)+'</span> = '+fmt(a2)+' + '+fmt(b2)+' - '+fmt(corr)+'<br>'
+            +'<span class="'+cls[i]+'">'+fmt(lhs)+'</span> = '+fmt(rhs)+chk+'</div>';
+    }
+}
+
+/* ---- PYTHAGOREAN CONNECTION ---- */
+function updatePyth(t){
+    const pp=document.getElementById("pythText");
+    const angC_deg=t.angC*DEG;
+    const diff=Math.abs(angC_deg-90);
+    let msg;
+    if(diff<2){
+        msg='<span class="hl">C is near 90\u00b0 &mdash; Pythagorean case!</span><br>'
+            +'cos('+fmt(angC_deg)+'\u00b0) = '+fmt(Math.cos(t.angC))+' (near zero)<br>'
+            +'c&sup2; = a&sup2; + b&sup2; - 2ab x '+fmt(Math.cos(t.angC))+' &approx; a&sup2; + b&sup2;<br>'
+            +'The correction term vanishes &mdash; the Law of Cosines reduces to the Pythagorean theorem.';
+    }else if(angC_deg<90){
+        msg='C = '+fmt(angC_deg)+'\u00b0 (acute). cos(C) = '+fmt(Math.cos(t.angC))+' > 0.<br>'
+            +'The correction -2ab cos(C) is <span class="hl">negative</span>, so c&sup2; < a&sup2; + b&sup2;.<br>'
+            +'Side c is <em>shorter</em> than Pythagoras would predict.';
+    }else{
+        msg='C = '+fmt(angC_deg)+'\u00b0 (obtuse). cos(C) = '+fmt(Math.cos(t.angC))+' < 0.<br>'
+            +'The correction -2ab cos(C) is <span class="hl">positive</span>, so c&sup2; > a&sup2; + b&sup2;.<br>'
+            +'Side c is <em>longer</em> than Pythagoras would predict.';
+    }
+    msg+='<br><br>When C = 90\u00b0: cos(90\u00b0) = 0, so c&sup2; = a&sup2; + b&sup2; &minus; 0 = a&sup2; + b&sup2;.<br>'
+        +'<span class="hl">The Law of Cosines generalises the Pythagorean theorem to ALL triangles.</span>';
+    pp.innerHTML=msg;
+}
+
+/* ---- DRAG LOGIC ---- */
+function getPointer(e){
+    const r=CVS.getBoundingClientRect();
+    const sx=CW/r.width, sy=CH/r.height;
+    const cl=e.touches?e.touches[0]:e;
+    return{x:(cl.clientX-r.left)*sx,y:(cl.clientY-r.top)*sy};
+}
+function onDown(e){
+    e.preventDefault();const p=getPointer(e);
+    for(let i=0;i<3;i++){if(dist(p,verts[i])<18){drag=i;dragOff={x:verts[i].x-p.x,y:verts[i].y-p.y};CVS.style.cursor="grabbing";return;}}
+}
+function onMove(e){
+    if(drag<0)return;e.preventDefault();const p=getPointer(e);
+    verts[drag]={x:Math.max(10,Math.min(CW-10,p.x+dragOff.x)),y:Math.max(10,Math.min(CH-10,p.y+dragOff.y))};
+    draw();
+}
+function onUp(){drag=-1;CVS.style.cursor="grab";}
+CVS.addEventListener("mousedown",onDown);CVS.addEventListener("mousemove",onMove);
+CVS.addEventListener("mouseup",onUp);CVS.addEventListener("mouseleave",onUp);
+CVS.addEventListener("touchstart",onDown,{passive:false});CVS.addEventListener("touchmove",onMove,{passive:false});
+CVS.addEventListener("touchend",onUp);
+
+/* ---- LAW TABS ---- */
+function renderTabs(){
+    const c=document.getElementById("lawTabs");
+    c.innerHTML=['sines','cosines'].map(l=>'<button class="tab-btn'+(law===l?' active':'')+'" data-l="'+l+'">Law of '+(l==='sines'?'Sines':'Cosines')+'</button>').join('');
+    c.querySelectorAll('.tab-btn').forEach(b=>b.onclick=()=>{law=b.dataset.l;renderTabs();draw();});
+}
+
+/* ---- TRIANGLE SOLVER ---- */
+const MODES=["SSS","SAS","ASA","AAS","SSA"];
+const MODE_FIELDS={
+    SSS:[{id:"sa",l:"Side a"},{id:"sb",l:"Side b"},{id:"sc",l:"Side c"}],
+    SAS:[{id:"sa",l:"Side a"},{id:"aC",l:"Angle C (\u00b0)"},{id:"sb",l:"Side b"}],
+    ASA:[{id:"aA",l:"Angle A (\u00b0)"},{id:"sc",l:"Side c"},{id:"aB",l:"Angle B (\u00b0)"}],
+    AAS:[{id:"aA",l:"Angle A (\u00b0)"},{id:"aB",l:"Angle B (\u00b0)"},{id:"sa",l:"Side a"}],
+    SSA:[{id:"sa",l:"Side a"},{id:"sb",l:"Side b"},{id:"aA",l:"Angle A (\u00b0)"}]
+};
+function renderSolver(){
+    const mb=document.getElementById("modeBtns");
+    mb.innerHTML=MODES.map(m=>'<button class="sm-btn'+(solverMode===m?' active':'')+'" data-m="'+m+'">'+m+'</button>').join('');
+    mb.querySelectorAll('.sm-btn').forEach(b=>b.onclick=()=>{solverMode=b.dataset.m;renderSolver();});
+    const sg=document.getElementById("solverGrid");
+    sg.innerHTML=MODE_FIELDS[solverMode].map(f=>'<div><label>'+f.l+'</label><input id="sf_'+f.id+'" type="number" step="any"></div>').join('');
+    document.getElementById("solverResult").innerHTML="";
+}
+function solveTriangle(){
+    const v=id=>{const el=document.getElementById("sf_"+id);return el?parseFloat(el.value):NaN;};
+    const res=document.getElementById("solverResult");
+    let a,b,c,A,B,C; // sides and angles in degrees
+    try{
+        if(solverMode==="SSS"){
+            a=v("sa");b=v("sb");c=v("sc");
+            if([a,b,c].some(isNaN)||a<=0||b<=0||c<=0){res.innerHTML='<span class="warn">Enter three positive side lengths.</span>';return;}
+            if(a+b<=c||a+c<=b||b+c<=a){res.innerHTML='<span class="warn">Triangle inequality violated.</span>';return;}
+            A=Math.acos((b*b+c*c-a*a)/(2*b*c))*DEG;
+            B=Math.acos((a*a+c*c-b*b)/(2*a*c))*DEG;
+            C=180-A-B;
+        }else if(solverMode==="SAS"){
+            a=v("sa");b=v("sb");C=v("aC");
+            if([a,b,C].some(isNaN)||a<=0||b<=0||C<=0||C>=180){res.innerHTML='<span class="warn">Enter two positive sides and an angle between 0-180.</span>';return;}
+            const Cr=C*RAD;
+            c=Math.sqrt(a*a+b*b-2*a*b*Math.cos(Cr));
+            A=Math.acos((b*b+c*c-a*a)/(2*b*c))*DEG;
+            B=180-A-C;
+        }else if(solverMode==="ASA"){
+            A=v("aA");B=v("aB");c=v("sc");
+            if([A,B,c].some(isNaN)||A<=0||B<=0||c<=0||A+B>=180){res.innerHTML='<span class="warn">Enter valid angles (sum &lt; 180) and a positive side.</span>';return;}
+            C=180-A-B;
+            a=c*Math.sin(A*RAD)/Math.sin(C*RAD);
+            b=c*Math.sin(B*RAD)/Math.sin(C*RAD);
+        }else if(solverMode==="AAS"){
+            A=v("aA");B=v("aB");a=v("sa");
+            if([A,B,a].some(isNaN)||A<=0||B<=0||a<=0||A+B>=180){res.innerHTML='<span class="warn">Enter valid angles and a positive side.</span>';return;}
+            C=180-A-B;
+            b=a*Math.sin(B*RAD)/Math.sin(A*RAD);
+            c=a*Math.sin(C*RAD)/Math.sin(A*RAD);
+        }else if(solverMode==="SSA"){
+            a=v("sa");b=v("sb");A=v("aA");
+            if([a,b,A].some(isNaN)||a<=0||b<=0||A<=0||A>=180){res.innerHTML='<span class="warn">Enter two positive sides and an angle 0-180.</span>';return;}
+            let sinB=b*Math.sin(A*RAD)/a;
+            if(sinB>1+1e-9){res.innerHTML='<span class="warn">No solution &mdash; sin(B) = '+sinB.toFixed(4)+' > 1.</span>';return;}
+            if(sinB>1)sinB=1;
+            const B1=Math.asin(sinB)*DEG;
+            const B2=180-B1;
+            const sols=[];
+            if(B1>0&&B1+A<180){
+                const C1=180-A-B1;
+                const c1=a*Math.sin(C1*RAD)/Math.sin(A*RAD);
+                sols.push({B:B1,C:C1,c:c1});
+            }
+            if(Math.abs(B1-B2)>0.01&&B2>0&&B2+A<180){
+                const C2=180-A-B2;
+                const c2=a*Math.sin(C2*RAD)/Math.sin(A*RAD);
+                sols.push({B:B2,C:C2,c:c2});
+            }
+            if(sols.length===0){res.innerHTML='<span class="warn">No valid triangle exists.</span>';return;}
+            let html="";
+            sols.forEach((s,i)=>{
+                html+=(sols.length>1?"<strong>Solution "+(i+1)+":</strong> ":"")
+                    +"a="+a.toFixed(2)+", b="+b.toFixed(2)+", c="+s.c.toFixed(2)
+                    +"  |  A="+A.toFixed(2)+"\u00b0, B="+s.B.toFixed(2)+"\u00b0, C="+s.C.toFixed(2)+"\u00b0<br>";
+            });
+            if(sols.length===2)html+='<br><span class="warn">Ambiguous case: two valid triangles exist.</span><br>'
+                +'<div class="btn-row" style="margin-top:6px"><button class="sm-btn" onclick="applySSA(0)">Show Solution 1</button><button class="sm-btn" onclick="applySSA(1)">Show Solution 2</button></div>';
+            res.innerHTML=html;
+            window._ssaSols=sols.map(s=>({a,b,c:s.c,A,B:s.B,C:s.C}));
+            if(sols.length>=1) applyToCanvas(a,sols[0].B,sols[0].C,b,sols[0].c,A);
+            return;
+        }
+        res.innerHTML="a="+a.toFixed(2)+", b="+b.toFixed(2)+", c="+c.toFixed(2)
+            +"  |  A="+A.toFixed(2)+"\u00b0, B="+B.toFixed(2)+"\u00b0, C="+C.toFixed(2)+"\u00b0";
+        applyToCanvas(a,B,C,b,c,A);
+    }catch(e){res.innerHTML='<span class="warn">Error: '+e.message+'</span>';}
+}
+window.applySSA=function(i){
+    const s=window._ssaSols[i];
+    applyToCanvas(s.a,s.B,s.C,s.b,s.c,s.A);
+};
+function applyToCanvas(a,Bdeg,Cdeg,b,c,Adeg){
+    // place triangle: A at left, B at right (side c = AB), then C above
+    const scale=Math.min(400,Math.min(CW-60,CH-60))/Math.max(a,b,c);
+    const sa=a*scale,sb=b*scale,sc=c*scale;
+    const Ax=CW/2-sc/2, Ay=CH*0.78;
+    const Bx=Ax+sc, By=Ay;
+    const Brad=Bdeg*RAD;
+    const Cx=Bx-sa*Math.cos(Brad), Cy=By-sa*Math.sin(Brad);
+    verts=[{x:Ax,y:Ay},{x:Bx,y:By},{x:Cx,y:Cy}];
+    draw();
+}
+document.getElementById("solveBtn").onclick=solveTriangle;
+
+/* ---- PRESETS ---- */
+const PRESETS=[
+    {name:"Right (30-60-90)",A:30,B:60,C:90,a:1,b:Math.sqrt(3),c:2},
+    {name:"Equilateral",A:60,B:60,C:60,a:1,b:1,c:1},
+    {name:"Isosceles (45-45-90)",A:45,B:45,C:90,a:1,b:1,c:Math.sqrt(2)},
+    {name:"Obtuse Triangle",A:30,B:20,C:130,a:1,b:0.684,c:1.532},
+    {name:"Nearly Flat",A:5,B:5,C:170,a:1,b:1,c:1.996}
+];
+function renderPresets(){
+    const c=document.getElementById("presets");
+    c.innerHTML=PRESETS.map((p,i)=>'<button class="sm-btn" data-i="'+i+'">'+p.name+'</button>').join('');
+    c.querySelectorAll('.sm-btn').forEach(b=>b.onclick=()=>{
+        const p=PRESETS[parseInt(b.dataset.i)];
+        applyToCanvas(p.a,p.B,p.C,p.b,p.c,p.A);
+    });
+}
+
+/* ---- INSIGHTS ---- */
+function renderInsights(){
+    document.getElementById("insightPanel").innerHTML=
+        '<div class="explain-name">Law of Sines</div>'
+        +'<div class="explain-text">The ratio a/sinA = 2R connects every triangle to its circumscribed circle. The diameter of the circumcircle determines the proportionality between sides and sine values. This relationship was known to medieval Islamic mathematicians, who used it extensively in astronomical calculations.</div>'
+        +'<div class="explain-name">Law of Cosines</div>'
+        +'<div class="explain-text">The Law of Cosines is the Pythagorean theorem with a correction term (&minus;2ab cos C). When C &lt; 90&deg;, the correction is negative (c is shorter than Pythagoras predicts). When C &gt; 90&deg;, it is positive (c is longer). At exactly 90&deg;, the correction vanishes.</div>'
+        +'<div class="explain-name">The SSA Ambiguous Case</div>'
+        +'<div class="explain-text">The SSA case is ambiguous because given a side and its opposite angle, the triangle may &ldquo;fold&rdquo; in two different ways. This is the only input configuration where the solution is not unique &mdash; the Law of Sines yields sin(B), which can correspond to both an acute and an obtuse angle.</div>';
+}
+
+/* ---- INIT ---- */
+renderTabs();renderSolver();renderPresets();renderInsights();draw();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>

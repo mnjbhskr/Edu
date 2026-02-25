@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Algebra — Solving Systems of Equations Visually</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 { font-size: 24px; margin-bottom: 2px; color: #f0f0f0; }
+        .subtitle { font-size: 14px; color: #aaa; margin-bottom: 6px; }
+        .analogy {
+            max-width: 920px;
+            text-align: center;
+            font-size: 14px;
+            color: #f0c040;
+            margin: 6px 0 14px 0;
+        }
+        .main-row {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        .canvas-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+        canvas {
+            background: #16213e;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+            cursor: grab;
+        }
+        canvas:active { cursor: grabbing; }
+        .side-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 280px;
+            max-width: 300px;
+        }
+        .card {
+            background: #16213e;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+            padding: 14px 16px;
+        }
+        .card-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #7da2e0;
+            margin-bottom: 8px;
+        }
+        .eq-display {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 8px;
+            padding: 4px;
+        }
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 3px 0;
+        }
+        .slider-row label {
+            font-size: 12px;
+            min-width: 24px;
+            color: #aaa;
+        }
+        .slider-row input[type=range] { flex: 1; }
+        .slider-row .val {
+            font-size: 12px;
+            min-width: 32px;
+            text-align: right;
+            font-family: monospace;
+        }
+        .preset-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+        button {
+            background: #0f3460;
+            color: #e0e0e0;
+            border: 1px solid #1a5276;
+            padding: 6px 12px;
+            border-radius: 7px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #1a5276; }
+        button.active { background: #e94560; border-color: #e94560; }
+        .solution-box {
+            text-align: center;
+            padding: 8px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .sol-unique { background: rgba(46,204,113,0.15); border: 1px solid rgba(46,204,113,0.3); }
+        .sol-none { background: rgba(233,69,96,0.15); border: 1px solid rgba(233,69,96,0.3); }
+        .sol-infinite { background: rgba(240,192,64,0.15); border: 1px solid rgba(240,192,64,0.3); }
+        .matrix-display {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            text-align: center;
+            margin: 8px 0;
+            line-height: 1.8;
+        }
+        .steps { font-size: 12px; line-height: 1.6; }
+        .step {
+            margin: 4px 0;
+            padding-left: 8px;
+            border-left: 2px solid rgba(125,162,224,0.3);
+        }
+        .step-num { color: #7da2e0; font-weight: bold; }
+        .insight-box {
+            background: rgba(240,192,64,0.08);
+            border: 1px solid rgba(240,192,64,0.15);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .zoom-hint {
+            font-size: 10px;
+            color: #555;
+            text-align: center;
+            margin-top: 4px;
+        }
+        .slope-info { font-size: 11px; color: #666; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Linear Algebra — Solving Systems of Equations</h1>
+    <div class="subtitle">How two lines on a plane reveal the answer</div>
+    <div class="analogy">
+        Each equation draws a straight line. "Solving" the system means finding the exact spot where both lines cross —
+        the one (x, y) that makes BOTH equations true at the same time.
+    </div>
+
+    <div class="main-row">
+        <div class="canvas-col">
+            <canvas id="canvas" width="580" height="580"></canvas>
+            <div class="zoom-hint">Scroll to zoom · Drag to pan · Double-click to reset</div>
+        </div>
+        <div class="side-panel">
+            <div class="card" style="border-left: 3px solid #e94560;">
+                <div class="card-title">Equation 1</div>
+                <div class="eq-display" id="eq1Disp" style="color:#e94560;"></div>
+                <div class="slider-row"><label>a&#8321;</label><input type="range" id="a1" min="-5" max="5" step="0.5" value="1"><span class="val" id="a1V"></span></div>
+                <div class="slider-row"><label>b&#8321;</label><input type="range" id="b1" min="-5" max="5" step="0.5" value="1"><span class="val" id="b1V"></span></div>
+                <div class="slider-row"><label>c&#8321;</label><input type="range" id="c1" min="-10" max="10" step="0.5" value="3"><span class="val" id="c1V"></span></div>
+                <div class="slope-info" id="slope1"></div>
+            </div>
+            <div class="card" style="border-left: 3px solid #3b82f6;">
+                <div class="card-title">Equation 2</div>
+                <div class="eq-display" id="eq2Disp" style="color:#3b82f6;"></div>
+                <div class="slider-row"><label>a&#8322;</label><input type="range" id="a2" min="-5" max="5" step="0.5" value="1"><span class="val" id="a2V"></span></div>
+                <div class="slider-row"><label>b&#8322;</label><input type="range" id="b2" min="-5" max="5" step="0.5" value="-1"><span class="val" id="b2V"></span></div>
+                <div class="slider-row"><label>c&#8322;</label><input type="range" id="c2" min="-10" max="10" step="0.5" value="1"><span class="val" id="c2V"></span></div>
+                <div class="slope-info" id="slope2"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Presets</div>
+                <div class="preset-btns" id="presetBtns"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Solution</div>
+                <div id="solBox"></div>
+                <div id="matForm" class="matrix-display"></div>
+                <div id="detInfo" style="font-size:12px; text-align:center; color:#aaa;"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Step-by-Step (Elimination)</div>
+                <div id="stepsBox" class="steps"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">Insight</div>
+                <div id="insightBox" class="insight-box"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width, H = canvas.height;
+
+        let scale = 40;
+        let panX = 0, panY = 0;
+        let dragging = false, dragSX = 0, dragSY = 0, panSX = 0, panSY = 0;
+
+        // ---- Coordinate transforms ----
+        function toSX(x) { return W / 2 + panX + x * scale; }
+        function toSY(y) { return H / 2 + panY - y * scale; }
+        function toWX(sx) { return (sx - W / 2 - panX) / scale; }
+        function toWY(sy) { return (H / 2 + panY - sy) / scale; }
+
+        // ---- Number formatting ----
+        function fmtN(v) {
+            if (Math.abs(v - Math.round(v)) < 0.001) return Math.round(v).toString();
+            if (Math.abs(v * 10 - Math.round(v * 10)) < 0.001) return v.toFixed(1);
+            return v.toFixed(2);
+        }
+        function isZ(v) { return Math.abs(v) < 0.001; }
+        function is1(v) { return Math.abs(v - 1) < 0.001; }
+        function isN1(v) { return Math.abs(v + 1) < 0.001; }
+
+        // ---- Format equation ax + by = c ----
+        function fmtEq(a, b, c) {
+            let parts = [];
+            if (!isZ(a)) {
+                if (is1(a)) parts.push('x');
+                else if (isN1(a)) parts.push('-x');
+                else parts.push(fmtN(a) + 'x');
+            }
+            if (!isZ(b)) {
+                if (parts.length === 0) {
+                    if (is1(b)) parts.push('y');
+                    else if (isN1(b)) parts.push('-y');
+                    else parts.push(fmtN(b) + 'y');
+                } else {
+                    if (b > 0) parts.push('+ ' + (is1(b) ? '' : fmtN(b)) + 'y');
+                    else parts.push('- ' + (isN1(b) ? '' : fmtN(-b)) + 'y');
+                }
+            }
+            if (parts.length === 0) parts.push('0');
+            return parts.join(' ') + ' = ' + fmtN(c);
+        }
+
+        function slopeInfo(a, b, c) {
+            if (isZ(a) && isZ(b)) return 'Degenerate (0 = ' + fmtN(c) + ')';
+            if (isZ(b)) return 'Vertical line: x = ' + fmtN(c / a);
+            if (isZ(a)) return 'Horizontal line: y = ' + fmtN(c / b);
+            const m = -a / b, yi = c / b;
+            return 'y = ' + fmtN(m) + 'x ' + (yi >= 0 ? '+ ' : '- ') + fmtN(Math.abs(yi)) + '  (slope ' + fmtN(m) + ')';
+        }
+
+        // ---- Read sliders ----
+        function readEq(n) {
+            return {
+                a: parseFloat(document.getElementById('a' + n).value),
+                b: parseFloat(document.getElementById('b' + n).value),
+                c: parseFloat(document.getElementById('c' + n).value),
+            };
+        }
+
+        // ---- Solve system ----
+        function solve(e1, e2) {
+            const det = e1.a * e2.b - e2.a * e1.b;
+            if (isZ(det)) {
+                const cr1 = e1.a * e2.c - e2.a * e1.c;
+                const cr2 = e1.b * e2.c - e2.b * e1.c;
+                if (isZ(cr1) && isZ(cr2)) return { type: 'infinite', det: 0 };
+                return { type: 'none', det: 0 };
+            }
+            const x = (e1.c * e2.b - e2.c * e1.b) / det;
+            const y = (e1.a * e2.c - e2.a * e1.c) / det;
+            return { type: 'unique', x, y, det };
+        }
+
+        // ---- Drawing ----
+        function drawGrid() {
+            const xMin = toWX(0), xMax = toWX(W);
+            const yMin = toWY(H), yMax = toWY(0);
+            let gs = 1;
+            if (scale < 20) gs = 2;
+            if (scale < 10) gs = 5;
+            if (scale > 80) gs = 0.5;
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.lineWidth = 1;
+            for (let x = Math.ceil(xMin / gs) * gs; x <= xMax; x += gs) {
+                const sx = toSX(x);
+                ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, H); ctx.stroke();
+            }
+            for (let y = Math.ceil(yMin / gs) * gs; y <= yMax; y += gs) {
+                const sy = toSY(y);
+                ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(W, sy); ctx.stroke();
+            }
+
+            // Axes
+            ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+            ctx.lineWidth = 2;
+            const ox = toSX(0), oy = toSY(0);
+            if (ox >= 0 && ox <= W) { ctx.beginPath(); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke(); }
+            if (oy >= 0 && oy <= H) { ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.stroke(); }
+
+            // Axis arrows
+            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            if (ox >= 0 && ox <= W) {
+                ctx.beginPath(); ctx.moveTo(ox, 5); ctx.lineTo(ox - 5, 15); ctx.lineTo(ox + 5, 15); ctx.fill();
+            }
+            if (oy >= 0 && oy <= H) {
+                ctx.beginPath(); ctx.moveTo(W - 5, oy); ctx.lineTo(W - 15, oy - 5); ctx.lineTo(W - 15, oy + 5); ctx.fill();
+            }
+
+            // Number labels
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.font = '11px monospace';
+            if (oy >= 0 && oy <= H) {
+                ctx.textAlign = 'center';
+                for (let x = Math.ceil(xMin / gs) * gs; x <= xMax; x += gs) {
+                    if (isZ(x)) continue;
+                    const sx = toSX(x);
+                    if (sx > 30 && sx < W - 10) ctx.fillText(fmtN(x), sx, Math.min(H - 5, Math.max(15, oy + 16)));
+                }
+            }
+            if (ox >= 0 && ox <= W) {
+                ctx.textAlign = 'right';
+                for (let y = Math.ceil(yMin / gs) * gs; y <= yMax; y += gs) {
+                    if (isZ(y)) continue;
+                    const sy = toSY(y);
+                    if (sy > 10 && sy < H - 10) ctx.fillText(fmtN(y), Math.max(25, Math.min(W - 5, ox - 6)), sy + 4);
+                }
+            }
+
+            // x / y labels
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.font = 'italic 14px serif';
+            ctx.textAlign = 'left';
+            if (oy >= 0 && oy <= H) ctx.fillText('x', W - 18, Math.min(H - 5, Math.max(15, oy - 8)));
+            ctx.textAlign = 'center';
+            if (ox >= 0 && ox <= W) ctx.fillText('y', Math.max(15, Math.min(W - 5, ox + 14)), 16);
+        }
+
+        function drawLine(eq, color) {
+            if (isZ(eq.a) && isZ(eq.b)) return;
+            const xMin = toWX(-10), xMax = toWX(W + 10);
+            ctx.save();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            if (!isZ(eq.b)) {
+                const y1 = (eq.c - eq.a * xMin) / eq.b;
+                const y2 = (eq.c - eq.a * xMax) / eq.b;
+                ctx.moveTo(toSX(xMin), toSY(y1));
+                ctx.lineTo(toSX(xMax), toSY(y2));
+            } else {
+                const x = eq.c / eq.a;
+                ctx.moveTo(toSX(x), 0);
+                ctx.lineTo(toSX(x), H);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawLineLabel(eq, color, label) {
+            if (isZ(eq.a) && isZ(eq.b)) return;
+            let lx, ly;
+            const xR = toWX(W - 90);
+            const xL = toWX(60);
+            if (!isZ(eq.b)) {
+                const yR = (eq.c - eq.a * xR) / eq.b;
+                lx = toSX(xR); ly = toSY(yR);
+                if (ly < 20 || ly > H - 20) {
+                    const yL = (eq.c - eq.a * xL) / eq.b;
+                    lx = toSX(xL); ly = toSY(yL);
+                }
+            } else {
+                lx = toSX(eq.c / eq.a); ly = 40;
+            }
+            lx = Math.max(40, Math.min(W - 40, lx));
+            ly = Math.max(20, Math.min(H - 10, ly));
+            ctx.save();
+            ctx.font = 'bold 13px "Courier New", monospace';
+            const tw = ctx.measureText(label).width;
+            ctx.fillStyle = 'rgba(22,33,62,0.85)';
+            ctx.fillRect(lx - 4, ly - 14, tw + 8, 20);
+            ctx.fillStyle = color;
+            ctx.textAlign = 'left';
+            ctx.fillText(label, lx, ly);
+            ctx.restore();
+        }
+
+        function drawIntersection(sol) {
+            const sx = toSX(sol.x), sy = toSY(sol.y);
+            if (sx < -30 || sx > W + 30 || sy < -30 || sy > H + 30) return;
+
+            // Dashed lines to axes
+            const ox = toSX(0), oy = toSY(0);
+            ctx.save();
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = 'rgba(46,204,113,0.4)';
+            ctx.lineWidth = 1;
+            if (oy >= 0 && oy <= H) { ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(sx, oy); ctx.stroke(); }
+            if (ox >= 0 && ox <= W) { ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ox, sy); ctx.stroke(); }
+            ctx.restore();
+
+            // X and Y value labels on axes
+            ctx.save();
+            ctx.font = 'bold 11px monospace';
+            if (oy >= 0 && oy <= H) {
+                ctx.fillStyle = 'rgba(46,204,113,0.9)';
+                ctx.textAlign = 'center';
+                ctx.fillText(fmtN(sol.x), sx, Math.min(H - 4, Math.max(12, oy + 28)));
+            }
+            if (ox >= 0 && ox <= W) {
+                ctx.fillStyle = 'rgba(46,204,113,0.9)';
+                ctx.textAlign = 'right';
+                ctx.fillText(fmtN(sol.y), Math.max(20, Math.min(W - 4, ox - 10)), sy + 4);
+            }
+            ctx.restore();
+
+            // Glow + dot
+            ctx.beginPath(); ctx.arc(sx, sy, 10, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(46,204,113,0.2)'; ctx.fill();
+            ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#2ecc71'; ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+
+            // Coordinate label
+            const label = '(' + fmtN(sol.x) + ', ' + fmtN(sol.y) + ')';
+            ctx.font = 'bold 14px "Courier New", monospace';
+            const tw = ctx.measureText(label).width;
+            let lx = sx + 14, ly = sy - 14;
+            if (lx + tw > W - 10) lx = sx - tw - 14;
+            if (ly < 20) ly = sy + 26;
+            ctx.fillStyle = 'rgba(22,33,62,0.9)';
+            ctx.fillRect(lx - 4, ly - 14, tw + 8, 20);
+            ctx.fillStyle = '#2ecc71';
+            ctx.textAlign = 'left';
+            ctx.fillText(label, lx, ly);
+        }
+
+        function drawBanner(text, color) {
+            ctx.save();
+            ctx.font = 'bold 14px sans-serif';
+            ctx.textAlign = 'center';
+            const tw = ctx.measureText(text).width;
+            ctx.fillStyle = 'rgba(22,33,62,0.85)';
+            ctx.fillRect(W / 2 - tw / 2 - 10, 12, tw + 20, 28);
+            ctx.fillStyle = color;
+            ctx.fillText(text, W / 2, 32);
+            ctx.restore();
+        }
+
+        // ---- Main draw ----
+        function draw() {
+            ctx.clearRect(0, 0, W, H);
+            const e1 = readEq(1), e2 = readEq(2);
+            const sol = solve(e1, e2);
+
+            drawGrid();
+
+            if (sol.type === 'infinite') {
+                drawLine(e1, 'rgba(240,192,64,0.3)');
+                ctx.lineWidth = 6; drawLine(e1, '#f0c040');
+                drawLineLabel(e1, '#f0c040', fmtEq(e1.a, e1.b, e1.c));
+                drawBanner('Lines overlap — infinitely many solutions', '#f0c040');
+            } else {
+                drawLine(e1, '#e94560');
+                drawLine(e2, '#3b82f6');
+                drawLineLabel(e1, '#e94560', fmtEq(e1.a, e1.b, e1.c));
+                drawLineLabel(e2, '#3b82f6', fmtEq(e2.a, e2.b, e2.c));
+                if (sol.type === 'unique') drawIntersection(sol);
+                else drawBanner('No intersection — lines are parallel', '#e94560');
+            }
+
+            updateUI(e1, e2, sol);
+        }
+
+        // ---- UI updates ----
+        function updateUI(e1, e2, sol) {
+            document.getElementById('eq1Disp').textContent = fmtEq(e1.a, e1.b, e1.c);
+            document.getElementById('eq2Disp').textContent = fmtEq(e2.a, e2.b, e2.c);
+            ['a1','b1','c1','a2','b2','c2'].forEach(id => {
+                document.getElementById(id + 'V').textContent = fmtN(parseFloat(document.getElementById(id).value));
+            });
+            document.getElementById('slope1').textContent = slopeInfo(e1.a, e1.b, e1.c);
+            document.getElementById('slope2').textContent = slopeInfo(e2.a, e2.b, e2.c);
+            updateSolution(sol);
+            updateMatrix(e1, e2, sol);
+            updateSteps(e1, e2, sol);
+            updateInsight(e1, e2, sol);
+        }
+
+        function updateSolution(sol) {
+            const box = document.getElementById('solBox');
+            if (sol.type === 'unique') {
+                box.className = 'solution-box sol-unique';
+                box.innerHTML = '<div style="font-size:18px;font-weight:bold;color:#2ecc71;">x = ' + fmtN(sol.x) + ', y = ' + fmtN(sol.y) + '</div>'
+                    + '<div style="font-size:11px;color:#aaa;margin-top:4px;">One unique solution — the lines intersect</div>';
+            } else if (sol.type === 'none') {
+                box.className = 'solution-box sol-none';
+                box.innerHTML = '<div style="font-size:16px;font-weight:bold;color:#e94560;">No Solution</div>'
+                    + '<div style="font-size:11px;color:#aaa;margin-top:4px;">The lines are parallel — they never meet</div>';
+            } else {
+                box.className = 'solution-box sol-infinite';
+                box.innerHTML = '<div style="font-size:16px;font-weight:bold;color:#f0c040;">Infinitely Many Solutions</div>'
+                    + '<div style="font-size:11px;color:#aaa;margin-top:4px;">Same line — every point on it is a solution</div>';
+            }
+        }
+
+        function updateMatrix(e1, e2, sol) {
+            document.getElementById('matForm').innerHTML =
+                '<span style="color:#888;">Matrix form: Ax = b</span><br>'
+                + '<span style="font-size:14px;">'
+                + '[<span style="color:#e94560">' + fmtN(e1.a) + '  ' + fmtN(e1.b) + '</span>] [x]   [<span style="color:#e94560">' + fmtN(e1.c) + '</span>]<br>'
+                + '[<span style="color:#3b82f6">' + fmtN(e2.a) + '  ' + fmtN(e2.b) + '</span>] [y] = [<span style="color:#3b82f6">' + fmtN(e2.c) + '</span>]'
+                + '</span>';
+
+            const d = sol.det;
+            const dc = isZ(d) ? '#e94560' : (Math.abs(d) < 1 ? '#ff9f43' : '#2ecc71');
+            let extra = '';
+            if (isZ(d)) extra = '<br><span style="color:#e94560;font-size:10px;">det = 0 → no unique solution</span>';
+            else if (Math.abs(d) < 1) extra = '<br><span style="color:#ff9f43;font-size:10px;">Small det → sensitive solution</span>';
+            document.getElementById('detInfo').innerHTML =
+                'det(A) = ' + fmtN(e1.a) + '\u00B7' + fmtN(e2.b) + ' \u2212 ' + fmtN(e2.a) + '\u00B7' + fmtN(e1.b)
+                + ' = <span style="color:' + dc + ';font-weight:bold;">' + fmtN(d) + '</span>' + extra;
+        }
+
+        function updateSteps(e1, e2, sol) {
+            const box = document.getElementById('stepsBox');
+            if ((isZ(e1.a) && isZ(e1.b)) || (isZ(e2.a) && isZ(e2.b))) {
+                box.innerHTML = '<span style="color:#e94560;">Degenerate equation (0x + 0y = c)</span>';
+                return;
+            }
+            if (sol.type === 'none') {
+                box.innerHTML = '<div class="step"><span class="step-num">1.</span> Both lines have the same slope but different intercepts.</div>'
+                    + '<div class="step"><span class="step-num">2.</span> Parallel lines never intersect.</div>'
+                    + '<div class="step" style="color:#e94560;"><span class="step-num">\u2234</span> System is <b>inconsistent</b> — no (x, y) satisfies both.</div>';
+                return;
+            }
+            if (sol.type === 'infinite') {
+                box.innerHTML = '<div class="step"><span class="step-num">1.</span> Equation 2 is a multiple of Equation 1.</div>'
+                    + '<div class="step"><span class="step-num">2.</span> They describe the exact same line.</div>'
+                    + '<div class="step" style="color:#f0c040;"><span class="step-num">\u2234</span> <b>Infinitely many</b> solutions.</div>';
+                return;
+            }
+
+            let html = '';
+            if (!isZ(e1.b) && !isZ(e2.b)) {
+                const m1 = e2.b, m2 = e1.b;
+                html += '<div class="step"><span class="step-num">1.</span> Multiply Eq.1 by ' + fmtN(m1) + ':</div>'
+                    + '<div class="step" style="color:#e94560;padding-left:16px;">' + fmtEq(e1.a * m1, e1.b * m1, e1.c * m1) + '</div>';
+                html += '<div class="step"><span class="step-num">2.</span> Multiply Eq.2 by ' + fmtN(m2) + ':</div>'
+                    + '<div class="step" style="color:#3b82f6;padding-left:16px;">' + fmtEq(e2.a * m2, e2.b * m2, e2.c * m2) + '</div>';
+                const newA = e1.a * m1 - e2.a * m2;
+                const newC = e1.c * m1 - e2.c * m2;
+                html += '<div class="step"><span class="step-num">3.</span> Subtract \u2192 y cancels:</div>'
+                    + '<div class="step" style="color:#2ecc71;padding-left:16px;">' + fmtN(newA) + 'x = ' + fmtN(newC) + '</div>';
+                html += '<div class="step"><span class="step-num">4.</span> <b>x = ' + fmtN(newC) + ' \u00F7 ' + fmtN(newA) + ' = <span style="color:#2ecc71;">' + fmtN(sol.x) + '</span></b></div>';
+                html += '<div class="step"><span class="step-num">5.</span> Substitute x into Eq.1:</div>'
+                    + '<div class="step" style="padding-left:16px;">' + fmtN(e1.b) + 'y = ' + fmtN(e1.c) + ' \u2212 ' + fmtN(e1.a) + '\u00B7' + fmtN(sol.x) + ' = ' + fmtN(e1.c - e1.a * sol.x) + '</div>'
+                    + '<div class="step" style="padding-left:16px;"><b>y = <span style="color:#2ecc71;">' + fmtN(sol.y) + '</span></b></div>';
+            } else {
+                // Fallback: Cramer's rule
+                html += '<div class="step"><span class="step-num">1.</span> det = ' + fmtN(sol.det) + '</div>';
+                html += '<div class="step"><span class="step-num">2.</span> x = (' + fmtN(e1.c) + '\u00B7' + fmtN(e2.b) + ' \u2212 ' + fmtN(e2.c) + '\u00B7' + fmtN(e1.b) + ') / ' + fmtN(sol.det) + ' = <b style="color:#2ecc71;">' + fmtN(sol.x) + '</b></div>';
+                html += '<div class="step"><span class="step-num">3.</span> y = (' + fmtN(e1.a) + '\u00B7' + fmtN(e2.c) + ' \u2212 ' + fmtN(e2.a) + '\u00B7' + fmtN(e1.c) + ') / ' + fmtN(sol.det) + ' = <b style="color:#2ecc71;">' + fmtN(sol.y) + '</b></div>';
+            }
+
+            // Verification
+            const check1 = e1.a * sol.x + e1.b * sol.y;
+            const check2 = e2.a * sol.x + e2.b * sol.y;
+            html += '<div class="step" style="margin-top:6px;border-left-color:rgba(46,204,113,0.4);"><span class="step-num">\u2713</span> Check Eq.1: '
+                + fmtN(e1.a) + '\u00B7' + fmtN(sol.x) + ' + ' + fmtN(e1.b) + '\u00B7' + fmtN(sol.y) + ' = ' + fmtN(check1) + ' \u2713</div>';
+            html += '<div class="step" style="border-left-color:rgba(46,204,113,0.4);"><span class="step-num">\u2713</span> Check Eq.2: '
+                + fmtN(e2.a) + '\u00B7' + fmtN(sol.x) + ' + ' + fmtN(e2.b) + '\u00B7' + fmtN(sol.y) + ' = ' + fmtN(check2) + ' \u2713</div>';
+
+            box.innerHTML = html;
+        }
+
+        // ---- Presets ----
+        const presets = [
+            {
+                name: 'Simple',
+                e1: { a: 1, b: 1, c: 3 }, e2: { a: 1, b: -1, c: 1 },
+                insight: '<b>Two lines cross at one point.</b> x + y = 3 and x \u2212 y = 1 meet at (2, 1). Adding the equations gives 2x = 4 \u2192 x = 2. Subtracting gives 2y = 2 \u2192 y = 1. This is the most common case: two non-parallel lines always have exactly one intersection.',
+            },
+            {
+                name: 'Steep & Shallow',
+                e1: { a: 2, b: 1, c: 5 }, e2: { a: 1, b: -2, c: 0 },
+                insight: '<b>Different slopes guarantee intersection.</b> Line 1 is steep (slope \u22122), Line 2 is gentle (slope 0.5). The bigger the angle between them, the more stable the solution \u2014 small coefficient changes don\'t move the answer much.',
+            },
+            {
+                name: 'Parallel',
+                e1: { a: 2, b: 1, c: 3 }, e2: { a: 2, b: 1, c: 5 },
+                insight: '<b>Parallel lines never meet.</b> Both have slope \u22122 but different y-intercepts. No (x, y) satisfies both equations. The system is <b>inconsistent</b>. The determinant is zero because the coefficient rows are proportional.',
+            },
+            {
+                name: 'Same Line',
+                e1: { a: 1, b: 1, c: 3 }, e2: { a: 2, b: 2, c: 6 },
+                insight: '<b>Same line = infinitely many solutions.</b> Equation 2 is just Equation 1 \u00D7 2. Every point on the line \u2014 (0,3), (1,2), (3,0) \u2014 is a valid solution. The system is <b>dependent</b>: one equation is redundant.',
+            },
+            {
+                name: 'Perpendicular',
+                e1: { a: 1, b: -1, c: 0 }, e2: { a: 1, b: 1, c: 4 },
+                insight: '<b>Perpendicular lines (slopes multiply to \u22121).</b> Line 1 has slope 1, Line 2 has slope \u22121. They cross at right angles. This is the best-conditioned case: the determinant is large, making the solution very stable.',
+            },
+            {
+                name: 'Nearly Parallel',
+                e1: { a: 1, b: 2, c: 4 }, e2: { a: 1, b: 2.5, c: 5 },
+                insight: '<b>Nearly parallel = ill-conditioned!</b> The lines look almost parallel (slopes \u22120.5 and \u22120.4). They do intersect, but the solution is <b>very sensitive</b> to tiny changes. Try nudging b\u2082 from 2.5 toward 2 \u2014 the intersection races off to infinity and then vanishes (parallel). This is why numerical stability matters in real computations.',
+            },
+        ];
+
+        function updateInsight(e1, e2, sol) {
+            const box = document.getElementById('insightBox');
+            for (const p of presets) {
+                if (Math.abs(e1.a - p.e1.a) < 0.01 && Math.abs(e1.b - p.e1.b) < 0.01 && Math.abs(e1.c - p.e1.c) < 0.01 &&
+                    Math.abs(e2.a - p.e2.a) < 0.01 && Math.abs(e2.b - p.e2.b) < 0.01 && Math.abs(e2.c - p.e2.c) < 0.01) {
+                    box.innerHTML = p.insight;
+                    return;
+                }
+            }
+            if (sol.type === 'unique') {
+                let extra = '';
+                if (Math.abs(sol.det) < 1) extra = ' The small determinant means this solution is <b>sensitive</b> to coefficient changes \u2014 try nudging a slider.';
+                box.innerHTML = 'The lines intersect at <b>(' + fmtN(sol.x) + ', ' + fmtN(sol.y) + ')</b>. This is the unique pair that makes both equations true. det = ' + fmtN(sol.det) + '.' + extra;
+            } else if (sol.type === 'none') {
+                box.innerHTML = 'The lines are <b>parallel</b> \u2014 same slope, different intercept. No (x, y) lies on both. The determinant is zero: the coefficient matrix is <b>singular</b>.';
+            } else {
+                box.innerHTML = 'The equations describe the <b>same line</b>. One is a scalar multiple of the other. Every point on the line is a solution \u2014 infinitely many.';
+            }
+        }
+
+        // ---- Build preset buttons ----
+        const presetDiv = document.getElementById('presetBtns');
+        presets.forEach((p, i) => {
+            const btn = document.createElement('button');
+            btn.textContent = p.name;
+            btn.onclick = () => {
+                document.getElementById('a1').value = p.e1.a;
+                document.getElementById('b1').value = p.e1.b;
+                document.getElementById('c1').value = p.e1.c;
+                document.getElementById('a2').value = p.e2.a;
+                document.getElementById('b2').value = p.e2.b;
+                document.getElementById('c2').value = p.e2.c;
+                presetDiv.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                draw();
+            };
+            if (i === 0) btn.classList.add('active');
+            presetDiv.appendChild(btn);
+        });
+
+        // ---- Slider listeners ----
+        ['a1','b1','c1','a2','b2','c2'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                presetDiv.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+                draw();
+            });
+        });
+
+        // ---- Pan & Zoom ----
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+            const wx = toWX(mx), wy = toWY(my);
+            scale = Math.max(5, Math.min(200, scale * (e.deltaY > 0 ? 0.9 : 1.1)));
+            panX = mx - W / 2 - wx * scale;
+            panY = my - H / 2 + wy * scale;
+            draw();
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            dragging = true;
+            const rect = canvas.getBoundingClientRect();
+            dragSX = e.clientX - rect.left; dragSY = e.clientY - rect.top;
+            panSX = panX; panSY = panY;
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (!dragging) return;
+            const rect = canvas.getBoundingClientRect();
+            panX = panSX + (e.clientX - rect.left - dragSX);
+            panY = panSY + (e.clientY - rect.top - dragSY);
+            draw();
+        });
+        canvas.addEventListener('mouseup', () => { dragging = false; });
+        canvas.addEventListener('mouseleave', () => { dragging = false; });
+        canvas.addEventListener('dblclick', () => { panX = 0; panY = 0; scale = 40; draw(); });
+
+        // ---- Keyboard ----
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '+' || e.key === '=') { scale = Math.min(200, scale * 1.2); draw(); }
+            if (e.key === '-') { scale = Math.max(5, scale / 1.2); draw(); }
+            if (e.key === '0') { panX = 0; panY = 0; scale = 40; draw(); }
+        });
+
+        // ---- Initial draw ----
+        draw();
+    </script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+</body>
+</html>
