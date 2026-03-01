@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Theory &amp; the Efficient Frontier</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#10b981}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(16,185,129,0.13);border-color:rgba(16,185,129,0.4);color:#10b981}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .red{color:#f87171}
+        .math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:160px}
+        .slider-row input[type=range]{flex:1;max-width:280px;accent-color:#10b981;cursor:pointer}
+        .slider-val{color:#10b981;font-family:'Courier New',monospace;font-size:1.05em;min-width:70px;text-align:right}
+        .result-box{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#10b981;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .insight-box{background:rgba(16,185,129,0.04);border-left:3px solid rgba(16,185,129,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .stats-row{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0}
+        .stat-box{text-align:center;min-width:90px}
+        .stat-label{font-size:0.72em;color:#808098;text-transform:uppercase;letter-spacing:0.5px}
+        .stat-val{font-family:'Courier New',monospace;font-size:1.02em;color:#e0e0e0}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-dot{width:10px;height:10px;border-radius:50%}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .asset-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}
+        .asset-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px 14px}
+        .asset-card h4{font-weight:400;font-size:0.8em;color:#10b981;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}.asset-grid{grid-template-columns:1fr 1fr}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Portfolio Theory &amp; the Efficient Frontier</h1>
+    <p class="subtitle">Markowitz&rsquo;s Nobel-winning insight &mdash; diversification creates the only free lunch in finance</p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: Diversification — The Core Idea
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. Diversification &mdash; Risk Reduction by Correlation</h2>
+    <div class="panel">
+        <h3>Two-Asset Portfolio: How Correlation Changes Risk</h3>
+        <canvas id="divCanvas" width="700" height="340"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#f87171"></div><span style="color:#f87171">&rho; = +1.0 (no benefit)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">&rho; = +0.5</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">&rho; = 0.0 (independent)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">&rho; = &minus;0.5</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">&rho; = &minus;1.0 (perfect hedge)</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Asset A return &mu;<sub>A</sub>:</label>
+            <input type="range" id="sMuA" min="2" max="20" value="8" step="1">
+            <span class="slider-val" id="vMuA">8%</span>
+        </div>
+        <div class="slider-row">
+            <label>Asset A vol &sigma;<sub>A</sub>:</label>
+            <input type="range" id="sSigA" min="5" max="40" value="15" step="1">
+            <span class="slider-val" id="vSigA">15%</span>
+        </div>
+        <div class="slider-row">
+            <label>Asset B return &mu;<sub>B</sub>:</label>
+            <input type="range" id="sMuB" min="2" max="20" value="12" step="1">
+            <span class="slider-val" id="vMuB">12%</span>
+        </div>
+        <div class="slider-row">
+            <label>Asset B vol &sigma;<sub>B</sub>:</label>
+            <input type="range" id="sSigB" min="5" max="40" value="25" step="1">
+            <span class="slider-val" id="vSigB">25%</span>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">&sigma;<sub>P</sub>&sup2;</span> = w<sub>A</sub>&sup2;&sigma;<sub>A</sub>&sup2; + w<sub>B</sub>&sup2;&sigma;<sub>B</sub>&sup2; + 2w<sub>A</sub>w<sub>B</sub><span class="gold">&rho;<sub>AB</sub></span>&sigma;<sub>A</sub>&sigma;<sub>B</sub></div>
+            <div class="math-line muted">When &rho; = &minus;1: can achieve zero risk with the right weights. When &rho; = +1: no diversification benefit.</div>
+        </div>
+        <div class="insight-box">Each curve traces all two-asset portfolios from 100% Asset A (left) to 100% Asset B (right) as you move along it. The lower the correlation, the further left the curve bends — meaning less risk for the same return. At &rho; = &minus;1, a perfectly risk-free portfolio exists. This is the fundamental theorem of diversification: <strong>adding even a mildly correlated asset always reduces portfolio risk</strong>.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: The Efficient Frontier
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. The Efficient Frontier</h2>
+    <div class="panel">
+        <h3>Monte Carlo Simulation of Random Portfolios &mdash; Click or Hover a Point</h3>
+        <div class="asset-grid" id="assetCards"></div>
+        <canvas id="frontierCanvas" width="700" height="380" style="cursor:crosshair"></canvas>
+        <div style="position:relative;height:0">
+            <div id="hoverTip" style="display:none;position:absolute;background:rgba(10,10,26,0.92);border:1px solid rgba(255,255,255,0.12);border-radius:6px;padding:7px 12px;font-family:'Courier New',monospace;font-size:0.82em;color:#e0e0e0;pointer-events:none;white-space:nowrap;z-index:10"></div>
+        </div>
+        <div class="btn-row" style="margin-top:10px">
+            <button class="btn" id="btnGenFrontier">Regenerate Portfolios</button>
+            <button class="btn" id="btnAddAsset">Toggle 4th Asset</button>
+            <button class="btn active" id="btnLongOnly">Long-only</button>
+            <button class="btn" id="btnAllowShort">Allow limited shorting</button>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="frontierStats">
+                <div class="stat-box"><div class="stat-label">Click a portfolio</div><div class="stat-val">to see weights</div></div>
+            </div>
+        </div>
+        <div id="riskContribPanel" style="display:none;margin-top:10px">
+            <div class="panel" style="margin-bottom:0;border-color:rgba(167,139,250,0.2);background:rgba(167,139,250,0.03)">
+                <h3 style="color:#a78bfa">Risk Contribution — How Each Asset Drives Portfolio Volatility</h3>
+                <div class="stats-row" id="riskContribStats"></div>
+                <div class="formula-block" style="margin-top:8px">
+                    <div class="math-line"><span style="color:#a78bfa">Marginal RC<sub>i</sub></span> = (Σw)<sub>i</sub> / σ<sub>P</sub> &nbsp;&nbsp; <span class="muted">sensitivity of σ<sub>P</sub> to a small increase in w<sub>i</sub></span></div>
+                    <div class="math-line"><span style="color:#22d3ee">Component RC<sub>i</sub></span> = w<sub>i</sub> × Marginal RC<sub>i</sub> &nbsp;&nbsp; <span class="muted">each asset's share of total risk (sums to σ<sub>P</sub>)</span></div>
+                </div>
+                <div class="insight-box" style="border-left-color:rgba(167,139,250,0.3);background:rgba(167,139,250,0.03)">Risk contribution is how professional risk systems decompose portfolio risk — it underlies risk parity, factor budgeting, and VaR allocation. A portfolio can be equally weighted in money but very unequally weighted in risk. The component contributions always sum to total portfolio volatility σ<sub>P</sub>, making the decomposition exact.</div>
+            </div>
+        </div>
+        <div class="insight-box">Each dot is a randomly weighted portfolio of 3 (or 4) assets. The <strong style="color:#fbbf24">gold frontier line</strong> traces the upper envelope — maximum return for each risk level. Portfolios below the frontier are <em>inefficient</em>: you could get the same return with less risk, or more return for the same risk. Enabling limited shorting pushes the frontier outward, showing why real-world constraints bind.</div>
+        <div class="insight-box" style="border-left-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.03)">
+            <strong style="color:#fbbf24">The Global Minimum Variance portfolio (GMV)</strong> is the leftmost point on the frontier — the portfolio with the lowest possible risk regardless of return. The <strong style="color:#22d3ee">tangency portfolio</strong> (maximum Sharpe ratio) is the point where a line from the risk-free rate just touches the frontier. Every rational investor should hold some combination of the tangency portfolio and the risk-free asset.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 3: The Sharpe Ratio
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. Risk-Adjusted Returns &mdash; The Sharpe Ratio</h2>
+    <div class="panel">
+        <h3>How Much Return Are You Getting Per Unit of Risk?</h3>
+        <canvas id="sharpeCanvas" width="700" height="300"></canvas>
+        <div class="slider-row" style="margin-top:10px">
+            <label>Risk-free rate r<sub>f</sub>:</label>
+            <input type="range" id="sRf" min="0" max="60" value="40" step="1">
+            <span class="slider-val" id="vRf">4.0%</span>
+        </div>
+        <div class="slider-row">
+            <label>Return estimate noise:</label>
+            <input type="range" id="sNoise" min="0" max="50" value="0" step="1">
+            <span class="slider-val" id="vNoise">0%</span>
+        </div>
+        <div id="noiseInsight" style="display:none" class="insight-box" style="border-left-color:rgba(248,113,113,0.3);background:rgba(248,113,113,0.03)">
+            <strong style="color:#f87171">Estimation instability:</strong> The tangency portfolio is jumping because small errors in expected return estimates cause it to move dramatically. This is mean-variance optimisation's most famous practical problem — it is highly sensitive to return inputs, which are notoriously hard to estimate. Small forecast errors can shift the optimal portfolio from one extreme to another, which is why practitioners use regularisation, shrinkage, or Black-Litterman to stabilise outputs.
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="gold">Sharpe Ratio</span> = (E[R<sub>P</sub>] &minus; r<sub>f</sub>) / &sigma;<sub>P</sub> &nbsp;&nbsp;&mdash;&nbsp;&nbsp; <span class="muted">excess return per unit of total risk</span></div>
+            <div class="math-line muted">The tangency portfolio maximises the Sharpe ratio. It sits at the point where the Capital Market Line is tangent to the frontier.</div>
+        </div>
+        <div class="insight-box">The Capital Market Line (CML) connects the risk-free asset to the tangency portfolio. Every point on the CML is achievable: above the tangency portfolio by borrowing at the risk-free rate to invest more in risky assets (leverage); below by holding some cash alongside the tangency portfolio. <em>In practice, borrowing rates exceed lending rates and leverage is constrained, so the CML is an idealised benchmark rather than a tradeable line</em> — the true attainable set kinks at the tangency point. The Sharpe ratio is the most widely used risk-adjusted performance metric, though it has known limitations: it assumes normally distributed returns and uses total volatility rather than downside risk only.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 4: Correlation Matrix Editor
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>4. Edit the Correlation Matrix &mdash; Watch the Frontier Reshape</h2>
+    <div class="panel">
+        <h3>Drag Any Correlation &mdash; The Frontier Updates Live</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:14px;align-items:start">
+            <div id="corrSliders"></div>
+            <canvas id="corrMatCanvas" width="300" height="300" style="width:100%;max-width:300px;border-radius:8px;border:1px solid rgba(255,255,255,0.06)"></canvas>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnNormal">Normal Markets</button>
+            <button class="btn" id="btnCrisis">Stylised 2008 Crisis</button>
+            <button class="btn" id="btnCovid">Stylised COVID-19</button>
+            <button class="btn" id="btnRates">Stylised 2022 Rates</button>
+        </div>
+        <canvas id="stressFrontier" width="700" height="330" style="cursor:crosshair;margin-top:12px"></canvas>
+        <div class="result-box" style="margin-top:12px">
+            <div class="stats-row">
+                <div class="stat-box"><div class="stat-label">Scenario</div><div class="stat-val" id="scenarioName" style="color:#10b981">Normal Markets</div></div>
+                <div class="stat-box"><div class="stat-label">GMV Volatility</div><div class="stat-val" id="stressGMV">—</div></div>
+                <div class="stat-box"><div class="stat-label">Max Sharpe</div><div class="stat-val" id="stressSharpe">—</div></div>
+                <div class="stat-box"><div class="stat-label">Avg Pairwise ρ</div><div class="stat-val" id="avgCorr">—</div></div>
+            </div>
+        </div>
+        <div class="insight-box" id="crisisInsight">Adjust individual correlations above, or press a scenario button to load <strong>stylised stress correlations</strong> — illustrative sets calibrated to capture the qualitative character of each episode, not tied to any specific dataset or estimation method. Watch how the frontier shifts — and especially how it <em>shrinks</em> when correlations rise toward 1.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 5: 3D Portfolio Surface
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>5. 3D Portfolio Surface &mdash; Risk Across Weight Space</h2>
+    <div class="panel">
+        <h3>Three-Asset Portfolio: Volatility or Sharpe Surface &mdash; Drag to Rotate</h3>
+        <div class="btn-row">
+            <button class="btn active" id="btn3dVol">Volatility surface</button>
+            <button class="btn" id="btn3dSharpe3d">Sharpe ratio surface</button>
+        </div>
+        <div style="position:relative;cursor:grab;user-select:none" id="port3dWrap">
+            <canvas id="port3d" width="700" height="420" style="border-radius:10px;border:1px solid rgba(255,255,255,0.06)"></canvas>
+            <div style="position:absolute;top:10px;left:14px;font-size:0.78em;color:#505068;font-family:'Courier New',monospace" id="port3dLabel">σ(w₁, w₂)  —  w₃ = 1 − w₁ − w₂</div>
+            <div style="position:absolute;bottom:10px;right:14px;font-size:0.75em;color:#404058">drag to rotate · scroll to zoom</div>
+        </div>
+        <div class="insight-box">Every point on this surface is a valid three-asset portfolio. The x and y axes are the weights of Assets 1 and 2 (the third weight fills the remainder to 100%). The valley in the volatility surface traces the efficient frontier — minimum risk for a given return. The floor of that valley is the Global Minimum Variance portfolio. Switch to the Sharpe surface to find the peak, which is the tangency portfolio. The <em>shape</em> of these surfaces changes directly with the correlation matrix — steeper walls mean stronger diversification benefit.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 6: Why This Matters
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>6. Why This Matters</h2>
+    <div class="explain">
+        <div class="explain-name">The Foundation of Modern Portfolio Management</div>
+        <div class="explain-text">
+            Markowitz's 1952 paper &ldquo;Portfolio Selection&rdquo; transformed finance from an art into a science. Before Markowitz, investors evaluated assets individually — a stock was good or bad based on its own return. Markowitz showed that what matters is not the risk of an asset in isolation, but its <em>contribution to portfolio risk</em> — which depends entirely on its correlation with other assets.
+            <br><br>
+            <strong style="color:#e0e0e0">This insight is used everywhere:</strong> Pension funds optimise across asset classes (equities, bonds, property, alternatives) to maximise return for a given liability-matching risk budget. Risk systems report asset correlations as a central input to VaR and Expected Shortfall models. The 2008 financial crisis partly resulted from correlations behaving very differently under stress — assets that appeared uncorrelated in normal markets became highly correlated precisely when diversification was needed most.
+            <br><br>
+            <strong style="color:#e0e0e0">Limitations to be aware of:</strong> The framework assumes returns are normally distributed and correlations are stable — neither is strictly true. Correlations rise dramatically in crises (the &ldquo;correlation breakdown&rdquo; problem). The optimisation is highly sensitive to expected return inputs, which are notoriously difficult to estimate. Despite these limitations, mean-variance optimisation remains the standard framework and the starting point for all more sophisticated approaches.
+            <br><br>
+            The Sharpe ratio, efficient frontier, and correlation matrix are foundational tools in risk-adjusted performance measurement, portfolio construction, and regulatory stress testing.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   Portfolio Theory — Chapter 11
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Section 1: Diversification ── */
+var divCvs = document.getElementById('divCanvas');
+var divCtx = divCvs.getContext('2d');
+var DIV_W = divCvs.width, DIV_H = divCvs.height;
+var DIV_PAD = { left: 58, right: 20, top: 24, bottom: 48 };
+
+var CORR_LEVELS = [1.0, 0.5, 0.0, -0.5, -1.0];
+var CORR_COLORS = ['#f87171', '#fbbf24', '#10b981', '#22d3ee', '#a78bfa'];
+
+function drawDiversification() {
+    var muA = parseInt(document.getElementById('sMuA').value) / 100;
+    var sigA = parseInt(document.getElementById('sSigA').value) / 100;
+    var muB = parseInt(document.getElementById('sMuB').value) / 100;
+    var sigB = parseInt(document.getElementById('sSigB').value) / 100;
+    document.getElementById('vMuA').textContent = (muA * 100).toFixed(0) + '%';
+    document.getElementById('vSigA').textContent = (sigA * 100).toFixed(0) + '%';
+    document.getElementById('vMuB').textContent = (muB * 100).toFixed(0) + '%';
+    document.getElementById('vSigB').textContent = (sigB * 100).toFixed(0) + '%';
+
+    var ctx = divCtx, W = DIV_W, H = DIV_H, P = DIV_PAD;
+    var plotW = W - P.left - P.right, plotH = H - P.top - P.bottom;
+
+    /* compute all curves to find axis limits */
+    var allPoints = [];
+    CORR_LEVELS.forEach(function(rho) {
+        for (var i = 0; i <= 100; i++) {
+            var wA = i / 100, wB = 1 - wA;
+            var mu = wA * muA + wB * muB;
+            var sig = Math.sqrt(wA*wA*sigA*sigA + wB*wB*sigB*sigB + 2*wA*wB*rho*sigA*sigB);
+            allPoints.push({ sig: sig, mu: mu });
+        }
+    });
+    var sigMax = Math.max.apply(null, allPoints.map(function(p) { return p.sig; })) * 1.1;
+    var muMin = Math.min(muA, muB) * 0.8;
+    var muMax = Math.max(muA, muB) * 1.2;
+
+    function tx(sig) { return P.left + (sig / sigMax) * plotW; }
+    function ty(mu) { return P.top + plotH - ((mu - muMin) / (muMax - muMin)) * plotH; }
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+
+    /* grid */
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    for (var g = 0; g <= 5; g++) {
+        var sig = g / 5 * sigMax;
+        ctx.beginPath(); ctx.moveTo(tx(sig), P.top); ctx.lineTo(tx(sig), H - P.bottom); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText((sig * 100).toFixed(0) + '%', tx(sig), H - P.bottom + 8);
+    }
+    for (var g = 0; g <= 4; g++) {
+        var mu = muMin + g / 4 * (muMax - muMin);
+        ctx.beginPath(); ctx.moveTo(P.left, ty(mu)); ctx.lineTo(W - P.right, ty(mu)); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText((mu * 100).toFixed(1) + '%', P.left - 6, ty(mu));
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(P.left, P.top); ctx.lineTo(P.left, H - P.bottom); ctx.lineTo(W - P.right, H - P.bottom); ctx.stroke();
+
+    /* axis labels */
+    ctx.fillStyle = '#707088'; ctx.font = '11px Georgia'; ctx.textAlign = 'center';
+    ctx.fillText('Volatility (Risk)', P.left + plotW / 2, H - P.bottom + 28);
+    ctx.save(); ctx.translate(14, P.top + plotH / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Return', 0, 0); ctx.restore();
+
+    /* Draw each curve */
+    CORR_LEVELS.forEach(function(rho, ci) {
+        ctx.strokeStyle = CORR_COLORS[ci]; ctx.lineWidth = 2; ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        for (var i = 0; i <= 100; i++) {
+            var wA = i / 100, wB = 1 - wA;
+            var mu = wA * muA + wB * muB;
+            var sig = Math.sqrt(wA*wA*sigA*sigA + wB*wB*sigB*sigB + 2*wA*wB*rho*sigA*sigB);
+            var px = tx(sig), py = ty(mu);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+
+    /* Asset dots */
+    [{ mu: muA, sig: sigA, label: 'A' }, { mu: muB, sig: sigB, label: 'B' }].forEach(function(a) {
+        ctx.beginPath(); ctx.arc(tx(a.sig), ty(a.mu), 7, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff'; ctx.fill();
+        ctx.fillStyle = '#0a0a1a'; ctx.font = 'bold 10px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(a.label, tx(a.sig), ty(a.mu));
+    });
+}
+
+['sMuA','sSigA','sMuB','sSigB'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', drawDiversification);
+});
+
+/* ── Section 2: Efficient Frontier ── */
+/* Four assets: Equities, Bonds, Property, Commodities */
+var ASSETS_BASE = [
+    { name: 'Equities',    mu: 0.10, sig: 0.20, color: '#10b981' },
+    { name: 'Gov Bonds',   mu: 0.04, sig: 0.07, color: '#22d3ee' },
+    { name: 'Property',    mu: 0.07, sig: 0.15, color: '#fbbf24' },
+    { name: 'Commodities', mu: 0.06, sig: 0.22, color: '#f472b6' },
+];
+var CORR_MATRIX = [
+    [1.00, -0.10, 0.50, 0.15],
+    [-0.10, 1.00, 0.10, -0.05],
+    [0.50, 0.10, 1.00, 0.20],
+    [0.15, -0.05, 0.20, 1.00],
+];
+
+var fourAssets = false;
+var allowShort = false;
+var frontierPts = [];
+var selectedPt = null;
+
+/* E: safe Sharpe computation — clamp tiny σ */
+function safeSharpe(mu, sig, rf) {
+    if (sig < 1e-6) return 0;
+    return (mu - rf) / sig;
+}
+
+function portfolioStats(weights, assets) {
+    var n = weights.length;
+    var mu = 0;
+    for (var i = 0; i < n; i++) mu += weights[i] * assets[i].mu;
+    var varP = 0;
+    for (var i = 0; i < n; i++) {
+        for (var j = 0; j < n; j++) {
+            varP += weights[i] * weights[j] * CORR_MATRIX[i][j] * assets[i].sig * assets[j].sig;
+        }
+    }
+    return { mu: mu, sig: Math.sqrt(Math.max(0, varP)), weights: weights.slice() };
+}
+
+/* Peda2: risk contribution — marginal and component */
+function riskContrib(weights, assets, corrMatrix) {
+    var n = weights.length;
+    /* covariance matrix Σ */
+    var Cov = [];
+    for (var i = 0; i < n; i++) {
+        Cov.push([]);
+        for (var j = 0; j < n; j++) {
+            Cov[i].push(corrMatrix[i][j] * assets[i].sig * assets[j].sig);
+        }
+    }
+    /* Σw */
+    var Sw = [];
+    for (var i = 0; i < n; i++) {
+        var v = 0;
+        for (var j = 0; j < n; j++) v += Cov[i][j] * weights[j];
+        Sw.push(v);
+    }
+    /* σ_P */
+    var varP = 0;
+    for (var i = 0; i < n; i++) varP += weights[i] * Sw[i];
+    var sigP = Math.sqrt(Math.max(varP, 1e-12));
+    /* marginal = (Σw)_i / σ_P */
+    var marginal = Sw.map(function(v) { return v / sigP; });
+    /* component = w_i * marginal_i */
+    var component = weights.map(function(w, i) { return w * marginal[i]; });
+    return { marginal: marginal, component: component, sigP: sigP };
+}
+
+function genFrontier() {
+    var n = fourAssets ? 4 : 3;
+    var assets = ASSETS_BASE.slice(0, n);
+    /* Peda3: apply noise to returns */
+    var noise = parseInt(document.getElementById('sNoise').value) / 100;
+    frontierPts = [];
+    for (var trial = 0; trial < 3000; trial++) {
+        var w = [], sum = 0;
+        if (allowShort) {
+            /* Peda1: limited shorting — weights in [-0.5, 1.5] summing to 1 */
+            for (var i = 0; i < n; i++) { var x = Math.random() * 2 - 0.5; w.push(x); sum += x; }
+            /* rescale so sum = 1 */
+            w = w.map(function(x) { return x / sum; });
+            /* enforce [-0.5, 1.5] bounds — resample if violated */
+            var ok = w.every(function(x) { return x >= -0.5 && x <= 1.5; });
+            if (!ok) { trial--; continue; }
+        } else {
+            /* Dirichlet-like long-only sampling */
+            for (var i = 0; i < n; i++) { var x = -Math.log(Math.random()); w.push(x); sum += x; }
+            w = w.map(function(x) { return x / sum; });
+        }
+        /* apply noise perturbation */
+        var noisedAssets = assets.map(function(a) {
+            return { mu: a.mu + (Math.random() - 0.5) * noise, sig: a.sig, color: a.color, name: a.name };
+        });
+        frontierPts.push(portfolioStats(w, noise > 0 ? noisedAssets : assets));
+        /* store original (un-noised) stats for risk contrib */
+        frontierPts[frontierPts.length - 1].weights = w.slice();
+    }
+    selectedPt = null;
+    renderAssetCards();
+    drawFrontier();
+}
+
+/* UX3: render asset cards */
+function renderAssetCards() {
+    var n = fourAssets ? 4 : 3;
+    var html = '';
+    ASSETS_BASE.slice(0, n).forEach(function(a) {
+        html += '<div class="asset-card" style="border-left:3px solid ' + a.color + '">'
+            + '<h4 style="color:' + a.color + '">' + a.name + '</h4>'
+            + '<div style="font-family:\'Courier New\',monospace;font-size:0.88em;color:#c0c0d8;line-height:1.9">'
+            + 'μ (return) &nbsp;= <span style="color:' + a.color + '">' + (a.mu * 100).toFixed(1) + '%</span><br>'
+            + 'σ (vol) &nbsp;&nbsp;&nbsp;= <span style="color:' + a.color + '">' + (a.sig * 100).toFixed(1) + '%</span>'
+            + '</div></div>';
+    });
+    document.getElementById('assetCards').innerHTML = html;
+    /* Fix grid columns for 3 or 4 assets */
+    document.getElementById('assetCards').style.gridTemplateColumns = fourAssets ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr';
+}
+
+/* B: frontier envelope line — bin σ into buckets, keep max μ per bucket */
+function drawFrontierLine(ctx, pts, tx, ty, sigMax) {
+    var BINS = 60;
+    var buckets = [];
+    for (var k = 0; k < BINS; k++) buckets.push(-Infinity);
+    pts.forEach(function(p) {
+        var bin = Math.floor((p.sig / sigMax) * BINS);
+        bin = Math.min(bin, BINS - 1);
+        if (p.mu > buckets[bin]) buckets[bin] = p.mu;
+    });
+    /* collect non-empty contiguous run of frontier points */
+    var line = [];
+    for (var k = 0; k < BINS; k++) {
+        if (buckets[k] > -Infinity) {
+            line.push({ sig: (k + 0.5) / BINS * sigMax, mu: buckets[k] });
+        }
+    }
+    if (line.length < 2) return;
+    /* draw smoothed polyline */
+    ctx.save();
+    ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2; ctx.globalAlpha = 0.85;
+    ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 6;
+    ctx.beginPath();
+    line.forEach(function(pt, i) {
+        if (i === 0) ctx.moveTo(tx(pt.sig), ty(pt.mu));
+        else ctx.lineTo(tx(pt.sig), ty(pt.mu));
+    });
+    ctx.stroke();
+    ctx.restore();
+}
+
+var frontierCvs = document.getElementById('frontierCanvas');
+var frontierCtx = frontierCvs.getContext('2d');
+var FR_W = frontierCvs.width, FR_H = frontierCvs.height;
+var FR_PAD = { left: 58, right: 20, top: 24, bottom: 48 };
+
+function drawFrontier() {
+    var ctx = frontierCtx, W = FR_W, H = FR_H, P = FR_PAD;
+    var plotW = W - P.left - P.right, plotH = H - P.top - P.bottom;
+    var rf = parseInt(document.getElementById('sRf').value) / 10 / 100;
+
+    if (frontierPts.length === 0) return;
+
+    var sigMax = Math.max.apply(null, frontierPts.map(function(p) { return p.sig; })) * 1.1;
+    var muMin = Math.min.apply(null, frontierPts.map(function(p) { return p.mu; })) * 0.9;
+    var muMax = Math.max.apply(null, frontierPts.map(function(p) { return p.mu; })) * 1.1;
+
+    function tx(sig) { return P.left + (sig / sigMax) * plotW; }
+    function ty(mu) { return P.top + plotH - ((mu - muMin) / (muMax - muMin)) * plotH; }
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+
+    /* grid */
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    for (var g = 0; g <= 5; g++) {
+        var s = g / 5 * sigMax;
+        ctx.beginPath(); ctx.moveTo(tx(s), P.top); ctx.lineTo(tx(s), H - P.bottom); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText((s * 100).toFixed(0) + '%', tx(s), H - P.bottom + 8);
+    }
+    for (var g = 0; g <= 5; g++) {
+        var m = muMin + g / 5 * (muMax - muMin);
+        ctx.beginPath(); ctx.moveTo(P.left, ty(m)); ctx.lineTo(W - P.right, ty(m)); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText((m * 100).toFixed(1) + '%', P.left - 6, ty(m));
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(P.left, P.top); ctx.lineTo(P.left, H - P.bottom); ctx.lineTo(W - P.right, H - P.bottom); ctx.stroke();
+
+    /* E: Colour each point by Sharpe ratio (clamped) */
+    var sharpes = frontierPts.map(function(p) { return safeSharpe(p.mu, p.sig, rf); });
+    var shMin = Math.min.apply(null, sharpes), shMax = Math.max.apply(null, sharpes);
+    frontierPts.forEach(function(p, i) {
+        var frac = (sharpes[i] - shMin) / (shMax - shMin + 0.001);
+        var r = Math.round(16 + frac * (251 - 16));
+        var gv = Math.round(185 * frac);
+        var b = Math.round(129 * (1 - frac));
+        ctx.fillStyle = 'rgba(' + r + ',' + gv + ',' + b + ',0.55)';
+        ctx.beginPath(); ctx.arc(tx(p.sig), ty(p.mu), 2.5, 0, Math.PI * 2); ctx.fill();
+    });
+
+    /* B: Draw frontier envelope line */
+    drawFrontierLine(ctx, frontierPts, tx, ty, sigMax);
+
+    /* Individual assets */
+    var n = fourAssets ? 4 : 3;
+    ASSETS_BASE.slice(0, n).forEach(function(a) {
+        ctx.beginPath(); ctx.arc(tx(a.sig), ty(a.mu), 7, 0, Math.PI * 2);
+        ctx.fillStyle = a.color; ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.font = '9px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.fillText(a.name, tx(a.sig), ty(a.mu) - 8);
+    });
+
+    /* Max Sharpe portfolio */
+    var maxSharpeIdx = sharpes.indexOf(Math.max.apply(null, sharpes));
+    var mp = frontierPts[maxSharpeIdx];
+    ctx.beginPath(); ctx.arc(tx(mp.sig), ty(mp.mu), 8, 0, Math.PI * 2);
+    ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#fbbf24'; ctx.font = '10px Georgia'; ctx.textAlign = 'left';
+    ctx.fillText('Max Sharpe', tx(mp.sig) + 10, ty(mp.mu));
+
+    /* GMV */
+    var minSigIdx = 0;
+    frontierPts.forEach(function(p, i) { if (p.sig < frontierPts[minSigIdx].sig) minSigIdx = i; });
+    var gp = frontierPts[minSigIdx];
+    ctx.beginPath(); ctx.arc(tx(gp.sig), ty(gp.mu), 8, 0, Math.PI * 2);
+    ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#22d3ee'; ctx.fillText('GMV', tx(gp.sig) + 10, ty(gp.mu));
+
+    /* Selected portfolio */
+    if (selectedPt) {
+        ctx.beginPath(); ctx.arc(tx(selectedPt.sig), ty(selectedPt.mu), 9, 0, Math.PI * 2);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+    }
+
+    /* UX2: consistent axis labels */
+    ctx.fillStyle = '#707088'; ctx.font = '11px Georgia'; ctx.textAlign = 'center';
+    ctx.fillText('Volatility \u03C3 (risk)', P.left + plotW / 2, H - P.bottom + 28);
+    ctx.save(); ctx.translate(14, P.top + plotH / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Expected return \u03BC', 0, 0); ctx.restore();
+
+    /* Colour bar legend */
+    var cbX = W - P.right - 14, cbY = P.top + 10, cbH = 80;
+    var grad = ctx.createLinearGradient(0, cbY, 0, cbY + cbH);
+    grad.addColorStop(0, 'rgba(251,191,36,0.85)');
+    grad.addColorStop(1, 'rgba(16,16,16,0.85)');
+    ctx.fillStyle = grad; ctx.fillRect(cbX, cbY, 8, cbH);
+    ctx.fillStyle = '#505068'; ctx.font = '9px Georgia'; ctx.textAlign = 'left';
+    ctx.fillText('High SR', cbX + 10, cbY + 4);
+    ctx.fillText('Low SR', cbX + 10, cbY + cbH - 4);
+}
+
+/* Shared coordinate helpers — cached each render */
+var FR_SCALE = { sigMax: 0.3, muMin: 0.03, muMax: 0.12 };
+
+function frCoords() {
+    if (frontierPts.length === 0) return null;
+    var sigMax = Math.max.apply(null, frontierPts.map(function(p) { return p.sig; })) * 1.1;
+    var muMin  = Math.min.apply(null, frontierPts.map(function(p) { return p.mu; }))  * 0.9;
+    var muMax  = Math.max.apply(null, frontierPts.map(function(p) { return p.mu; }))  * 1.1;
+    var P = FR_PAD, plotW = FR_W - P.left - P.right, plotH = FR_H - P.top - P.bottom;
+    function tx(sig) { return P.left + (sig / sigMax) * plotW; }
+    function ty(mu)  { return P.top + plotH - ((mu - muMin) / (muMax - muMin)) * plotH; }
+    function itx(px) { return (px - P.left) / plotW * sigMax; }
+    function ity(py) { return muMin + (1 - (py - P.top) / plotH) * (muMax - muMin); }
+    return { tx: tx, ty: ty, itx: itx, ity: ity, sigMax: sigMax };
+}
+
+function nearestPt(mx, my) {
+    var coords = frCoords();
+    if (!coords) return null;
+    var best = null, bestDist = 1e9;
+    frontierPts.forEach(function(p) {
+        var d = Math.sqrt(Math.pow(coords.tx(p.sig) - mx, 2) + Math.pow(coords.ty(p.mu) - my, 2));
+        if (d < bestDist) { bestDist = d; best = p; }
+    });
+    return (best && bestDist < 40) ? { pt: best, dist: bestDist } : null;
+}
+
+function showRiskContrib(p) {
+    var n = p.weights.length;
+    var assets = ASSETS_BASE.slice(0, n);
+    var rc = riskContrib(p.weights, assets, CORR_MATRIX);
+    var html = '';
+    assets.forEach(function(a, i) {
+        var pct = (rc.component[i] / rc.sigP * 100).toFixed(1);
+        html += '<div class="stat-box">'
+            + '<div class="stat-label" style="color:' + a.color + '">' + a.name + '</div>'
+            + '<div class="stat-val" style="color:#a78bfa">' + (rc.component[i] * 100).toFixed(2) + '%</div>'
+            + '<div style="font-size:0.7em;color:#606078">' + pct + '% of σ</div>'
+            + '</div>';
+    });
+    document.getElementById('riskContribStats').innerHTML = html;
+    document.getElementById('riskContribPanel').style.display = '';
+}
+
+frontierCvs.addEventListener('click', function(e) {
+    var rect = frontierCvs.getBoundingClientRect();
+    var scaleX = frontierCvs.width / rect.width;
+    var scaleY = frontierCvs.height / rect.height;
+    var mx = (e.clientX - rect.left) * scaleX;
+    var my = (e.clientY - rect.top) * scaleY;
+
+    var hit = nearestPt(mx, my);
+    if (hit) {
+        selectedPt = hit.pt;
+        var best = hit.pt;
+        var rf = parseInt(document.getElementById('sRf').value) / 10 / 100;
+        var sharpe = safeSharpe(best.mu, best.sig, rf);
+        var n = fourAssets ? 4 : 3;
+        var wStr = ASSETS_BASE.slice(0, n).map(function(a, i) {
+            return '<div class="stat-box"><div class="stat-label">' + a.name + '</div>'
+                + '<div class="stat-val" style="color:' + a.color + '">' + (best.weights[i] * 100).toFixed(1) + '%</div></div>';
+        }).join('');
+        document.getElementById('frontierStats').innerHTML =
+            wStr
+          + '<div class="stat-box"><div class="stat-label">Expected return (μ)</div><div class="stat-val" style="color:#10b981">' + (best.mu * 100).toFixed(2) + '%</div></div>'
+          + '<div class="stat-box"><div class="stat-label">Volatility (σ)</div><div class="stat-val">' + (best.sig * 100).toFixed(2) + '%</div></div>'
+          + '<div class="stat-box"><div class="stat-label">Sharpe</div><div class="stat-val" style="color:#fbbf24">' + sharpe.toFixed(3) + '</div></div>';
+        showRiskContrib(best);
+        drawFrontier();
+    }
+});
+
+/* UX1: Hover tooltip */
+var hoverTip = document.getElementById('hoverTip');
+frontierCvs.addEventListener('mousemove', function(e) {
+    var rect = frontierCvs.getBoundingClientRect();
+    var scaleX = frontierCvs.width / rect.width;
+    var scaleY = frontierCvs.height / rect.height;
+    var mx = (e.clientX - rect.left) * scaleX;
+    var my = (e.clientY - rect.top) * scaleY;
+    var hit = nearestPt(mx, my);
+    if (hit && hit.dist < 25) {
+        var p = hit.pt;
+        var rf = parseInt(document.getElementById('sRf').value) / 10 / 100;
+        var sh = safeSharpe(p.mu, p.sig, rf);
+        var n = fourAssets ? 4 : 3;
+        var wParts = ASSETS_BASE.slice(0, n).map(function(a, i) {
+            return '<span style="color:' + a.color + '">' + a.name.slice(0,3) + ':' + (p.weights[i]*100).toFixed(0) + '%</span>';
+        }).join(' ');
+        hoverTip.innerHTML = 'μ=' + (p.mu*100).toFixed(2) + '% σ=' + (p.sig*100).toFixed(2) + '% SR=' + sh.toFixed(2) + '<br>' + wParts;
+        /* position relative to canvas */
+        var tipX = (e.clientX - rect.left) + 14;
+        var tipY = (e.clientY - rect.top) - rect.height - 54;
+        hoverTip.style.left = tipX + 'px';
+        hoverTip.style.top  = tipY + 'px';
+        hoverTip.style.display = 'block';
+    } else {
+        hoverTip.style.display = 'none';
+    }
+});
+frontierCvs.addEventListener('mouseleave', function() { hoverTip.style.display = 'none'; });
+
+document.getElementById('btnGenFrontier').addEventListener('click', genFrontier);
+document.getElementById('btnAddAsset').addEventListener('click', function() {
+    fourAssets = !fourAssets;
+    this.textContent = fourAssets ? 'Remove 4th Asset' : 'Toggle 4th Asset';
+    genFrontier();
+});
+
+/* Peda1: shorting toggle */
+document.getElementById('btnLongOnly').addEventListener('click', function() {
+    allowShort = false;
+    this.classList.add('active');
+    document.getElementById('btnAllowShort').classList.remove('active');
+    genFrontier();
+});
+document.getElementById('btnAllowShort').addEventListener('click', function() {
+    allowShort = true;
+    this.classList.add('active');
+    document.getElementById('btnLongOnly').classList.remove('active');
+    genFrontier();
+});
+
+/* Peda3: noise slider */
+document.getElementById('sNoise').addEventListener('input', function() {
+    var v = parseInt(this.value);
+    document.getElementById('vNoise').textContent = v + '%';
+    document.getElementById('noiseInsight').style.display = v > 0 ? '' : 'none';
+    genFrontier();
+    drawSharpe();
+});
+
+/* ── Section 3: Sharpe / CML ── */
+var sharpeCvs = document.getElementById('sharpeCanvas');
+var sharpeCtx = sharpeCvs.getContext('2d');
+var SH_W = sharpeCvs.width, SH_H = sharpeCvs.height;
+var SH_PAD = { left: 58, right: 20, top: 24, bottom: 48 };
+
+function drawSharpe() {
+    if (frontierPts.length === 0) return;
+    var rf = parseInt(document.getElementById('sRf').value) / 10 / 100;
+    document.getElementById('vRf').textContent = (rf * 100).toFixed(1) + '%';
+
+    var ctx = sharpeCtx, W = SH_W, H = SH_H, P = SH_PAD;
+    var plotW = W - P.left - P.right, plotH = H - P.top - P.bottom;
+
+    var sigMax = Math.max.apply(null, frontierPts.map(function(p) { return p.sig; })) * 1.3;
+    var muMin = rf * 0.5;
+    var muMax = Math.max.apply(null, frontierPts.map(function(p) { return p.mu; })) * 1.15;
+
+    function tx(sig) { return P.left + (sig / sigMax) * plotW; }
+    function ty(mu) { return P.top + plotH - ((mu - muMin) / (muMax - muMin)) * plotH; }
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    for (var g = 0; g <= 5; g++) {
+        var s = g / 5 * sigMax;
+        ctx.beginPath(); ctx.moveTo(tx(s), P.top); ctx.lineTo(tx(s), H - P.bottom); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText((s * 100).toFixed(0) + '%', tx(s), H - P.bottom + 8);
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(P.left, P.top); ctx.lineTo(P.left, H - P.bottom); ctx.lineTo(W - P.right, H - P.bottom); ctx.stroke();
+
+    /* Portfolio cloud */
+    frontierPts.forEach(function(p) {
+        ctx.fillStyle = 'rgba(16,185,129,0.2)';
+        ctx.beginPath(); ctx.arc(tx(p.sig), ty(p.mu), 2, 0, Math.PI * 2); ctx.fill();
+    });
+
+    /* Find tangency portfolio — E: use safeSharpe */
+    var sharpes = frontierPts.map(function(p) { return safeSharpe(p.mu, p.sig, rf); });
+    var maxSharpeIdx = sharpes.indexOf(Math.max.apply(null, sharpes));
+    var tp = frontierPts[maxSharpeIdx];
+    var maxSharpe = sharpes[maxSharpeIdx];
+
+    /* CML */
+    ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(tx(0), ty(rf)); ctx.lineTo(tx(sigMax), ty(rf + maxSharpe * sigMax)); ctx.stroke();
+    ctx.fillStyle = '#fbbf24'; ctx.font = '10px Georgia'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Capital Market Line (Sharpe = ' + maxSharpe.toFixed(2) + ')', tx(sigMax * 0.3), ty(rf + maxSharpe * sigMax * 0.3) - 4);
+
+    /* Risk-free point */
+    ctx.beginPath(); ctx.arc(tx(0), ty(rf), 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#22d3ee'; ctx.fill();
+    ctx.fillStyle = '#22d3ee'; ctx.font = '10px Georgia'; ctx.textAlign = 'left';
+    ctx.fillText('r\u2071 = ' + (rf * 100).toFixed(1) + '%', 8, ty(rf) - 6);
+
+    /* Tangency portfolio */
+    ctx.beginPath(); ctx.arc(tx(tp.sig), ty(tp.mu), 8, 0, Math.PI * 2);
+    ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 10px Georgia'; ctx.textAlign = 'right';
+    ctx.fillText('Tangency', tx(tp.sig) - 12, ty(tp.mu) - 6);
+}
+
+document.getElementById('sRf').addEventListener('input', function() {
+    drawFrontier();
+    drawSharpe();
+    drawStressFrontier();
+});
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 4: Correlation Matrix Editor + Stress Scenarios
+   ══════════════════════════════════════════════════════════════ */
+
+var LIVE_CORR = [
+    [1.00, -0.10, 0.50, 0.15],
+    [-0.10, 1.00, 0.10, -0.05],
+    [0.50, 0.10, 1.00, 0.20],
+    [0.15, -0.05, 0.20, 1.00],
+];
+
+var SCENARIOS = {
+    normal: {
+        name: 'Normal Markets',
+        corr: [[1.00,-0.10,0.50,0.15],[-0.10,1.00,0.10,-0.05],[0.50,0.10,1.00,0.20],[0.15,-0.05,0.20,1.00]],
+        insight: 'In normal market conditions, equities and bonds are mildly negatively correlated — the classic 60/40 rationale. The frontier extends meaningfully left of any individual asset, showing diversification is working.'
+    },
+    crisis2008: {
+        name: 'Stylised 2008 Crisis',
+        corr: [[1.00,0.15,0.78,0.62],[0.15,1.00,0.08,0.05],[0.78,0.08,1.00,0.55],[0.62,0.05,0.55,1.00]],
+        insight: '<strong style="color:#f87171">Stylised 2008 Crisis correlations:</strong> Equity-property correlation rises sharply as the housing collapse spread systemwide. Nearly all risky assets move together — only government bonds retain negative correlation. The frontier collapses dramatically. These are <em>illustrative</em> values capturing the qualitative character of the episode, not a precisely estimated historical dataset. The core lesson — diversification fails exactly when you need it — is real.'
+    },
+    covid: {
+        name: 'Stylised COVID-19 Crash',
+        corr: [[1.00,0.25,0.72,0.80],[0.25,1.00,0.18,0.10],[0.72,0.18,1.00,0.68],[0.80,0.10,0.68,1.00]],
+        insight: '<strong style="color:#f87171">Stylised COVID-19 March 2020 correlations:</strong> Equities and commodities correlation spikes sharply as a liquidity crisis swept all asset classes — investors sold everything to raise cash. The frontier nearly collapses. Government bonds remained the primary diversifier as investors fled to safety. These values are <em>illustrative</em>; actual correlations varied materially across sub-periods and asset sub-classes.'
+    },
+    rates2022: {
+        name: 'Stylised 2022 Rate Shock',
+        corr: [[1.00,0.55,0.48,0.22],[0.55,1.00,0.30,0.08],[0.48,0.30,1.00,0.20],[0.22,0.08,0.20,1.00]],
+        insight: '<strong style="color:#fbbf24">Stylised 2022 Rate Shock correlations:</strong> Equity-bond correlation turns sharply positive as surging inflation drove both asset classes down simultaneously — breaking the 60/40 assumption that had worked for four decades. This scenario broke many pension LDI strategies and culminated in the UK gilt crisis of September 2022. Values are <em>illustrative</em> of the qualitative regime change.'
+    }
+};
+
+var currentScenario = 'normal';
+
+function buildCorrSliders() {
+    var div = document.getElementById('corrSliders');
+    div.innerHTML = '';
+    var pairs = [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
+    pairs.forEach(function(pair) {
+        var i = pair[0], j = pair[1];
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;margin:7px 0';
+        var sliderVal = Math.round((LIVE_CORR[i][j] + 1) * 50);
+        var label = document.createElement('label');
+        label.style.cssText = 'color:#a0a0b8;font-size:0.82em;min-width:110px;font-family:Georgia,serif';
+        label.textContent = ASSETS_BASE[i].name.slice(0,3) + ' / ' + ASSETS_BASE[j].name.slice(0,3);
+        var slider = document.createElement('input');
+        slider.type = 'range'; slider.min = 0; slider.max = 100; slider.value = sliderVal;
+        slider.style.cssText = 'flex:1;max-width:150px;accent-color:#10b981;cursor:pointer';
+        slider.id = 'corr_'+i+'_'+j;
+        var valSpan = document.createElement('span');
+        valSpan.style.cssText = 'color:#10b981;font-family:Courier New,monospace;font-size:0.95em;min-width:44px;text-align:right';
+        valSpan.id = 'corrval_'+i+'_'+j;
+        valSpan.textContent = LIVE_CORR[i][j].toFixed(2);
+        (function(ii,jj) {
+            slider.addEventListener('input', function() {
+                var v = (parseInt(this.value)/50)-1;
+                LIVE_CORR[ii][jj]=v; LIVE_CORR[jj][ii]=v;
+                document.getElementById('corrval_'+ii+'_'+jj).textContent = v.toFixed(2);
+                currentScenario='custom';
+                document.getElementById('scenarioName').textContent='Custom';
+                ['btnNormal','btnCrisis','btnCovid','btnRates'].forEach(function(b){document.getElementById(b).classList.remove('active');});
+                drawCorrMatrix(); drawStressFrontier(); drawPort3D();
+            });
+        })(i,j);
+        row.appendChild(label); row.appendChild(slider); row.appendChild(valSpan);
+        div.appendChild(row);
+    });
+}
+
+function loadScenario(key) {
+    currentScenario = key;
+    var sc = SCENARIOS[key];
+    for(var i=0;i<4;i++) for(var j=0;j<4;j++) LIVE_CORR[i][j]=sc.corr[i][j];
+    for(var i=0;i<4;i++) for(var j=i+1;j<4;j++) {
+        var el=document.getElementById('corr_'+i+'_'+j);
+        if(el){ el.value=Math.round((LIVE_CORR[i][j]+1)*50); document.getElementById('corrval_'+i+'_'+j).textContent=LIVE_CORR[i][j].toFixed(2); }
+    }
+    document.getElementById('scenarioName').textContent=sc.name;
+    document.getElementById('crisisInsight').innerHTML=sc.insight;
+    drawCorrMatrix(); drawStressFrontier(); drawPort3D();
+}
+
+var cmCvs=document.getElementById('corrMatCanvas'), cmCtx=cmCvs.getContext('2d');
+function drawCorrMatrix() {
+    var ctx=cmCtx, W=cmCvs.width, H=cmCvs.height, n=4;
+    var cell=Math.floor(Math.min(W,H)/(n+0.8));
+    var offX=(W-n*cell)/2, offY=(H-n*cell)/2;
+    ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+    for(var i=0;i<n;i++) for(var j=0;j<n;j++) {
+        var v=LIVE_CORR[i][j], frac=(v+1)/2;
+        var r,g,b;
+        if(frac<0.5){r=Math.round(248-(248-30)*(frac*2));g=Math.round(113*(1-frac*2));b=g;}
+        else{var f2=(frac-0.5)*2;r=Math.round(30+(16-30)*f2);g=Math.round(185*f2);b=Math.round(129*f2);}
+        ctx.fillStyle='rgba('+r+','+g+','+b+',0.85)';
+        ctx.fillRect(offX+j*cell, offY+i*cell, cell-2, cell-2);
+        ctx.fillStyle=Math.abs(v)>0.5?'#fff':'#e0e0e0';
+        ctx.font='bold '+Math.round(cell*0.26)+'px Courier New';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(v.toFixed(2), offX+j*cell+cell/2-1, offY+i*cell+cell/2-1);
+    }
+    ctx.font='10px Georgia'; ctx.fillStyle='#808098';
+    for(var i=0;i<n;i++){
+        ctx.textAlign='center'; ctx.fillText(ASSETS_BASE[i].name.slice(0,3), offX+i*cell+cell/2-1, offY-8);
+        ctx.textAlign='right'; ctx.fillText(ASSETS_BASE[i].name.slice(0,3), offX-4, offY+i*cell+cell/2-1);
+    }
+}
+
+function portfolioStatsLive(weights) {
+    var n=weights.length, mu=0, varP=0;
+    for(var i=0;i<n;i++) mu+=weights[i]*ASSETS_BASE[i].mu;
+    for(var i=0;i<n;i++) for(var j=0;j<n;j++)
+        varP+=weights[i]*weights[j]*LIVE_CORR[i][j]*ASSETS_BASE[i].sig*ASSETS_BASE[j].sig;
+    return{mu:mu, sig:Math.sqrt(Math.max(0,varP)), weights:weights.slice()};
+}
+
+var sfCvs=document.getElementById('stressFrontier'), sfCtx=sfCvs.getContext('2d');
+function drawStressFrontier() {
+    var rf=parseInt(document.getElementById('sRf').value)/10/100;
+    var pts=[];
+    for(var t=0;t<2500;t++){
+        var w=[],sum=0;
+        for(var i=0;i<4;i++){var x=-Math.log(Math.random()+1e-10);w.push(x);sum+=x;}
+        w=w.map(function(x){return x/sum;});
+        pts.push(portfolioStatsLive(w));
+    }
+    var ctx=sfCtx,W=sfCvs.width,H=sfCvs.height;
+    var P={left:58,right:20,top:28,bottom:48};
+    var plotW=W-P.left-P.right, plotH=H-P.top-P.bottom;
+    var sigMax=Math.max.apply(null,pts.map(function(p){return p.sig;}))*1.1;
+    var muMin=Math.min.apply(null,pts.map(function(p){return p.mu;}))*0.85;
+    var muMax=Math.max.apply(null,pts.map(function(p){return p.mu;}))*1.1;
+    function tx(s){return P.left+(s/sigMax)*plotW;}
+    function ty(m){return P.top+plotH-((m-muMin)/(muMax-muMin))*plotH;}
+    ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+    for(var g=0;g<=5;g++){
+        var s=g/5*sigMax;
+        ctx.beginPath();ctx.moveTo(tx(s),P.top);ctx.lineTo(tx(s),H-P.bottom);ctx.stroke();
+        ctx.fillStyle='#505068';ctx.font='10px Georgia';ctx.textAlign='center';ctx.textBaseline='top';
+        ctx.fillText((s*100).toFixed(0)+'%',tx(s),H-P.bottom+8);
+    }
+    for(var g=0;g<=4;g++){
+        var m=muMin+g/4*(muMax-muMin);
+        ctx.beginPath();ctx.moveTo(P.left,ty(m));ctx.lineTo(W-P.right,ty(m));ctx.stroke();
+        ctx.fillStyle='#505068';ctx.font='10px Georgia';ctx.textAlign='right';ctx.textBaseline='middle';
+        ctx.fillText((m*100).toFixed(1)+'%',P.left-6,ty(m));
+    }
+    ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(P.left,P.top);ctx.lineTo(P.left,H-P.bottom);ctx.lineTo(W-P.right,H-P.bottom);ctx.stroke();
+    var sharpes=pts.map(function(p){return safeSharpe(p.mu,p.sig,rf);});
+    var shMin=Math.min.apply(null,sharpes), shMax=Math.max.apply(null,sharpes);
+    var isCrisis=(currentScenario==='crisis2008'||currentScenario==='covid');
+    pts.forEach(function(p,i){
+        var f=(sharpes[i]-shMin)/(shMax-shMin+0.001);
+        var r=isCrisis?Math.round(248-f*100):Math.round(16+f*235);
+        var gv=isCrisis?Math.round(113*(1-f*0.5)):Math.round(185*f);
+        var b=isCrisis?Math.round(113*(1-f)):Math.round(129*(1-f));
+        ctx.fillStyle='rgba('+r+','+gv+','+b+',0.5)';
+        ctx.beginPath();ctx.arc(tx(p.sig),ty(p.mu),2.2,0,Math.PI*2);ctx.fill();
+    });
+    ASSETS_BASE.forEach(function(a){
+        ctx.beginPath();ctx.arc(tx(a.sig),ty(a.mu),7,0,Math.PI*2);
+        ctx.fillStyle=a.color;ctx.fill();
+        ctx.fillStyle='#e0e0e0';ctx.font='9px Georgia';ctx.textAlign='center';ctx.textBaseline='bottom';
+        ctx.fillText(a.name,tx(a.sig),ty(a.mu)-9);
+    });
+    var minSigIdx=0;
+    pts.forEach(function(p,i){if(p.sig<pts[minSigIdx].sig)minSigIdx=i;});
+    var gp=pts[minSigIdx];
+    var maxShIdx=sharpes.indexOf(Math.max.apply(null,sharpes));
+    var mp=pts[maxShIdx];
+    ctx.beginPath();ctx.arc(tx(gp.sig),ty(gp.mu),8,0,Math.PI*2);
+    ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#22d3ee';ctx.font='10px Georgia';ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText('GMV',tx(gp.sig)+10,ty(gp.mu));
+    ctx.beginPath();ctx.arc(tx(mp.sig),ty(mp.mu),8,0,Math.PI*2);
+    ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#fbbf24';ctx.fillText('Max Sharpe',tx(mp.sig)+10,ty(mp.mu));
+    var sum=0,cnt=0;
+    for(var i=0;i<4;i++) for(var j=i+1;j<4;j++){sum+=LIVE_CORR[i][j];cnt++;}
+    document.getElementById('stressGMV').textContent=(gp.sig*100).toFixed(1)+'%';
+    document.getElementById('stressSharpe').textContent=sharpes[maxShIdx].toFixed(2);
+    document.getElementById('avgCorr').textContent=(sum/cnt).toFixed(2);
+    ctx.fillStyle='#707088';ctx.font='11px Georgia';ctx.textAlign='center';
+    ctx.fillText('Volatility \u03C3 (risk)',P.left+plotW/2,H-P.bottom+28);
+}
+
+['btnNormal','btnCrisis','btnCovid','btnRates'].forEach(function(id){
+    document.getElementById(id).addEventListener('click',function(){
+        ['btnNormal','btnCrisis','btnCovid','btnRates'].forEach(function(b){document.getElementById(b).classList.remove('active');});
+        this.classList.add('active');
+        var map={btnNormal:'normal',btnCrisis:'crisis2008',btnCovid:'covid',btnRates:'rates2022'};
+        loadScenario(map[id]);
+    });
+});
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION 5: 3D Portfolio Surface
+   ══════════════════════════════════════════════════════════════ */
+var p3Cvs=document.getElementById('port3d'), p3Ctx=p3Cvs.getContext('2d');
+var p3State={rotX:0.40,rotY:0.52,zoom:1.0,dragging:false,lastX:0,lastY:0};
+var p3Wrap=document.getElementById('port3dWrap');
+var show3dSharpe=false;
+
+p3Wrap.addEventListener('mousedown',function(e){p3State.dragging=true;p3State.lastX=e.clientX;p3State.lastY=e.clientY;});
+window.addEventListener('mouseup',function(){p3State.dragging=false;});
+window.addEventListener('mousemove',function(e){
+    if(!p3State.dragging)return;
+    p3State.rotY+=(e.clientX-p3State.lastX)*0.012;
+    p3State.rotX+=(e.clientY-p3State.lastY)*0.012;
+    p3State.rotX=Math.max(-1.2,Math.min(1.2,p3State.rotX));
+    p3State.lastX=e.clientX;p3State.lastY=e.clientY;drawPort3D();
+});
+p3Wrap.addEventListener('touchstart',function(e){
+    if(e.touches.length===1){p3State.dragging=true;p3State.lastX=e.touches[0].clientX;p3State.lastY=e.touches[0].clientY;}
+},{passive:true});
+p3Wrap.addEventListener('touchmove',function(e){
+    if(!p3State.dragging||e.touches.length!==1)return;
+    p3State.rotY+=(e.touches[0].clientX-p3State.lastX)*0.012;
+    p3State.rotX+=(e.touches[0].clientY-p3State.lastY)*0.012;
+    p3State.rotX=Math.max(-1.2,Math.min(1.2,p3State.rotX));
+    p3State.lastX=e.touches[0].clientX;p3State.lastY=e.touches[0].clientY;drawPort3D();
+},{passive:true});
+p3Wrap.addEventListener('touchend',function(){p3State.dragging=false;});
+p3Wrap.addEventListener('wheel',function(e){
+    p3State.zoom*=e.deltaY>0?0.92:1.08;
+    p3State.zoom=Math.max(0.4,Math.min(2.5,p3State.zoom));
+    drawPort3D();e.preventDefault();
+},{passive:false});
+
+document.getElementById('btn3dVol').addEventListener('click',function(){
+    show3dSharpe=false;this.classList.add('active');
+    document.getElementById('btn3dSharpe3d').classList.remove('active');
+    document.getElementById('port3dLabel').textContent='σ(w₁, w₂)  —  w₃ = 1 − w₁ − w₂';
+    drawPort3D();
+});
+document.getElementById('btn3dSharpe3d').addEventListener('click',function(){
+    show3dSharpe=true;this.classList.add('active');
+    document.getElementById('btn3dVol').classList.remove('active');
+    document.getElementById('port3dLabel').textContent='Sharpe(w₁, w₂)  —  w₃ = 1 − w₁ − w₂';
+    drawPort3D();
+});
+
+function drawPort3D(){
+    var rf=parseInt(document.getElementById('sRf').value)/10/100;
+    var ctx=p3Ctx,W=p3Cvs.width,H=p3Cvs.height,N=34;
+    var grid=[],zMin=Infinity,zMax=-Infinity;
+    for(var i=0;i<=N;i++){
+        grid.push([]);
+        for(var j=0;j<=N;j++){
+            var w1=i/N,w2=(j/N)*(1-w1),w3=1-w1-w2;
+            if(w3<-0.001){grid[i].push(null);continue;}
+            w3=Math.max(0,w3);
+            var weights=[w1,w2,w3],mu=0,varP=0;
+            for(var k=0;k<3;k++) mu+=weights[k]*ASSETS_BASE[k].mu;
+            for(var k=0;k<3;k++) for(var l=0;l<3;l++)
+                varP+=weights[k]*weights[l]*LIVE_CORR[k][l]*ASSETS_BASE[k].sig*ASSETS_BASE[l].sig;
+            var sig=Math.sqrt(Math.max(0,varP));
+            var val=show3dSharpe?safeSharpe(mu,sig,rf):sig;
+            if(!isFinite(val))val=0;
+            grid[i].push(val);
+            if(val<zMin)zMin=val;if(val>zMax)zMax=val;
+        }
+    }
+    if(zMax===zMin)zMax=zMin+0.001;
+    function project(xi,yj,z){
+        var nx=(xi/N)*2-1,nz=(yj/N)*2-1;
+        var ny=(z-(zMin+zMax)/2)/((zMax-zMin)/2);
+        var cosY=Math.cos(p3State.rotY),sinY=Math.sin(p3State.rotY);
+        var cosX=Math.cos(p3State.rotX),sinX=Math.sin(p3State.rotX);
+        var rx=nx*cosY+nz*sinY,rz=-nx*sinY+nz*cosY;
+        var ry=ny*cosX-rz*sinX,rz2=ny*sinX+rz*cosX;
+        var fov=4.0*p3State.zoom;
+        return{px:W/2+rx*fov*(W/14),py:H/2-ry*fov*(H/14),z:rz2};
+    }
+    var faces=[];
+    for(var i=0;i<N;i++) for(var j=0;j<N;j++){
+        var v00=grid[i][j],v10=grid[i+1]?grid[i+1][j]:null;
+        var v11=grid[i+1]?grid[i+1][j+1]:null,v01=grid[i][j+1];
+        if(v00==null||v10==null||v11==null||v01==null)continue;
+        var p00=project(i,j,v00),p10=project(i+1,j,v10);
+        var p11=project(i+1,j+1,v11),p01=project(i,j+1,v01);
+        var avgZ=(p00.z+p10.z+p11.z+p01.z)/4;
+        var avgV=(v00+v10+v11+v01)/4;
+        var frac=(avgV-zMin)/(zMax-zMin);
+        faces.push({pts:[p00,p10,p11,p01],avgZ,frac});
+    }
+    faces.sort(function(a,b){return a.avgZ-b.avgZ;});
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    faces.forEach(function(face){
+        var f=face.frac,r,g,b;
+        if(!show3dSharpe){r=Math.round(248-(f)*232);g=Math.round(113+f*72);b=Math.round(113*(1-f)+129*f);}
+        else{r=Math.round(248-f*232);g=Math.round(113+f*78);b=Math.round(113-f*77);}
+        ctx.beginPath();
+        ctx.moveTo(face.pts[0].px,face.pts[0].py);ctx.lineTo(face.pts[1].px,face.pts[1].py);
+        ctx.lineTo(face.pts[2].px,face.pts[2].py);ctx.lineTo(face.pts[3].px,face.pts[3].py);
+        ctx.closePath();
+        ctx.fillStyle='rgba('+r+','+g+','+b+',0.78)';ctx.fill();
+        ctx.strokeStyle='rgba('+r+','+g+','+b+',0.28)';ctx.lineWidth=0.4;ctx.stroke();
+    });
+    /* Labels */
+    var labelPts=[
+        {xi:N,yj:0,z:zMin,text:'w₁=Equity',color:ASSETS_BASE[0].color},
+        {xi:0,yj:N,z:zMin,text:'w₂=Bonds',color:ASSETS_BASE[1].color},
+        {xi:0,yj:0,z:zMax,text:show3dSharpe?'↑ Sharpe':'↑ Risk σ',color:'#e0e0e0'},
+    ];
+    labelPts.forEach(function(lp){
+        var pt=project(lp.xi,lp.yj,lp.z);
+        ctx.fillStyle=lp.color;ctx.font='11px Georgia';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(lp.text,pt.px,pt.py);
+    });
+}
+
+/* ── Init ── */
+drawDiversification();
+renderAssetCards();
+genFrontier();
+buildCorrSliders();
+drawCorrMatrix();
+drawStressFrontier();
+drawPort3D();
+setTimeout(function() { drawSharpe(); }, 100);
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

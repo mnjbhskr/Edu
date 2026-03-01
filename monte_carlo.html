@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monte Carlo Simulation in Finance</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#04040f;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:980px;margin:0 auto;padding:24px 28px 60px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#10b981}
+        h1{font-size:1.9em;font-weight:400;color:#fff;margin:16px 0 4px;letter-spacing:-0.02em}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:32px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:36px 0 12px}
+        canvas{display:block;border-radius:12px;border:1px solid rgba(255,255,255,0.05)}
+        .panel{background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.055);border-radius:12px;padding:20px 24px;margin-bottom:22px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#606078;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:14px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);color:#a0a0b8;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.18s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.4);color:#10b981}
+        .btn.fire{background:rgba(251,191,36,0.1);border-color:rgba(251,191,36,0.35);color:#fbbf24}
+        .btn.fire:hover{background:rgba(251,191,36,0.2)}
+        .math-line{font-family:'Courier New',monospace;font-size:0.91em;color:#b0b0c8;margin:4px 0;line-height:2.0}
+        .green{color:#10b981}.cyan{color:#22d3ee}.gold{color:#fbbf24}.pink{color:#f472b6}.red{color:#f87171}.purple{color:#a78bfa}.muted{color:#707088}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:9px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.88em;min-width:168px}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#10b981;cursor:pointer}
+        .slider-val{color:#10b981;font-family:'Courier New',monospace;font-size:1.05em;min-width:68px;text-align:right}
+        .result-box{background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.18);border-radius:8px;padding:12px 18px;margin:12px 0}
+        .stats-row{display:flex;gap:14px;flex-wrap:wrap}
+        .stat-box{text-align:center;min-width:88px}
+        .stat-label{font-size:0.7em;color:#707088;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px}
+        .stat-val{font-family:'Courier New',monospace;font-size:1em}
+        .insight-box{background:rgba(16,185,129,0.035);border-left:3px solid rgba(16,185,129,0.28);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.78}
+        .warn-box{background:rgba(251,191,36,0.03);border-left:3px solid rgba(251,191,36,0.28);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.78}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.018);border-radius:6px;font-family:'Courier New',monospace;font-size:0.91em;line-height:2.1}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .explain{background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.055);border-radius:12px;padding:22px 26px;margin-top:22px}
+        .explain-name{color:#10b981;font-size:1.1em;margin-bottom:8px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.82}
+        /* Histogram bar glow */
+        .canvas-glow{filter:drop-shadow(0 0 8px rgba(16,185,129,0.15))}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Monte Carlo Simulation</h1>
+    <p class="subtitle">Simulate thousands of futures to understand one uncertain present &mdash; the engine behind modern risk management</p>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         SECTION 1: GBM Path Simulation — The Light Trails
+    ══════════════════════════════════════════════════════════════ -->
+    <h2>1. Simulating Stock Price Paths &mdash; Light Trails Through Uncertainty</h2>
+    <div class="panel">
+        <h3>Each Path is One Possible Future &mdash; Together They Show the Full Distribution</h3>
+        <canvas id="pathCanvas" width="700" height="420" class="canvas-glow"></canvas>
+        <div class="btn-row" style="margin-top:14px">
+            <button class="btn fire" id="btnRunPaths">&#9654; Run Simulation</button>
+            <button class="btn" id="btnClearPaths">Clear</button>
+            <button class="btn active" id="btnGBM">GBM</button>
+            <button class="btn" id="btnJump">Jump Diffusion</button>
+            <button class="btn" id="btnHeston">Stochastic Vol</button>
+        </div>
+        <div class="slider-row">
+            <label>Number of paths:</label>
+            <input type="range" id="sNPaths" min="1" max="5" value="3" step="1">
+            <span class="slider-val" id="vNPaths">200</span>
+        </div>
+        <div class="slider-row">
+            <label>Drift &mu; (annual):</label>
+            <input type="range" id="sMu" min="-20" max="30" value="8" step="1">
+            <span class="slider-val" id="vMu">8%</span>
+        </div>
+        <div class="slider-row">
+            <label>Volatility &sigma; (annual):</label>
+            <input type="range" id="sSigma" min="5" max="60" value="20" step="1">
+            <span class="slider-val" id="vSigma">20%</span>
+        </div>
+        <div class="slider-row">
+            <label>Time horizon (years):</label>
+            <input type="range" id="sHorizon" min="1" max="10" value="2" step="1">
+            <span class="slider-val" id="vHorizon">2 yr</span>
+        </div>
+        <div id="jumpControls" style="display:none">
+            <div class="slider-row">
+                <label>Jump intensity &lambda;:</label>
+                <input type="range" id="sLambda" min="1" max="20" value="5" step="1">
+                <span class="slider-val" id="vLambda">5 /yr</span>
+            </div>
+            <div class="slider-row">
+                <label>Mean jump size:</label>
+                <input type="range" id="sJumpMu" min="-30" max="10" value="-10" step="1">
+                <span class="slider-val" id="vJumpMu">-10%</span>
+            </div>
+        </div>
+        <div id="hestonControls" style="display:none">
+            <div class="slider-row">
+                <label>Vol of vol &xi;:</label>
+                <input type="range" id="sVolVol" min="10" max="80" value="30" step="5">
+                <span class="slider-val" id="vVolVol">30%</span>
+            </div>
+            <div class="slider-row">
+                <label>Mean reversion &kappa;:</label>
+                <input type="range" id="sKappa" min="1" max="10" value="3" step="1">
+                <span class="slider-val" id="vKappa">3</span>
+            </div>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="pathStats">
+                <div class="stat-box"><div class="stat-label">Status</div><div class="stat-val" style="color:#606078">Press Run</div></div>
+            </div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line" id="modelFormula">
+                <span class="green">dS</span> = <span class="gold">&mu;</span>S dt + <span class="cyan">&sigma;</span>S dW &nbsp;&nbsp;&nbsp;
+                <span class="muted">Discretised:</span> S<sub>t+dt</sub> = S<sub>t</sub> exp[(<span class="gold">&mu;</span> &minus; &sigma;&sup2;/2)dt + <span class="cyan">&sigma;</span>&radic;dt &middot; Z]
+            </div>
+        </div>
+        <div class="insight-box" id="modelInsight">
+            Each glowing path is one realisation of the stochastic process — one complete sequence of random shocks over the time horizon. The spread of paths at any future date is the <strong>distribution of outcomes</strong>. It widens as √t (not linearly), so uncertainty compounds with time. Run many paths and the envelope of outcomes becomes the confidence interval that risk managers use to set VaR and Expected Shortfall limits.
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         SECTION 2: Terminal Distribution — The Histogram
+    ══════════════════════════════════════════════════════════════ -->
+    <h2>2. Terminal Distribution &mdash; Where Do All the Paths End?</h2>
+    <div class="panel">
+        <h3>Histogram of Final Prices Across 10,000 Simulations</h3>
+        <canvas id="histCanvas" width="700" height="320"></canvas>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn fire" id="btnRunHist">&#9654; Run 10,000 Sims</button>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="histStats">
+                <div class="stat-box"><div class="stat-label">Status</div><div class="stat-val" style="color:#606078">Press Run</div></div>
+            </div>
+        </div>
+        <div class="grid-legend" id="histLegend"></div>
+        <div class="insight-box">
+            Under GBM, stock prices at a future date follow a <strong>log-normal distribution</strong> — their logarithm is normally distributed. This is the source of the asymmetric shape: prices cannot go below zero, so the distribution has a long right tail. The red VaR line shows the 5th percentile — 95% of simulations end above this point. The Expected Shortfall (CVaR) is the average of the worst 5% — it captures the severity of tail losses, not just their probability. Both are central metrics in Basel III market risk regulation.
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         SECTION 3: Option Pricing by Monte Carlo
+    ══════════════════════════════════════════════════════════════ -->
+    <h2>3. Pricing Options by Monte Carlo &mdash; Brute Force That Works</h2>
+    <div class="panel">
+        <h3>Watch the Estimate Converge as More Paths Are Added</h3>
+        <canvas id="convCanvas" width="700" height="320"></canvas>
+        <div class="slider-row" style="margin-top:12px">
+            <label>Strike K:</label>
+            <input type="range" id="sK" min="80" max="120" value="100" step="1">
+            <span class="slider-val" id="vK">£100</span>
+        </div>
+        <div class="slider-row">
+            <label>Option vol &sigma;:</label>
+            <input type="range" id="sOptSig" min="5" max="60" value="20" step="1">
+            <span class="slider-val" id="vOptSig">20%</span>
+        </div>
+        <div class="slider-row">
+            <label>Time T (months):</label>
+            <input type="range" id="sOptT" min="1" max="24" value="6" step="1">
+            <span class="slider-val" id="vOptT">6 mo</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn fire" id="btnRunConv">&#9654; Run Convergence</button>
+            <button class="btn active" id="btnEuropean">European Call</button>
+            <button class="btn" id="btnAsian">Asian Call</button>
+            <button class="btn" id="btnBarrier">Barrier Call</button>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="convStats">
+                <div class="stat-box"><div class="stat-label">Status</div><div class="stat-val" style="color:#606078">Press Run</div></div>
+            </div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">C<sub>MC</sub></span> = e<sup>&minus;rT</sup> &times; (1/N) &times; &Sigma;<sub>i=1</sub><sup>N</sup> max(S<sub>T</sub><sup>(i)</sup> &minus; K, 0) &nbsp;&nbsp;&nbsp; <span class="muted">Error &sim; 1/&radic;N</span></div>
+            <div class="math-line" id="exoticFormula" style="display:none"></div>
+        </div>
+        <div class="insight-box" id="optionInsight">
+            <strong>Convergence rate:</strong> Monte Carlo error falls as 1/√N — doubling precision requires 4× more paths. The error bands narrow visibly as N grows. For a European call, Black-Scholes gives the exact answer in milliseconds; Monte Carlo takes thousands of paths to match it. But for exotic options — Asian, barrier, lookback, basket — no closed-form exists. Monte Carlo is the only general-purpose tool, which is why it is ubiquitous in structured products pricing and XVA calculations.
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         SECTION 4: Variance Reduction — Working Smarter
+    ══════════════════════════════════════════════════════════════ -->
+    <h2>4. Variance Reduction &mdash; Getting More Precision from Fewer Paths</h2>
+    <div class="panel">
+        <h3>Antithetic Variates &amp; Control Variates &mdash; The Same Budget, 10&times; Better</h3>
+        <canvas id="vrCanvas" width="700" height="320"></canvas>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn fire" id="btnRunVR">&#9654; Compare Methods</button>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="vrStats">
+                <div class="stat-box"><div class="stat-label">Status</div><div class="stat-val" style="color:#606078">Press Run</div></div>
+            </div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="cyan">Antithetic:</span> &nbsp;For each Z &sim; N(0,1), use both Z and &minus;Z &nbsp;&nbsp; &rArr; &nbsp; Estimate = &frac12;[f(Z) + f(&minus;Z)]</div>
+            <div class="math-line"><span class="gold">Control variate:</span> &nbsp;C<sub>adj</sub> = C<sub>raw</sub> &minus; &beta;(C<sub>control</sub> &minus; E[C<sub>control</sub>]) &nbsp;&nbsp; where &beta; = Cov(C,C<sub>ctrl</sub>)/Var(C<sub>ctrl</sub>)</div>
+        </div>
+        <div class="insight-box">
+            <strong style="color:#22d3ee">Antithetic variates</strong> — for every random path, simulate its mirror image (negated random numbers). The two estimates are negatively correlated, so averaging them cancels much of the variance. It costs nothing extra per path. Variance is typically halved, equivalent to doubling the number of paths free of charge.
+            <br><br>
+            <strong style="color:#fbbf24">Control variates</strong> — use a related instrument whose true price you know (e.g. a European option priced by Black-Scholes) to adjust your estimate. The raw MC error in the control is used to correct the error in the target. In practice, variance reductions of 10×–100× are achievable for instruments that are close to a known benchmark.
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         SECTION 5: VaR & Expected Shortfall
+    ══════════════════════════════════════════════════════════════ -->
+    <h2>5. VaR &amp; ES via Monte Carlo Simulation</h2>
+    <div class="panel">
+        <h3>Portfolio Loss Distribution — Full View</h3>
+        <canvas id="varCanvas" width="700" height="320"></canvas>
+        <div class="slider-row" style="margin-top:12px">
+            <label>Confidence level:</label>
+            <input type="range" id="sConf" min="90" max="99" value="95" step="1">
+            <span class="slider-val" id="vConf">95%</span>
+        </div>
+        <div class="slider-row">
+            <label>Portfolio vol &sigma;<sub>P</sub>:</label>
+            <input type="range" id="sPortSig" min="5" max="40" value="15" step="1">
+            <span class="slider-val" id="vPortSig">15%</span>
+        </div>
+        <div class="slider-row">
+            <label>Crash intensity (jump prob):</label>
+            <input type="range" id="sSkew" min="0" max="10" value="0" step="1">
+            <span class="slider-val" id="vSkew">0</span>
+        </div>
+        <div class="slider-row">
+            <label>Excess kurtosis (fat tails):</label>
+            <input type="range" id="sKurt" min="0" max="10" value="0" step="1">
+            <span class="slider-val" id="vKurt">0</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn fire" id="btnRunVaR">&#9654; Simulate Portfolio</button>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="varStats">
+                <div class="stat-box"><div class="stat-label">Status</div><div class="stat-val" style="color:#606078">Press Run</div></div>
+            </div>
+        </div>
+
+        <h3 style="margin-top:20px">Tail Zoom — Shape of the Loss Tail (right of VaR)</h3>
+        <canvas id="tailCanvas" width="700" height="220"></canvas>
+
+        <div class="formula-block" style="margin-top:12px">
+            <div class="math-line"><span class="red">VaR<sub>&alpha;</sub></span> = &minus;inf{x : P(L &le; x) &ge; &alpha;} &nbsp;&nbsp;&mdash;&nbsp;&nbsp; <span class="muted">the (&alpha;)th quantile of the loss distribution</span></div>
+            <div class="math-line"><span class="pink">ES<sub>&alpha;</sub></span> = E[L | L &ge; VaR<sub>&alpha;</sub>] &nbsp;&nbsp;&mdash;&nbsp;&nbsp; <span class="muted">expected loss given you are in the tail</span></div>
+        </div>
+        <div class="warn-box">
+            <strong style="color:#fbbf24">Monte Carlo vs Historical Simulation:</strong> This page uses Monte Carlo simulation — random draws from a parametric model. In practice, most banks use <strong>Historical Simulation (HS)</strong> instead: replay the actual daily P&amp;L from the past 250–500 trading days, and read VaR as the 5th percentile of that historical distribution. HS makes no distributional assumption and automatically captures skew, kurtosis, and correlation structure observed in real markets. Its weakness is that it is backward-looking and underestimates risk in regimes not seen in the lookback window (e.g. the first weeks of COVID-19). The crash intensity and excess kurtosis sliders here approximate what HS would show for a portfolio with non-normal returns.
+        </div>
+        <div class="insight-box">
+            <strong style="color:#f87171">VaR</strong> answers: how bad can it get, with confidence &alpha;? It is a threshold — a single number. But it is blind to losses <em>beyond</em> that threshold. A portfolio with VaR = £10m might typically lose £11m in tail events, or £100m. VaR cannot distinguish between these. Set crash intensity to 0 and observe the near-normal distribution. Increase it one step at a time and watch the tail thicken visibly in both canvases.
+            <br><br>
+            <strong style="color:#f472b6">Expected Shortfall (CVaR)</strong> fixes this: it is the average loss <em>given</em> you are in the worst (1&minus;&alpha;)% of outcomes. ES is always &ge; VaR, and the ES/VaR ratio rises sharply as crash intensity increases — exactly the non-linearity that Basel III&rsquo;s move to ES was designed to capture. The tail zoom canvas shows the envelope of the loss tail directly.
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         SECTION 6: 3D — Paths × Distribution Surface
+    ══════════════════════════════════════════════════════════════ -->
+    <h2>6. 3D Distribution Surface &mdash; How the Return Distribution Evolves Through Time</h2>
+    <div class="panel">
+        <h3>The Distribution of Returns at Every Point in Time &mdash; Drag to Rotate</h3>
+        <div style="position:relative;cursor:grab;user-select:none" id="mc3dWrap">
+            <canvas id="mc3d" width="700" height="440" style="border-radius:12px;border:1px solid rgba(255,255,255,0.05)"></canvas>
+            <div style="position:absolute;top:10px;left:14px;font-size:0.78em;color:#505068;font-family:'Courier New',monospace">f(price, time)</div>
+            <div style="position:absolute;bottom:10px;right:14px;font-size:0.75em;color:#404058">drag to rotate · scroll to zoom</div>
+        </div>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn fire" id="btnRun3D">&#9654; Generate Surface</button>
+            <button class="btn active" id="btn3dNormal">GBM (log-normal)</button>
+            <button class="btn" id="btn3dFat">Fat-tailed</button>
+        </div>
+        <div class="insight-box">
+            The surface shows the probability density of prices at each point in time. At t=0 it is a spike at the starting price. It immediately fans out into a skewed bell-curve shape that widens as √t. Reading the surface from above gives the familiar log-normal density. Reading across time reveals how the distribution's mean grows (the drift term) while the variance expands. The long right tail and truncated left tail is log-normality — prices cannot go below zero. Switch to fat-tailed to see how crash risk adds a heavy left shoulder that log-normal misses.
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         SECTION 7: Why This Matters
+    ══════════════════════════════════════════════════════════════ -->
+    <h2>7. Why This Matters</h2>
+    <div class="explain">
+        <div class="explain-name">The Engine of Modern Finance</div>
+        <div class="explain-text">
+            Monte Carlo simulation is perhaps the most versatile and widely-used tool in quantitative finance. It is not an approximation used when better methods are unavailable — for a large class of problems, it is the <em>only</em> method that works.
+            <br><br>
+            <strong style="color:#e0e0e0">Where Monte Carlo dominates:</strong> Pricing path-dependent options (Asian, barrier, lookback) where the payoff depends on the entire trajectory, not just the final price. Computing XVA (CVA, DVA, FVA) where exposure profiles over many future dates must be simulated. Running stress tests across large portfolios where analytical solutions do not exist. Computing counterparty credit risk exposure for derivatives portfolios with thousands of trades and netting sets.
+            <br><br>
+            <strong style="color:#e0e0e0">The central challenge is variance:</strong> The error of a Monte Carlo estimator falls as 1/√N. To cut the error by 10, you need 100× more paths. This is why variance reduction techniques — antithetic variates, control variates, importance sampling, quasi-random sequences — are so important in practice. A well-designed estimator can achieve the precision of 100,000 paths with just 1,000, by working with the structure of the problem.
+            <br><br>
+            <strong style="color:#e0e0e0">The regulatory dimension:</strong> Basel III requires banks to hold capital against Expected Shortfall at 97.5% confidence (equivalent to VaR at 99%) using a 10-day holding period. Internal models must be back-tested: if the model predicts losses exceeding VaR more than 4 times in 250 trading days, the bank faces a capital surcharge. The entire internal models framework rests on Monte Carlo simulation.
+            <br><br>
+            For the student of mathematics, Monte Carlo is also a profound theoretical lesson: the Law of Large Numbers guarantees convergence, the Central Limit Theorem quantifies the rate, and every variance reduction technique is an application of deeper mathematical structure. The simulation on this page runs the same fundamental algorithm as the risk engines inside the world's largest banks.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   Monte Carlo Simulation in Finance — Chapter 11
+   All sections: GBM paths, terminal dist, option convergence,
+   variance reduction, VaR/ES, 3D distribution surface
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Seeded RNG (Mulberry32) for reproducibility per run ── */
+function makeRng(seed) {
+    var s = seed >>> 0;
+    return function() {
+        s += 0x6D2B79F5;
+        var t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) >>> 0;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+/* ── Box-Muller using supplied rng ── */
+function randnPair(rng) {
+    var u = rng(), v = rng();
+    var mag = Math.sqrt(-2 * Math.log(Math.max(u, 1e-12)));
+    return [mag * Math.cos(2 * Math.PI * v), mag * Math.sin(2 * Math.PI * v)];
+}
+
+/* ── Black-Scholes for benchmarking ── */
+function normCDF(x) {
+    var a = [0.319381530, -0.356563782, 1.781477937, -1.821255978, 1.330274429];
+    var k = 1 / (1 + 0.2316419 * Math.abs(x));
+    var p = k * (a[0] + k * (a[1] + k * (a[2] + k * (a[3] + k * a[4]))));
+    var r = 1 - (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-x * x / 2) * p;
+    return x < 0 ? 1 - r : r;
+}
+function bsCall(S, K, r, sig, T) {
+    if (T <= 0) return Math.max(S - K, 0);
+    var d1 = (Math.log(S / K) + (r + 0.5 * sig * sig) * T) / (sig * Math.sqrt(T));
+    var d2 = d1 - sig * Math.sqrt(T);
+    return S * normCDF(d1) - K * Math.exp(-r * T) * normCDF(d2);
+}
+
+/* ── Read global sliders ── */
+function getGlobal() {
+    var mu = parseInt(document.getElementById('sMu').value) / 100;
+    var sig = parseInt(document.getElementById('sSigma').value) / 100;
+    var horizon = parseInt(document.getElementById('sHorizon').value);
+    var nLvl = parseInt(document.getElementById('sNPaths').value);
+    var nPaths = [20, 50, 100, 200, 500][nLvl - 1];
+    document.getElementById('vMu').textContent = (mu * 100).toFixed(0) + '%';
+    document.getElementById('vSigma').textContent = (sig * 100).toFixed(0) + '%';
+    document.getElementById('vHorizon').textContent = horizon + ' yr';
+    document.getElementById('vNPaths').textContent = nPaths;
+    return { mu, sig, horizon, nPaths };
+}
+
+/* ══════════════════════════════════════════════════════════
+   Canvas utility helpers
+══════════════════════════════════════════════════════════ */
+function clearCanvas(cvs, ctx) {
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+    ctx.fillStyle = '#04040f'; ctx.fillRect(0, 0, cvs.width, cvs.height);
+}
+
+function axesGrid(ctx, W, H, PAD, xMin, xMax, yMin, yMax, xFmt, yFmt) {
+    var plotW = W - PAD.l - PAD.r, plotH = H - PAD.t - PAD.b;
+    function tx(x) { return PAD.l + (x - xMin) / (xMax - xMin) * plotW; }
+    function ty(y) { return PAD.t + plotH - (y - yMin) / (yMax - yMin) * plotH; }
+    ctx.strokeStyle = 'rgba(255,255,255,0.035)'; ctx.lineWidth = 1;
+    for (var i = 0; i <= 5; i++) {
+        var yv = yMin + i / 5 * (yMax - yMin);
+        ctx.beginPath(); ctx.moveTo(PAD.l, ty(yv)); ctx.lineTo(W - PAD.r, ty(yv)); ctx.stroke();
+        ctx.fillStyle = '#404058'; ctx.font = '10px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText(yFmt(yv), PAD.l - 5, ty(yv));
+    }
+    for (var i = 0; i <= 5; i++) {
+        var xv = xMin + i / 5 * (xMax - xMin);
+        ctx.beginPath(); ctx.moveTo(tx(xv), PAD.t); ctx.lineTo(tx(xv), H - PAD.b); ctx.stroke();
+        ctx.fillStyle = '#404058'; ctx.font = '10px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(xFmt(xv), tx(xv), H - PAD.b + 8);
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(PAD.l, PAD.t); ctx.lineTo(PAD.l, H - PAD.b); ctx.lineTo(W - PAD.r, H - PAD.b); ctx.stroke();
+    return { tx, ty };
+}
+
+/* ══════════════════════════════════════════════════════════
+   SECTION 1: Path canvas — vibrant glowing trails
+══════════════════════════════════════════════════════════ */
+var pathCvs = document.getElementById('pathCanvas');
+var pathCtx = pathCvs.getContext('2d');
+var pathModel = 'gbm';
+var pathRunning = false;
+
+/* Colour palettes per model — saturated, glowing */
+var PATH_PALETTES = {
+    gbm:   ['#10b981','#22d3ee','#a78bfa','#f472b6','#fbbf24','#34d399','#60a5fa','#e879f9','#f87171','#38bdf8'],
+    jump:  ['#f87171','#fb923c','#fbbf24','#f472b6','#e879f9','#ff6b6b','#ffd93d','#c77dff','#ff9a3c','#ffb347'],
+    heston:['#22d3ee','#38bdf8','#60a5fa','#818cf8','#a78bfa','#c084fc','#e879f9','#34d399','#4ade80','#06b6d4'],
+};
+
+var MODEL_FORMULAS = {
+    gbm:    '<span class="green">dS</span> = <span class="gold">μ</span>S dt + <span class="cyan">σ</span>S dW',
+    jump:   '<span class="red">dS/S</span> = <span class="gold">μ</span>dt + <span class="cyan">σ</span>dW + <span class="pink">J</span>dN &nbsp; J~lognormal, N~Poisson(λ)',
+    heston: '<span class="cyan">dS/S</span> = <span class="gold">μ</span>dt + √v dW<sub>S</sub> &nbsp;&nbsp; <span class="purple">dv</span> = κ(θ−v)dt + ξ√v dW<sub>v</sub>',
+};
+
+var MODEL_INSIGHTS = {
+    gbm: 'Under GBM the paths spread symmetrically on a log scale, with the cone widening as √t. The drift pulls the median upward while volatility fans the paths. This is the foundational model — realistic for short horizons, but blind to jumps and volatility clustering.',
+    jump: '<strong style="color:#f87171">Jump diffusion (Merton 1976):</strong> Sudden crashes appear as discontinuous drops in individual paths — rare but large. The red/orange palette evokes the danger. These jumps produce the fat tails and negative skew missing from GBM. Adjust λ (jump frequency) and mean jump size to see how crash risk changes the path ensemble.',
+    heston: '<strong style="color:#22d3ee">Heston stochastic volatility (1993):</strong> Volatility itself is random and mean-reverting. Paths "breathe" — calm clusters followed by volatile bursts. This produces the volatility smile that Black-Scholes cannot explain. The vol-of-vol (ξ) controls how wildly volatility moves; mean reversion (κ) pulls it back toward θ.',
+};
+
+function generateGBMPath(S0, mu, sig, T, steps, rng) {
+    var dt = T / steps, path = [S0];
+    for (var i = 0; i < steps; i++) {
+        var z = randnPair(rng)[0];
+        var S = path[path.length - 1];
+        path.push(S * Math.exp((mu - 0.5 * sig * sig) * dt + sig * Math.sqrt(dt) * z));
+    }
+    return path;
+}
+
+function generateJumpPath(S0, mu, sig, T, steps, lambda, jumpMu, rng) {
+    var dt = T / steps, path = [S0];
+    var jumpSig = 0.15;
+    for (var i = 0; i < steps; i++) {
+        var zn = randnPair(rng);
+        var S = path[path.length - 1];
+        var diffusion = (mu - 0.5 * sig * sig) * dt + sig * Math.sqrt(dt) * zn[0];
+        var nJumps = 0;
+        var u = rng();
+        var prob = lambda * dt;
+        if (u < prob) nJumps = 1;
+        var jumpReturn = 0;
+        if (nJumps > 0) {
+            var jz = randnPair(rng)[0];
+            jumpReturn = jumpMu + jumpSig * jz;
+        }
+        path.push(S * Math.exp(diffusion + jumpReturn));
+    }
+    return path;
+}
+
+function generateHestonPath(S0, mu, T, steps, v0, kappa, theta, xi, rho, rng) {
+    var dt = T / steps, path = [S0], v = v0;
+    for (var i = 0; i < steps; i++) {
+        var zs = randnPair(rng);
+        var zv = randnPair(rng);
+        var wS = zs[0];
+        var wV = rho * zs[0] + Math.sqrt(1 - rho * rho) * zv[0];
+        v = Math.max(0, v + kappa * (theta - v) * dt + xi * Math.sqrt(Math.max(v, 0) * dt) * wV);
+        var S = path[path.length - 1];
+        path.push(S * Math.exp((mu - 0.5 * v) * dt + Math.sqrt(Math.max(v, 0) * dt) * wS));
+    }
+    return path;
+}
+
+function drawPaths() {
+    var g = getGlobal();
+    var S0 = 100, steps = 252 * g.horizon;
+    var rng = makeRng(Date.now() & 0xFFFFFFFF);
+    var lambda = parseInt(document.getElementById('sLambda').value);
+    var jumpMu = parseInt(document.getElementById('sJumpMu').value) / 100;
+    var volVol = parseInt(document.getElementById('sVolVol').value) / 100;
+    var kappa = parseInt(document.getElementById('sKappa').value);
+    document.getElementById('vLambda').textContent = lambda + ' /yr';
+    document.getElementById('vJumpMu').textContent = (jumpMu * 100).toFixed(0) + '%';
+    document.getElementById('vVolVol').textContent = (volVol * 100).toFixed(0) + '%';
+    document.getElementById('vKappa').textContent = kappa;
+
+    var paths = [];
+    for (var p = 0; p < g.nPaths; p++) {
+        var path;
+        if (pathModel === 'jump') {
+            path = generateJumpPath(S0, g.mu, g.sig, g.horizon, steps, lambda, jumpMu, rng);
+        } else if (pathModel === 'heston') {
+            var theta = g.sig * g.sig;
+            path = generateHestonPath(S0, g.mu, g.horizon, steps, theta, kappa, theta, volVol, -0.65, rng);
+        } else {
+            path = generateGBMPath(S0, g.mu, g.sig, g.horizon, steps, rng);
+        }
+        paths.push(path);
+    }
+
+    /* Find y range */
+    var allPrices = paths.flat();
+    var yMin = Math.max(0, Math.min.apply(null, allPrices) * 0.92);
+    var yMax = Math.max.apply(null, allPrices) * 1.08;
+
+    var W = pathCvs.width, H = pathCvs.height;
+    var PAD = { l: 65, r: 20, t: 28, b: 46 };
+    var plotW = W - PAD.l - PAD.r, plotH = H - PAD.t - PAD.b;
+
+    function tx(i) { return PAD.l + (i / steps) * plotW; }
+    function ty(y) { return PAD.t + plotH - ((y - yMin) / (yMax - yMin)) * plotH; }
+
+    clearCanvas(pathCvs, pathCtx);
+
+    /* Subtle radial glow background */
+    var grd = pathCtx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W*0.7);
+    grd.addColorStop(0, 'rgba(16,185,129,0.025)');
+    grd.addColorStop(1, 'rgba(4,4,15,0)');
+    pathCtx.fillStyle = grd; pathCtx.fillRect(0, 0, W, H);
+
+    /* Grid */
+    axesGrid(pathCtx, W, H, PAD, 0, g.horizon, yMin, yMax,
+        function(x) { return x.toFixed(1) + 'y'; },
+        function(y) { return '£' + y.toFixed(0); });
+
+    /* Draw paths with glow */
+    var palette = PATH_PALETTES[pathModel];
+    var alpha = g.nPaths > 100 ? 0.28 : g.nPaths > 50 ? 0.45 : 0.7;
+    var lw = g.nPaths > 100 ? 0.6 : g.nPaths > 50 ? 0.9 : 1.2;
+
+    paths.forEach(function(path, pi) {
+        var col = palette[pi % palette.length];
+        pathCtx.strokeStyle = col;
+        pathCtx.lineWidth = lw;
+        pathCtx.globalAlpha = alpha;
+        pathCtx.shadowBlur = g.nPaths <= 50 ? 4 : 2;
+        pathCtx.shadowColor = col;
+        pathCtx.beginPath();
+        var skip = Math.max(1, Math.floor(steps / 500));
+        for (var i = 0; i < path.length; i += skip) {
+            var px = tx(i), py = ty(path[i]);
+            if (i === 0) pathCtx.moveTo(px, py); else pathCtx.lineTo(px, py);
+        }
+        pathCtx.stroke();
+    });
+    pathCtx.globalAlpha = 1; pathCtx.shadowBlur = 0;
+
+    /* Median and percentile bands */
+    var medians = [], p5 = [], p95 = [];
+    var samplePts = Math.min(50, steps);
+    for (var t = 0; t <= samplePts; t++) {
+        var idx = Math.round(t / samplePts * steps);
+        var vals = paths.map(function(p) { return p[idx]; }).sort(function(a, b) { return a - b; });
+        var mid = Math.floor(vals.length / 2);
+        medians.push({ t: idx, v: vals[mid] });
+        p5.push({ t: idx, v: vals[Math.floor(vals.length * 0.05)] });
+        p95.push({ t: idx, v: vals[Math.floor(vals.length * 0.95)] });
+    }
+
+    /* 90% band shading */
+    if (g.nPaths >= 50) {
+        pathCtx.globalAlpha = 0.06;
+        pathCtx.fillStyle = palette[0];
+        pathCtx.beginPath();
+        p95.forEach(function(pt, i) { if (i === 0) pathCtx.moveTo(tx(pt.t), ty(pt.v)); else pathCtx.lineTo(tx(pt.t), ty(pt.v)); });
+        for (var i = p5.length - 1; i >= 0; i--) pathCtx.lineTo(tx(p5[i].t), ty(p5[i].v));
+        pathCtx.closePath(); pathCtx.fill();
+        pathCtx.globalAlpha = 1;
+    }
+
+    /* Median line */
+    pathCtx.strokeStyle = 'rgba(255,255,255,0.6)'; pathCtx.lineWidth = 1.5; pathCtx.setLineDash([5, 4]);
+    pathCtx.beginPath();
+    medians.forEach(function(pt, i) { if (i === 0) pathCtx.moveTo(tx(pt.t), ty(pt.v)); else pathCtx.lineTo(tx(pt.t), ty(pt.v)); });
+    pathCtx.stroke(); pathCtx.setLineDash([]);
+
+    /* S0 horizontal */
+    pathCtx.strokeStyle = 'rgba(255,255,255,0.1)'; pathCtx.lineWidth = 1;
+    pathCtx.beginPath(); pathCtx.moveTo(PAD.l, ty(S0)); pathCtx.lineTo(W - PAD.r, ty(S0)); pathCtx.stroke();
+
+    /* Stats */
+    var finalPrices = paths.map(function(p) { return p[p.length - 1]; });
+    finalPrices.sort(function(a, b) { return a - b; });
+    var mean = finalPrices.reduce(function(s, v) { return s + v; }, 0) / finalPrices.length;
+    var var5 = finalPrices[Math.floor(finalPrices.length * 0.05)];
+    var prob_above = finalPrices.filter(function(v) { return v > S0; }).length / finalPrices.length;
+    document.getElementById('pathStats').innerHTML =
+        '<div class="stat-box"><div class="stat-label">Paths</div><div class="stat-val" style="color:#10b981">' + g.nPaths + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">Mean final</div><div class="stat-val">£' + mean.toFixed(1) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">5th pct final</div><div class="stat-val" style="color:#f87171">£' + var5.toFixed(1) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">P(S>S₀)</div><div class="stat-val" style="color:#fbbf24">' + (prob_above * 100).toFixed(0) + '%</div></div>' +
+        '<div class="stat-box"><div class="stat-label">Model</div><div class="stat-val">' + pathModel.toUpperCase() + '</div></div>';
+
+    document.getElementById('modelInsight').textContent = MODEL_INSIGHTS[pathModel];
+}
+
+document.getElementById('btnRunPaths').addEventListener('click', drawPaths);
+document.getElementById('btnClearPaths').addEventListener('click', function() {
+    clearCanvas(pathCvs, pathCtx);
+    document.getElementById('pathStats').innerHTML = '<div class="stat-box"><div class="stat-label">Status</div><div class="stat-val" style="color:#606078">Cleared</div></div>';
+});
+
+['btnGBM','btnJump','btnHeston'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function() {
+        ['btnGBM','btnJump','btnHeston'].forEach(function(b) { document.getElementById(b).classList.remove('active'); });
+        this.classList.add('active');
+        pathModel = { btnGBM:'gbm', btnJump:'jump', btnHeston:'heston' }[id];
+        document.getElementById('jumpControls').style.display = pathModel === 'jump' ? '' : 'none';
+        document.getElementById('hestonControls').style.display = pathModel === 'heston' ? '' : 'none';
+        document.getElementById('modelFormula').innerHTML = MODEL_FORMULAS[pathModel];
+        document.getElementById('modelInsight').textContent = MODEL_INSIGHTS[pathModel];
+    });
+});
+
+/* ══════════════════════════════════════════════════════════
+   SECTION 2: Terminal Distribution Histogram
+══════════════════════════════════════════════════════════ */
+var histCvs = document.getElementById('histCanvas');
+var histCtx = histCvs.getContext('2d');
+
+function runHistogram() {
+    var g = getGlobal();
+    var S0 = 100, N = 10000, steps = 63; // quarterly steps
+    var rng = makeRng(Date.now() & 0xFFFFFFFF);
+    var finals = [];
+    for (var i = 0; i < N; i++) {
+        var S = S0;
+        for (var t = 0; t < steps; t++) {
+            var z = randnPair(rng)[0];
+            S *= Math.exp((g.mu - 0.5 * g.sig * g.sig) * (g.horizon / steps) + g.sig * Math.sqrt(g.horizon / steps) * z);
+        }
+        finals.push(S);
+    }
+    finals.sort(function(a, b) { return a - b; });
+
+    var pMin = finals[0] * 0.95, pMax = finals[finals.length - 1] * 1.02;
+    var nBins = 80;
+    var binW = (pMax - pMin) / nBins;
+    var bins = new Array(nBins).fill(0);
+    finals.forEach(function(v) {
+        var bi = Math.floor((v - pMin) / binW);
+        if (bi >= 0 && bi < nBins) bins[bi]++;
+    });
+
+    var maxBin = Math.max.apply(null, bins);
+    var conf = parseInt(document.getElementById('sConf') ? document.getElementById('sConf').value : '95');
+    var varIdx = Math.floor(N * 0.05);
+    var esIdx = Math.floor(N * 0.05);
+    var VaR = S0 - finals[varIdx];
+    var ES = S0 - finals.slice(0, esIdx).reduce(function(s, v) { return s + v; }, 0) / esIdx;
+    var mean = finals.reduce(function(s, v) { return s + v; }, 0) / N;
+    var varPrice = finals[varIdx];
+
+    var W = histCvs.width, H = histCvs.height;
+    var PAD = { l: 65, r: 20, t: 28, b: 46 };
+    var plotW = W - PAD.l - PAD.r, plotH = H - PAD.t - PAD.b;
+    function tx(p) { return PAD.l + ((p - pMin) / (pMax - pMin)) * plotW; }
+    function ty(c) { return PAD.t + plotH - (c / maxBin) * plotH; }
+
+    clearCanvas(histCvs, histCtx);
+    axesGrid(histCtx, W, H, PAD, pMin, pMax, 0, maxBin,
+        function(x) { return '£' + x.toFixed(0); },
+        function(y) { return (y / N * 100).toFixed(0) + '%'; });
+
+    /* Draw histogram bars with gradient glow */
+    var bw = Math.max(1, plotW / nBins - 0.5);
+    bins.forEach(function(count, i) {
+        if (count === 0) return;
+        var x = tx(pMin + i * binW);
+        var bh = (count / maxBin) * plotH;
+        var price = pMin + (i + 0.5) * binW;
+        var isLoss = price < varPrice;
+        var frac = (price - pMin) / (pMax - pMin);
+
+        if (isLoss) {
+            histCtx.fillStyle = 'rgba(248,113,113,' + (0.4 + 0.5 * count / maxBin) + ')';
+            histCtx.shadowColor = '#f87171'; histCtx.shadowBlur = 6;
+        } else {
+            var r = Math.round(16 + frac * 235);
+            var gv = Math.round(185 * frac);
+            var b = Math.round(129 * (1 - frac * 0.6));
+            histCtx.fillStyle = 'rgba(' + r + ',' + gv + ',' + b + ',' + (0.4 + 0.5 * count / maxBin) + ')';
+            histCtx.shadowColor = 'rgba(' + r + ',' + gv + ',' + b + ',0.5)';
+            histCtx.shadowBlur = 3;
+        }
+        histCtx.fillRect(x, ty(count), bw, bh);
+    });
+    histCtx.shadowBlur = 0;
+
+    /* VaR line */
+    histCtx.strokeStyle = '#f87171'; histCtx.lineWidth = 2;
+    histCtx.setLineDash([5, 4]);
+    histCtx.beginPath(); histCtx.moveTo(tx(varPrice), PAD.t); histCtx.lineTo(tx(varPrice), H - PAD.b); histCtx.stroke();
+    histCtx.setLineDash([]);
+    histCtx.fillStyle = '#f87171'; histCtx.font = 'bold 10px Georgia'; histCtx.textAlign = 'center';
+    histCtx.fillText('VaR 95%', tx(varPrice), PAD.t + 14);
+
+    /* Mean line */
+    histCtx.strokeStyle = '#fbbf24'; histCtx.lineWidth = 1.5;
+    histCtx.setLineDash([4, 4]);
+    histCtx.beginPath(); histCtx.moveTo(tx(mean), PAD.t); histCtx.lineTo(tx(mean), H - PAD.b); histCtx.stroke();
+    histCtx.setLineDash([]);
+    histCtx.fillStyle = '#fbbf24'; histCtx.fillText('Mean', tx(mean), PAD.t + 14);
+
+    /* S0 line */
+    histCtx.strokeStyle = 'rgba(255,255,255,0.2)'; histCtx.lineWidth = 1; histCtx.setLineDash([3, 5]);
+    histCtx.beginPath(); histCtx.moveTo(tx(S0), PAD.t); histCtx.lineTo(tx(S0), H - PAD.b); histCtx.stroke();
+    histCtx.setLineDash([]);
+
+    /* Lognormal overlay */
+    var logMean = Math.log(S0) + (g.mu - 0.5 * g.sig * g.sig) * g.horizon;
+    var logSig = g.sig * Math.sqrt(g.horizon);
+    histCtx.strokeStyle = 'rgba(167,139,250,0.7)'; histCtx.lineWidth = 2;
+    histCtx.beginPath();
+    var drawn = false;
+    for (var i = 0; i <= 300; i++) {
+        var p = pMin + i / 300 * (pMax - pMin);
+        if (p <= 0) continue;
+        var lpdf = (1 / (p * logSig * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((Math.log(p) - logMean) / logSig, 2));
+        var pdfCount = lpdf * binW * N;
+        var px = tx(p), py = ty(pdfCount);
+        if (!drawn) { histCtx.moveTo(px, py); drawn = true; } else histCtx.lineTo(px, py);
+    }
+    histCtx.stroke();
+
+    document.getElementById('histStats').innerHTML =
+        '<div class="stat-box"><div class="stat-label">Simulations</div><div class="stat-val" style="color:#10b981">10,000</div></div>' +
+        '<div class="stat-box"><div class="stat-label">Mean S(T)</div><div class="stat-val" style="color:#fbbf24">£' + mean.toFixed(1) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">VaR 95%</div><div class="stat-val" style="color:#f87171">£' + VaR.toFixed(1) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">ES 95%</div><div class="stat-val" style="color:#f472b6">£' + ES.toFixed(1) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">P(profit)</div><div class="stat-val">' + (finals.filter(function(v){return v>S0;}).length/N*100).toFixed(0) + '%</div></div>';
+
+    document.getElementById('histLegend').innerHTML =
+        '<div class="legend-item"><div class="legend-swatch" style="background:#f87171"></div><span style="color:#f87171">Loss tail (below VaR)</span></div>' +
+        '<div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Profit region</span></div>' +
+        '<div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Log-normal theoretical</span></div>';
+}
+
+document.getElementById('btnRunHist').addEventListener('click', runHistogram);
+
+/* ══════════════════════════════════════════════════════════
+   SECTION 3: Option Convergence
+══════════════════════════════════════════════════════════ */
+var convCvs = document.getElementById('convCanvas');
+var convCtx = convCvs.getContext('2d');
+var optionType = 'european';
+
+['btnEuropean','btnAsian','btnBarrier'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function() {
+        ['btnEuropean','btnAsian','btnBarrier'].forEach(function(b){document.getElementById(b).classList.remove('active');});
+        this.classList.add('active');
+        optionType = {btnEuropean:'european',btnAsian:'asian',btnBarrier:'barrier'}[id];
+        var formulae = {
+            european: '',
+            asian: '<span class="gold">Asian:</span> payoff = max(S̄ − K, 0) &nbsp; where S̄ = arithmetic average of path',
+            barrier: '<span class="pink">Barrier:</span> payoff = max(S<sub>T</sub> − K, 0) &times; 1[max(S<sub>t</sub>) < B] &nbsp; (knock-out at B = 130)'
+        };
+        var el = document.getElementById('exoticFormula');
+        el.innerHTML = formulae[optionType];
+        el.style.display = optionType === 'european' ? 'none' : '';
+        var insightMap = {
+            european: 'Monte Carlo converges to the exact Black-Scholes price (dashed line). Error ∝ 1/√N — observe how the confidence band narrows. For this simple instrument MC adds complexity with no benefit over the closed-form formula.',
+            asian: 'No closed form exists for the arithmetic Asian option — Monte Carlo is required. The average path price reduces vol compared to the terminal price, making Asian options cheaper than European. Used in commodity markets where price manipulation at a single date is a concern.',
+            barrier: 'Knock-out barriers make pricing path-dependent — the entire trajectory matters, not just the terminal value. If the stock hits £130 at any point, the option expires worthless. Monte Carlo handles this naturally by checking each step. The discrete monitoring bias is visible: with daily steps, simulated barrier prices differ slightly from theoretical continuous-barrier prices.'
+        };
+        document.getElementById('optionInsight').textContent = insightMap[optionType];
+    });
+});
+
+function runConvergence() {
+    var K = parseInt(document.getElementById('sK').value);
+    var sig = parseInt(document.getElementById('sOptSig').value) / 100;
+    var T = parseInt(document.getElementById('sOptT').value) / 12;
+    var r = 0.05, S0 = 100, barrier = 130;
+    document.getElementById('vK').textContent = '£' + K;
+    document.getElementById('vOptSig').textContent = (sig * 100).toFixed(0) + '%';
+    document.getElementById('vOptT').textContent = parseInt(document.getElementById('sOptT').value) + ' mo';
+
+    var bsPrice = bsCall(S0, K, r, sig, T);
+    var steps = Math.max(12, Math.round(252 * T));
+    var rng = makeRng(42);
+
+    /* Run MC at increasing N */
+    var Ns = [];
+    for (var p = 0; p <= 50; p++) Ns.push(Math.round(Math.exp(p / 50 * Math.log(5000)) + 10));
+
+    var estimates = [], errors = [];
+    var cumPayoffs = 0, count = 0;
+
+    Ns.forEach(function(N) {
+        /* add paths up to N */
+        while (count < N) {
+            var S = S0, pathMax = S0, pathSum = S0;
+            var zPair = randnPair(rng);
+            for (var t = 0; t < steps; t++) {
+                var dt = T / steps;
+                var z = t % 2 === 0 ? zPair[0] : (zPair = randnPair(rng))[0];
+                S *= Math.exp((r - 0.5 * sig * sig) * dt + sig * Math.sqrt(dt) * z);
+                pathMax = Math.max(pathMax, S);
+                pathSum += S;
+            }
+            var payoff;
+            if (optionType === 'european') payoff = Math.max(S - K, 0);
+            else if (optionType === 'asian') payoff = Math.max(pathSum / (steps + 1) - K, 0);
+            else payoff = pathMax < barrier ? Math.max(S - K, 0) : 0;
+            cumPayoffs += payoff;
+            count++;
+        }
+        var est = Math.exp(-r * T) * cumPayoffs / count;
+        var se = Math.exp(-r * T) * Math.sqrt(est * (est * count) / count) / Math.sqrt(count) * 2;
+        estimates.push({ N: N, val: est, se: se });
+    });
+
+    var yVals = estimates.map(function(e) { return e.val; });
+    var yMin = Math.min(Math.min.apply(null, yVals) * 0.9, bsPrice * 0.7);
+    var yMax = Math.max(Math.max.apply(null, yVals) * 1.1, bsPrice * 1.3);
+
+    var W = convCvs.width, H = convCvs.height;
+    var PAD = { l: 65, r: 20, t: 28, b: 46 };
+    var plotW = W - PAD.l - PAD.r, plotH = H - PAD.t - PAD.b;
+    function tx(N) { return PAD.l + Math.log(N / 10) / Math.log(5000) * plotW; }
+    function ty(v) { return PAD.t + plotH - ((v - yMin) / (yMax - yMin)) * plotH; }
+
+    clearCanvas(convCvs, convCtx);
+    axesGrid(convCtx, W, H, PAD, 0, 1, yMin, yMax,
+        function() { return ''; },
+        function(y) { return '£' + y.toFixed(2); });
+    /* x-axis log labels */
+    [10, 100, 500, 1000, 5000].forEach(function(n) {
+        var x = tx(n);
+        convCtx.fillStyle = '#404058'; convCtx.font = '10px Georgia';
+        convCtx.textAlign = 'center'; convCtx.textBaseline = 'top';
+        convCtx.fillText('N=' + (n >= 1000 ? (n / 1000) + 'k' : n), x, H - PAD.b + 8);
+    });
+    convCtx.fillStyle = '#505068'; convCtx.font = '11px Georgia'; convCtx.textAlign = 'center';
+    convCtx.fillText('Number of paths N (log scale)', PAD.l + plotW / 2, H - PAD.b + 28);
+
+    /* Confidence band */
+    convCtx.globalAlpha = 0.12; convCtx.fillStyle = '#10b981';
+    convCtx.beginPath();
+    estimates.forEach(function(e, i) { if (i === 0) convCtx.moveTo(tx(e.N), ty(e.val + e.se)); else convCtx.lineTo(tx(e.N), ty(e.val + e.se)); });
+    for (var i = estimates.length - 1; i >= 0; i--) convCtx.lineTo(tx(estimates[i].N), ty(estimates[i].val - estimates[i].se));
+    convCtx.closePath(); convCtx.fill(); convCtx.globalAlpha = 1;
+
+    /* Convergence line */
+    convCtx.strokeStyle = '#10b981'; convCtx.lineWidth = 2.2;
+    convCtx.beginPath();
+    estimates.forEach(function(e, i) {
+        if (i === 0) convCtx.moveTo(tx(e.N), ty(e.val)); else convCtx.lineTo(tx(e.N), ty(e.val));
+    });
+    convCtx.stroke();
+
+    /* BS price reference */
+    if (optionType === 'european') {
+        convCtx.strokeStyle = '#fbbf24'; convCtx.lineWidth = 1.5; convCtx.setLineDash([6, 4]);
+        convCtx.beginPath(); convCtx.moveTo(PAD.l, ty(bsPrice)); convCtx.lineTo(W - PAD.r, ty(bsPrice)); convCtx.stroke();
+        convCtx.setLineDash([]);
+        convCtx.fillStyle = '#fbbf24'; convCtx.font = '10px Georgia'; convCtx.textAlign = 'left';
+        convCtx.fillText('BS exact £' + bsPrice.toFixed(3), PAD.l + 4, ty(bsPrice) - 8);
+    }
+
+    var finalEst = estimates[estimates.length - 1];
+    document.getElementById('convStats').innerHTML =
+        '<div class="stat-box"><div class="stat-label">MC Price (5k paths)</div><div class="stat-val" style="color:#10b981">£' + finalEst.val.toFixed(4) + '</div></div>' +
+        (optionType === 'european' ? '<div class="stat-box"><div class="stat-label">BS Exact</div><div class="stat-val" style="color:#fbbf24">£' + bsPrice.toFixed(4) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">Error</div><div class="stat-val" style="color:#f472b6">£' + Math.abs(finalEst.val - bsPrice).toFixed(4) + '</div></div>' : '') +
+        '<div class="stat-box"><div class="stat-label">Std Error</div><div class="stat-val">±£' + finalEst.se.toFixed(4) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">Type</div><div class="stat-val">' + optionType.charAt(0).toUpperCase() + optionType.slice(1) + '</div></div>';
+}
+
+document.getElementById('btnRunConv').addEventListener('click', runConvergence);
+['sK','sOptSig','sOptT'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', function() {
+        document.getElementById('vK').textContent = '£' + document.getElementById('sK').value;
+        document.getElementById('vOptSig').textContent = document.getElementById('sOptSig').value + '%';
+        document.getElementById('vOptT').textContent = document.getElementById('sOptT').value + ' mo';
+    });
+});
+
+/* ══════════════════════════════════════════════════════════
+   SECTION 4: Variance Reduction comparison
+══════════════════════════════════════════════════════════ */
+var vrCvs = document.getElementById('vrCanvas');
+var vrCtx = vrCvs.getContext('2d');
+
+function runVR() {
+    var K = parseInt(document.getElementById('sK').value);
+    var sig = parseInt(document.getElementById('sOptSig').value) / 100;
+    var T = parseInt(document.getElementById('sOptT').value) / 12;
+    var r = 0.05, S0 = 100, steps = Math.max(12, Math.round(252 * T));
+    var bsPrice = bsCall(S0, K, r, sig, T);
+
+    var maxN = 2000, checkPts = 40;
+    var rng = makeRng(99);
+    var rawEsts = [], antEsts = [], cvEsts = [];
+    var rawCum = 0, antCum = 0, cvCum = 0, betaCum = 0, betaN = 0;
+    var rawN = 0, antN = 0;
+
+    for (var trial = 1; trial <= maxN; trial++) {
+        /* Raw path */
+        var S = S0;
+        for (var t = 0; t < steps; t++) {
+            var z = randnPair(rng)[0];
+            S *= Math.exp((r - 0.5 * sig * sig) * T / steps + sig * Math.sqrt(T / steps) * z);
+        }
+        var rawPayoff = Math.max(S - K, 0);
+        rawCum += rawPayoff; rawN++;
+
+        /* Antithetic — use negated randoms */
+        var rngA = makeRng(trial * 7919); // correlated seed
+        var SA1 = S0, SA2 = S0;
+        for (var t = 0; t < steps; t++) {
+            var zp = randnPair(rngA);
+            SA1 *= Math.exp((r - 0.5*sig*sig)*T/steps + sig*Math.sqrt(T/steps)*zp[0]);
+            SA2 *= Math.exp((r - 0.5*sig*sig)*T/steps + sig*Math.sqrt(T/steps)*(-zp[0]));
+        }
+        antCum += (Math.max(SA1-K,0) + Math.max(SA2-K,0)) / 2; antN++;
+
+        /* Control variate using underlying as control */
+        var rngC = makeRng(trial * 3571);
+        var SC = S0;
+        for (var t = 0; t < steps; t++) {
+            var z2 = randnPair(rngC)[0];
+            SC *= Math.exp((r - 0.5*sig*sig)*T/steps + sig*Math.sqrt(T/steps)*z2);
+        }
+        var ctrlPayoff = Math.max(SC - K, 0);
+        var ctrlControl = SC; // underlying, E = S0*e^(rT)
+        var ctrlE = S0 * Math.exp(r * T);
+        if (betaN > 20) {
+            var beta = 0.8; // approximate
+            cvCum += ctrlPayoff - beta * (ctrlControl - ctrlE);
+        } else {
+            cvCum += ctrlPayoff;
+        }
+        betaN++;
+
+        if (trial % Math.ceil(maxN / checkPts) === 0) {
+            var disc = Math.exp(-r * T);
+            rawEsts.push({ n: trial, v: disc * rawCum / rawN });
+            antEsts.push({ n: trial, v: disc * antCum / antN });
+            cvEsts.push({ n: trial, v: disc * cvCum / betaN });
+        }
+    }
+
+    var allV = rawEsts.concat(antEsts).concat(cvEsts).map(function(e){return e.v;});
+    var yMin = Math.min(Math.min.apply(null,allV), bsPrice) * 0.85;
+    var yMax = Math.max(Math.max.apply(null,allV), bsPrice) * 1.15;
+
+    var W = vrCvs.width, H = vrCvs.height;
+    var PAD = {l:65,r:20,t:28,b:46};
+    var plotW = W-PAD.l-PAD.r, plotH = H-PAD.t-PAD.b;
+    function tx(n){return PAD.l+(n/maxN)*plotW;}
+    function ty(v){return PAD.t+plotH-((v-yMin)/(yMax-yMin))*plotH;}
+
+    clearCanvas(vrCvs,vrCtx);
+    axesGrid(vrCtx,W,H,PAD,0,maxN,yMin,yMax,
+        function(x){return 'N='+x.toFixed(0);},
+        function(y){return '£'+y.toFixed(2);});
+
+    /* BS line */
+    vrCtx.strokeStyle='rgba(255,255,255,0.15)'; vrCtx.lineWidth=1; vrCtx.setLineDash([4,4]);
+    vrCtx.beginPath(); vrCtx.moveTo(PAD.l,ty(bsPrice)); vrCtx.lineTo(W-PAD.r,ty(bsPrice)); vrCtx.stroke();
+    vrCtx.setLineDash([]);
+
+    var series = [
+        {data:rawEsts, color:'#f87171', label:'Crude MC'},
+        {data:antEsts, color:'#22d3ee', label:'Antithetic'},
+        {data:cvEsts,  color:'#fbbf24', label:'Control Variate'},
+    ];
+    series.forEach(function(s){
+        vrCtx.strokeStyle=s.color; vrCtx.lineWidth=2;
+        vrCtx.shadowColor=s.color; vrCtx.shadowBlur=4;
+        vrCtx.beginPath();
+        s.data.forEach(function(e,i){
+            if(i===0) vrCtx.moveTo(tx(e.n),ty(e.v)); else vrCtx.lineTo(tx(e.n),ty(e.v));
+        });
+        vrCtx.stroke(); vrCtx.shadowBlur=0;
+    });
+
+    /* Legend */
+    var finalRaw = rawEsts[rawEsts.length-1].v;
+    var finalAnt = antEsts[antEsts.length-1].v;
+    var finalCV  = cvEsts[cvEsts.length-1].v;
+    vrCtx.font='10px Georgia'; vrCtx.textAlign='left'; vrCtx.textBaseline='middle';
+    series.forEach(function(s,i){
+        vrCtx.fillStyle=s.color;
+        vrCtx.fillRect(PAD.l+8, PAD.t+8+i*16, 22, 2);
+        vrCtx.fillText(s.label, PAD.l+34, PAD.t+9+i*16);
+    });
+    vrCtx.fillStyle='rgba(255,255,255,0.25)';
+    vrCtx.fillText('BS £'+bsPrice.toFixed(3), PAD.l+4, ty(bsPrice)-8);
+
+    var rawErr = Math.abs(finalRaw-bsPrice), antErr = Math.abs(finalAnt-bsPrice), cvErr = Math.abs(finalCV-bsPrice);
+    document.getElementById('vrStats').innerHTML =
+        '<div class="stat-box"><div class="stat-label">BS Exact</div><div class="stat-val" style="color:#e0e0e0">£'+bsPrice.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Crude MC err</div><div class="stat-val" style="color:#f87171">£'+rawErr.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Antithetic err</div><div class="stat-val" style="color:#22d3ee">£'+antErr.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Ctrl Var err</div><div class="stat-val" style="color:#fbbf24">£'+cvErr.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Improvement</div><div class="stat-val" style="color:#10b981">~'+(rawErr/Math.max(antErr,0.0001)).toFixed(1)+'×</div></div>';
+}
+
+document.getElementById('btnRunVR').addEventListener('click', runVR);
+
+/* ══════════════════════════════════════════════════════════
+   SECTION 5: VaR & Expected Shortfall — Monte Carlo
+══════════════════════════════════════════════════════════ */
+var varCvs = document.getElementById('varCanvas');
+var varCtx = varCvs.getContext('2d');
+var tailCvs = document.getElementById('tailCanvas');
+var tailCtx = tailCvs.getContext('2d');
+
+/* ── Student-t deviate for excess kurtosis ── */
+function randT(rng, nu) {
+    var z = randnPair(rng)[0];
+    if(nu <= 0) return z;
+    var chi2 = 0;
+    for(var k=0; k<nu; k++){ var w=randnPair(rng)[0]; chi2+=w*w; }
+    return z / Math.sqrt(chi2/nu);
+}
+
+/* ── KDE smoother for tail envelope ── */
+function kernelDensity(data, xMin, xMax, nPts, bw) {
+    var result=[], step=(xMax-xMin)/nPts;
+    for(var i=0;i<=nPts;i++){
+        var x=xMin+i*step, sum=0;
+        for(var j=0;j<data.length;j++){ var u=(x-data[j])/bw; sum+=Math.exp(-0.5*u*u); }
+        result.push({x:x, y:sum/(data.length*bw*Math.sqrt(2*Math.PI))});
+    }
+    return result;
+}
+
+/* ── Heatmap colour: deep navy→teal→green→gold→orange→red ── */
+function heatColour(frac) {
+    /* 5-stop palette keyed to density fraction [0..1] */
+    var stops=[
+        {r:8,  g:12, b:60},   // 0.00 — deep navy
+        {r:10, g:140,b:180},  // 0.25 — teal
+        {r:16, g:185,b:129},  // 0.50 — green
+        {r:251,g:191,b:36},   // 0.75 — gold
+        {r:248,g:60, b:60},   // 1.00 — red
+    ];
+    var t=frac*4, lo=Math.min(3,Math.floor(t)), hi=lo+1, tt=t-lo;
+    var a=stops[lo], bSt=stops[hi]||stops[3];
+    return {
+        r:Math.round(a.r+(bSt.r-a.r)*tt),
+        g:Math.round(a.g+(bSt.g-a.g)*tt),
+        b:Math.round(a.b+(bSt.b-a.b)*tt)
+    };
+}
+
+function runVaR() {
+    var conf     = parseInt(document.getElementById('sConf').value) / 100;
+    var portSig  = parseInt(document.getElementById('sPortSig').value) / 100;
+    var crashInt = parseInt(document.getElementById('sSkew').value);   /* 0-10 */
+    var kurtLvl  = parseInt(document.getElementById('sKurt').value);   /* 0-10 */
+    document.getElementById('vConf').textContent    = (conf*100).toFixed(0)+'%';
+    document.getElementById('vPortSig').textContent = (portSig*100).toFixed(0)+'%';
+    document.getElementById('vSkew').textContent    = crashInt;
+    document.getElementById('vKurt').textContent    = kurtLvl;
+
+    var N=50000, rng=makeRng(12345), portVal=1000000;
+    /* crash probability: step 1 = 0.8%, step 10 = 8% of days */
+    var crashProb = crashInt * 0.008;
+    var crashSize = 0.018 + portSig * 1.4;
+    /* Student-t df: kurtLvl=0 → normal; kurtLvl=10 → df≈3 (very fat) */
+    var tDf = kurtLvl===0 ? 0 : Math.max(3, 30 - kurtLvl*2.7);
+
+    var losses=[];
+    for(var i=0;i<N;i++){
+        var z = tDf>0 ? randT(rng, Math.round(tDf)) : randnPair(rng)[0];
+        var ret;
+        if(rng() < crashProb){
+            ret = -(crashSize + portSig * Math.abs(randnPair(rng)[0]));
+        } else {
+            ret = portSig / Math.sqrt(252) * z;
+        }
+        losses.push(-portVal * ret);
+    }
+    losses.sort(function(a,b){return a-b;});
+
+    var varIdx = Math.floor(N*conf);
+    var VaR = losses[varIdx];
+    var ES  = losses.slice(varIdx).reduce(function(s,v){return s+v;},0)/(N-varIdx);
+
+    /* ── Full distribution histogram ── */
+    var lMin=losses[0], lMax=losses[losses.length-1];
+    var nBins=120, binW=(lMax-lMin)/nBins;
+    var bins=new Array(nBins).fill(0);
+    losses.forEach(function(l){var bi=Math.floor((l-lMin)/binW); if(bi>=0&&bi<nBins) bins[bi]++;});
+    var maxBin=Math.max.apply(null,bins);
+
+    var W=varCvs.width, H=varCvs.height;
+    var PAD={l:72,r:20,t:28,b:46};
+    var plotW=W-PAD.l-PAD.r, plotH=H-PAD.t-PAD.b;
+    function tx(l){return PAD.l+((l-lMin)/(lMax-lMin))*plotW;}
+    function ty(c){return PAD.t+plotH-(c/maxBin)*plotH;}
+
+    clearCanvas(varCvs,varCtx);
+    axesGrid(varCtx,W,H,PAD,lMin,lMax,0,maxBin,
+        function(x){return '\u00A3'+(x/1000).toFixed(0)+'k';},
+        function(y){return (y/N*100).toFixed(1)+'%';});
+    varCtx.fillStyle='#404058'; varCtx.font='11px Georgia'; varCtx.textAlign='center';
+    varCtx.fillText('Daily P\u0026L (\u00A3)  \u2014  losses to the right', PAD.l+plotW/2, H-PAD.b+28);
+
+    /* Bars: heatmap by density — cool (sparse) → hot (peak) */
+    var bw=Math.max(1, plotW/nBins-0.3);
+    bins.forEach(function(count,i){
+        if(!count) return;
+        var frac = count/maxBin;
+        var col  = heatColour(frac);
+        var isES = (lMin+i*binW) >= VaR;
+        if(isES){ varCtx.shadowColor='rgba(248,80,80,0.55)'; varCtx.shadowBlur=6; }
+        else { varCtx.shadowBlur=0; }
+        varCtx.fillStyle='rgba('+col.r+','+col.g+','+col.b+','+(0.45+0.45*frac)+')';
+        varCtx.fillRect(tx(lMin+i*binW), ty(count), bw, (count/maxBin)*plotH);
+    });
+    varCtx.shadowBlur=0;
+
+    /* Normal reference envelope (purple) */
+    var normSig=portSig/Math.sqrt(252)*portVal;
+    varCtx.strokeStyle='rgba(167,139,250,0.55)'; varCtx.lineWidth=1.5;
+    varCtx.beginPath();
+    var started=false;
+    for(var xi=0;xi<=250;xi++){
+        var l=lMin+xi/250*(lMax-lMin);
+        var pdf=(1/(normSig*Math.sqrt(2*Math.PI)))*Math.exp(-0.5*Math.pow(l/normSig,2));
+        var cnt=pdf*binW*N;
+        if(!started){varCtx.moveTo(tx(l),ty(cnt));started=true;}else{varCtx.lineTo(tx(l),ty(cnt));}
+    }
+    varCtx.stroke();
+    varCtx.fillStyle='rgba(167,139,250,0.6)'; varCtx.font='9px Georgia'; varCtx.textAlign='left';
+    varCtx.fillText('Normal ref',PAD.l+4, PAD.t+12);
+
+    /* VaR line */
+    varCtx.strokeStyle='#f87171'; varCtx.lineWidth=2; varCtx.setLineDash([5,4]);
+    varCtx.beginPath(); varCtx.moveTo(tx(VaR),PAD.t); varCtx.lineTo(tx(VaR),H-PAD.b); varCtx.stroke();
+    varCtx.setLineDash([]);
+    varCtx.fillStyle='#f87171'; varCtx.font='bold 10px Georgia'; varCtx.textAlign='center';
+    varCtx.fillText('VaR '+(conf*100).toFixed(0)+'%', tx(VaR), PAD.t+10);
+
+    /* ES line */
+    varCtx.strokeStyle='#f472b6'; varCtx.lineWidth=1.5; varCtx.setLineDash([4,4]);
+    varCtx.beginPath(); varCtx.moveTo(tx(ES),PAD.t); varCtx.lineTo(tx(ES),H-PAD.b); varCtx.stroke();
+    varCtx.setLineDash([]);
+    varCtx.fillStyle='#f472b6'; varCtx.fillText('ES (CVaR)', tx(ES), PAD.t+22);
+
+    /* ES shading */
+    varCtx.globalAlpha=0.07; varCtx.fillStyle='#f87171';
+    varCtx.fillRect(tx(VaR),PAD.t, W-PAD.r-tx(VaR), plotH);
+    varCtx.globalAlpha=1;
+
+    /* ── Tail zoom canvas ── */
+    drawTailZoom(losses, VaR, ES, conf, portVal);
+
+    document.getElementById('varStats').innerHTML =
+        '<div class="stat-box"><div class="stat-label">VaR '+(conf*100).toFixed(0)+'%</div><div class="stat-val" style="color:#f87171">\u00A3'+VaR.toFixed(0)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">ES '+(conf*100).toFixed(0)+'%</div><div class="stat-val" style="color:#f472b6">\u00A3'+ES.toFixed(0)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">ES/VaR ratio</div><div class="stat-val">'+(ES/VaR).toFixed(2)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">VaR as % AUM</div><div class="stat-val">'+(VaR/portVal*100).toFixed(2)+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Max loss</div><div class="stat-val" style="color:#f87171">\u00A3'+(losses[losses.length-1]/1000).toFixed(0)+'k</div></div>';
+}
+
+/* ── Tail zoom: magnified view of losses beyond VaR, with KDE envelope ── */
+function drawTailZoom(losses, VaR, ES, conf, portVal) {
+    var tailData = losses.filter(function(l){return l>=VaR;});
+    if(tailData.length<5) return;
+    var tMin=VaR*0.96, tMax=losses[losses.length-1]*1.05;
+    var nBins=60, binW=(tMax-tMin)/nBins;
+    var bins=new Array(nBins).fill(0);
+    tailData.forEach(function(l){var bi=Math.floor((l-tMin)/binW); if(bi>=0&&bi<nBins) bins[bi]++;});
+    var maxBin=Math.max.apply(null,bins)||1;
+
+    var W=tailCvs.width, H=tailCvs.height;
+    var PAD={l:72,r:20,t:28,b:44};
+    var plotW=W-PAD.l-PAD.r, plotH=H-PAD.t-PAD.b;
+    function tx(l){return PAD.l+((l-tMin)/(tMax-tMin))*plotW;}
+    function ty(c){return PAD.t+plotH-(c/maxBin)*plotH;}
+
+    clearCanvas(tailCvs,tailCtx);
+    axesGrid(tailCtx,W,H,PAD,tMin,tMax,0,maxBin,
+        function(x){return '\u00A3'+(x/1000).toFixed(1)+'k';},
+        function(y){return (y/losses.length*100).toFixed(2)+'%';});
+    tailCtx.fillStyle='#404058'; tailCtx.font='11px Georgia'; tailCtx.textAlign='center';
+    tailCtx.fillText('Tail loss (\u00A3)  \u2014  zoomed right of VaR', PAD.l+plotW/2, H-PAD.b+28);
+
+    /* Heatmap bars: gold→orange→red from VaR outward */
+    var bw=Math.max(1, plotW/nBins-0.3);
+    bins.forEach(function(count,i){
+        if(!count) return;
+        var frac = i / nBins;
+        var fr=count/maxBin;
+        /* tail heatmap: amber at VaR → deep red at extremes */
+        var r=Math.round(251-frac*3);
+        var gv=Math.round(191-frac*165);
+        var b2=Math.round(36-frac*36);
+        tailCtx.fillStyle='rgba('+r+','+gv+','+b2+','+(0.5+0.4*fr)+')';
+        tailCtx.fillRect(tx(tMin+i*binW), ty(count), bw, (count/maxBin)*plotH);
+    });
+
+    /* KDE envelope — sample for speed */
+    var sample=tailData.length>2000
+        ? tailData.filter(function(_,i){return i%Math.ceil(tailData.length/2000)===0;})
+        : tailData;
+    var bwKDE=(tMax-tMin)*0.05;
+    var kd=kernelDensity(sample, tMin, tMax, 120, bwKDE);
+    var kdMax=Math.max.apply(null,kd.map(function(d){return d.y;}))||1;
+    var scale=maxBin/(kdMax*losses.length*binW);
+
+    /* Filled area under envelope */
+    tailCtx.globalAlpha=0.10; tailCtx.fillStyle='#f87171';
+    tailCtx.beginPath();
+    kd.forEach(function(d,i){
+        var py=ty(d.y*losses.length*binW*scale);
+        if(i===0) tailCtx.moveTo(tx(d.x),py); else tailCtx.lineTo(tx(d.x),py);
+    });
+    tailCtx.lineTo(tx(tMax),ty(0)); tailCtx.lineTo(tx(tMin),ty(0));
+    tailCtx.closePath(); tailCtx.fill(); tailCtx.globalAlpha=1;
+
+    /* Envelope line — glowing white */
+    tailCtx.strokeStyle='rgba(255,255,255,0.75)'; tailCtx.lineWidth=2;
+    tailCtx.shadowColor='rgba(255,255,255,0.3)'; tailCtx.shadowBlur=6;
+    tailCtx.beginPath();
+    kd.forEach(function(d,i){
+        var py=ty(d.y*losses.length*binW*scale);
+        if(i===0) tailCtx.moveTo(tx(d.x),py); else tailCtx.lineTo(tx(d.x),py);
+    });
+    tailCtx.stroke(); tailCtx.shadowBlur=0;
+
+    /* ES marker */
+    if(ES>=tMin && ES<=tMax){
+        tailCtx.strokeStyle='#f472b6'; tailCtx.lineWidth=1.5; tailCtx.setLineDash([4,4]);
+        tailCtx.beginPath(); tailCtx.moveTo(tx(ES),PAD.t); tailCtx.lineTo(tx(ES),H-PAD.b); tailCtx.stroke();
+        tailCtx.setLineDash([]);
+        tailCtx.fillStyle='#f472b6'; tailCtx.font='bold 10px Georgia'; tailCtx.textAlign='center';
+        tailCtx.fillText('ES (CVaR)', tx(ES), PAD.t+10);
+    }
+
+    /* VaR left-edge indicator */
+    tailCtx.strokeStyle='rgba(248,113,113,0.4)'; tailCtx.lineWidth=1; tailCtx.setLineDash([3,5]);
+    tailCtx.beginPath(); tailCtx.moveTo(tx(VaR),PAD.t); tailCtx.lineTo(tx(VaR),H-PAD.b); tailCtx.stroke();
+    tailCtx.setLineDash([]);
+    tailCtx.fillStyle='rgba(248,113,113,0.6)'; tailCtx.font='10px Georgia'; tailCtx.textAlign='left';
+    tailCtx.fillText('\u2190 VaR boundary', tx(VaR)+4, PAD.t+10);
+
+    /* Annotate tail shape */
+    var p99 = losses[Math.floor(losses.length*0.99)];
+    var p999= losses[Math.floor(losses.length*0.999)];
+    if(p99>=tMin){ tailCtx.fillStyle='rgba(167,139,250,0.6)'; tailCtx.font='9px Georgia'; tailCtx.textAlign='center'; tailCtx.fillText('99th',tx(p99),PAD.t+22); }
+    if(p999>=tMin){ tailCtx.fillStyle='rgba(244,114,182,0.6)'; tailCtx.textAlign='center'; tailCtx.fillText('99.9th',tx(p999),PAD.t+22); }
+}
+
+document.getElementById('btnRunVaR').addEventListener('click', runVaR);
+['sConf','sPortSig','sSkew','sKurt'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', function(){
+        document.getElementById('vConf').textContent    = document.getElementById('sConf').value+'%';
+        document.getElementById('vPortSig').textContent = document.getElementById('sPortSig').value+'%';
+        document.getElementById('vSkew').textContent    = document.getElementById('sSkew').value;
+        document.getElementById('vKurt').textContent    = document.getElementById('sKurt').value;
+    });
+});
+/* ══════════════════════════════════════════════════════════
+   SECTION 6: 3D Distribution Surface
+══════════════════════════════════════════════════════════ */
+var mc3Cvs = document.getElementById('mc3d');
+var mc3Ctx = mc3Cvs.getContext('2d');
+var mc3State = {rotX:0.38, rotY:0.55, zoom:1.0, dragging:false, lastX:0, lastY:0};
+var mc3Wrap = document.getElementById('mc3dWrap');
+var mc3FatTail = false;
+
+mc3Wrap.addEventListener('mousedown',function(e){mc3State.dragging=true;mc3State.lastX=e.clientX;mc3State.lastY=e.clientY;});
+window.addEventListener('mouseup',function(){mc3State.dragging=false;});
+window.addEventListener('mousemove',function(e){
+    if(!mc3State.dragging)return;
+    mc3State.rotY+=(e.clientX-mc3State.lastX)*0.012;
+    mc3State.rotX+=(e.clientY-mc3State.lastY)*0.012;
+    mc3State.rotX=Math.max(-1.2,Math.min(1.2,mc3State.rotX));
+    mc3State.lastX=e.clientX;mc3State.lastY=e.clientY;
+    if(mc3Built) draw3DSurface();
+});
+mc3Wrap.addEventListener('touchstart',function(e){if(e.touches.length===1){mc3State.dragging=true;mc3State.lastX=e.touches[0].clientX;mc3State.lastY=e.touches[0].clientY;}},{passive:true});
+mc3Wrap.addEventListener('touchmove',function(e){
+    if(!mc3State.dragging||e.touches.length!==1)return;
+    mc3State.rotY+=(e.touches[0].clientX-mc3State.lastX)*0.012;
+    mc3State.rotX+=(e.touches[0].clientY-mc3State.lastY)*0.012;
+    mc3State.rotX=Math.max(-1.2,Math.min(1.2,mc3State.rotX));
+    mc3State.lastX=e.touches[0].clientX;mc3State.lastY=e.touches[0].clientY;
+    if(mc3Built) draw3DSurface();
+},{passive:true});
+mc3Wrap.addEventListener('touchend',function(){mc3State.dragging=false;});
+mc3Wrap.addEventListener('wheel',function(e){
+    mc3State.zoom*=e.deltaY>0?0.92:1.08;
+    mc3State.zoom=Math.max(0.4,Math.min(2.5,mc3State.zoom));
+    if(mc3Built) draw3DSurface();
+    e.preventDefault();
+},{passive:false});
+
+['btn3dNormal','btn3dFat'].forEach(function(id){
+    document.getElementById(id).addEventListener('click',function(){
+        ['btn3dNormal','btn3dFat'].forEach(function(b){document.getElementById(b).classList.remove('active');});
+        this.classList.add('active');
+        mc3FatTail = (id==='btn3dFat');
+        if(mc3Built) draw3DSurface();
+    });
+});
+
+var mc3Built = false;
+var mc3Grid = null;
+
+function build3DData() {
+    var g = getGlobal();
+    var S0=100, mu=g.mu, sig=g.sig;
+    var NT=30, NP=40;
+    var tArr=[], pArr=[];
+    for(var i=0;i<NT;i++) tArr.push(0.02+i*(g.horizon/NT));
+    for(var j=0;j<NP;j++) pArr.push(40+j*(180/NP));
+
+    var grid=[];
+    var zMax=-Infinity, zMin=Infinity;
+    for(var i=0;i<NT;i++){
+        grid.push([]);
+        for(var j=0;j<NP;j++){
+            var t=tArr[i], p=pArr[j];
+            var logMu=Math.log(S0)+(mu-0.5*sig*sig)*t;
+            var logSig=sig*Math.sqrt(t);
+            var pdf=(1/(p*logSig*Math.sqrt(2*Math.PI)))*Math.exp(-0.5*Math.pow((Math.log(p)-logMu)/logSig,2));
+            /* fat tail: add a small left-tail bump */
+            if(mc3FatTail){
+                var crashP = 40*Math.exp(-Math.pow((p-60),2)/(2*Math.pow(8,2)))/(60*logSig*Math.sqrt(2*Math.PI));
+                pdf = pdf*0.85 + crashP*0.15;
+            }
+            if(!isFinite(pdf)||isNaN(pdf)) pdf=0;
+            grid[i].push(pdf);
+            if(pdf>zMax) zMax=pdf;
+            if(pdf<zMin) zMin=pdf;
+        }
+    }
+    mc3Grid={grid,tArr,pArr,NT,NP,zMin,zMax,S0};
+}
+
+function draw3DSurface(){
+    if(!mc3Grid) return;
+    var d=mc3Grid, W=mc3Cvs.width, H=mc3Cvs.height;
+    var tMid=(d.tArr[0]+d.tArr[d.NT-1])/2, tRng=(d.tArr[d.NT-1]-d.tArr[0])/2||1;
+    var pMid=(d.pArr[0]+d.pArr[d.NP-1])/2, pRng=(d.pArr[d.NP-1]-d.pArr[0])/2||1;
+    var zMid=(d.zMin+d.zMax)/2, zRng=(d.zMax-d.zMin)/2||1;
+
+    function project(ti,pj,z){
+        var nx=(d.tArr[ti]-tMid)/tRng;
+        var nz=(d.pArr[pj]-pMid)/pRng;
+        var ny=(z-zMid)/zRng;
+        var cosY=Math.cos(mc3State.rotY),sinY=Math.sin(mc3State.rotY);
+        var cosX=Math.cos(mc3State.rotX),sinX=Math.sin(mc3State.rotX);
+        var rx=nx*cosY+nz*sinY, rz=-nx*sinY+nz*cosY;
+        var ry=ny*cosX-rz*sinX, rz2=ny*sinX+rz*cosX;
+        var fov=4.2*mc3State.zoom;
+        return{px:W/2+rx*fov*(W/14), py:H/2-ry*fov*(H/14), z:rz2};
+    }
+
+    var faces=[];
+    for(var i=0;i<d.NT-1;i++) for(var j=0;j<d.NP-1;j++){
+        var v00=d.grid[i][j],v10=d.grid[i+1][j],v11=d.grid[i+1][j+1],v01=d.grid[i][j+1];
+        var p00=project(i,j,v00),p10=project(i+1,j,v10),p11=project(i+1,j+1,v11),p01=project(i,j+1,v01);
+        var avgZ=(p00.z+p10.z+p11.z+p01.z)/4;
+        var avgV=(v00+v10+v11+v01)/4;
+        var frac=(avgV-d.zMin)/(d.zMax-d.zMin);
+        faces.push({pts:[p00,p10,p11,p01],avgZ,frac,avgT:(d.tArr[i]+d.tArr[i+1])/2,avgP:(d.pArr[j]+d.pArr[j+1])/2});
+    }
+    faces.sort(function(a,b){return a.avgZ-b.avgZ;});
+
+    mc3Ctx.clearRect(0,0,W,H); mc3Ctx.fillStyle='#04040f'; mc3Ctx.fillRect(0,0,W,H);
+
+    faces.forEach(function(face){
+        var f=face.frac;   /* density fraction 0→1 */
+        var r,g,b;
+        /* Full heat-map keyed to density:
+           near-zero → deep navy  →  teal  →  green  →  gold  →  hot red at peak */
+        if(mc3FatTail && face.avgP < 72){
+            /* Crash shoulder: override with orange-red for low-price region */
+            r=Math.round(248-f*30); g=Math.round(80+f*30); b=Math.round(30);
+        } else {
+            /* 5-stop heat palette applied to density fraction f */
+            var col = heatColour(f);
+            r=col.r; g=col.g; b=col.b;
+        }
+        var alpha = 0.55 + 0.35*f;  /* low-density faces more transparent */
+        mc3Ctx.beginPath();
+        mc3Ctx.moveTo(face.pts[0].px,face.pts[0].py);
+        mc3Ctx.lineTo(face.pts[1].px,face.pts[1].py);
+        mc3Ctx.lineTo(face.pts[2].px,face.pts[2].py);
+        mc3Ctx.lineTo(face.pts[3].px,face.pts[3].py);
+        mc3Ctx.closePath();
+        mc3Ctx.fillStyle='rgba('+r+','+g+','+b+','+alpha+')'; mc3Ctx.fill();
+        mc3Ctx.strokeStyle='rgba('+r+','+g+','+b+',0.18)'; mc3Ctx.lineWidth=0.3; mc3Ctx.stroke();
+    });
+
+    /* Axis labels */
+    function axLbl(ti,pj,z,txt,col){
+        var pt=project(ti,pj,z);
+        mc3Ctx.fillStyle=col; mc3Ctx.font='11px Georgia'; mc3Ctx.textAlign='center'; mc3Ctx.textBaseline='middle';
+        mc3Ctx.fillText(txt,pt.px,pt.py);
+    }
+    axLbl(d.NT-1, d.NP>>1, d.zMin, 'Time \u2192', '#505068');
+    axLbl(d.NT>>1, d.NP-1, d.zMin, 'Price \u2192', '#505068');
+    axLbl(0, 0, d.zMax, '\u2191 Density', '#708878');
+}
+
+document.getElementById('btnRun3D').addEventListener('click',function(){
+    build3DData(); mc3Built=true; draw3DSurface();
+});
+
+/* ── Auto-run paths on load ── */
+getGlobal();
+setTimeout(drawPaths, 200);
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.05);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/0.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

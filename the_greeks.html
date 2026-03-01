@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Greeks &mdash; Option Risk Sensitivities</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:980px;margin:0 auto;padding:24px 28px 60px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#10b981}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:32px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(16,185,129,0.13);border-color:rgba(16,185,129,0.4);color:#10b981}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.9}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}
+        .math-line .pink{color:#f472b6}.math-line .red{color:#f87171}.math-line .purple{color:#a78bfa}
+        .math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:8px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:150px}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#10b981;cursor:pointer}
+        .slider-val{color:#10b981;font-family:'Courier New',monospace;font-size:1.05em;min-width:68px;text-align:right}
+        .result-box{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:12px 18px;margin:12px 0}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#10b981;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.8}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.92em;line-height:2.1}
+        .insight-box{background:rgba(16,185,129,0.04);border-left:3px solid rgba(16,185,129,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.75}
+        .stats-row{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0}
+        .stat-box{text-align:center;min-width:82px}
+        .stat-label{font-size:0.7em;color:#808098;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px}
+        .stat-val{font-family:'Courier New',monospace;font-size:1em;color:#e0e0e0}
+        .greek-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+        .greek-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:14px 16px}
+        .greek-card h4{font-weight:400;font-size:0.9em;margin-bottom:6px}
+        .greek-card .gformula{font-family:'Courier New',monospace;font-size:0.82em;color:#a0a0b8;margin-bottom:4px}
+        .greek-card .gval{font-family:'Courier New',monospace;font-size:1.3em;font-weight:bold}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        /* 3D canvas wrapper */
+        .canvas-3d-wrap{position:relative;cursor:grab;user-select:none}
+        .canvas-3d-wrap:active{cursor:grabbing}
+        .canvas-3d-label{position:absolute;top:10px;left:14px;font-size:0.78em;color:#505068;font-family:'Courier New',monospace}
+        .canvas-3d-hint{position:absolute;bottom:10px;right:14px;font-size:0.75em;color:#404058}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}.greek-grid{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>The Greeks</h1>
+    <p class="subtitle">Delta, gamma, theta, vega, rho &mdash; and the second-order world of vanna, volga, and charm</p>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 0: Live Dashboard
+    ══════════════════════════════════════════════════════ -->
+    <h2>0. Live Greek Dashboard</h2>
+    <div class="panel">
+        <h3>Set Your Option — All Greeks Update in Real Time</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div>
+                <div class="slider-row"><label>Spot S:</label><input type="range" id="gS" min="50" max="150" value="100" step="1"><span class="slider-val" id="vgS">£100</span></div>
+                <div class="slider-row"><label>Strike K:</label><input type="range" id="gK" min="50" max="150" value="100" step="1"><span class="slider-val" id="vgK">£100</span></div>
+                <div class="slider-row"><label>Volatility σ:</label><input type="range" id="gSig" min="5" max="80" value="20" step="1"><span class="slider-val" id="vgSig">20%</span></div>
+            </div>
+            <div>
+                <div class="slider-row"><label>Time T (months):</label><input type="range" id="gT" min="1" max="24" value="6" step="1"><span class="slider-val" id="vgT">6 mo</span></div>
+                <div class="slider-row"><label>Rate r:</label><input type="range" id="gR" min="0" max="100" value="50" step="1"><span class="slider-val" id="vgR">5.0%</span></div>
+                <div class="btn-row" style="margin-top:14px">
+                    <button class="btn active" id="btnCall">Call</button>
+                    <button class="btn" id="btnPut">Put</button>
+                </div>
+            </div>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="dashStats"></div>
+        </div>
+        <div id="greekCards" class="greek-grid"></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 1: DELTA
+    ══════════════════════════════════════════════════════ -->
+    <h2>1. Delta (&Delta;) &mdash; The Hedge Ratio</h2>
+    <div class="panel">
+        <h3>How Much Does the Option Move Per £1 Move in the Underlying?</h3>
+        <canvas id="deltaCanvas" width="700" height="300"></canvas>
+        <div class="grid-legend" style="margin-top:8px">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Call delta N(d₁)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Put delta N(d₁)−1</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24;opacity:0.5"></div><span style="color:#707068">At various TTEs</span></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">Δ<sub>call</sub></span> = N(d₁) ∈ (0, 1) &nbsp;&nbsp;&nbsp; <span class="cyan">Δ<sub>put</sub></span> = N(d₁) − 1 ∈ (−1, 0)</div>
+            <div class="math-line muted">Deep ITM call: Δ→1 (behaves like stock). ATM: Δ≈0.5. Deep OTM: Δ→0.</div>
+            <div class="math-line muted">Also equals the risk-neutral probability of expiring ITM (N(d₁)), and the number of shares needed to delta-hedge one long call.</div>
+        </div>
+        <!-- Taylor P&L box (E3) -->
+        <div class="result-box" id="taylorBox" style="margin:10px 0">
+            <div style="font-size:0.78em;color:#808098;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Taylor P&amp;L expansion &mdash; if spot moves +£1 from current S</div>
+            <div class="stats-row">
+                <div class="stat-box"><div class="stat-label">Δ × £1 (1st order)</div><div class="stat-val" id="taylorDelta" style="color:#10b981">—</div></div>
+                <div class="stat-box"><div class="stat-label">½Γ × £1² (curvature)</div><div class="stat-val" id="taylorGamma" style="color:#22d3ee">—</div></div>
+                <div class="stat-box"><div class="stat-label">Approx ΔP</div><div class="stat-val" id="taylorTotal" style="color:#fbbf24">—</div></div>
+                <div class="stat-box"><div class="stat-label">Exact ΔP (BS)</div><div class="stat-val" id="taylorExact" style="color:#e0e0e0">—</div></div>
+                <div class="stat-box" style="min-width:140px"><div class="stat-label">2nd-order residual</div><div class="stat-val" id="taylorError" style="font-size:0.88em">—</div></div>
+            </div>
+            <div style="font-size:0.78em;color:#505068;margin-top:6px">ΔP ≈ Δ·ΔS + ½Γ·ΔS² &nbsp;&mdash;&nbsp; the gamma correction captures curvature that pure delta misses</div>
+        </div>
+        <div class="insight-box"><strong>Delta hedging:</strong> To be delta-neutral on a long call, short Δ shares. But delta changes as S moves — so the hedge must be rebalanced continuously. This dynamic rebalancing is exactly the Black-Scholes replication argument. The cost of all that rebalancing over the life of the option equals the option premium (in a frictionless world with realised vol equal to implied vol). The slippage from discrete rebalancing is <strong>gamma P&amp;L</strong>.</div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 2: GAMMA — 2D + 3D
+    ══════════════════════════════════════════════════════ -->
+    <h2>2. Gamma (Γ) &mdash; The Curvature</h2>
+    <div class="panel">
+        <h3>The Rate of Change of Delta &mdash; and the Cost of Hedging</h3>
+        <div class="btn-row" style="margin-bottom:10px">
+            <button class="btn active" id="btnGammaRaw">Raw Γ (per £²)</button>
+            <button class="btn" id="btnGammaDollar">Dollar Gamma: ½S²σ²Γ (P&amp;L per unit vol² move)</button>
+        </div>
+        <canvas id="gammaCanvas" width="700" height="280"></canvas>
+        <div class="grid-legend" style="margin-top:8px">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Gamma (same for calls and puts)</span></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">Γ</span> = N'(d₁) / (S σ √T) &nbsp;&nbsp;&nbsp; <span class="muted">always positive — both calls and puts have positive gamma</span></div>
+            <div class="math-line muted">Gamma is highest ATM and near expiry. A portfolio that is delta-neutral but has positive gamma profits from large moves in either direction.</div>
+        </div>
+
+        <!-- 3D: Gamma surface over S and T -->
+        <div style="margin-top:16px">
+            <h3 style="margin-bottom:10px">3D Surface: Gamma vs Spot &amp; Time to Expiry &mdash; Drag to Rotate</h3>
+            <div class="canvas-3d-wrap" id="gamma3dWrap">
+                <canvas id="gamma3d" width="700" height="400"></canvas>
+                <div class="canvas-3d-label">Γ(S, T)</div>
+                <div class="canvas-3d-hint">drag to rotate · scroll to zoom</div>
+            </div>
+        </div>
+        <div class="insight-box"><strong>The gamma spike near expiry</strong> is the most dangerous feature of options books. As an option nears expiry at-the-money, gamma explodes — a small move in the underlying causes a massive change in delta, requiring large and costly hedge rebalances. This is why "pin risk" (the underlying settling exactly at the strike) is dreaded by options desks on expiry day. The 3D surface shows how gamma forms a ridge along the ATM line that sharpens dramatically as T → 0.</div>
+        <div class="insight-box" style="border-left-color:rgba(34,211,238,0.3);background:rgba(34,211,238,0.03)"><strong style="color:#22d3ee">Dollar Gamma = ½S²σ²Γ</strong> — the natural unit for practitioners. It measures the expected gamma P&amp;L per unit of realised variance (σ²dt). Rather than quoting gamma as "0.00042 per £²", a trader says "I'm carrying £18k of dollar gamma" — meaning a 1% daily move in spot generates roughly £18k of P&amp;L from curvature alone. Toggle above to see the gamma surface rescaled to this intuitive measure.</div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 3: THETA
+    ══════════════════════════════════════════════════════ -->
+    <h2>3. Theta (Θ) &mdash; Time Decay</h2>
+    <div class="panel">
+        <h3>How Much Value Does the Option Lose Per Day?</h3>
+        <canvas id="thetaCanvas" width="700" height="280"></canvas>
+        <div class="formula-block">
+            <div class="math-line"><span class="pink">Θ<sub>call</sub></span> = −S N'(d₁) σ / (2√T) − r K e<sup>−rT</sup> N(d₂) &nbsp;&nbsp; <span class="muted">(per year, divide by 365 for daily)</span></div>
+            <div class="math-line muted">Theta is almost always negative (you lose value as time passes). Theta and gamma have opposite signs — this is not a coincidence.</div>
+        </div>
+        <div class="insight-box"><strong>The theta-gamma tradeoff:</strong> The Black-Scholes PDE reveals a fundamental balance: Θ + ½σ²S²Γ + rS Δ − rV = 0. This means theta and gamma are always in opposition for a delta-hedged book. Long gamma (you profit from large moves) costs you theta (daily decay). Short gamma (you collect theta) means you lose when the underlying makes large moves. Every options strategy is fundamentally a bet on <em>realised volatility vs implied volatility</em>, expressed through this gamma-theta tradeoff.</div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 4: VEGA
+    ══════════════════════════════════════════════════════ -->
+    <h2>4. Vega (ν) &mdash; Volatility Sensitivity</h2>
+    <div class="panel">
+        <h3>How Much Does the Option Move Per 1% Change in Vol?</h3>
+        <div class="btn-row" style="margin-bottom:10px">
+            <button class="btn active" id="btnVegaSpot">Vega vs Spot (multiple T)</button>
+            <button class="btn" id="btnVegaTS">ATM Vega vs T (term structure)</button>
+        </div>
+        <canvas id="vegaCanvas" width="700" height="280"></canvas>
+        <div class="formula-block">
+            <div class="math-line"><span class="gold">ν</span> = S N'(d₁) √T &nbsp;&nbsp;&nbsp; <span class="muted">same for calls and puts. Always positive.</span></div>
+            <div class="math-line muted">Vega is highest ATM with long time remaining. Deep ITM/OTM options have low vega. All options are long vega from the buyer's perspective.</div>
+        </div>
+        <div class="insight-box"><strong>Vega risk is the most important second-order risk</strong> for options books. A 1% rise in implied volatility on an ATM 1-year option with S=100 adds roughly £40 in value (vega ≈ 40). Volatility trading desks are essentially in the business of managing vega — buying options when implied vol is cheap and selling when dear, relative to their forecast of realised vol. The vol surface (next section) shows how vega exposure varies across strikes and maturities.</div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 5: RHO
+    ══════════════════════════════════════════════════════ -->
+    <h2>5. Rho (ρ) &mdash; Interest Rate Sensitivity</h2>
+    <div class="panel">
+        <h3>How Does the Option Price Change with the Risk-Free Rate?</h3>
+        <canvas id="rhoCanvas" width="700" height="260"></canvas>
+        <div class="formula-block">
+            <div class="math-line"><span class="purple">ρ<sub>call</sub></span> = K T e<sup>−rT</sup> N(d₂) &gt; 0 &nbsp;&nbsp;&nbsp; <span class="red">ρ<sub>put</sub></span> = −K T e<sup>−rT</sup> N(−d₂) &lt; 0</div>
+            <div class="math-line muted">Higher rates reduce the PV of paying the strike → calls become more valuable, puts less. Effect is small for short-dated options, material for long-dated ones.</div>
+        </div>
+        <div class="insight-box">Rho is often the smallest first-order Greek in equity markets where rate changes are modest relative to vol and spot moves. However, it dominates for long-dated instruments (10y+ caps, floors, swaptions) where the interest rate is a major driver. In currency options, "rho" generalises to a <em>dual rho</em> — sensitivity to both the domestic and foreign interest rate — which is why FX option pricing requires two yield curves.</div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 6: SECOND-ORDER GREEKS — VANNA, VOLGA, CHARM
+    ══════════════════════════════════════════════════════ -->
+    <h2>6. Second-Order Greeks &mdash; Vanna, Volga &amp; Charm</h2>
+    <div class="panel">
+        <h3>The Cross-Sensitivities That Advanced Desks Monitor</h3>
+        <canvas id="secondCanvas" width="700" height="320"></canvas>
+        <div class="grid-legend" style="margin-top:8px">
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Vanna = ∂Δ/∂σ = ∂ν/∂S</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Volga = ∂ν/∂σ = ∂²C/∂σ²</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Charm = ∂Δ/∂T (delta decay)</span></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="pink">Vanna</span> = −N'(d₁) d₂/σ &nbsp;&nbsp;&nbsp; <span class="muted">How delta changes when vol changes (and vice versa)</span></div>
+            <div class="math-line"><span class="gold">Volga</span> = ν × d₁ d₂/σ &nbsp;&nbsp;&nbsp; <span class="muted">Convexity in vol — how vega changes when vol changes</span></div>
+            <div class="math-line"><span class="cyan">Charm</span> = −N'(d₁)[2rT − d₂σ√T] / (2Tσ√T) &nbsp;&nbsp;&nbsp; <span class="muted">How delta changes with time</span></div>
+            <div class="math-line muted" style="font-size:0.85em;border-top:1px solid rgba(255,255,255,0.05);padding-top:6px;margin-top:4px">⚠ Sign convention: here T denotes <em>time to expiry</em>, so Charm = ∂Δ/∂T. Most market literature defines charm as ∂Δ/∂t (calendar time), which reverses the sign. If a source gives opposite charm signs, this is why.</div>
+        </div>
+        <div class="insight-box">
+            <strong style="color:#f472b6">Vanna</strong> is the sensitivity of delta to a change in volatility — equivalently, of vega to a change in spot. A long risk-reversal (OTM call + OTM put) has large vanna: when the spot moves, the vega of the position changes dramatically. Desks monitor vanna when managing positions across a vol surface.
+            <br><br>
+            <strong style="color:#fbbf24">Volga</strong> (also called "vomma") is the second derivative of option price with respect to volatility — the curvature of the vol-price relationship. Volga is highest for deep OTM/ITM options and near zero for ATM options. A positive volga position profits from large moves in volatility itself (vol of vol). This is the key risk in exotic products like variance swaps and vol target strategies.
+            <br><br>
+            <strong style="color:#22d3ee">Charm</strong> (delta decay) tells you how much your delta hedge needs to be adjusted just from the passage of time — even if the spot doesn't move. ITM options approaching expiry have positive charm (delta drifts toward 1). OTM options have negative charm (delta drifts toward 0). Options desks rebalance their delta hedges every morning partly in response to overnight charm.
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 7: 3D VANNA-VOLGA SURFACE
+    ══════════════════════════════════════════════════════ -->
+    <h2>7. 3D Surfaces &mdash; Vanna &amp; Volga Across Spot and Volatility</h2>
+    <div class="panel">
+        <h3>Select a Greek &mdash; Explore the Surface &mdash; Drag to Rotate</h3>
+        <div class="btn-row">
+            <button class="btn active" id="btn3dVanna">Vanna</button>
+            <button class="btn" id="btn3dVolga">Volga</button>
+            <button class="btn" id="btn3dCharm">Charm</button>
+            <button class="btn" id="btn3dGamma">Gamma</button>
+        </div>
+        <div class="canvas-3d-wrap" id="vv3dWrap">
+            <canvas id="vv3d" width="700" height="420"></canvas>
+            <div class="canvas-3d-label" id="vv3dLabel">Vanna(S, σ)</div>
+            <div class="canvas-3d-hint">drag to rotate · scroll to zoom</div>
+        </div>
+        <div class="insight-box" id="surfaceInsight"></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 8: GREEK RELATIONSHIPS
+    ══════════════════════════════════════════════════════ -->
+    <h2>8. How the Greeks Relate &mdash; The Black-Scholes PDE</h2>
+    <div class="panel">
+        <h3>The Fundamental Constraint</h3>
+        <div class="bs-pde" style="text-align:center;padding:18px;background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.15);border-radius:10px;margin:14px 0;font-family:'Courier New',monospace">
+            <div style="font-size:1.1em;color:#e0e0ef;line-height:2.4">
+                <span style="color:#f472b6">Θ</span> + ½ σ² S² <span style="color:#10b981">Γ</span> + r S <span style="color:#fbbf24">Δ</span> − r V = 0
+            </div>
+            <div style="font-size:0.85em;color:#707088;margin-top:4px">
+                The Black-Scholes PDE — every option must satisfy this at all times. It connects all four primary Greeks.
+            </div>
+        </div>
+        <div class="btn-row" style="margin-bottom:10px">
+            <button class="btn active" id="btnPDEFull">Full PDE: LHS vs rV</button>
+            <button class="btn" id="btnPDEDH">Delta-hedged: Θ + ½σ²S²Γ ≈ 0</button>
+        </div>
+        <canvas id="pdeCanvas" width="700" height="260"></canvas>
+        <!-- Residual stat (E10) -->
+        <div class="result-box" id="pdeResidualBox" style="margin:10px 0">
+            <div style="font-size:0.78em;color:#808098;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">PDE residual at current S (should be ≈ 0)</div>
+            <div class="stats-row" id="pdeResidualStats"></div>
+        </div>
+        <div class="insight-box">This PDE says: the rate of time decay (theta) plus the expected gamma P&amp;L (½σ²S²Γ) plus the rho-delta contribution must equal the risk-free return on the option value. For a delta-hedged position, rSΔ is eliminated, leaving <strong>Θ = −½σ²S²Γ</strong> — theta exactly equals the gamma P&amp;L under Black-Scholes assumptions. This is the deepest result in the theory: it explains why option pricing is fundamentally about volatility, not about the direction of the market.</div>
+
+        <h3 style="margin-top:18px">Summary: The Greek Hierarchy</h3>
+        <div style="overflow-x:auto;margin:14px 0">
+            <table id="greekTable" style="width:100%;border-collapse:collapse;font-size:0.85em"></table>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 9: WHY THIS MATTERS
+    ══════════════════════════════════════════════════════ -->
+    <h2>9. Why This Matters</h2>
+    <div class="explain">
+        <div class="explain-name">The Language of Every Derivatives Desk</div>
+        <div class="explain-text">
+            The Greeks are not abstract mathematical curiosities — they are the daily working language of every options trader, structurer, and risk manager in the world. When a trader "takes off delta," they are neutralising their linear market risk. When they "buy gamma," they are paying theta to profit from large moves. When a desk reports its "vega bucketed by expiry," they are showing how their volatility exposure is distributed across the term structure.
+            <br><br>
+            <strong style="color:#e0e0e0">Vanna and volga in practice:</strong> The vanna-volga method is a widely used technique for pricing exotic FX options. It adjusts the Black-Scholes price by the cost of replicating the instrument's vanna and volga exposures using vanilla options. It is particularly important for barrier options and digitals, where the payoff has sharp discontinuities that create large second-order sensitivities near the barrier.
+            <br><br>
+            <strong style="color:#e0e0e0">Risk management:</strong> A well-run options book maintains target levels for each Greek. Delta is typically hedged to near zero daily. Gamma and vega limits define the maximum risk the desk is permitted to hold. Theta is monitored as a running P&amp;L cost. Vanna and volga are monitored for structured products and exotic books where the vol surface dynamics are critical.
+            <br><br>
+            <strong style="color:#e0e0e0">For the student:</strong> Mastering the Greeks is mastering <em>how to think about risk locally</em>. Every complex risk — in equities, rates, credit, FX — can be decomposed into first-order sensitivities (the deltas of that asset class) and higher-order corrections. The Greeks teach the universal skill of linearising and then correcting for curvature, which is the foundation of all quantitative risk management.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   The Greeks — Chapter 11
+   Complete implementation: Delta, Gamma, Theta, Vega, Rho,
+   Vanna, Volga, Charm + 3D surfaces + PDE visualisation
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Math helpers ── */
+function normCDF(x){
+    var a=[0.319381530,-0.356563782,1.781477937,-1.821255978,1.330274429];
+    var k=1/(1+0.2316419*Math.abs(x));
+    var p=k*(a[0]+k*(a[1]+k*(a[2]+k*(a[3]+k*a[4]))));
+    var r=1-(1/Math.sqrt(2*Math.PI))*Math.exp(-x*x/2)*p;
+    return x<0?1-r:r;
+}
+function normPDF(x){return Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);}
+
+function d1d2(S,K,r,sig,T){
+    var d1=(Math.log(S/K)+(r+0.5*sig*sig)*T)/(sig*Math.sqrt(T));
+    return{d1:d1, d2:d1-sig*Math.sqrt(T)};
+}
+
+function greeks(S,K,r,sig,T,isCall){
+    if(T<0.001) T=0.001;
+    var dd=d1d2(S,K,r,sig,T);
+    var d1=dd.d1, d2=dd.d2;
+    var sqrtT=Math.sqrt(T);
+    var npd1=normPDF(d1);
+    var Nd1=normCDF(d1), Nd2=normCDF(d2);
+    var disc=Math.exp(-r*T);
+
+    /* Price */
+    var price=isCall ? S*Nd1-K*disc*Nd2 : K*disc*normCDF(-d2)-S*normCDF(-d1);
+
+    /* First order */
+    var delta=isCall ? Nd1 : Nd1-1;
+    var gamma=npd1/(S*sig*sqrtT);
+    var vega=S*npd1*sqrtT;           /* per unit sigma */
+    var vega1=vega/100;              /* per 1% change in vol */
+    var theta_y=isCall
+        ? -S*npd1*sig/(2*sqrtT) - r*K*disc*Nd2
+        : -S*npd1*sig/(2*sqrtT) + r*K*disc*normCDF(-d2);
+    var theta_d=theta_y/365;
+    var rho_=isCall ? K*T*disc*Nd2 : -K*T*disc*normCDF(-d2);
+
+    /* Second order */
+    var vanna=-npd1*d2/sig;          /* ∂Δ/∂σ = ∂ν/∂S / S */
+    var volga=vega*d1*d2/sig;        /* ∂ν/∂σ */
+    /* Charm: ∂Δ/∂T (annualised) */
+    var charm=isCall
+        ? -npd1*(2*r*T-d2*sig*sqrtT)/(2*T*sig*sqrtT)
+        : npd1*(2*r*T-d2*sig*sqrtT)/(2*T*sig*sqrtT) - normPDF(d2)*0; /* simplified */
+    charm=-npd1*(2*r*T-d2*sig*sqrtT)/(2*T*sig*sqrtT); /* same sign for both */
+
+    return{price,delta,gamma,vega:vega1,theta:theta_d,rho:rho_/100,vanna,volga,charm,d1,d2,Nd1,Nd2};
+}
+
+/* ── Global params ── */
+var isCall=true;
+function getP(){
+    var S=parseInt(document.getElementById('gS').value);
+    var K=parseInt(document.getElementById('gK').value);
+    var sig=parseInt(document.getElementById('gSig').value)/100;
+    var T=parseInt(document.getElementById('gT').value)/12;
+    var r=parseInt(document.getElementById('gR').value)/10/100;
+    document.getElementById('vgS').textContent='£'+S;
+    document.getElementById('vgK').textContent='£'+K;
+    document.getElementById('vgSig').textContent=(sig*100).toFixed(0)+'%';
+    document.getElementById('vgT').textContent=parseInt(document.getElementById('gT').value)+' mo';
+    document.getElementById('vgR').textContent=(r*100).toFixed(1)+'%';
+    return{S,K,sig,T,r};
+}
+
+/* ── Colour palette per Greek ── */
+var GCOLORS={delta:'#10b981',gamma:'#22d3ee',theta:'#f472b6',vega:'#fbbf24',rho:'#a78bfa',vanna:'#f472b6',volga:'#fbbf24',charm:'#22d3ee'};
+
+/* ═══════════════════════════════════
+   SECTION 0: Dashboard
+════════════════════════════════════ */
+function updateDashboard(){
+    var p=getP();
+    var g=greeks(p.S,p.K,p.r,p.sig,p.T,isCall);
+
+    document.getElementById('dashStats').innerHTML=
+        '<div class="stat-box"><div class="stat-label">Price</div><div class="stat-val" style="color:#10b981">£'+g.price.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">d₁</div><div class="stat-val">'+g.d1.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">d₂</div><div class="stat-val">'+g.d2.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">N(d₁)</div><div class="stat-val">'+g.Nd1.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">N(d₂)</div><div class="stat-val">'+g.Nd2.toFixed(4)+'</div></div>';
+
+    var CARDS=[
+        {name:'Δ Delta',   color:'#10b981', formula:'∂V/∂S',       val:g.delta.toFixed(5),   unit:''},
+        {name:'Γ Gamma',   color:'#22d3ee', formula:'∂²V/∂S²',     val:g.gamma.toFixed(6),   unit:'per £²'},
+        {name:'Θ Theta',   color:'#f472b6', formula:'∂V/∂t (day)', val:g.theta.toFixed(5),   unit:'£/day'},
+        {name:'ν Vega',    color:'#fbbf24', formula:'∂V/∂σ (1%)',  val:g.vega.toFixed(5),    unit:'£ per 1%σ'},
+        {name:'ρ Rho',     color:'#a78bfa', formula:'∂V/∂r (1%)',  val:g.rho.toFixed(5),     unit:'£ per 1%r'},
+        {name:'Vanna',     color:'#f472b6', formula:'∂Δ/∂σ',       val:g.vanna.toFixed(5),   unit:''},
+        {name:'Volga',     color:'#fbbf24', formula:'∂²V/∂σ²',     val:g.volga.toFixed(5),   unit:''},
+        {name:'Charm',     color:'#22d3ee', formula:'∂Δ/∂T (ann)', val:g.charm.toFixed(5),   unit:''},
+    ];
+    document.getElementById('greekCards').innerHTML=CARDS.map(function(c){
+        return'<div class="greek-card"><h4 style="color:'+c.color+'">'+c.name+'</h4>'+
+            '<div class="gformula">'+c.formula+'</div>'+
+            '<div class="gval" style="color:'+c.color+'">'+c.val+'</div>'+
+            (c.unit?'<div style="font-size:0.75em;color:#606078;margin-top:3px">'+c.unit+'</div>':'')+
+            '</div>';
+    }).join('');
+
+    drawAllGreeks();
+    draw3dSurface(current3d);
+}
+
+/* ═══════════════════════════════════
+   2D Canvas helper
+════════════════════════════════════ */
+function setup2D(canvas){
+    var ctx=canvas.getContext('2d');
+    var W=canvas.width, H=canvas.height;
+    var PAD={left:62,right:20,top:24,bottom:46};
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+    return{ctx,W,H,PAD,plotW:W-PAD.left-PAD.right,plotH:H-PAD.top-PAD.bottom};
+}
+
+function gridAxes(c, xMin,xMax, yMin,yMax, xLabelFn, yLabelFn){
+    var ctx=c.ctx, P=c.PAD, W=c.W, H=c.H;
+    function tx(x){return P.left+(x-xMin)/(xMax-xMin)*c.plotW;}
+    function ty(y){return P.top+c.plotH-(y-yMin)/(yMax-yMin)*c.plotH;}
+
+    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+    /* y grid */
+    var ny=5;
+    for(var i=0;i<=ny;i++){
+        var yv=yMin+i/ny*(yMax-yMin);
+        ctx.beginPath(); ctx.moveTo(P.left,ty(yv)); ctx.lineTo(W-P.right,ty(yv)); ctx.stroke();
+        ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='right'; ctx.textBaseline='middle';
+        ctx.fillText(yLabelFn(yv), P.left-6, ty(yv));
+    }
+    /* x grid / labels */
+    var xs=[60,70,80,90,100,110,120,130,140];
+    xs.forEach(function(x){
+        if(x<xMin||x>xMax) return;
+        ctx.beginPath(); ctx.moveTo(tx(x),P.top); ctx.lineTo(tx(x),H-P.bottom); ctx.stroke();
+        ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='center'; ctx.textBaseline='top';
+        ctx.fillText(xLabelFn(x), tx(x), H-P.bottom+8);
+    });
+    /* axes */
+    ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(P.left,P.top); ctx.lineTo(P.left,H-P.bottom); ctx.lineTo(W-P.right,H-P.bottom); ctx.stroke();
+    /* zero line if in range */
+    if(yMin<0 && yMax>0){
+        ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(P.left,ty(0)); ctx.lineTo(W-P.right,ty(0)); ctx.stroke();
+    }
+    return{tx,ty};
+}
+
+function drawLine(ctx, fn, xMin, xMax, tx, ty, color, lw){
+    ctx.strokeStyle=color; ctx.lineWidth=lw||2;
+    ctx.beginPath();
+    var N=300;
+    for(var i=0;i<=N;i++){
+        var x=xMin+i/N*(xMax-xMin);
+        var y=fn(x);
+        if(!isFinite(y)) continue;
+        if(i===0) ctx.moveTo(tx(x),ty(y)); else ctx.lineTo(tx(x),ty(y));
+    }
+    ctx.stroke();
+}
+
+/* ═══════════════════════════════════
+   DELTA canvas
+════════════════════════════════════ */
+function drawDelta(){
+    var p=getP();
+    var c=setup2D(document.getElementById('deltaCanvas'));
+    var ctx=c.ctx;
+    var TT=[0.08,0.25,0.5,1.0,2.0];
+    var colors=['#505068','#707080','#909090','#a0a0c0','#fbbf24'];
+
+    var f=gridAxes(c, 50,150, -1.05,1.05,
+        function(x){return'£'+x;},
+        function(y){return y.toFixed(1);});
+
+    /* Multiple TTEs faint */
+    TT.forEach(function(T,i){
+        if(i===TT.length-1) return;
+        drawLine(ctx, function(S){
+            return greeks(S,p.K,p.r,p.sig,T,true).delta;
+        }, 50,150, f.tx, f.ty, colors[i], 1.2);
+    });
+    /* Put delta */
+    drawLine(ctx, function(S){
+        return greeks(S,p.K,p.r,p.sig,p.T,false).delta;
+    }, 50,150, f.tx, f.ty, '#22d3ee', 2);
+    /* Call delta */
+    drawLine(ctx, function(S){
+        return greeks(S,p.K,p.r,p.sig,p.T,true).delta;
+    }, 50,150, f.tx, f.ty, '#10b981', 2.5);
+
+    /* Current dot */
+    var g=greeks(p.S,p.K,p.r,p.sig,p.T,isCall);
+    ctx.beginPath(); ctx.arc(f.tx(p.S), f.ty(g.delta), 5, 0, Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill();
+
+    /* Strike line */
+    ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(f.tx(p.K), c.PAD.top); ctx.lineTo(f.tx(p.K), c.H-c.PAD.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Spot S →  (darker = shorter expiry)', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+
+    /* ── E3: Taylor P&L box ── */
+    var dS=1;
+    var gNow=greeks(p.S,p.K,p.r,p.sig,p.T,isCall);
+    var gUp=greeks(p.S+dS,p.K,p.r,p.sig,p.T,isCall);
+    var term1=gNow.delta*dS;
+    var term2=0.5*gNow.gamma*dS*dS;
+    var approx=term1+term2;
+    var exact=gUp.price-gNow.price;
+    var residual=exact-approx;
+    document.getElementById('taylorDelta').textContent=term1.toFixed(5);
+    document.getElementById('taylorGamma').textContent=term2.toFixed(6);
+    document.getElementById('taylorTotal').textContent=approx.toFixed(5);
+    document.getElementById('taylorExact').textContent=exact.toFixed(5);
+    document.getElementById('taylorError').textContent=residual.toFixed(7)+' (3rd+ order)';
+    document.getElementById('taylorError').style.color=Math.abs(residual)<0.0001?'#10b981':'#fbbf24';
+}
+
+/* ═══════════════════════════════════
+   GAMMA 2D canvas
+════════════════════════════════════ */
+var gammaMode='raw'; /* 'raw' | 'dollar' */
+document.getElementById('btnGammaRaw').addEventListener('click',function(){
+    gammaMode='raw';
+    document.getElementById('btnGammaRaw').classList.add('active');
+    document.getElementById('btnGammaDollar').classList.remove('active');
+    drawGamma();
+});
+document.getElementById('btnGammaDollar').addEventListener('click',function(){
+    gammaMode='dollar';
+    document.getElementById('btnGammaDollar').classList.add('active');
+    document.getElementById('btnGammaRaw').classList.remove('active');
+    drawGamma();
+});
+
+function drawGamma(){
+    var p=getP();
+    var c=setup2D(document.getElementById('gammaCanvas'));
+    var ctx=c.ctx;
+
+    var fn;
+    if(gammaMode==='dollar'){
+        fn=function(S){ var g2=greeks(S,p.K,p.r,p.sig,p.T,true); return 0.5*S*S*p.sig*p.sig*g2.gamma; };
+    } else {
+        fn=function(S){ return greeks(S,p.K,p.r,p.sig,p.T,true).gamma; };
+    }
+
+    var allG=[]; for(var s=50;s<=150;s+=1) allG.push(fn(s));
+    var yMax=Math.max.apply(null,allG)*1.15; if(yMax<0.001) yMax=0.01;
+    var yLabelFn=gammaMode==='dollar'
+        ? function(y){return y.toFixed(3);}
+        : function(y){return y.toFixed(4);};
+
+    var f=gridAxes(c, 50,150, 0,yMax,
+        function(x){return'£'+x;},
+        yLabelFn);
+
+    drawLine(ctx, fn, 50,150, f.tx, f.ty, '#22d3ee', 2.5);
+
+    var gNow=greeks(p.S,p.K,p.r,p.sig,p.T,true);
+    var dotY=gammaMode==='dollar'?0.5*p.S*p.S*p.sig*p.sig*gNow.gamma:gNow.gamma;
+    ctx.beginPath(); ctx.arc(f.tx(p.S), f.ty(dotY), 5, 0, Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill();
+
+    /* annotation */
+    ctx.fillStyle='#22d3ee'; ctx.font='10px Georgia'; ctx.textAlign='left';
+    if(gammaMode==='dollar'){
+        ctx.fillText('Dollar Gamma = \u00BD S\u00B2\u03C3\u00B2\u0393', c.PAD.left+8, c.PAD.top+14);
+        ctx.fillStyle='#808098'; ctx.font='9px Georgia';
+        ctx.fillText('= \u00A3'+dotY.toFixed(4)+' at S=\u00A3'+p.S, c.PAD.left+8, c.PAD.top+26);
+    } else {
+        ctx.fillText('\u0393 at S=\u00A3'+p.S+': '+gNow.gamma.toFixed(6), c.PAD.left+8, c.PAD.top+14);
+    }
+
+    ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(f.tx(p.K),c.PAD.top); ctx.lineTo(f.tx(p.K),c.H-c.PAD.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Spot S \u2192', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+}
+
+/* ═══════════════════════════════════
+   THETA canvas
+════════════════════════════════════ */
+function drawTheta(){
+    var p=getP();
+    var c=setup2D(document.getElementById('thetaCanvas'));
+    var ctx=c.ctx;
+    var allTh=[];
+    for(var s=50;s<=150;s+=1){
+        allTh.push(greeks(s,p.K,p.r,p.sig,p.T,true).theta);
+        allTh.push(greeks(s,p.K,p.r,p.sig,p.T,false).theta);
+    }
+    var yMin=Math.min.apply(null,allTh)*1.1, yMax=Math.max.apply(null,allTh)*1.1;
+    if(yMax<0) yMax=0.01; if(yMin>0) yMin=-0.01;
+
+    var f=gridAxes(c, 50,150, yMin,yMax,
+        function(x){return'£'+x;},
+        function(y){return y.toFixed(4);});
+
+    drawLine(ctx, function(S){return greeks(S,p.K,p.r,p.sig,p.T,false).theta;}, 50,150, f.tx, f.ty, '#22d3ee', 1.8);
+    drawLine(ctx, function(S){return greeks(S,p.K,p.r,p.sig,p.T,true).theta;}, 50,150, f.tx, f.ty, '#f472b6', 2.5);
+
+    var g=greeks(p.S,p.K,p.r,p.sig,p.T,isCall);
+    ctx.beginPath(); ctx.arc(f.tx(p.S), f.ty(g.theta), 5, 0, Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill();
+
+    ctx.fillStyle='#f472b6'; ctx.font='10px Georgia'; ctx.textAlign='left';
+    ctx.fillText('Call theta', f.tx(55), f.ty(greeks(55,p.K,p.r,p.sig,p.T,true).theta)-10);
+    ctx.fillStyle='#22d3ee';
+    ctx.fillText('Put theta', f.tx(55), f.ty(greeks(55,p.K,p.r,p.sig,p.T,false).theta)+14);
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Spot S →', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+}
+
+/* ═══════════════════════════════════
+   VEGA canvas
+════════════════════════════════════ */
+var vegaChartMode='spot'; /* 'spot' | 'ts' */
+document.getElementById('btnVegaSpot').addEventListener('click',function(){
+    vegaChartMode='spot';
+    document.getElementById('btnVegaSpot').classList.add('active');
+    document.getElementById('btnVegaTS').classList.remove('active');
+    drawVegaChart();
+});
+document.getElementById('btnVegaTS').addEventListener('click',function(){
+    vegaChartMode='ts';
+    document.getElementById('btnVegaTS').classList.add('active');
+    document.getElementById('btnVegaSpot').classList.remove('active');
+    drawVegaChart();
+});
+
+function drawVegaChart(){
+    var p=getP();
+    var c=setup2D(document.getElementById('vegaCanvas'));
+    var ctx=c.ctx;
+
+    if(vegaChartMode==='ts'){
+        /* ATM vega vs T (term structure): T from 1mo to 36mo */
+        var tArr=[];
+        var vArr=[];
+        for(var mo=1;mo<=36;mo++){
+            var T_=mo/12;
+            tArr.push(T_);
+            vArr.push(greeks(p.K,p.K,p.r,p.sig,T_,true).vega); /* ATM: S=K */
+        }
+        var yMax=Math.max.apply(null,vArr)*1.15; if(yMax<0.01) yMax=0.1;
+        /* also theoretical: S*N'(0)*sqrt(T)/100 */
+        var np0=normPDF(0); /* ≈0.3989 */
+
+        var PAD=c.PAD, W=c.W, H=c.H;
+        var tMin=0, tMax=3.0;
+        function tx_(t){return PAD.left+(t-tMin)/(tMax-tMin)*c.plotW;}
+        function ty_(v){return PAD.top+c.plotH-(v/yMax)*c.plotH;}
+
+        /* grid */
+        ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+        for(var g2=0;g2<=4;g2++){
+            var yv=g2/4*yMax;
+            ctx.beginPath(); ctx.moveTo(PAD.left,ty_(yv)); ctx.lineTo(W-PAD.right,ty_(yv)); ctx.stroke();
+            ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='right'; ctx.textBaseline='middle';
+            ctx.fillText(yv.toFixed(3), PAD.left-6, ty_(yv));
+        }
+        [0,0.5,1,1.5,2,2.5,3].forEach(function(t){
+            ctx.beginPath(); ctx.moveTo(tx_(t),PAD.top); ctx.lineTo(tx_(t),H-PAD.bottom); ctx.stroke();
+            ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='center'; ctx.textBaseline='top';
+            ctx.fillText((t*12).toFixed(0)+'mo', tx_(t), H-PAD.bottom+8);
+        });
+        ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,H-PAD.bottom); ctx.lineTo(W-PAD.right,H-PAD.bottom); ctx.stroke();
+
+        /* theoretical sqrt(T) curve */
+        ctx.strokeStyle='rgba(251,191,36,0.35)'; ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+        ctx.beginPath();
+        for(var i=0;i<=100;i++){
+            var t2=0.08+i/100*2.92;
+            var vegaTh=p.K*np0*Math.sqrt(t2)/100;
+            if(i===0) ctx.moveTo(tx_(t2),ty_(vegaTh)); else ctx.lineTo(tx_(t2),ty_(vegaTh));
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+
+        /* empirical ATM vega */
+        ctx.strokeStyle='#fbbf24'; ctx.lineWidth=2.5;
+        ctx.beginPath();
+        tArr.forEach(function(t,i){
+            if(i===0) ctx.moveTo(tx_(t),ty_(vArr[i])); else ctx.lineTo(tx_(t),ty_(vArr[i]));
+        });
+        ctx.stroke();
+
+        /* current T dot */
+        var curV=greeks(p.K,p.K,p.r,p.sig,p.T,true).vega;
+        ctx.beginPath(); ctx.arc(tx_(p.T), ty_(curV), 5, 0, Math.PI*2);
+        ctx.fillStyle='#fff'; ctx.fill();
+
+        ctx.fillStyle='#fbbf24'; ctx.font='10px Georgia'; ctx.textAlign='left';
+        ctx.fillText('ATM Vega (S=K)', PAD.left+8, PAD.top+14);
+        ctx.fillStyle='rgba(251,191,36,0.55)'; ctx.font='10px Georgia';
+        ctx.fillText('S\u00B7N\'(0)\u00B7\u221AT / 100 (theoretical)', PAD.left+8, PAD.top+28);
+        ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+        ctx.fillText('Time to expiry T \u2192 (Vega \u221d \u221aT initially, then flattens)', PAD.left+c.plotW/2, H-PAD.bottom+28);
+
+    } else {
+        /* Original: vega vs spot for multiple TTEs */
+        var TT=[0.083,0.25,0.5,1.0,2.0];
+        var colors=['#304040','#407060','#60a080','#90d0b0','#fbbf24'];
+
+        var allV=[];
+        TT.forEach(function(T){
+            for(var s=50;s<=150;s+=2) allV.push(greeks(s,p.K,p.r,p.sig,T,true).vega);
+        });
+        var yMax=Math.max.apply(null,allV)*1.1; if(yMax<0.1) yMax=0.1;
+
+        var f=gridAxes(c, 50,150, 0,yMax,
+            function(x){return'£'+x;},
+            function(y){return y.toFixed(3);});
+
+        TT.forEach(function(T,i){
+            drawLine(ctx, function(S){return greeks(S,p.K,p.r,p.sig,T,true).vega;}, 50,150, f.tx, f.ty, colors[i], i===TT.length-1?2.2:1.5);
+            if(i===TT.length-1){
+                ctx.fillStyle=colors[i]; ctx.font='10px Georgia'; ctx.textAlign='left';
+                ctx.fillText('T=2y', f.tx(145), f.ty(greeks(145,p.K,p.r,p.sig,T,true).vega)-6);
+            }
+            if(i===0){
+                ctx.fillStyle=colors[i]; ctx.font='10px Georgia'; ctx.textAlign='left';
+                ctx.fillText('T=1mo', f.tx(p.K+2), c.PAD.top+12);
+            }
+        });
+
+        var g=greeks(p.S,p.K,p.r,p.sig,p.T,isCall);
+        ctx.beginPath(); ctx.arc(f.tx(p.S), f.ty(g.vega), 5, 0, Math.PI*2);
+        ctx.fillStyle='#fff'; ctx.fill();
+
+        ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+        ctx.fillText('Spot S \u2192  (brighter = longer expiry)', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+    }
+}
+
+/* ═══════════════════════════════════
+   RHO canvas
+════════════════════════════════════ */
+function drawRho(){
+    var p=getP();
+    var c=setup2D(document.getElementById('rhoCanvas'));
+    var ctx=c.ctx;
+    var allR=[];
+    for(var s=50;s<=150;s+=2){
+        allR.push(greeks(s,p.K,p.r,p.sig,p.T,true).rho);
+        allR.push(greeks(s,p.K,p.r,p.sig,p.T,false).rho);
+    }
+    var yMin=Math.min.apply(null,allR)*1.1, yMax=Math.max.apply(null,allR)*1.1;
+    if(yMax<0.001) yMax=0.001; if(yMin>-0.001) yMin=-0.001;
+
+    var f=gridAxes(c, 50,150, yMin,yMax,
+        function(x){return'£'+x;},
+        function(y){return y.toFixed(3);});
+
+    drawLine(ctx, function(S){return greeks(S,p.K,p.r,p.sig,p.T,false).rho;}, 50,150, f.tx, f.ty, '#f87171', 2);
+    drawLine(ctx, function(S){return greeks(S,p.K,p.r,p.sig,p.T,true).rho;}, 50,150, f.tx, f.ty, '#a78bfa', 2.5);
+
+    ctx.fillStyle='#a78bfa'; ctx.font='10px Georgia'; ctx.textAlign='left';
+    ctx.fillText('Call ρ > 0', f.tx(120), f.ty(greeks(120,p.K,p.r,p.sig,p.T,true).rho)-8);
+    ctx.fillStyle='#f87171';
+    ctx.fillText('Put ρ < 0', f.tx(120), f.ty(greeks(120,p.K,p.r,p.sig,p.T,false).rho)+14);
+
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Spot S →', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+}
+
+/* ═══════════════════════════════════
+   SECOND ORDER canvas
+════════════════════════════════════ */
+function drawSecond(){
+    var p=getP();
+    var c=setup2D(document.getElementById('secondCanvas'));
+    var ctx=c.ctx;
+
+    /* normalise: compute each and scale to [-1,1] for display */
+    var vannaArr=[], volgaArr=[], charmArr=[];
+    for(var s=52;s<=148;s+=2){
+        var g2=greeks(s,p.K,p.r,p.sig,p.T,true);
+        vannaArr.push(g2.vanna);
+        volgaArr.push(g2.volga);
+        charmArr.push(g2.charm);
+    }
+    var vMax=Math.max(Math.max.apply(null,vannaArr.map(Math.abs)),0.001);
+    var vgMax=Math.max(Math.max.apply(null,volgaArr.map(Math.abs)),0.001);
+    var cMax=Math.max(Math.max.apply(null,charmArr.map(Math.abs)),0.001);
+    var yMax=Math.max(vMax,vgMax,cMax)*1.15;
+    var yMin=-yMax;
+
+    var f=gridAxes(c, 50,150, yMin,yMax,
+        function(x){return'£'+x;},
+        function(y){return y>1000?y.toExponential(1):y.toFixed(3);});
+
+    drawLine(ctx, function(S){return greeks(S,p.K,p.r,p.sig,p.T,true).charm;}, 52,148, f.tx, f.ty, '#22d3ee', 2);
+    drawLine(ctx, function(S){return greeks(S,p.K,p.r,p.sig,p.T,true).volga;}, 52,148, f.tx, f.ty, '#fbbf24', 2);
+    drawLine(ctx, function(S){return greeks(S,p.K,p.r,p.sig,p.T,true).vanna;}, 52,148, f.tx, f.ty, '#f472b6', 2.5);
+
+    /* Annotations */
+    ['#f472b6','#fbbf24','#22d3ee'].forEach(function(col,i){
+        var labels=['Vanna','Volga','Charm'];
+        ctx.fillStyle=col; ctx.font='10px Georgia'; ctx.textAlign='left';
+        ctx.fillText(labels[i], c.PAD.left+8, c.PAD.top+14+i*14);
+    });
+
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Spot S →', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+}
+
+/* ═══════════════════════════════════
+   PDE VERIFICATION canvas
+════════════════════════════════════ */
+var pdeMode='full'; /* 'full' | 'dh' */
+document.getElementById('btnPDEFull').addEventListener('click',function(){
+    pdeMode='full';
+    document.getElementById('btnPDEFull').classList.add('active');
+    document.getElementById('btnPDEDH').classList.remove('active');
+    drawPDE();
+});
+document.getElementById('btnPDEDH').addEventListener('click',function(){
+    pdeMode='dh';
+    document.getElementById('btnPDEDH').classList.add('active');
+    document.getElementById('btnPDEFull').classList.remove('active');
+    drawPDE();
+});
+
+function drawPDE(){
+    var p=getP();
+    var c=setup2D(document.getElementById('pdeCanvas'));
+    var ctx=c.ctx;
+
+    if(pdeMode==='dh'){
+        /* Delta-hedged: show Θ and −½σ²S²Γ — should overlap (both ≈ same magnitude, opposite signs when theta-gamma balance holds) */
+        var thetaArr=[], gammaTermArr=[], sumArr=[];
+        for(var s=52;s<=148;s+=2){
+            var g=greeks(s,p.K,p.r,p.sig,p.T,isCall);
+            var th=g.theta*365; /* annualised */
+            var gT=0.5*p.sig*p.sig*s*s*g.gamma;
+            thetaArr.push({s,v:th});
+            gammaTermArr.push({s,v:gT});
+            sumArr.push({s,v:th+gT}); /* should ≈ rSΔ − rV ≈ small */
+        }
+        var allV=thetaArr.concat(gammaTermArr).map(function(x){return x.v;});
+        var yMin=Math.min.apply(null,allV)*1.1, yMax=Math.max.apply(null,allV)*1.1;
+        if(yMax<0.01) yMax=0.01; if(yMin>-0.01) yMin=-0.01;
+
+        var f=gridAxes(c, 50,150, yMin,yMax,
+            function(x){return'£'+x;},
+            function(y){return y.toFixed(3);});
+
+        /* Theta (pink) */
+        ctx.strokeStyle='#f472b6'; ctx.lineWidth=2.5;
+        ctx.beginPath();
+        thetaArr.forEach(function(pt,i){
+            if(i===0) ctx.moveTo(f.tx(pt.s),f.ty(pt.v)); else ctx.lineTo(f.tx(pt.s),f.ty(pt.v));
+        });
+        ctx.stroke();
+
+        /* −½σ²S²Γ (cyan, negated to overlay with theta) */
+        ctx.strokeStyle='#22d3ee'; ctx.lineWidth=2.5; ctx.setLineDash([6,3]);
+        ctx.beginPath();
+        gammaTermArr.forEach(function(pt,i){
+            if(i===0) ctx.moveTo(f.tx(pt.s),f.ty(-pt.v)); else ctx.lineTo(f.tx(pt.s),f.ty(-pt.v));
+        });
+        ctx.stroke(); ctx.setLineDash([]);
+
+        /* Residual sum (gold — should be near rSΔ − rV, small) */
+        ctx.strokeStyle='rgba(251,191,36,0.5)'; ctx.lineWidth=1.5; ctx.setLineDash([3,3]);
+        ctx.beginPath();
+        sumArr.forEach(function(pt,i){
+            if(i===0) ctx.moveTo(f.tx(pt.s),f.ty(pt.v)); else ctx.lineTo(f.tx(pt.s),f.ty(pt.v));
+        });
+        ctx.stroke(); ctx.setLineDash([]);
+
+        ctx.fillStyle='#f472b6'; ctx.font='10px Georgia'; ctx.textAlign='left';
+        ctx.fillText('\u0398 (annualised)', c.PAD.left+6, c.PAD.top+14);
+        ctx.fillStyle='#22d3ee';
+        ctx.fillText('\u2212\u00BD\u03C3\u00B2S\u00B2\u0393  (for delta-hedge, \u0398 \u2248 this)', c.PAD.left+6, c.PAD.top+28);
+        ctx.fillStyle='rgba(251,191,36,0.8)';
+        ctx.fillText('\u0398+\u00BD\u03C3\u00B2S\u00B2\u0393 \u2248 rS\u0394\u2212rV (residual)', c.PAD.left+6, c.PAD.top+42);
+
+    } else {
+        /* Full PDE: LHS vs rV */
+        var lhsArr=[], rhsArr=[];
+        for(var s=52;s<=148;s+=2){
+            var g=greeks(s,p.K,p.r,p.sig,p.T,isCall);
+            var lhs=g.theta*365 + 0.5*p.sig*p.sig*s*s*g.gamma + p.r*s*g.delta;
+            var rhs=p.r*g.price;
+            lhsArr.push({s,v:lhs});
+            rhsArr.push({s,v:rhs});
+        }
+        var allV=lhsArr.concat(rhsArr).map(function(x){return x.v;});
+        var yMin=Math.min.apply(null,allV)*1.1, yMax=Math.max.apply(null,allV)*1.1;
+        if(yMax<0.01) yMax=0.01; if(yMin>-0.01) yMin=-0.01;
+
+        var f=gridAxes(c, 50,150, yMin,yMax,
+            function(x){return'£'+x;},
+            function(y){return y.toFixed(3);});
+
+        ctx.strokeStyle='#10b981'; ctx.lineWidth=2.5;
+        ctx.beginPath();
+        lhsArr.forEach(function(pt,i){
+            var px=f.tx(pt.s), py=f.ty(pt.v);
+            if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+        });
+        ctx.stroke();
+
+        ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.8; ctx.setLineDash([5,4]);
+        ctx.beginPath();
+        rhsArr.forEach(function(pt,i){
+            var px=f.tx(pt.s), py=f.ty(pt.v);
+            if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+        });
+        ctx.stroke(); ctx.setLineDash([]);
+
+        ctx.fillStyle='#10b981'; ctx.font='10px Georgia'; ctx.textAlign='left';
+        ctx.fillText('\u0398 + \u00BD\u03C3\u00B2S\u00B2\u0393 + rS\u0394', c.PAD.left+6, c.PAD.top+14);
+        ctx.fillStyle='#fbbf24'; ctx.fillText('rV (must match)', c.PAD.left+6, c.PAD.top+28);
+    }
+
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Spot S \u2192', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+
+    /* ── E10: Residual stat at current S ── */
+    var gS=greeks(p.S,p.K,p.r,p.sig,p.T,isCall);
+    var lhsS=gS.theta*365 + 0.5*p.sig*p.sig*p.S*p.S*gS.gamma + p.r*p.S*gS.delta;
+    var rhsS=p.r*gS.price;
+    var residS=lhsS-rhsS;
+    var dhResid=gS.theta*365 + 0.5*p.sig*p.sig*p.S*p.S*gS.gamma; /* Θ + ½σ²S²Γ, should ≈ rV-rSΔ */
+    document.getElementById('pdeResidualStats').innerHTML=
+        '<div class="stat-box"><div class="stat-label">Θ + ½σ²S²Γ + rSΔ</div><div class="stat-val" style="color:#10b981">'+lhsS.toFixed(5)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">rV</div><div class="stat-val" style="color:#fbbf24">'+rhsS.toFixed(5)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Residual (LHS−rV)</div><div class="stat-val" style="color:'+(Math.abs(residS)<0.0001?'#10b981':'#fbbf24')+'">'+residS.toExponential(2)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Θ + ½σ²S²Γ (delta-hedged)</div><div class="stat-val" style="color:#a78bfa">'+dhResid.toFixed(5)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">rSΔ − rV (should balance)</div><div class="stat-val" style="color:#22d3ee">'+(p.r*p.S*gS.delta - p.r*gS.price).toFixed(5)+'</div></div>';
+}
+
+/* ═══════════════════════════════════
+   GREEK TABLE
+════════════════════════════════════ */
+function buildGreekTable(){
+    var rows=[
+        {order:'1st',greek:'Δ Delta',  symbol:'∂V/∂S',    desc:'Sensitivity to spot price',    risk:'Linear market risk — the hedge ratio',            desk:'All options desks'},
+        {order:'1st',greek:'Γ Gamma',  symbol:'∂²V/∂S²',  desc:'Rate of change of delta',       risk:'Convexity; cost of delta-hedging; pin risk',     desk:'Equity vol, index books'},
+        {order:'1st',greek:'Θ Theta',  symbol:'∂V/∂t',    desc:'Time decay (per day)',           risk:'Daily P&L erosion; theta-gamma tradeoff',       desk:'All short-dated desks'},
+        {order:'1st',greek:'ν Vega',   symbol:'∂V/∂σ',    desc:'Sensitivity to implied vol',    risk:'Vol market risk; dominant for options books',    desk:'Vol trading, exotics'},
+        {order:'1st',greek:'ρ Rho',    symbol:'∂V/∂r',    desc:'Sensitivity to interest rate',  risk:'Minor for short-dated; major for long-dated',    desk:'Rates, long-dated equity'},
+        {order:'2nd',greek:'Vanna',    symbol:'∂Δ/∂σ',    desc:'Delta changes as vol moves',    risk:'FX exotic pricing; risk-reversal exposure',      desk:'FX options, exotics'},
+        {order:'2nd',greek:'Volga',    symbol:'∂²V/∂σ²',  desc:'Curvature in vol (vol of vol)', risk:'OTM/ITM convexity; variance swap risk',          desk:'Vol surface, var swaps'},
+        {order:'2nd',greek:'Charm',    symbol:'∂Δ/∂T',    desc:'Delta decay over time',         risk:'Overnight hedge rebalancing; pin risk near exp.', desk:'Overnight risk, expiry mgmt'},
+        {order:'2nd',greek:'Speed',    symbol:'∂Γ/∂S',    desc:'Rate of change of gamma',       risk:'Tail hedging; gap risk',                         desk:'Barrier books, structured'},
+        {order:'2nd',greek:'Zomma',    symbol:'∂Γ/∂σ',    desc:'Gamma sensitivity to vol',      risk:'Stress testing gamma P&L under vol shocks',     desk:'Vol surface desks'},
+        {order:'2nd',greek:'Color',    symbol:'∂Γ/∂T',    desc:'Gamma decay over time',         risk:'Gamma book theta risk over weekends/holidays',   desk:'Risk mgmt, end-of-week'},
+    ];
+    var html='<thead><tr style="border-bottom:1px solid rgba(255,255,255,0.1)">'
+        +'<th style="padding:7px 10px;text-align:left;color:#707088;font-weight:400;font-size:0.8em">Order</th>'
+        +'<th style="padding:7px 10px;text-align:left;color:#707088;font-weight:400;font-size:0.8em">Greek</th>'
+        +'<th style="padding:7px 10px;text-align:left;color:#707088;font-weight:400;font-size:0.8em">Definition</th>'
+        +'<th style="padding:7px 10px;text-align:left;color:#707088;font-weight:400;font-size:0.8em">Meaning</th>'
+        +'<th style="padding:7px 10px;text-align:left;color:#707088;font-weight:400;font-size:0.8em">Risk relevance</th>'
+        +'<th style="padding:7px 10px;text-align:left;color:#a78bfa;font-weight:400;font-size:0.8em">Typical desk</th>'
+        +'</tr></thead><tbody>';
+    rows.forEach(function(r){
+        var c=r.order==='1st'?'rgba(16,185,129,0.08)':'rgba(251,191,36,0.05)';
+        var oc=r.order==='1st'?'#10b981':'#fbbf24';
+        html+='<tr style="border-bottom:1px solid rgba(255,255,255,0.04);background:'+c+'">'
+            +'<td style="padding:6px 10px;font-size:0.8em;color:'+oc+'">'+r.order+'</td>'
+            +'<td style="padding:6px 10px;font-weight:bold;font-family:Georgia;color:#e0e0e0">'+r.greek+'</td>'
+            +'<td style="padding:6px 10px;font-family:Courier New;font-size:0.82em;color:#a0a0b8">'+r.symbol+'</td>'
+            +'<td style="padding:6px 10px;font-size:0.82em;color:#a0a0b8">'+r.desc+'</td>'
+            +'<td style="padding:6px 10px;font-size:0.82em;color:#808098">'+r.risk+'</td>'
+            +'<td style="padding:6px 10px;font-size:0.78em;color:#a78bfa;font-style:italic">'+r.desk+'</td>'
+            +'</tr>';
+    });
+    html+='</tbody>';
+    document.getElementById('greekTable').innerHTML=html;
+}
+
+/* ═══════════════════════════════════════════════════════
+   3D ENGINE — lightweight wireframe renderer (no libs)
+   Uses isometric-style projection with mouse rotation
+════════════════════════════════════════════════════════ */
+function make3DRenderer(canvasId, wrapId){
+    var cvs=document.getElementById(canvasId);
+    var ctx=cvs.getContext('2d');
+    var W=cvs.width, H=cvs.height;
+
+    var state={rotX:0.42, rotY:0.62, zoom:1.0, dragging:false, lastX:0, lastY:0};
+
+    var wrap=document.getElementById(wrapId);
+    wrap.addEventListener('mousedown',function(e){state.dragging=true;state.lastX=e.clientX;state.lastY=e.clientY;});
+    window.addEventListener('mouseup',function(){state.dragging=false;});
+    window.addEventListener('mousemove',function(e){
+        if(!state.dragging) return;
+        state.rotY+=(e.clientX-state.lastX)*0.012;
+        state.rotX+=(e.clientY-state.lastY)*0.012;
+        state.rotX=Math.max(-1.2,Math.min(1.2,state.rotX));
+        state.lastX=e.clientX; state.lastY=e.clientY;
+        if(state.onDraw) state.onDraw();
+    });
+    wrap.addEventListener('touchstart',function(e){
+        if(e.touches.length===1){state.dragging=true;state.lastX=e.touches[0].clientX;state.lastY=e.touches[0].clientY;}
+    },{passive:true});
+    wrap.addEventListener('touchmove',function(e){
+        if(!state.dragging||e.touches.length!==1) return;
+        state.rotY+=(e.touches[0].clientX-state.lastX)*0.012;
+        state.rotX+=(e.touches[0].clientY-state.lastY)*0.012;
+        state.rotX=Math.max(-1.2,Math.min(1.2,state.rotX));
+        state.lastX=e.touches[0].clientX; state.lastY=e.touches[0].clientY;
+        if(state.onDraw) state.onDraw();
+    },{passive:true});
+    wrap.addEventListener('touchend',function(){state.dragging=false;});
+    wrap.addEventListener('wheel',function(e){
+        state.zoom*=e.deltaY>0?0.92:1.08;
+        state.zoom=Math.max(0.4,Math.min(2.5,state.zoom));
+        if(state.onDraw) state.onDraw();
+        e.preventDefault();
+    },{passive:false});
+
+    function project(x,y,z){
+        /* rotate around Y then X */
+        var cosY=Math.cos(state.rotY), sinY=Math.sin(state.rotY);
+        var cosX=Math.cos(state.rotX), sinX=Math.sin(state.rotX);
+        var x2= x*cosY + z*sinY;
+        var z2=-x*sinY + z*cosY;
+        var y2= y*cosX - z2*sinX;
+        var z3= y*sinX + z2*cosX;
+        /* simple perspective */
+        var fov=4.5*state.zoom;
+        var px=W/2 + x2*fov*(W/14);
+        var py=H/2 - y2*fov*(H/14);
+        return{px,py,z:z3};
+    }
+
+    function draw(fn, xArr, yArr, colorFn, labelX, labelY, labelZ){
+        ctx.clearRect(0,0,W,H);
+        ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        var NX=xArr.length, NY=yArr.length;
+        var grid=[];
+        var zMin=Infinity, zMax=-Infinity;
+        for(var i=0;i<NX;i++){
+            grid.push([]);
+            for(var j=0;j<NY;j++){
+                var v=fn(xArr[i],yArr[j]);
+                if(!isFinite(v)) v=0;
+                grid[i].push(v);
+                if(v<zMin) zMin=v;
+                if(v>zMax) zMax=v;
+            }
+        }
+        if(zMax===zMin){zMax=zMin+0.001;}
+
+        /* normalise to [-1,1] cube */
+        var xMid=(xArr[0]+xArr[NX-1])/2, xRng=(xArr[NX-1]-xArr[0])/2||1;
+        var yMid=(yArr[0]+yArr[NY-1])/2, yRng=(yArr[NY-1]-yArr[0])/2||1;
+        var zMid=(zMin+zMax)/2, zRng=(zMax-zMin)/2||1;
+
+        function norm(xi,yj,zij){
+            return{
+                x:(xArr[xi]-xMid)/xRng,
+                y:(zij-zMid)/zRng,
+                z:(yArr[yj]-yMid)/yRng
+            };
+        }
+
+        /* collect faces with average z for depth sorting */
+        var faces=[];
+        for(var i=0;i<NX-1;i++){
+            for(var j=0;j<NY-1;j++){
+                var n00=norm(i,j,grid[i][j]);
+                var n10=norm(i+1,j,grid[i+1][j]);
+                var n11=norm(i+1,j+1,grid[i+1][j+1]);
+                var n01=norm(i,j+1,grid[i][j+1]);
+                var p00=project(n00.x,n00.y,n00.z);
+                var p10=project(n10.x,n10.y,n10.z);
+                var p11=project(n11.x,n11.y,n11.z);
+                var p01=project(n01.x,n01.y,n01.z);
+                var avgZ=(p00.z+p10.z+p11.z+p01.z)/4;
+                var avgV=(grid[i][j]+grid[i+1][j]+grid[i+1][j+1]+grid[i][j+1])/4;
+                faces.push({pts:[p00,p10,p11,p01], avgZ, avgV, frac:(avgV-zMin)/(zMax-zMin)});
+            }
+        }
+        /* depth sort */
+        faces.sort(function(a,b){return a.avgZ-b.avgZ;});
+
+        /* draw faces */
+        faces.forEach(function(face){
+            var col=colorFn(face.frac);
+            ctx.beginPath();
+            ctx.moveTo(face.pts[0].px, face.pts[0].py);
+            ctx.lineTo(face.pts[1].px, face.pts[1].py);
+            ctx.lineTo(face.pts[2].px, face.pts[2].py);
+            ctx.lineTo(face.pts[3].px, face.pts[3].py);
+            ctx.closePath();
+            ctx.fillStyle=col.fill; ctx.fill();
+            ctx.strokeStyle=col.stroke; ctx.lineWidth=0.4; ctx.stroke();
+        });
+
+        /* Axis lines */
+        function drawAxis(from, to, color, label, labelOffset){
+            var nf={x:(from[0]-xMid)/xRng, y:(from[2]-zMid)/zRng, z:(from[1]-yMid)/yRng};
+            var nt={x:(to[0]-xMid)/xRng,   y:(to[2]-zMid)/zRng,   z:(to[1]-yMid)/yRng};
+            var pf=project(nf.x,nf.y,nf.z);
+            var pt_=project(nt.x,nt.y,nt.z);
+            ctx.strokeStyle=color; ctx.lineWidth=1.2;
+            ctx.beginPath(); ctx.moveTo(pf.px,pf.py); ctx.lineTo(pt_.px,pt_.py); ctx.stroke();
+            var lp=project(nt.x+labelOffset[0],nt.y+labelOffset[1],nt.z+labelOffset[2]);
+            ctx.fillStyle=color; ctx.font='11px Georgia'; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText(label, lp.px, lp.py);
+        }
+        drawAxis([xArr[0],yArr[0],zMin],[xArr[NX-1],yArr[0],zMin],'#505068',labelX,[0.25,0,0]);
+        drawAxis([xArr[0],yArr[0],zMin],[xArr[0],yArr[NY-1],zMin],'#505068',labelY,[0,0,0.25]);
+        drawAxis([xArr[0],yArr[0],zMin],[xArr[0],yArr[0],zMax],'#505068',labelZ,[-0.2,0.2,0]);
+    }
+
+    return{draw, state, ctx, W, H, setOnDraw:function(fn){state.onDraw=fn;}};
+}
+
+/* ── Gamma 3D ── */
+var gammaR=make3DRenderer('gamma3d','gamma3dWrap');
+function drawGamma3D(){
+    var p=getP();
+    var Sarr=[], Tarr=[];
+    for(var i=0;i<=30;i++) Sarr.push(55+i*3);
+    for(var j=0;j<=24;j++) Tarr.push(0.02+j*0.08);
+
+    gammaR.draw(
+        function(S,T){ return Math.min(greeks(S,p.K,p.r,p.sig,T,true).gamma, 0.08); },
+        Sarr, Tarr,
+        function(f){
+            var r=Math.round(34+f*217), g=Math.round(211-f*48), b=Math.round(238-f*109);
+            return{fill:'rgba('+r+','+g+','+b+',0.75)', stroke:'rgba('+r+','+g+','+b+',0.35)'};
+        },
+        'Spot S', 'Time T', 'Γ'
+    );
+}
+gammaR.setOnDraw(drawGamma3D);
+
+/* ── VV 3D ── */
+var vvR=make3DRenderer('vv3d','vv3dWrap');
+var current3d='vanna';
+
+var SURFACE_INSIGHTS={
+    vanna:'<strong style="color:#f472b6">Vanna surface:</strong> Vanna is zero ATM and at extreme moneyness, and peaks at 1 standard deviation OTM/ITM. As volatility rises, the Vanna surface flattens — delta becomes less sensitive to vol changes for very high-vol regimes. This surface is critical for FX options desks running risk reversals.',
+    volga:'<strong style="color:#fbbf24">Volga (Vomma) surface:</strong> Volga is near zero ATM and grows for deep ITM/OTM options. High-vol regimes amplify Volga. A positive Volga position profits from an increase in volatility itself (vol of vol). This is the core risk in variance swaps and vol target funds.',
+    charm:'<strong style="color:#22d3ee">Charm surface:</strong> Charm shows how delta drifts with time even without spot movement. Near expiry, ITM options have strong positive charm (delta moving toward 1) while OTM options have negative charm (delta moving toward 0). The sharp spike near expiry at ATM is the mathematical signature of pin risk.',
+    gamma:'<strong style="color:#10b981">Gamma surface:</strong> The famous gamma ridge — peaking ATM and exploding near expiry. The sharpening of this ridge as T→0 is why options desks are so focused on near-expiry ATM positions. The curvature in this surface determines how quickly delta changes and how costly continuous hedging becomes.',
+};
+
+function draw3dSurface(which){
+    current3d=which;
+    document.getElementById('vv3dLabel').textContent=
+        which==='vanna'?'Vanna(S, σ)':
+        which==='volga'?'Volga(S, σ)':
+        which==='charm'?'Charm(S, T)':'Gamma(S, T)';
+    document.getElementById('surfaceInsight').innerHTML=SURFACE_INSIGHTS[which];
+
+    var p=getP();
+    var Sarr=[];
+    for(var i=0;i<=28;i++) Sarr.push(58+i*3);
+
+    if(which==='vanna'||which==='volga'){
+        var sigArr=[];
+        for(var j=0;j<=24;j++) sigArr.push(0.05+j*0.03);
+        vvR.draw(
+            function(S,sig){
+                var g=greeks(S,p.K,p.r,sig,p.T,true);
+                return which==='vanna'?g.vanna:Math.min(Math.max(g.volga,-30),30);
+            },
+            Sarr, sigArr,
+            which==='vanna'
+                ? function(f){var r=Math.round(244+f*(-244+244)),g_=Math.round(114+f*(-114+100)),b=Math.round(182-f*100);
+                    return{fill:'rgba(244,'+g_+',182,'+Math.max(0.3,f*0.8)+')',stroke:'rgba(244,'+g_+',182,0.25)'};}
+                : function(f){var r=Math.round(251*f),g_=Math.round(191*f),b=Math.round(36*f);
+                    return{fill:'rgba('+r+','+g_+','+b+','+Math.max(0.3,f*0.85)+')',stroke:'rgba('+r+','+g_+','+b+',0.25)'};},
+            'Spot S', 'Vol σ', which
+        );
+
+        /* ── E8: Zero-plane shading for Vanna (sign-change emphasis) ── */
+        if(which==='vanna'){
+            var cvs2=document.getElementById('vv3d');
+            var ctx2=cvs2.getContext('2d');
+            var W2=cvs2.width, H2=cvs2.height;
+            /* Draw a faint horizontal midplane annotation */
+            ctx2.save();
+            ctx2.fillStyle='rgba(244,114,182,0.08)';
+            /* The zero plane in normalised space is y=0, which projects to vertical centre of the 3D canvas. */
+            /* We overlay a semi-transparent strip across the canvas centre to suggest the zero crossing */
+            var mid=H2/2;
+            ctx2.fillRect(0, mid-18, W2, 36);
+            ctx2.strokeStyle='rgba(244,114,182,0.25)'; ctx2.lineWidth=1;
+            ctx2.setLineDash([6,4]);
+            ctx2.beginPath(); ctx2.moveTo(0, mid); ctx2.lineTo(W2, mid); ctx2.stroke();
+            ctx2.setLineDash([]);
+            ctx2.fillStyle='rgba(244,114,182,0.5)'; ctx2.font='10px Georgia';
+            ctx2.textAlign='right'; ctx2.textBaseline='middle';
+            ctx2.fillText('Vanna = 0 plane (sign change across ATM)', W2-10, mid);
+            ctx2.restore();
+        }
+
+        /* ── E9: Unclamped volga annotation ── */
+        if(which==='volga'){
+            var cvs3=document.getElementById('vv3d');
+            var ctx3=cvs3.getContext('2d');
+            /* compute raw (unclamped) volga at current S for annotation */
+            var gRaw=greeks(p.S,p.K,p.r,p.sig,p.T,true);
+            var volgaRaw=gRaw.volga; /* full unclamped value */
+            var volgaClamped=Math.min(Math.max(volgaRaw,-30),30);
+            ctx3.save();
+            ctx3.fillStyle='rgba(251,191,36,0.15)';
+            ctx3.fillRect(10,10,280,44);
+            ctx3.strokeStyle='rgba(251,191,36,0.3)'; ctx3.lineWidth=1; ctx3.strokeRect(10,10,280,44);
+            ctx3.fillStyle='#fbbf24'; ctx3.font='10px Georgia'; ctx3.textAlign='left'; ctx3.textBaseline='top';
+            ctx3.fillText('At current S=\u00A3'+p.S+', \u03C3='+Math.round(p.sig*100)+'%:', 16, 16);
+            ctx3.fillText('Volga (raw): '+volgaRaw.toFixed(3)+'  |  Displayed (clamped \u00B130): '+volgaClamped.toFixed(3), 16, 32);
+            if(Math.abs(volgaRaw)>30) ctx3.fillText('\u26A0 Clamped \u2014 true value distorted in chart', 16, 46);
+            ctx3.restore();
+        }
+
+    } else {
+        var Tarr=[];
+        for(var j=0;j<=24;j++) Tarr.push(0.02+j*0.08);
+        vvR.draw(
+            function(S,T){
+                var g=greeks(S,p.K,p.r,p.sig,T,true);
+                return which==='charm'?g.charm:Math.min(g.gamma,0.08);
+            },
+            Sarr, Tarr,
+            which==='charm'
+                ? function(f){var r=Math.round(34+f*(-34+34)),g_=Math.round(211-f*80),b=Math.round(238-f*80);
+                    return{fill:'rgba(34,'+g_+','+b+','+Math.max(0.3,0.8)+')',stroke:'rgba(34,'+g_+','+b+',0.3)'};}
+                : function(f){var r=Math.round(34+f*217),g_=Math.round(211-f*48),b=Math.round(238-f*109);
+                    return{fill:'rgba('+r+','+g_+','+b+',0.75)',stroke:'rgba('+r+','+g_+','+b+',0.35)'};},
+            'Spot S', 'Time T', which
+        );
+    }
+}
+vvR.setOnDraw(function(){draw3dSurface(current3d);});
+
+['btn3dVanna','btn3dVolga','btn3dCharm','btn3dGamma'].forEach(function(id){
+    document.getElementById(id).addEventListener('click',function(){
+        ['btn3dVanna','btn3dVolga','btn3dCharm','btn3dGamma'].forEach(function(b){
+            document.getElementById(b).classList.remove('active');
+        });
+        this.classList.add('active');
+        var map={btn3dVanna:'vanna',btn3dVolga:'volga',btn3dCharm:'charm',btn3dGamma:'gamma'};
+        draw3dSurface(map[id]);
+    });
+});
+
+function drawAllGreeks(){
+    drawDelta();
+    drawGamma();
+    drawTheta();
+    drawVegaChart();
+    drawRho();
+    drawSecond();
+    drawPDE();
+    drawGamma3D();
+}
+
+/* ── Call/Put toggle ── */
+document.getElementById('btnCall').addEventListener('click',function(){
+    isCall=true;
+    this.classList.add('active'); document.getElementById('btnPut').classList.remove('active');
+    updateDashboard();
+});
+document.getElementById('btnPut').addEventListener('click',function(){
+    isCall=false;
+    this.classList.add('active'); document.getElementById('btnCall').classList.remove('active');
+    updateDashboard();
+});
+
+/* ── Sliders ── */
+['gS','gK','gSig','gT','gR'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', updateDashboard);
+});
+
+/* ── Init ── */
+buildGreekTable();
+updateDashboard();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

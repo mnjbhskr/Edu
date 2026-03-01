@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Black-Scholes Model</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#10b981}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(16,185,129,0.13);border-color:rgba(16,185,129,0.4);color:#10b981}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .red{color:#f87171}
+        .math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:160px}
+        .slider-row input[type=range]{flex:1;max-width:280px;accent-color:#10b981;cursor:pointer}
+        .slider-val{color:#10b981;font-family:'Courier New',monospace;font-size:1.05em;min-width:70px;text-align:right}
+        .result-box{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#10b981;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .insight-box{background:rgba(16,185,129,0.04);border-left:3px solid rgba(16,185,129,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .stats-row{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0}
+        .stat-box{text-align:center;min-width:90px}
+        .stat-label{font-size:0.72em;color:#808098;text-transform:uppercase;letter-spacing:0.5px}
+        .stat-val{font-family:'Courier New',monospace;font-size:1.02em;color:#e0e0e0}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .bs-formula{text-align:center;padding:20px;background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.15);border-radius:10px;margin:16px 0}
+        .bs-formula .line{font-family:'Courier New',monospace;font-size:1.05em;color:#e0e0ef;margin:6px 0;line-height:2.2}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>The Black-Scholes Model</h1>
+    <p class="subtitle">The most famous formula in finance &mdash; and why every trader knows where it&rsquo;s wrong</p>
+
+    <!-- ═══════════════════════════════
+         Section 1: The Formula
+    ════════════════════════════════ -->
+    <h2>1. The Formula &mdash; and What Each Term Means</h2>
+    <div class="panel">
+        <h3>Black-Scholes-Merton (1973)</h3>
+        <div class="bs-formula">
+            <div class="line"><span style="color:#10b981">C</span> = <span style="color:#fbbf24">S &middot; N(d<sub>1</sub>)</span> &minus; <span style="color:#22d3ee">K&thinsp;e<sup>&minus;rT</sup> &middot; N(d<sub>2</sub>)</span></div>
+            <div class="line" style="font-size:0.88em;color:#a0a0b8">d<sub>1</sub> = [ ln(S/K) + (r + &sigma;&sup2;/2)&thinsp;T ] / (&sigma;&radic;T) &nbsp;&nbsp;&nbsp; d<sub>2</sub> = d<sub>1</sub> &minus; &sigma;&radic;T</div>
+            <div class="line"><span style="color:#f472b6">P</span> = <span style="color:#22d3ee">K&thinsp;e<sup>&minus;rT</sup> &middot; N(&minus;d<sub>2</sub>)</span> &minus; <span style="color:#fbbf24">S &middot; N(&minus;d<sub>1</sub>)</span></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="gold">S&middot;N(d₁)</span> = risk-neutral expected value of receiving the stock (if S<sub>T</sub> &gt; K)</div>
+            <div class="math-line"><span class="cyan">Ke<sup>-rT</sup>&middot;N(d₂)</span> = PV of paying the strike (risk-neutral probability &times; PV of K)</div>
+            <div class="math-line"><span class="muted">N(d₂)</span> = risk-neutral probability that call expires in the money</div>
+            <div class="math-line"><span class="muted">N(d₁)</span> = option delta — shares needed to replicate the call</div>
+            <div class="math-line" style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)"><span class="muted">With dividends (yield q):</span> &nbsp; <span class="gold">Se<sup>&minus;qT</sup>&middot;N(d₁)</span> &minus; <span class="cyan">Ke<sup>&minus;rT</sup>&middot;N(d₂)</span> &nbsp; <span class="muted">(replace S with Se<sup>&minus;qT</sup> throughout — Merton 1973)</span></div>
+        </div>
+        <div class="insight-box">The formula has a beautiful structure: you <em>expect to receive</em> the stock with probability N(d₁), and you <em>expect to pay</em> the strike K (discounted) with probability N(d₂). The call price is simply the difference. The five inputs are S, K, r, &sigma;, T. Four are observable. Only <strong>&sigma;</strong> must be estimated — it is the most important and most argued-about number in all of derivatives trading.
+        <br><br><strong style="color:#a78bfa">Risk-neutral measure:</strong> Under the risk-neutral measure Q, the drift of the stock is <strong>r</strong>, not the physical drift &mu; — this is the same measure change introduced in the Brownian Motion chapter. Replacing &mu; with r is what makes the formula preference-free: no investor risk appetite enters the price.</div>
+        <div class="insight-box" style="border-left-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.03)">
+            <strong style="color:#fbbf24">The key assumptions:</strong> Constant volatility; log-normally distributed returns; continuous trading; no dividends; frictionless markets; constant risk-free rate. Every single one of these is violated in reality. Yet the model is used everywhere — as a <em>benchmark</em> and a language, not as literal truth.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         Section 2: Interactive Pricer
+    ════════════════════════════════ -->
+    <h2>2. Interactive Pricer</h2>
+    <div class="panel">
+        <h3>Price vs Spot &mdash; Adjust the Inputs</h3>
+        <div class="slider-row">
+            <label>Spot S:</label>
+            <input type="range" id="sS" min="50" max="150" value="100" step="1">
+            <span class="slider-val" id="vS">&pound;100</span>
+        </div>
+        <div class="slider-row">
+            <label>Strike K:</label>
+            <input type="range" id="sK" min="50" max="150" value="100" step="1">
+            <span class="slider-val" id="vK">&pound;100</span>
+        </div>
+        <div class="slider-row">
+            <label>Volatility &sigma;:</label>
+            <input type="range" id="sSigma" min="5" max="80" value="20" step="1">
+            <span class="slider-val" id="vSigma">20%</span>
+        </div>
+        <div class="slider-row">
+            <label>Time T (months):</label>
+            <input type="range" id="sT" min="1" max="24" value="12" step="1">
+            <span class="slider-val" id="vT">12 mo</span>
+        </div>
+        <div class="slider-row">
+            <label>Risk-free rate r:</label>
+            <input type="range" id="sR" min="0" max="100" value="50" step="1">
+            <span class="slider-val" id="vR">5.0%</span>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="bsStats"></div>
+        </div>
+        <canvas id="bsCanvas" width="700" height="300"></canvas>
+        <div class="grid-legend" style="margin-top:8px">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Call price</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Put price</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:rgba(255,255,255,0.15)"></div><span style="color:#707088">Intrinsic value (payoff at expiry)</span></div>
+        </div>
+        <div class="insight-box">The gap between the option price curve and the intrinsic value is the <strong>time value</strong> — what you pay for the possibility that the option moves in your favour before expiry. It is always non-negative and decays to zero at expiry. At-the-money options have the highest time value; deep in- or out-of-the-money options have little time value.</div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         Section 3: Time Decay
+    ════════════════════════════════ -->
+    <h2>3. Time Decay &mdash; How Options Age</h2>
+    <div class="panel">
+        <h3>Option Value as Time to Expiry Decreases &mdash; Three Moneyness Levels</h3>
+        <div class="btn-row" style="margin-bottom:10px">
+            <button class="btn active" id="btnTdPrice" data-tdmode="price">Price decay</button>
+            <button class="btn" id="btnTdTheta" data-tdmode="theta">&Theta; vs time remaining</button>
+        </div>
+        <canvas id="timeCanvas" width="700" height="300"></canvas>
+        <div class="grid-legend" style="margin-top:8px">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">ATM — S = K (highest time value)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">ITM — S = 120, K = 100</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">OTM — S = 80, K = 100</span></div>
+        </div>
+        <div class="insight-box">All options converge to their intrinsic value at expiry. The ATM option has the steepest time value decay. The OTM option approaches zero. The ITM option converges to its intrinsic (S &minus; K = &pound;20). Notice how the decay <em>accelerates</em> near expiry — this is <strong>theta risk</strong>, and it is why option sellers prefer short-dated options and option buyers prefer longer-dated ones.</div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         Section 4: Volatility Sensitivity
+    ════════════════════════════════ -->
+    <h2>4. Volatility Sensitivity &mdash; Vega</h2>
+    <div class="panel">
+        <h3>How Option Price Changes with Volatility</h3>
+        <div class="btn-row" style="margin-bottom:10px">
+            <button class="btn active" id="btnVegaATM" data-vegamode="atm">ATM only (S=K=100)</button>
+            <button class="btn" id="btnVegaAll" data-vegamode="all">Vega by moneyness (ATM / ITM / OTM)</button>
+        </div>
+        <canvas id="vegaCanvas" width="700" height="300"></canvas>
+        <div class="grid-legend" style="margin-top:8px">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Call price (S=K=100)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Put price (S=K=100)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Vega (slope of price w.r.t. &sigma;)</span></div>
+        </div>
+        <div class="insight-box"><strong>Vega</strong> — the sensitivity of an option price to volatility — is highest for at-the-money options with significant time remaining. Deep ITM or OTM options have low vega because their outcome is already largely determined. At-the-money options are pure volatility bets: their intrinsic value is zero, so their entire price is time value driven by &sigma;. This is why options traders obsess over implied volatility — it is the single variable that most determines option value.</div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         Section 5: Implied Volatility
+    ════════════════════════════════ -->
+    <h2>5. Implied Volatility &mdash; Inverting the Formula</h2>
+    <div class="panel">
+        <h3>Given a Market Price, Solve for &sigma;</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0">
+            <div>
+                <div class="slider-row" style="margin-bottom:8px">
+                    <label style="min-width:140px">Market call price:</label>
+                    <input type="range" id="sMarketPrice" min="1" max="200" value="90" step="1">
+                    <span class="slider-val" id="vMarketPrice">&pound;9.0</span>
+                </div>
+                <div class="slider-row">
+                    <label style="min-width:140px">S:</label>
+                    <input type="range" id="sIvS" min="80" max="120" value="100" step="1">
+                    <span class="slider-val" id="vIvS">&pound;100</span>
+                </div>
+                <div class="slider-row">
+                    <label style="min-width:140px">K:</label>
+                    <input type="range" id="sIvK" min="80" max="120" value="100" step="1">
+                    <span class="slider-val" id="vIvK">&pound;100</span>
+                </div>
+                <div class="slider-row">
+                    <label style="min-width:140px">T (months):</label>
+                    <input type="range" id="sIvT" min="1" max="24" value="6" step="1">
+                    <span class="slider-val" id="vIvT">6 mo</span>
+                </div>
+                <div class="slider-row">
+                    <label style="min-width:140px">r:</label>
+                    <input type="range" id="sIvR" min="0" max="100" value="50" step="1">
+                    <span class="slider-val" id="vIvR">5.0%</span>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:16px">
+                <div style="color:#808098;font-size:0.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Implied Volatility</div>
+                <div id="ivResult" style="font-family:'Courier New',monospace;font-size:2.2em;color:#10b981;font-weight:bold">—</div>
+                <div id="ivCheck" style="font-size:0.82em;color:#707088;margin-top:8px"></div>
+            </div>
+        </div>
+        <canvas id="ivCanvas" width="700" height="220"></canvas>
+        <div class="insight-box">Implied volatility is found by numerical root-finding (Newton-Raphson): start with a guess for &sigma;, compute the BS price and vega, then iterate &sigma; &larr; &sigma; &minus; (BS price &minus; market price) / vega until convergence. The chart shows the BS price as a function of &sigma; — the implied vol is where this curve crosses the horizontal market price line. This inversion is used everywhere in derivatives to convert between price space and volatility space.
+        <br><br><strong style="color:#a0a0b8">Newton step size &prop; 1 / vega:</strong> the step &sigma; &larr; &sigma; &minus; diff/vega is large when vega is small (deep ITM/OTM options, very short-dated) and small when vega is large (ATM, long-dated). This is why IV solving can be numerically unstable for near-zero-vega options — and why some desks use Brent's method as a fallback. The check line above shows the vega and step size at convergence. If the market price falls <em>below the intrinsic value</em> (the red shaded zone), the BS price curve never reaches the market price — no real solution exists, signalling an arbitrage opportunity.</div>
+    </div>
+
+    <!-- ═══════════════════════════════
+         Section 6: Why This Matters
+    ════════════════════════════════ -->
+    <h2>6. Why This Matters</h2>
+    <div class="explain">
+        <div class="explain-name">The Most Important Formula in Modern Finance</div>
+        <div class="explain-text">
+            Black, Scholes and Merton won the 1997 Nobel Prize in Economics for this formula. Its importance goes beyond pricing: it created an entirely new way of thinking about risk. Before BSM, options were valued by intuition. After BSM, they could be <em>replicated</em> by a dynamic trading strategy — a portfolio of stock and bonds that exactly mimics the option payoff. This replication argument is the foundation of all modern derivatives theory.
+            <br><br>
+            <strong style="color:#e0e0e0">Why traders know it is wrong:</strong> Real markets have fat tails, stochastic volatility, jumps, bid-ask spreads, discrete trading, and early exercise features that BSM ignores. The volatility smile (explored in the next section) is the market's way of telling you that BSM's constant-volatility assumption is false. Yet the formula survives precisely because it provides a common language — every trader on every desk quotes options in implied vol, not price.
+            <br><br>
+            <strong style="color:#e0e0e0">The hedging argument:</strong> BSM shows that if you sell a call and continuously delta-hedge (hold N(d₁) shares at all times), your net P&amp;L is zero in expectation. This is the replication in action. In practice, delta hedging is done discretely — daily or more frequently — and the residual error is called <em>gamma P&amp;L</em>: you profit when realised volatility exceeds implied vol, and lose when it falls short. Running a book of options is fundamentally a bet on realised vs implied volatility.
+            <br><br>
+            The Greeks — delta, gamma, theta, vega, rho — which quantify the sensitivities of this formula, are explored in the next section.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   Black-Scholes Model — Chapter 11
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Normal CDF (Abramowitz & Stegun) ── */
+function normCDF(x) {
+    var a = [0.319381530, -0.356563782, 1.781477937, -1.821255978, 1.330274429];
+    var k = 1 / (1 + 0.2316419 * Math.abs(x));
+    var poly = k*(a[0]+k*(a[1]+k*(a[2]+k*(a[3]+k*a[4]))));
+    var res = 1 - (1/Math.sqrt(2*Math.PI)) * Math.exp(-x*x/2) * poly;
+    return x < 0 ? 1 - res : res;
+}
+function normPDF(x) { return Math.exp(-x*x/2) / Math.sqrt(2*Math.PI); }
+
+function bsCall(S, K, r, sig, T) {
+    if (T <= 0) return Math.max(S - K, 0);
+    var d1 = (Math.log(S/K) + (r + 0.5*sig*sig)*T) / (sig*Math.sqrt(T));
+    var d2 = d1 - sig*Math.sqrt(T);
+    return S*normCDF(d1) - K*Math.exp(-r*T)*normCDF(d2);
+}
+function bsPut(S, K, r, sig, T) {
+    if (T <= 0) return Math.max(K - S, 0);
+    var d1 = (Math.log(S/K) + (r + 0.5*sig*sig)*T) / (sig*Math.sqrt(T));
+    var d2 = d1 - sig*Math.sqrt(T);
+    return K*Math.exp(-r*T)*normCDF(-d2) - S*normCDF(-d1);
+}
+function bsDelta(S, K, r, sig, T) {
+    if (T <= 0) return S > K ? 1 : 0;
+    var d1 = (Math.log(S/K) + (r + 0.5*sig*sig)*T) / (sig*Math.sqrt(T));
+    return normCDF(d1);
+}
+function bsVega(S, K, r, sig, T) {
+    if (T <= 0) return 0;
+    var d1 = (Math.log(S/K) + (r + 0.5*sig*sig)*T) / (sig*Math.sqrt(T));
+    return S * normPDF(d1) * Math.sqrt(T);
+}
+function bsGamma(S, K, r, sig, T) {
+    if (T <= 0) return 0;
+    var d1 = (Math.log(S/K) + (r + 0.5*sig*sig)*T) / (sig*Math.sqrt(T));
+    return normPDF(d1) / (S * sig * Math.sqrt(T));
+}
+function bsTheta(S, K, r, sig, T) {
+    if (T <= 0) return 0;
+    var d1 = (Math.log(S/K) + (r + 0.5*sig*sig)*T) / (sig*Math.sqrt(T));
+    var d2 = d1 - sig*Math.sqrt(T);
+    return (-S*normPDF(d1)*sig/(2*Math.sqrt(T)) - r*K*Math.exp(-r*T)*normCDF(d2)) / 365;
+}
+function bsRho(S, K, r, sig, T) {
+    if (T <= 0) return 0;
+    var d1 = (Math.log(S/K) + (r + 0.5*sig*sig)*T) / (sig*Math.sqrt(T));
+    var d2 = d1 - sig*Math.sqrt(T);
+    return K * T * Math.exp(-r*T) * normCDF(d2) / 100; /* per 1bp = 0.01% */
+}
+function impliedVol(marketPrice, S, K, r, T, isCall) {
+    /* Newton-Raphson */
+    var sig = 0.3;
+    for (var i = 0; i < 100; i++) {
+        var price = isCall ? bsCall(S, K, r, sig, T) : bsPut(S, K, r, sig, T);
+        var vega = bsVega(S, K, r, sig, T);
+        var diff = price - marketPrice;
+        if (Math.abs(diff) < 1e-8) break;
+        if (vega < 1e-10) { sig = null; break; }
+        sig = sig - diff / vega;
+        if (sig <= 0) { sig = null; break; }
+    }
+    return sig;
+}
+
+function getInputs() {
+    var S = parseInt(document.getElementById('sS').value);
+    var K = parseInt(document.getElementById('sK').value);
+    var sig = parseInt(document.getElementById('sSigma').value) / 100;
+    var T = parseInt(document.getElementById('sT').value) / 12;
+    var r = parseInt(document.getElementById('sR').value) / 10 / 100;
+    document.getElementById('vS').textContent = '\u00A3' + S;
+    document.getElementById('vK').textContent = '\u00A3' + K;
+    document.getElementById('vSigma').textContent = (sig*100).toFixed(0) + '%';
+    document.getElementById('vT').textContent = parseInt(document.getElementById('sT').value) + ' mo';
+    document.getElementById('vR').textContent = (r*100).toFixed(1) + '%';
+    return {S:S, K:K, sig:sig, T:T, r:r};
+}
+
+/* ── Section 2 Canvas: Price vs Spot ── */
+var bsCvs = document.getElementById('bsCanvas');
+var bsCtx = bsCvs.getContext('2d');
+
+function drawBS() {
+    var p = getInputs();
+    var C = bsCall(p.S, p.K, p.r, p.sig, p.T);
+    var P = bsPut(p.S, p.K, p.r, p.sig, p.T);
+    var delta = bsDelta(p.S, p.K, p.r, p.sig, p.T);
+    var vega_ = bsVega(p.S, p.K, p.r, p.sig, p.T) / 100;
+    var theta_ = bsTheta(p.S, p.K, p.r, p.sig, p.T);
+    var d1 = (Math.log(p.S/p.K) + (p.r + 0.5*p.sig*p.sig)*p.T) / (p.sig*Math.sqrt(p.T));
+    var d2 = d1 - p.sig*Math.sqrt(p.T);
+
+    var gamma_ = bsGamma(p.S, p.K, p.r, p.sig, p.T);
+    var rho_ = bsRho(p.S, p.K, p.r, p.sig, p.T);
+    var parityLHS = C - P;
+    var parityRHS = p.S - p.K * Math.exp(-p.r * p.T);
+    var parityErr = Math.abs(parityLHS - parityRHS);
+
+    document.getElementById('bsStats').innerHTML =
+        '<div class="stat-box"><div class="stat-label">Call C</div><div class="stat-val" style="color:#10b981">\u00A3' + C.toFixed(4) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">Put P</div><div class="stat-val" style="color:#22d3ee">\u00A3' + P.toFixed(4) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">d₁</div><div class="stat-val">' + d1.toFixed(4) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">d₂</div><div class="stat-val">' + d2.toFixed(4) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">N(d₁) = &Delta;</div><div class="stat-val" style="color:#fbbf24">' + delta.toFixed(4) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">N(d₂)</div><div class="stat-val">' + normCDF(d2).toFixed(4) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">Vega/1%</div><div class="stat-val">\u00A3' + vega_.toFixed(3) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">&Theta;/day</div><div class="stat-val">\u00A3' + theta_.toFixed(4) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">&Gamma; (/\u00A31)</div><div class="stat-val" style="color:#a78bfa">' + gamma_.toFixed(5) + '</div></div>' +
+        '<div class="stat-box"><div class="stat-label">&rho;/1bp</div><div class="stat-val" style="color:#fb923c">\u00A3' + rho_.toFixed(4) + '</div></div>' +
+        '<div class="stat-box" style="min-width:200px;border-left:1px solid rgba(255,255,255,0.08);padding-left:14px"><div class="stat-label">Put-Call Parity: C&minus;P = S&minus;Ke<sup>&minus;rT</sup></div><div class="stat-val" style="font-size:0.88em">\u00A3' + parityLHS.toFixed(4) + ' = \u00A3' + parityRHS.toFixed(4) + ' <span style="color:' + (parityErr < 0.001 ? '#10b981' : '#f87171') + ';font-size:0.85em">(\u0394' + parityErr.toFixed(6) + ')</span></div></div>';
+
+    /* Draw call price vs spot */
+    var ctx = bsCtx, W = bsCvs.width, H = bsCvs.height;
+    var PAD = {left:65, right:20, top:24, bottom:48};
+    var plotW = W-PAD.left-PAD.right, plotH = H-PAD.top-PAD.bottom;
+    var sMin=50, sMax=150;
+
+    /* compute y range */
+    var yMax=0;
+    for (var s=sMin; s<=sMax; s++) yMax = Math.max(yMax, bsCall(s, p.K, p.r, p.sig, p.T));
+    yMax *= 1.1; if (yMax < 5) yMax = 5;
+
+    function tx(s){ return PAD.left + (s-sMin)/(sMax-sMin)*plotW; }
+    function ty(y){ return PAD.top + plotH - (y/yMax)*plotH; }
+
+    ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+    /* grid */
+    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+    for (var s=50; s<=150; s+=20) {
+        ctx.beginPath(); ctx.moveTo(tx(s),PAD.top); ctx.lineTo(tx(s),H-PAD.bottom); ctx.stroke();
+        ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='center'; ctx.textBaseline='top';
+        ctx.fillText('\u00A3'+s, tx(s), H-PAD.bottom+8);
+    }
+    for (var g=0; g<=5; g++) {
+        var yv=g/5*yMax;
+        ctx.beginPath(); ctx.moveTo(PAD.left,ty(yv)); ctx.lineTo(W-PAD.right,ty(yv)); ctx.stroke();
+        ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='right'; ctx.textBaseline='middle';
+        ctx.fillText('\u00A3'+yv.toFixed(1), PAD.left-6, ty(yv));
+    }
+    ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,H-PAD.bottom); ctx.lineTo(W-PAD.right,H-PAD.bottom); ctx.stroke();
+
+    /* Intrinsic (call) */
+    ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.lineWidth=1.2; ctx.setLineDash([4,4]);
+    ctx.beginPath();
+    for (var s=sMin; s<=sMax; s++) {
+        var v=Math.max(s-p.K,0);
+        if (s===sMin) ctx.moveTo(tx(s),ty(v)); else ctx.lineTo(tx(s),ty(v));
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+
+    /* Put price */
+    ctx.strokeStyle='#22d3ee'; ctx.lineWidth=1.8; ctx.globalAlpha=0.7;
+    ctx.beginPath();
+    for (var s=sMin; s<=sMax; s++) {
+        var v=bsPut(s, p.K, p.r, p.sig, p.T);
+        if (s===sMin) ctx.moveTo(tx(s),ty(v)); else ctx.lineTo(tx(s),ty(v));
+    }
+    ctx.stroke(); ctx.globalAlpha=1;
+
+    /* Call price */
+    ctx.strokeStyle='#10b981'; ctx.lineWidth=2.5;
+    ctx.beginPath();
+    for (var s=sMin; s<=sMax; s++) {
+        var v=bsCall(s, p.K, p.r, p.sig, p.T);
+        if (s===sMin) ctx.moveTo(tx(s),ty(v)); else ctx.lineTo(tx(s),ty(v));
+    }
+    ctx.stroke();
+
+    /* Current spot dot */
+    ctx.beginPath(); ctx.arc(tx(p.S), ty(C), 6, 0, Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill();
+
+    /* Strike vertical */
+    ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(tx(p.K),PAD.top); ctx.lineTo(tx(p.K),H-PAD.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#a0a0b8'; ctx.font='10px Georgia'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText('K=\u00A3'+p.K, tx(p.K), H-PAD.bottom-2);
+    ctx.fillStyle='#707088'; ctx.fillText('Spot \u2192', PAD.left+plotW/2, H-PAD.bottom+28);
+}
+
+/* ── Section 3: Time decay ── */
+var timeCvs = document.getElementById('timeCanvas');
+var timeCtx = timeCvs.getContext('2d');
+var tdMode = 'price'; /* 'price' | 'theta' */
+
+function drawTimeDecay() {
+    var p = getInputs();
+    var ctx = timeCtx, W=timeCvs.width, H=timeCvs.height;
+    var PAD={left:65,right:20,top:24,bottom:48};
+    var plotW=W-PAD.left-PAD.right, plotH=H-PAD.top-PAD.bottom;
+    var tMax=2.0; /* 2 years max */
+
+    var series = [
+        {label:'ATM S=K',   S:100, K:100, color:'#10b981'},
+        {label:'ITM S=120', S:120, K:100, color:'#fbbf24'},
+        {label:'OTM S=80',  S:80,  K:100, color:'#22d3ee'},
+    ];
+
+    ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+    if (tdMode === 'theta') {
+        /* Theta vs time remaining: show |Theta| (daily decay magnitude) */
+        var yMax = 0;
+        series.forEach(function(s){
+            for (var i=1; i<=200; i++) {
+                var T_rem = tMax * i / 200;
+                var th = Math.abs(bsTheta(s.S, s.K, p.r, p.sig, T_rem));
+                if (th > yMax) yMax = th;
+            }
+        });
+        yMax *= 1.15; if (yMax < 0.01) yMax = 0.1;
+
+        function tx(t){ return PAD.left + (t/tMax)*plotW; }
+        function ty(v){ return PAD.top + plotH - (v/yMax)*plotH; }
+
+        /* grid */
+        ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+        for (var g=0; g<=4; g++) {
+            var yv=g/4*yMax;
+            ctx.beginPath(); ctx.moveTo(PAD.left,ty(yv)); ctx.lineTo(W-PAD.right,ty(yv)); ctx.stroke();
+            ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='right'; ctx.textBaseline='middle';
+            ctx.fillText('\u00A3'+yv.toFixed(3), PAD.left-6, ty(yv));
+        }
+        for (var mo=0; mo<=24; mo+=3) {
+            var t=mo/12;
+            ctx.beginPath(); ctx.moveTo(tx(t),PAD.top); ctx.lineTo(tx(t),H-PAD.bottom); ctx.stroke();
+            ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='center'; ctx.textBaseline='top';
+            ctx.fillText(mo+'mo', tx(t), H-PAD.bottom+8);
+        }
+        ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,H-PAD.bottom); ctx.lineTo(W-PAD.right,H-PAD.bottom); ctx.stroke();
+
+        /* Theta curves — x = time remaining, going 2y → 0 left→right */
+        series.forEach(function(s){
+            ctx.strokeStyle=s.color; ctx.lineWidth=2;
+            ctx.beginPath();
+            for (var i=0; i<=200; i++) {
+                var T_rem = tMax - (i/200)*tMax;
+                var th = Math.abs(bsTheta(s.S, s.K, p.r, p.sig, Math.max(T_rem, 1e-4)));
+                var px = PAD.left + (i/200)*plotW;
+                var py = ty(th);
+                if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+            }
+            ctx.stroke();
+            /* label at start (2y) */
+            var thStart = Math.abs(bsTheta(s.S, s.K, p.r, p.sig, tMax));
+            ctx.fillStyle=s.color; ctx.font='10px Georgia'; ctx.textAlign='left'; ctx.textBaseline='middle';
+            ctx.fillText(s.label, PAD.left+4, ty(thStart)-10);
+        });
+
+        /* annotation: explosion near expiry */
+        ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='10px Georgia'; ctx.textAlign='right'; ctx.textBaseline='top';
+        ctx.fillText('|\u0398| explodes near expiry \u2192', W-PAD.right-4, PAD.top+4);
+        ctx.fillStyle='#707088'; ctx.font='11px Georgia'; ctx.textAlign='center';
+        ctx.fillText('Time remaining \u2192 (left = 2 years, right = expiry)', PAD.left+plotW/2, H-PAD.bottom+28);
+
+    } else {
+        /* Price decay mode (original) */
+        var yMax=0;
+        series.forEach(function(s){
+            var v=bsCall(s.S, s.K, p.r, p.sig, tMax);
+            if (v>yMax) yMax=v;
+        });
+        yMax*=1.15; if (yMax<2) yMax=2;
+
+        function tx(t){ return PAD.left + (t/tMax)*plotW; }
+        function ty(v){ return PAD.top + plotH - (v/yMax)*plotH; }
+
+        /* grid */
+        ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+        for (var g=0; g<=4; g++) {
+            var yv=g/4*yMax;
+            ctx.beginPath(); ctx.moveTo(PAD.left,ty(yv)); ctx.lineTo(W-PAD.right,ty(yv)); ctx.stroke();
+            ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='right'; ctx.textBaseline='middle';
+            ctx.fillText('\u00A3'+yv.toFixed(1), PAD.left-6, ty(yv));
+        }
+        for (var mo=0; mo<=24; mo+=3) {
+            var t=mo/12;
+            ctx.beginPath(); ctx.moveTo(tx(t),PAD.top); ctx.lineTo(tx(t),H-PAD.bottom); ctx.stroke();
+            ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='center'; ctx.textBaseline='top';
+            ctx.fillText(mo+'mo', tx(t), H-PAD.bottom+8);
+        }
+        ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,H-PAD.bottom); ctx.lineTo(W-PAD.right,H-PAD.bottom); ctx.stroke();
+
+        series.forEach(function(s){
+            ctx.strokeStyle=s.color; ctx.lineWidth=2;
+            ctx.beginPath();
+            var steps=200;
+            for (var i=0; i<=steps; i++){
+                var T_rem = tMax - (i/steps)*tMax;
+                var v = bsCall(s.S, s.K, p.r, p.sig, Math.max(T_rem, 1e-6));
+                var px = PAD.left + (i/steps)*plotW;
+                var py = ty(v);
+                if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+            }
+            ctx.stroke();
+            /* Intrinsic endpoint label */
+            ctx.fillStyle=s.color; ctx.font='10px Georgia'; ctx.textAlign='right'; ctx.textBaseline='middle';
+            ctx.fillText(s.label, W-PAD.right-4, ty(bsCall(s.S,s.K,p.r,p.sig,tMax))-10);
+        });
+
+        ctx.fillStyle='#707088'; ctx.font='11px Georgia'; ctx.textAlign='center';
+        ctx.fillText('Time remaining \u2192 (left = 2 years, right = expiry)', PAD.left+plotW/2, H-PAD.bottom+28);
+    }
+}
+
+/* ── Section 4: Vega canvas ── */
+var vegaCvs = document.getElementById('vegaCanvas');
+var vegaCtx = vegaCvs.getContext('2d');
+var vegaMode = 'atm'; /* 'atm' | 'all' */
+
+function drawVega() {
+    var p = getInputs();
+    var ctx=vegaCtx, W=vegaCvs.width, H=vegaCvs.height;
+    var PAD={left:65, right:60, top:24, bottom:48};
+    var plotW=W-PAD.left-PAD.right, plotH=H-PAD.top-PAD.bottom;
+    var sigMin=0.01, sigMax=0.80;
+
+    ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+    if (vegaMode === 'all') {
+        /* Show vega curves for ATM, ITM (S=120,K=100), OTM (S=80,K=100) */
+        var vegaSeries = [
+            {label:'ATM  S=K=100', S:100, K:100, color:'#10b981'},
+            {label:'ITM  S=120, K=100', S:120, K:100, color:'#fbbf24'},
+            {label:'OTM  S=80, K=100',  S:80,  K:100, color:'#22d3ee'},
+        ];
+        var yMax=0;
+        vegaSeries.forEach(function(s){
+            for (var i=0; i<=100; i++) {
+                var sig=sigMin+(i/100)*(sigMax-sigMin);
+                var v = bsVega(s.S, s.K, p.r, sig, p.T) / 100;
+                if (v > yMax) yMax = v;
+            }
+        });
+        yMax *= 1.15; if (yMax < 0.01) yMax = 0.5;
+
+        function tx(sig){ return PAD.left + ((sig-sigMin)/(sigMax-sigMin))*plotW; }
+        function ty(v){ return PAD.top + plotH - (v/yMax)*plotH; }
+
+        ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+        for (var g=0; g<=5; g++) {
+            var sig2=sigMin+(g/5)*(sigMax-sigMin);
+            ctx.beginPath(); ctx.moveTo(tx(sig2),PAD.top); ctx.lineTo(tx(sig2),H-PAD.bottom); ctx.stroke();
+            ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='center'; ctx.textBaseline='top';
+            ctx.fillText((sig2*100).toFixed(0)+'%', tx(sig2), H-PAD.bottom+8);
+        }
+        for (var g=0; g<=4; g++) {
+            var yv=g/4*yMax;
+            ctx.beginPath(); ctx.moveTo(PAD.left,ty(yv)); ctx.lineTo(W-PAD.right,ty(yv)); ctx.stroke();
+            ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='right'; ctx.textBaseline='middle';
+            ctx.fillText('\u00A3'+yv.toFixed(2), PAD.left-6, ty(yv));
+        }
+        ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,H-PAD.bottom); ctx.lineTo(W-PAD.right,H-PAD.bottom); ctx.stroke();
+
+        vegaSeries.forEach(function(s){
+            ctx.strokeStyle=s.color; ctx.lineWidth=2.2;
+            ctx.beginPath();
+            for (var i=0; i<=100; i++) {
+                var sig=sigMin+(i/100)*(sigMax-sigMin);
+                var v = bsVega(s.S, s.K, p.r, sig, p.T) / 100;
+                if (i===0) ctx.moveTo(tx(sig),ty(v)); else ctx.lineTo(tx(sig),ty(v));
+            }
+            ctx.stroke();
+            /* label at peak */
+            var peakV=0, peakSig=sigMin;
+            for (var i=0; i<=100; i++) {
+                var sig=sigMin+(i/100)*(sigMax-sigMin);
+                var v=bsVega(s.S, s.K, p.r, sig, p.T)/100;
+                if (v>peakV){peakV=v;peakSig=sig;}
+            }
+            ctx.fillStyle=s.color; ctx.font='10px Georgia'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+            ctx.fillText(s.label, tx(peakSig), ty(peakV)-4);
+        });
+
+        ctx.fillStyle='#707088'; ctx.font='11px Georgia'; ctx.textAlign='center';
+        ctx.fillText('ATM options have the highest vega \u2014 peak shifts with moneyness', PAD.left+plotW/2, H-PAD.bottom+28);
+        ctx.fillStyle='#808098'; ctx.font='10px Georgia'; ctx.textAlign='left'; ctx.textBaseline='top';
+        ctx.fillText('Vega per 1% \u03C3 \u2192', PAD.left+4, PAD.top+4);
+
+    } else {
+        /* ATM-only mode (original): price curves + vega dual axis */
+        var calls=[], puts=[], vegas=[];
+        for (var i=0; i<=100; i++) {
+            var sig=sigMin+(i/100)*(sigMax-sigMin);
+            calls.push(bsCall(100,100,p.r,sig,p.T));
+            puts.push(bsPut(100,100,p.r,sig,p.T));
+            vegas.push(bsVega(100,100,p.r,sig,p.T)/100); /* per 1% */
+        }
+        var yMax1=Math.max.apply(null,calls)*1.1; if (yMax1<1) yMax1=1;
+        var yMax2=Math.max.apply(null,vegas)*1.1;
+
+        function tx(sig){ return PAD.left + ((sig-sigMin)/(sigMax-sigMin))*plotW; }
+        function ty1(v){ return PAD.top + plotH - (v/yMax1)*plotH; }
+        function ty2(v){ return PAD.top + plotH - (v/yMax2)*plotH; }
+
+        ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+        for (var g=0; g<=5; g++) {
+            var sig=sigMin+(g/5)*(sigMax-sigMin);
+            ctx.beginPath(); ctx.moveTo(tx(sig),PAD.top); ctx.lineTo(tx(sig),H-PAD.bottom); ctx.stroke();
+            ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='center'; ctx.textBaseline='top';
+            ctx.fillText((sig*100).toFixed(0)+'%', tx(sig), H-PAD.bottom+8);
+        }
+        ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,H-PAD.bottom); ctx.lineTo(W-PAD.right,H-PAD.bottom); ctx.stroke();
+        for (var g=0; g<=4; g++) {
+            var yv=g/4*yMax1;
+            ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='right'; ctx.textBaseline='middle';
+            ctx.fillText('\u00A3'+yv.toFixed(1), PAD.left-6, ty1(yv));
+        }
+
+        /* Put price */
+        ctx.strokeStyle='#22d3ee'; ctx.lineWidth=1.8; ctx.globalAlpha=0.7;
+        ctx.beginPath();
+        for (var i=0; i<=100; i++) {
+            var sig=sigMin+(i/100)*(sigMax-sigMin);
+            var px=tx(sig), py=ty1(puts[i]);
+            if (i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+        }
+        ctx.stroke(); ctx.globalAlpha=1;
+
+        /* Call price */
+        ctx.strokeStyle='#10b981'; ctx.lineWidth=2.5;
+        ctx.beginPath();
+        for (var i=0; i<=100; i++) {
+            var sig=sigMin+(i/100)*(sigMax-sigMin);
+            if (i===0) ctx.moveTo(tx(sig),ty1(calls[i])); else ctx.lineTo(tx(sig),ty1(calls[i]));
+        }
+        ctx.stroke();
+
+        /* Vega (right axis) */
+        ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.8;
+        ctx.beginPath();
+        for (var i=0; i<=100; i++) {
+            var sig=sigMin+(i/100)*(sigMax-sigMin);
+            if (i===0) ctx.moveTo(tx(sig),ty2(vegas[i])); else ctx.lineTo(tx(sig),ty2(vegas[i]));
+        }
+        ctx.stroke();
+        /* Right axis labels */
+        for (var g=0; g<=4; g++) {
+            var yv=g/4*yMax2;
+            ctx.fillStyle='#fbbf24'; ctx.font='10px Georgia'; ctx.textAlign='left'; ctx.textBaseline='middle';
+            ctx.fillText('\u00A3'+yv.toFixed(2), W-PAD.right+6, ty2(yv));
+        }
+        ctx.fillStyle='#fbbf24'; ctx.font='10px Georgia'; ctx.textAlign='left'; ctx.textBaseline='middle';
+        ctx.fillText('Vega \u2192', W-PAD.right+6, PAD.top);
+
+        /* Current vol marker */
+        ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+        ctx.beginPath(); ctx.moveTo(tx(p.sig),PAD.top); ctx.lineTo(tx(p.sig),H-PAD.bottom); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle='#707088'; ctx.font='11px Georgia'; ctx.textAlign='center';
+        ctx.fillText('Volatility \u03C3 \u2192', PAD.left+plotW/2, H-PAD.bottom+28);
+    }
+}
+
+/* ── Section 5: Implied Volatility ── */
+var ivCvs = document.getElementById('ivCanvas');
+var ivCtx = ivCvs.getContext('2d');
+
+function updateIV() {
+    var mktP = parseInt(document.getElementById('sMarketPrice').value) / 10;
+    var S = parseInt(document.getElementById('sIvS').value);
+    var K = parseInt(document.getElementById('sIvK').value);
+    var T = parseInt(document.getElementById('sIvT').value) / 12;
+    var r = parseInt(document.getElementById('sIvR').value) / 10 / 100;
+    document.getElementById('vMarketPrice').textContent = '\u00A3' + mktP.toFixed(1);
+    document.getElementById('vIvS').textContent = '\u00A3' + S;
+    document.getElementById('vIvK').textContent = '\u00A3' + K;
+    document.getElementById('vIvT').textContent = parseInt(document.getElementById('sIvT').value) + ' mo';
+    document.getElementById('vIvR').textContent = (r*100).toFixed(1) + '%';
+
+    /* Intrinsic value — lower no-arbitrage bound */
+    var intrinsic = Math.max(S - K * Math.exp(-r * T), 0);
+    var belowIntrinsic = mktP < intrinsic;
+
+    /* Newton-Raphson with step tracking */
+    var ivResult = null;
+    var ivIterations = 0;
+    var ivFinalVega = null;
+    var ivFinalStep = null;
+    var sig = 0.3;
+    for (var i = 0; i < 100; i++) {
+        var price = bsCall(S, K, r, sig, T);
+        var vega = bsVega(S, K, r, sig, T);
+        var diff = price - mktP;
+        if (Math.abs(diff) < 1e-8) { ivIterations = i + 1; ivFinalVega = vega; ivFinalStep = diff / Math.max(vega, 1e-10); break; }
+        if (vega < 1e-10) { sig = null; break; }
+        ivFinalVega = vega;
+        ivFinalStep = diff / vega;
+        sig = sig - diff / vega;
+        if (sig <= 0) { sig = null; break; }
+        ivIterations = i + 1;
+    }
+    ivResult = sig;
+
+    var ivEl = document.getElementById('ivResult');
+    var chkEl = document.getElementById('ivCheck');
+
+    if (belowIntrinsic) {
+        ivEl.innerHTML = '<span style="color:#f87171;font-size:0.6em">Below intrinsic</span>';
+        chkEl.innerHTML = '<span style="color:#f87171">Market price \u00A3' + mktP.toFixed(1) + ' &lt; intrinsic \u00A3' + intrinsic.toFixed(2) + ' &mdash; no-arbitrage violated. No valid IV exists.</span>';
+    } else if (ivResult && ivResult > 0 && ivResult < 5) {
+        ivEl.textContent = (ivResult*100).toFixed(2) + '%';
+        var bsP = bsCall(S, K, r, ivResult, T);
+        chkEl.innerHTML = 'Check: BS(\u03C3=' + (ivResult*100).toFixed(2) + '%) = \u00A3' + bsP.toFixed(3) + ' vs market \u00A3' + mktP.toFixed(1) +
+            '<br><span style="color:#808098;font-size:0.9em">Newton step \u221d 1/vega: final vega = \u00A3' + (ivFinalVega/100).toFixed(3) + '/1% \u03C3, step = ' + (ivFinalStep*100).toFixed(4) + '% \u03C3 (converged in ' + ivIterations + ' iterations)</span>';
+    } else {
+        ivEl.textContent = 'N/A';
+        chkEl.textContent = 'No valid IV — check bounds';
+    }
+
+    /* Draw BS price as function of sigma */
+    var ctx=ivCtx, W=ivCvs.width, H=ivCvs.height;
+    var PAD={left:65, right:20, top:24, bottom:48};
+    var plotW=W-PAD.left-PAD.right, plotH=H-PAD.top-PAD.bottom;
+    var sigMin=0.01, sigMax=1.0;
+
+    var prices=[];
+    for (var i=0; i<=200; i++) {
+        var sig=sigMin+(i/200)*(sigMax-sigMin);
+        prices.push(bsCall(S, K, r, sig, T));
+    }
+    var yMax=Math.max(mktP*1.5, prices[prices.length-1])*1.1; if (yMax<5) yMax=5;
+    /* ensure intrinsic bound is visible */
+    if (intrinsic > 0) yMax = Math.max(yMax, intrinsic * 1.3);
+
+    function tx(sig){ return PAD.left + ((sig-sigMin)/(sigMax-sigMin))*plotW; }
+    function ty(v){ return PAD.top + plotH - (v/yMax)*plotH; }
+
+    ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+    /* No-arbitrage violation zone: shade region below intrinsic */
+    if (intrinsic > 0) {
+        ctx.fillStyle='rgba(248,113,113,0.07)';
+        ctx.fillRect(PAD.left, ty(intrinsic), plotW, H-PAD.bottom-ty(intrinsic));
+        ctx.strokeStyle='rgba(248,113,113,0.35)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+        ctx.beginPath(); ctx.moveTo(PAD.left,ty(intrinsic)); ctx.lineTo(W-PAD.right,ty(intrinsic)); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle='rgba(248,113,113,0.6)'; ctx.font='9px Georgia'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+        ctx.fillText('Intrinsic = \u00A3'+intrinsic.toFixed(2)+' (no-arb floor)', PAD.left+4, ty(intrinsic)-2);
+        if (belowIntrinsic) {
+            ctx.fillStyle='rgba(248,113,113,0.15)';
+            ctx.fillRect(PAD.left, PAD.top, plotW, H-PAD.bottom-PAD.top);
+            ctx.fillStyle='#f87171'; ctx.font='bold 11px Georgia'; ctx.textAlign='center'; ctx.textBaseline='middle';
+            ctx.fillText('Market price below intrinsic \u2014 no valid IV (arbitrage opportunity)', PAD.left+plotW/2, PAD.top+(H-PAD.bottom-PAD.top)/2);
+        }
+    }
+
+    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+    for (var g=0; g<=4; g++) {
+        var yv=g/4*yMax;
+        ctx.beginPath(); ctx.moveTo(PAD.left,ty(yv)); ctx.lineTo(W-PAD.right,ty(yv)); ctx.stroke();
+        ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='right'; ctx.textBaseline='middle';
+        ctx.fillText('\u00A3'+yv.toFixed(1), PAD.left-6, ty(yv));
+    }
+    for (var g=0; g<=5; g++) {
+        var sig=sigMin+(g/5)*(sigMax-sigMin);
+        ctx.beginPath(); ctx.moveTo(tx(sig),PAD.top); ctx.lineTo(tx(sig),H-PAD.bottom); ctx.stroke();
+        ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='center'; ctx.textBaseline='top';
+        ctx.fillText((sig*100).toFixed(0)+'%', tx(sig), H-PAD.bottom+8);
+    }
+    ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(PAD.left,PAD.top); ctx.lineTo(PAD.left,H-PAD.bottom); ctx.lineTo(W-PAD.right,H-PAD.bottom); ctx.stroke();
+
+    /* BS price curve */
+    ctx.strokeStyle='#10b981'; ctx.lineWidth=2.5;
+    ctx.beginPath();
+    for (var i=0; i<=200; i++) {
+        var sig=sigMin+(i/200)*(sigMax-sigMin);
+        if (i===0) ctx.moveTo(tx(sig),ty(prices[i])); else ctx.lineTo(tx(sig),ty(prices[i]));
+    }
+    ctx.stroke();
+
+    /* Market price horizontal */
+    ctx.strokeStyle= belowIntrinsic ? '#f87171' : '#fbbf24';
+    ctx.lineWidth=1.5; ctx.setLineDash([6,4]);
+    ctx.beginPath(); ctx.moveTo(PAD.left,ty(mktP)); ctx.lineTo(W-PAD.right,ty(mktP)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle= belowIntrinsic ? '#f87171' : '#fbbf24';
+    ctx.font='10px Georgia'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+    ctx.fillText('Market price \u00A3'+mktP.toFixed(1), PAD.left+4, ty(mktP)-2);
+
+    /* IV intersection dot */
+    if (ivResult && ivResult>sigMin && ivResult<sigMax && !belowIntrinsic) {
+        ctx.beginPath(); ctx.arc(tx(ivResult), ty(mktP), 7, 0, Math.PI*2);
+        ctx.fillStyle='#10b981'; ctx.fill();
+        ctx.strokeStyle='#fff'; ctx.lineWidth=1.5; ctx.stroke();
+        ctx.fillStyle='#10b981'; ctx.font='bold 10px Courier New'; ctx.textAlign='left'; ctx.textBaseline='bottom';
+        ctx.fillText('IV = '+(ivResult*100).toFixed(1)+'%', tx(ivResult)+10, ty(mktP)-2);
+    }
+    ctx.fillStyle='#707088'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Volatility \u03C3 \u2192', PAD.left+plotW/2, H-PAD.bottom+28);
+}
+
+/* ── Wire up ── */
+function redrawAll() { drawBS(); drawTimeDecay(); drawVega(); }
+
+/* Time decay mode toggle */
+document.querySelectorAll('[data-tdmode]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-tdmode]').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        tdMode = btn.dataset.tdmode;
+        drawTimeDecay();
+    });
+});
+/* Vega moneyness toggle */
+document.querySelectorAll('[data-vegamode]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-vegamode]').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        vegaMode = btn.dataset.vegamode;
+        drawVega();
+    });
+});
+
+['sS','sK','sSigma','sT','sR'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', redrawAll);
+});
+['sMarketPrice','sIvS','sIvK','sIvT','sIvR'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', updateIV);
+});
+
+redrawAll();
+updateIV();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

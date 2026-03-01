@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yield Curve Construction &amp; Bootstrapping</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:980px;margin:0 auto;padding:24px 28px 60px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#10b981}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:32px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(16,185,129,0.13);border-color:rgba(16,185,129,0.4);color:#10b981}
+        .btn.danger{background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.25);color:#f87171}
+        .btn.danger:hover{background:rgba(248,113,113,0.15)}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.9}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}
+        .math-line .pink{color:#f472b6}.math-line .red{color:#f87171}.math-line .purple{color:#a78bfa}
+        .math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:8px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:160px}
+        .slider-row input[type=range]{flex:1;max-width:280px;accent-color:#10b981;cursor:pointer}
+        .slider-val{color:#10b981;font-family:'Courier New',monospace;font-size:1.05em;min-width:68px;text-align:right}
+        .result-box{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:12px 18px;margin:12px 0}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#10b981;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.8}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.92em;line-height:2.1}
+        .insight-box{background:rgba(16,185,129,0.04);border-left:3px solid rgba(16,185,129,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.75}
+        .stats-row{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0}
+        .stat-box{text-align:center;min-width:86px}
+        .stat-label{font-size:0.7em;color:#808098;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px}
+        .stat-val{font-family:'Courier New',monospace;font-size:1em;color:#e0e0e0}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:8px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        /* Bootstrap table */
+        .bs-table{width:100%;border-collapse:collapse;font-size:0.86em;margin:10px 0}
+        .bs-table th{padding:6px 10px;text-align:left;color:#707088;font-weight:400;font-size:0.8em;border-bottom:1px solid rgba(255,255,255,0.08)}
+        .bs-table td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.04);font-family:'Courier New',monospace;color:#c0c0d8}
+        .bs-table tr.solved td{color:#10b981}
+        .bs-table tr.pending td{color:#505068}
+        .bs-table tr.active-row td{color:#fbbf24;background:rgba(251,191,36,0.05)}
+        .bs-table input.rate-edit{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.12);color:#fbbf24;font-family:'Courier New',monospace;font-size:0.98em;width:72px;text-align:center;outline:none}
+        .bs-table input.rate-edit:focus{border-bottom-color:#10b981}
+        /* Scenario bars */
+        .scenario-bar-wrap{display:flex;gap:10px;align-items:flex-end;height:80px;margin:12px 0}
+        .scenario-bar{flex:1;border-radius:4px 4px 0 0;min-width:28px;display:flex;align-items:flex-start;justify-content:center;font-family:'Courier New',monospace;font-size:0.7em;padding-top:3px;transition:height 0.4s ease}
+        @media(max-width:600px){canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Yield Curve Construction &amp; Bootstrapping</h1>
+    <p class="subtitle">From deposit rates to zero rates to swap DV01 &mdash; the machinery behind discounting</p>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 0: Curve Dashboard
+    ═══════════════════════════════════════════════════ -->
+    <h2>0. Curve Dashboard</h2>
+    <div class="panel">
+        <h3>Live Curve — All Derived Objects Update in Real Time</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:12px">
+            <div>
+                <div class="slider-row">
+                    <label>Query tenor (0.1y steps):</label>
+                    <input type="range" id="sTenor" min="1" max="100" value="50" step="1">
+                    <span class="slider-val" id="vTenor">5.0y</span>
+                </div>
+                <div class="btn-row" style="margin-top:8px">
+                    <button class="btn active" id="btnCompCont">Continuous</button>
+                    <button class="btn" id="btnCompAnn">Annual</button>
+                </div>
+            </div>
+            <div>
+                <div class="btn-row">
+                    <button class="btn active" id="btnShowDF">Discount Factor</button>
+                    <button class="btn" id="btnShowZero">Zero Rate</button>
+                    <button class="btn" id="btnShowFwd">Fwd Rate</button>
+                    <button class="btn" id="btnShowPar">Par Rate</button>
+                </div>
+            </div>
+        </div>
+        <canvas id="dashCanvas" width="700" height="280"></canvas>
+        <div class="result-box">
+            <div class="stats-row" id="dashStats"></div>
+        </div>
+        <div id="dashNodes" style="overflow-x:auto;margin-top:4px"></div>
+        <div class="insight-box">The dashboard shows the <strong>complete bootstrapped curve</strong> derived from your input instruments. All four representations (DF, zero, forward, par) are mathematically equivalent — each one fully determines the others. The curve updates live as you edit rates in Section 3. The <strong>curve nodes table</strong> below shows every bootstrapped point precisely, so you can verify the numbers directly.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 1: What a Yield Curve Actually Is
+    ═══════════════════════════════════════════════════ -->
+    <h2>1. What a Yield Curve Actually Is</h2>
+    <div class="panel">
+        <h3>Four Curves. One Market.</h3>
+        <div class="formula-block">
+            <div class="math-line"><span class="muted">"A yield curve is not a single curve — it is four equivalent representations of the same information."</span></div>
+            <div class="math-line" style="margin-top:8px"><span class="green">DF(t)</span> &nbsp;&mdash;&nbsp; Discount factor: PV of £1 at time t &nbsp;&nbsp; <span class="muted">DF(t) ∈ (0,1], DF(0)=1, DF(∞)→0</span></div>
+            <div class="math-line"><span class="cyan">z(t)</span> &nbsp;&mdash;&nbsp; Zero (spot) rate: yield on a zero-coupon bond to t &nbsp;&nbsp; <span class="muted">DF(t) = e<sup>−z(t)·t</sup></span></div>
+            <div class="math-line"><span class="gold">f(t)</span> &nbsp;&mdash;&nbsp; Instantaneous forward: rate for an infinitesimal loan at t &nbsp;&nbsp; <span class="muted">f(t) = −d/dt ln DF(t)</span></div>
+            <div class="math-line"><span class="pink">R<sub>par</sub>(T)</span> &nbsp;&mdash;&nbsp; Par swap rate: fixed rate making a T-year swap worth zero at inception</div>
+        </div>
+        <div class="formula-block" style="margin-top:6px">
+            <div class="math-line"><span class="muted">The fundamental identities (continuous compounding):</span></div>
+            <div class="math-line"><span class="green">DF(t)</span> = e<sup>−z(t)·t</sup> &nbsp;&nbsp;&nbsp;&nbsp; <span class="cyan">z(t)</span> = −ln(DF(t)) / t</div>
+            <div class="math-line"><span class="gold">f(t)</span> = −d/dt ln DF(t) &nbsp;&nbsp;&nbsp;&nbsp; <span class="muted">Discrete fwd:</span> f<sub>t1,t2</sub> = [ln DF(t1) − ln DF(t2)] / (t2−t1)</div>
+            <div class="math-line"><span class="pink">R<sub>par</sub>(T)</span> = [1 − DF(T)] / Σ αᵢ DF(tᵢ) &nbsp;&nbsp;&nbsp;&nbsp; <span class="muted">αᵢ = year fraction of period i</span></div>
+        </div>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn active" id="btnConceptDF">DF(t)</button>
+            <button class="btn" id="btnConceptZero">Zero z(t)</button>
+            <button class="btn" id="btnConceptFwd">Forward f(t)</button>
+            <button class="btn" id="btnConceptAll">All three</button>
+        </div>
+        <canvas id="conceptCanvas" width="700" height="280"></canvas>
+        <div class="grid-legend" id="conceptLegend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Discount factor DF(t)</span></div>
+        </div>
+        <div class="insight-box">
+            <strong>Why does this matter?</strong> When a risk system quotes a "5-year rate", it could mean any of these four things. A discount factor is unambiguous — it is simply "the price of £1 in 5 years" — but a rate depends on compounding convention, day count, and payment frequency. The forward rate is especially important: it is the market's implied expectation of the short rate at each future date, and it is what drives floating coupon pricing in swaps.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 2: Instruments Used to Build the Curve
+    ═══════════════════════════════════════════════════ -->
+    <h2>2. Market Instruments &mdash; Building Blocks of the Curve</h2>
+    <div class="panel">
+        <h3>Different Instruments Cover Different Parts of the Curve</h3>
+        <div class="btn-row">
+            <button class="btn active" id="btnInstDep">Deposits (short end)</button>
+            <button class="btn" id="btnInstFRA">FRAs / Futures (mid)</button>
+            <button class="btn" id="btnInstSwap">Swaps (long end)</button>
+        </div>
+        <canvas id="instCanvas" width="700" height="200"></canvas>
+        <div id="instDescription" class="insight-box"></div>
+        <div class="formula-block" id="instFormula"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 3: Bootstrapping
+    ═══════════════════════════════════════════════════ -->
+    <h2>3. Bootstrapping &mdash; From Market Quotes to Discount Factors</h2>
+
+    <!-- 3a: Deposits -->
+    <div class="panel">
+        <h3>3a. Short End: Bootstrapping from Deposits</h3>
+        <p style="color:#a0a0b8;font-size:0.88em;margin-bottom:12px">For a simple deposit with term τ and quoted rate r, the discount factor is direct:</p>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">DF(T)</span> = 1 / (1 + r · τ) &nbsp;&nbsp;&nbsp; <span class="muted">(simple interest, ACT/365)</span></div>
+            <div class="math-line"><span class="muted">This is the most direct market instrument — no solving required. One quote → one DF.</span></div>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="bs-table" id="depTable">
+                <thead><tr><th>Instrument</th><th>Quoted Rate (%)</th><th>τ (yr)</th><th>DF(T)</th><th>Zero Rate (%)</th><th>Status</th></tr></thead>
+                <tbody id="depBody"></tbody>
+            </table>
+        </div>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn active" id="btnBootstrapStep">▶ Bootstrap Next Deposit</button>
+            <button class="btn danger" id="btnResetDep">↺ Reset</button>
+        </div>
+        <canvas id="depCanvas" width="700" height="220"></canvas>
+        <div class="insight-box">Each deposit bootstraps one point directly. There is no iteration — one quoted rate gives one discount factor. The hard work comes when we reach <strong>swaps</strong> (Section 3b), where earlier discount factors appear in the equation for the new one.</div>
+    </div>
+
+    <!-- 3b: Swaps -->
+    <div class="panel">
+        <h3>3b. Long End: Bootstrapping from Par Swaps</h3>
+        <p style="color:#a0a0b8;font-size:0.88em;margin-bottom:12px">A par swap makes PV(fixed leg) = PV(float leg) at inception. The float leg value equals 1 − DF(T) for a par-start swap. So:</p>
+        <div class="formula-block">
+            <div class="math-line"><span class="muted">PV<sub>fixed</sub> = R · Σ αᵢ DF(tᵢ) &nbsp;&nbsp;&nbsp; PV<sub>float</sub> = 1 − DF(T)</span></div>
+            <div class="math-line"><span class="muted">Setting them equal and solving for the unknown DF(T):</span></div>
+            <div class="math-line"><span class="green">DF(T)</span> = [1 − R · Σ<sub>i&lt;N</sub> αᵢ DF(tᵢ)] / [1 + R · α<sub>N</sub>]</div>
+            <div class="math-line"><span class="muted">All DF(tᵢ) for i&lt;N are already known — this is the bootstrap step.</span></div>
+        </div>
+        <div style="overflow-x:auto">
+            <table class="bs-table" id="swapTable">
+                <thead><tr><th>Maturity</th><th>Par Swap Rate (%)</th><th>Annuity A(T)</th><th>DF(T)</th><th>Zero Rate (%)</th><th>Status</th></tr></thead>
+                <tbody id="swapBody"></tbody>
+            </table>
+        </div>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn active" id="btnSwapStep">▶ Bootstrap Next Swap</button>
+            <button class="btn danger" id="btnResetSwap">↺ Reset to Deposits</button>
+        </div>
+        <div class="result-box" id="swapWorkings" style="display:none">
+            <div style="font-size:0.8em;color:#808098;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Workings — current bootstrap step</div>
+            <div id="swapWorkingsText" style="font-family:'Courier New',monospace;font-size:0.88em;color:#c0c0d8;line-height:2"></div>
+        </div>
+        <canvas id="swapCanvas" width="700" height="250"></canvas>
+        <div class="insight-box"><strong>The bootstrap algorithm is sequential and one-way:</strong> you must know all earlier discount factors before you can solve for the next one. This is why market instruments are ordered by maturity — each new quote adds exactly one unknown DF, which is solved using all the previously established values. Once you have the full DF curve, every other representation (zero, forward, par) follows immediately.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 4: Interpolation
+    ═══════════════════════════════════════════════════ -->
+    <h2>4. Interpolation &mdash; Demo &amp; Sensitivity</h2>
+    <div class="panel">
+        <h3>Interpolation Demo — The Live Curve Always Uses Log-linear DF</h3>
+        <p style="color:#a0a0b8;font-size:0.85em;margin-bottom:10px">This section illustrates the <em>visual effect</em> of different interpolation methods on the same set of nodes. The curve used in Sections 0, 5, 6, and 7 always applies log-linear discount factor interpolation — switching the buttons here only affects this demonstration panel, not the live bootstrapped curve. The forward curve (gold) is the most sensitive indicator: its shape changes dramatically depending on the interpolation choice.</p>
+        <div class="btn-row">
+            <button class="btn active" id="btnInterpLogDF">Log-linear DF (recommended)</button>
+            <button class="btn" id="btnInterpLinZ">Linear in zero rates</button>
+            <button class="btn" id="btnInterpFlat">Flat forward</button>
+        </div>
+        <canvas id="interpCanvas" width="700" height="280"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Zero curve</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Forward curve (most sensitive to interpolation choice)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:rgba(255,255,255,0.4)"></div><span style="color:#808098">Market nodes</span></div>
+        </div>
+        <div class="insight-box" id="interpInsight">
+            <strong>Log-linear in discount factors</strong> is the most common professional choice. It is equivalent to piecewise-constant instantaneous forward rates — the forward curve is a step function. Simple, arbitrage-free, and local: changing one market quote only affects the adjacent segment of the curve.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 5: Par Swap Curve from DF Curve
+    ═══════════════════════════════════════════════════ -->
+    <h2>5. Par Swap Rates &mdash; Closing the Loop</h2>
+    <div class="panel">
+        <h3>Given Discount Factors, Recover the Par Swap Curve</h3>
+        <div class="slider-row">
+            <label>Query maturity (years):</label>
+            <input type="range" id="sParMat" min="1" max="10" value="5" step="1">
+            <span class="slider-val" id="vParMat">5y</span>
+        </div>
+        <canvas id="parCanvas" width="700" height="250"></canvas>
+        <div class="result-box">
+            <div class="stats-row" id="parStats"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="pink">Annuity A(T)</span> = Σ<sub>i=1..N</sub> αᵢ · <span class="green">DF(tᵢ)</span> &nbsp;&nbsp; <span class="muted">(sum of discounted year fractions)</span></div>
+            <div class="math-line"><span class="pink">R<sub>par</sub>(T)</span> = [1 − <span class="green">DF(T)</span>] / <span class="pink">A(T)</span> &nbsp;&nbsp; <span class="muted">(par swap condition: PV(fixed)=PV(float))</span></div>
+        </div>
+        <div class="insight-box">The par swap curve "closes the loop": we started with par swap quotes, bootstrapped discount factors, and can now reproduce par swap rates for <em>any</em> maturity — not just the quoted ones. The par curve is what is published as "the swap curve" on Bloomberg. It is the most visible representation, but the discount factor curve is what actually drives pricing.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 6: Swap DV01
+    ═══════════════════════════════════════════════════ -->
+    <h2>6. Swap DV01 &mdash; Rate Risk Measurement</h2>
+    <div class="panel">
+        <h3>Dollar Value of a Basis Point — the Primary Interest Rate Risk Metric</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div>
+                <div class="slider-row"><label>Notional (£m):</label><input type="range" id="sNotional" min="1" max="100" value="10" step="1"><span class="slider-val" id="vNotional">£10m</span></div>
+                <div class="slider-row"><label>Swap maturity (yr):</label><input type="range" id="sDV01Mat" min="1" max="10" value="5" step="1"><span class="slider-val" id="vDV01Mat">5y</span></div>
+                <div class="btn-row" style="margin-top:8px">
+                    <button class="btn active" id="btnFreqAnn">Annual coupons</button>
+                    <button class="btn" id="btnFreqSemi">Semi-annual</button>
+                </div>
+            </div>
+            <div class="result-box" style="margin:0">
+                <div class="stats-row" id="dv01Stats"></div>
+            </div>
+        </div>
+        <canvas id="dv01Canvas" width="700" height="250"></canvas>
+        <div class="formula-block">
+            <div class="math-line"><span class="cyan">Annuity A(T)</span> = Σ αᵢ · DF(tᵢ) &nbsp;&nbsp;&nbsp; <span class="muted">(same as par section)</span></div>
+            <div class="math-line"><span class="gold">DV01 (approx)</span> ≈ 0.0001 × A(T) × Notional &nbsp;&nbsp;&nbsp; <span class="muted">(at-par, fixed-leg only)</span></div>
+            <div class="math-line"><span class="gold">DV01 (full)</span> = |ΔPV<sub>swap</sub>| for +1bp parallel shift &nbsp;&nbsp;&nbsp; <span class="muted">(bump-and-reprice, shown below)</span></div>
+        </div>
+        <div class="insight-box">
+            <strong>Swap DV01</strong> is the loss on a payer swap (pay fixed, receive float) for a 1bp rise in rates. For a par-ish swap, the float leg is approximately duration-neutral and the risk is dominated by the fixed leg annuity. A £10m 10-year payer swap typically has a DV01 of around £8,000–£9,000 per basis point — which is why basis point movements in long rates cause substantial mark-to-market swings on derivatives desks. The <strong>full DV01</strong> (bump-and-reprice) and the approximation are shown above — they agree closely at par but diverge as the swap moves off-market.
+        </div>
+        <div class="result-box" id="keyRateDV01Panel" style="display:none;border-color:rgba(167,139,250,0.2);background:rgba(167,139,250,0.04)"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 7: Stress & Scenarios
+    ═══════════════════════════════════════════════════ -->
+    <h2>7. Stress Scenarios &mdash; IRRBB Shocks</h2>
+    <div class="panel">
+        <h3>How the Curve and DV01 Change Under Basel IRRBB Scenarios</h3>
+        <div class="btn-row">
+            <button class="btn active" id="btnScnBase">Base curve</button>
+            <button class="btn" id="btnScnParUp">Parallel +100bp</button>
+            <button class="btn" id="btnScnParDn">Parallel −100bp</button>
+            <button class="btn" id="btnScnSteep">Steepener</button>
+            <button class="btn" id="btnScnFlat">Flattener</button>
+        </div>
+        <canvas id="scenCanvas" width="700" height="280"></canvas>
+        <div class="result-box">
+            <div class="stats-row" id="scenStats"></div>
+        </div>
+        <div class="insight-box">
+            <strong style="color:#e0e0e0">Basel IRRBB (Interest Rate Risk in the Banking Book)</strong> requires banks to shock the yield curve under six prescribed scenarios — parallel up/down, steepener, flattener, short-rate up/down — and report how much Economic Value of Equity (EVE) changes. A steepener (short rates fall, long rates rise) hurts banks with liability-side short funding and asset-side long lending. The DV01 bucketed by tenor is the fundamental tool for measuring and hedging this exposure.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 8: Single-Curve vs Multi-Curve
+    ═══════════════════════════════════════════════════ -->
+    <h2>8. Single-Curve vs Multi-Curve &mdash; Post-2008 Reality</h2>
+    <div class="explain">
+        <div class="explain-name">The Honest Caveat</div>
+        <div class="explain-text">
+            This entire page has used a <strong>single-curve framework</strong>: one curve to both discount cash flows and imply forward rates. Before 2008, this was standard. The LIBOR/OIS basis was negligible (a few basis points), and practitioners could safely assume one curve.
+            <br><br>
+            <strong style="color:#e0e0e0">Post-2008 multi-curve reality:</strong> After the financial crisis, the basis between LIBOR and the overnight index swap (OIS) rate widened dramatically — sometimes to 300–400bp at the 3-month tenor. The credit and liquidity risk embedded in term LIBOR rates became undeniable. Today, professional curve construction separates:
+            <br><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<strong style="color:#10b981">Discounting curve:</strong> OIS (SONIA in GBP, SOFR in USD, €STR in EUR) — used to discount all cash flows<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<strong style="color:#22d3ee">Forwarding curve:</strong> Tenor-specific (3M SOFR, 6M SONIA, etc.) — used to project floating rates
+            <br><br>
+            The two curves are built simultaneously from market quotes, with the discounting curve solved first (from OIS swaps) and the forwarding curves solved next (from tenor swaps that contain a basis spread). This multi-curve framework is now the global standard in all major banks and clearing houses.
+            <br><br>
+            <strong style="color:#e0e0e0">IBOR Transition (2021–2023):</strong> LIBOR was formally discontinued and replaced by risk-free rates (RFRs): SOFR, SONIA, €STR, TONAR. This was the largest coordinated change in financial market infrastructure in decades, affecting hundreds of trillions of dollars in notional contracts globally. The mechanics on this page remain correct for RFR-based swaps — the key change is that floating rates are now overnight compounded (SOFR-in-arrears), not term rates set at the start of a period.
+            <br><br>
+            <span style="color:#606078;font-size:0.92em">The single-curve framework on this page provides the correct conceptual foundation. Multi-curve is a generalization — the same bootstrap logic, applied twice with a basis adjustment between the curves.</span>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   Yield Curve Construction & Bootstrapping
+   Single-curve, continuous compounding, log-linear DF interpolation
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── Market Data (editable) ─── */
+var DEPOSITS = [
+    { label: '1M',  t: 1/12,   rate: 0.048, df: null, solved: false },
+    { label: '3M',  t: 3/12,   rate: 0.049, df: null, solved: false },
+    { label: '6M',  t: 6/12,   rate: 0.051, df: null, solved: false },
+];
+
+var SWAPS = [
+    { label: '1Y',  t: 1,   rate: 0.0520, df: null, solved: false },
+    { label: '2Y',  t: 2,   rate: 0.0535, df: null, solved: false },
+    { label: '3Y',  t: 3,   rate: 0.0545, df: null, solved: false },
+    { label: '5Y',  t: 5,   rate: 0.0555, df: null, solved: false },
+    { label: '7Y',  t: 7,   rate: 0.0560, df: null, solved: false },
+    { label: '10Y', t: 10,  rate: 0.0558, df: null, solved: false },
+];
+
+/* ─── State ─── */
+var compoundingMode = 'cont'; /* 'cont' | 'ann' */
+var dashView = 'df';          /* 'df' | 'zero' | 'fwd' | 'par' */
+var instMode = 'dep';
+var conceptMode = 'df';
+var interpMode = 'logdf';
+var dv01Freq = 'ann';
+var scenMode = 'base';
+var depStep = 0;   /* how many deposits bootstrapped */
+var swapStep = 0;  /* how many swaps bootstrapped (after deposits) */
+
+/* Single global fixed-leg payment frequency for all swap machinery.
+   Annual (1) is standard for GBP/EUR; Semi-annual (2) for USD.
+   Used consistently in: bootstrapping, annuity, par curve, DV01, scenarios.
+   Changing this would require re-bootstrapping. */
+var SWAP_FIXED_FREQ = 1;
+
+/* ─── Bootstrapping state ─── */
+/* fullCurve: array of {t, df} sorted by t — built from solved instruments */
+var fullCurve = [];
+
+function resetAll() {
+    DEPOSITS.forEach(function(d) { d.df = null; d.solved = false; });
+    SWAPS.forEach(function(s) { s.df = null; s.solved = false; });
+    depStep = 0; swapStep = 0;
+    fullCurve = [{ t: 0, df: 1.0 }]; /* DF(0) = 1 always */
+    rebuildFullCurve();
+}
+
+/* ─── Core Math ─── */
+function dfFromDeposit(r, t) { return 1 / (1 + r * t); }
+
+function dfFromSwap(R, t_N, freq) {
+    /* Given all earlier DFs in fullCurve, solve for DF(t_N) */
+    var alpha = 1 / freq;
+    var knownAnnuity = 0;
+    var n = Math.round(t_N * freq);
+    for (var i = 1; i < n; i++) {
+        var ti = i / freq;
+        var dfi = dfInterp(ti);
+        knownAnnuity += alpha * dfi;
+    }
+    /* DF(T) = (1 - R * knownAnnuity) / (1 + R * alpha) */
+    var df = (1 - R * knownAnnuity) / (1 + R * alpha);
+    /* Issue 6: Guardrail — reject non-arbitrage-free results */
+    if (df <= 0 || df > 1.0001) return null; /* null signals no-arb violation */
+    return df;
+}
+
+function dfInterp(t) {
+    if (t <= 0) return 1.0;
+    var curve = fullCurve;
+    if (curve.length === 0) return 1.0;
+    /* log-linear interpolation */
+    for (var i = 0; i < curve.length - 1; i++) {
+        var t0 = curve[i].t, t1 = curve[i+1].t;
+        if (t >= t0 && t <= t1) {
+            var w = (t - t0) / (t1 - t0);
+            return Math.exp((1-w)*Math.log(curve[i].df) + w*Math.log(curve[i+1].df));
+        }
+    }
+    /* Extrapolation: flat forward beyond last node */
+    var last = curve[curve.length - 1];
+    var prev = curve[curve.length - 2] || { t: 0, df: 1.0 };
+    var fwd = -Math.log(last.df / prev.df) / (last.t - prev.t);
+    return last.df * Math.exp(-fwd * (t - last.t));
+}
+
+function zeroRate(df, t, comp) {
+    if (t <= 0 || df <= 0) return 0;
+    if (comp === 'cont') return -Math.log(df) / t;
+    else return (Math.pow(1/df, 1/t) - 1); /* annual effective */
+}
+
+function instFwd(t) {
+    /* numerical derivative of -ln DF */
+    var dt = 0.001;
+    var dfp = dfInterp(t + dt);
+    var dfm = dfInterp(Math.max(t - dt, 0.0001));
+    return -(Math.log(dfp) - Math.log(dfm)) / (2 * dt);
+}
+
+function parSwapRate(T, freq) {
+    var n = Math.round(T * freq);
+    var alpha = 1 / freq;
+    var annuity = 0;
+    for (var i = 1; i <= n; i++) {
+        annuity += alpha * dfInterp(i / freq);
+    }
+    var dfT = dfInterp(T);
+    return (1 - dfT) / annuity;
+}
+
+function annuity(T, freq) {
+    var n = Math.round(T * freq);
+    var alpha = 1 / freq;
+    var A = 0;
+    for (var i = 1; i <= n; i++) A += alpha * dfInterp(i / freq);
+    return A;
+}
+
+function swapDV01(T, notional, freq) {
+    /* Annuity approximation (at-par) — fast, used for term structure bars */
+    var A = annuity(T, freq);
+    return 0.0001 * A * notional;
+}
+
+function swapDV01Full(T, notional, freq) {
+    /* Full bump-and-reprice DV01: shift the entire bootstrapped curve by +1bp
+       and reprice the fixed leg annuity. Difference is full DV01.
+       For a par payer swap, PV_fixed = R_par * A(T) * N and
+       PV_float = (1 - DF(T)) * N, both at par so PV_swap = 0.
+       After a +1bp parallel shift, DF(T) falls, float leg loses value,
+       and fixed leg changes too. We compute the net change in fixed-leg PV
+       holding the fixed rate constant at the original par rate. */
+    var R0 = parSwapRate(T, freq); /* original fixed rate */
+    /* Bumped annuity — add 1bp to every zero rate, recompute DFs */
+    var bump = 0.0001;
+    var bumpedA = 0;
+    var alpha = 1 / freq;
+    var n = Math.round(T * freq);
+    for (var i = 1; i <= n; i++) {
+        var ti = i / freq;
+        var dfOrig = dfInterp(ti);
+        var z0 = (ti > 0) ? -Math.log(dfOrig) / ti : 0;
+        var dfBump = Math.exp(-(z0 + bump) * ti);
+        bumpedA += alpha * dfBump;
+    }
+    var dfT_orig = dfInterp(T);
+    var z_T = (T > 0) ? -Math.log(dfT_orig) / T : 0;
+    var dfT_bump = Math.exp(-(z_T + bump) * T);
+    /* PV_swap (payer) = (float - fixed) * N
+       base: 0 (par)
+       bumped: (1-dfT_bump)/N - R0*bumpedA — then multiply by N */
+    var pv_base = 0; /* par swap */
+    var pv_bump = ((1 - dfT_bump) - R0 * bumpedA) * notional;
+    /* DV01 = - change in PV per +1bp (positive = payer loses when rates rise) */
+    return Math.abs(pv_bump - pv_base);
+}
+
+/* Enhancement 10C: Key-rate DV01 — bucket contributions */
+var KR_BUCKETS = [
+    { label: '1–2y',  tMin: 1,  tMax: 2  },
+    { label: '2–5y',  tMin: 2,  tMax: 5  },
+    { label: '5–10y', tMin: 5,  tMax: 10 },
+];
+
+function keyRateDV01(T, notional, freq) {
+    /* For each bucket, bump only the zero rates within that maturity band by +1bp.
+       The coupon at each payment date ti falls in the bucket that contains it.
+       Sum the PV impact from perturbing that DF. */
+    var R0 = parSwapRate(T, freq);
+    var alpha = 1 / freq;
+    var n = Math.round(T * freq);
+    var bucketDV01 = KR_BUCKETS.map(function(bk) {
+        var deltaA = 0;
+        var deltaDfT = 0;
+        var bump = 0.0001;
+        for (var i = 1; i <= n; i++) {
+            var ti = i / freq;
+            var dfOrig = dfInterp(ti);
+            if (ti >= bk.tMin && ti <= bk.tMax) {
+                var z0 = -Math.log(dfOrig) / ti;
+                var dfBump = Math.exp(-(z0 + bump) * ti);
+                deltaA += alpha * (dfBump - dfOrig);
+                if (i === n) deltaDfT = dfBump - dfOrig;
+            }
+        }
+        /* ΔPV_swap (payer) = (−ΔdfT − R0·ΔA) × N */
+        var deltaPV = (-deltaDfT - R0 * deltaA) * notional;
+        return { label: bk.label, dv01: Math.abs(deltaPV) };
+    });
+    return bucketDV01;
+}
+
+function rebuildFullCurve() {
+    fullCurve = [{ t: 0, df: 1.0 }];
+    DEPOSITS.forEach(function(d) {
+        if (d.solved && d.df !== null) fullCurve.push({ t: d.t, df: d.df });
+    });
+    SWAPS.forEach(function(s) {
+        if (s.solved && s.df !== null) fullCurve.push({ t: s.t, df: s.df });
+    });
+    fullCurve.sort(function(a,b){return a.t-b.t;});
+}
+
+/* ─── 2D Canvas helpers ─── */
+function setup2D(cvs) {
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var PAD = { left: 62, right: 22, top: 24, bottom: 46 };
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
+    return { ctx, W, H, PAD, plotW: W-PAD.left-PAD.right, plotH: H-PAD.top-PAD.bottom };
+}
+
+function gridAxes(c, xMin, xMax, yMin, yMax, xLbl, yLbl) {
+    var ctx=c.ctx, P=c.PAD, W=c.W, H=c.H;
+    function tx(x) { return P.left + (x-xMin)/(xMax-xMin)*c.plotW; }
+    function ty(y) { return P.top + c.plotH - (y-yMin)/(yMax-yMin)*c.plotH; }
+    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+    for (var i=0;i<=5;i++) {
+        var yv = yMin + i/5*(yMax-yMin);
+        ctx.beginPath(); ctx.moveTo(P.left,ty(yv)); ctx.lineTo(W-P.right,ty(yv)); ctx.stroke();
+        ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='right'; ctx.textBaseline='middle';
+        ctx.fillText(yLbl(yv), P.left-5, ty(yv));
+    }
+    var xs = [];
+    for (var x=Math.ceil(xMin);x<=Math.floor(xMax);x++) { if(x>0) xs.push(x); }
+    xs.forEach(function(x) {
+        ctx.beginPath(); ctx.moveTo(tx(x),P.top); ctx.lineTo(tx(x),H-P.bottom); ctx.stroke();
+        ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='center'; ctx.textBaseline='top';
+        ctx.fillText(xLbl(x), tx(x), H-P.bottom+8);
+    });
+    ctx.strokeStyle='rgba(255,255,255,0.18)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(P.left,P.top); ctx.lineTo(P.left,H-P.bottom); ctx.lineTo(W-P.right,H-P.bottom); ctx.stroke();
+    if (yMin < 0 && yMax > 0) {
+        ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(P.left,ty(0)); ctx.lineTo(W-P.right,ty(0)); ctx.stroke();
+    }
+    return { tx, ty };
+}
+
+function drawCurve(ctx, fn, xMin, xMax, tx, ty, color, lw, N) {
+    N = N || 300;
+    ctx.strokeStyle = color; ctx.lineWidth = lw || 2;
+    ctx.beginPath();
+    for (var i = 0; i <= N; i++) {
+        var x = xMin + i/N*(xMax-xMin);
+        var y = fn(x);
+        if (!isFinite(y)) continue;
+        if (i === 0) ctx.moveTo(tx(x), ty(y)); else ctx.lineTo(tx(x), ty(y));
+    }
+    ctx.stroke();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Section 0: Dashboard canvas
+══════════════════════════════════════════════════════════════ */
+function drawDash() {
+    var cvs = document.getElementById('dashCanvas');
+    var c = setup2D(cvs);
+    var ctx = c.ctx;
+    var tMax = 10.5;
+
+    /* Build y-range based on dashView */
+    var yMin, yMax, fn, color, label;
+    var comp = compoundingMode;
+    if (dashView === 'df') {
+        yMin = 0; yMax = 1.05;
+        fn = function(t) { return dfInterp(t); };
+        color = '#10b981'; label = 'DF(t)';
+    } else if (dashView === 'zero') {
+        yMin = 0; yMax = 0.10;
+        fn = function(t) { return zeroRate(dfInterp(t), t, comp); };
+        color = '#22d3ee'; label = 'Zero rate z(t)';
+    } else if (dashView === 'fwd') {
+        yMin = 0; yMax = 0.12;
+        fn = function(t) { return instFwd(t); };
+        color = '#fbbf24'; label = 'Fwd f(t)';
+    } else {
+        yMin = 0; yMax = 0.10;
+        fn = function(t) { if(t < 1/SWAP_FIXED_FREQ) return parSwapRate(1/SWAP_FIXED_FREQ, SWAP_FIXED_FREQ); return parSwapRate(t, SWAP_FIXED_FREQ); };
+        color = '#f472b6'; label = 'Par rate R_par(T)';
+    }
+
+    var yFmt = (dashView === 'df') ? function(v){return v.toFixed(2);} : function(v){return (v*100).toFixed(1)+'%';};
+    var f = gridAxes(c, 0, tMax, yMin, yMax, function(x){return x+'y';}, yFmt);
+
+    /* Shaded area */
+    ctx.save();
+    ctx.beginPath();
+    for (var i = 0; i <= 300; i++) {
+        var t_ = 0.01 + i/300*(tMax-0.01);
+        var y_ = fn(t_);
+        if (!isFinite(y_)) continue;
+        if (i === 0) ctx.moveTo(f.tx(t_), f.ty(y_)); else ctx.lineTo(f.tx(t_), f.ty(y_));
+    }
+    ctx.lineTo(f.tx(tMax), f.ty(yMin));
+    ctx.lineTo(f.tx(0.01), f.ty(yMin));
+    ctx.closePath();
+    ctx.fillStyle = color.replace('#', 'rgba(').replace('10b981','16,185,129,0.06)').replace('22d3ee','34,211,238,0.06)').replace('fbbf24','251,191,36,0.06)').replace('f472b6','244,114,182,0.06)');
+    /* simple approach */
+    ctx.fillStyle = 'rgba(255,255,255,0.02)'; ctx.fill();
+    ctx.restore();
+
+    drawCurve(ctx, fn, 0.01, tMax, f.tx, f.ty, color, 2.5);
+
+    /* Market nodes */
+    fullCurve.slice(1).forEach(function(pt) {
+        if (pt.t > tMax) return;
+        var yPt;
+        if (dashView === 'df') yPt = pt.df;
+        else if (dashView === 'zero') yPt = zeroRate(pt.df, pt.t, comp);
+        else if (dashView === 'fwd') yPt = instFwd(pt.t);
+        else yPt = parSwapRate(pt.t, SWAP_FIXED_FREQ);
+        ctx.beginPath(); ctx.arc(f.tx(pt.t), f.ty(yPt), 4, 0, Math.PI*2);
+        ctx.fillStyle = color; ctx.fill();
+    });
+
+    /* Query tenor */
+    var qT = parseInt(document.getElementById('sTenor').value) / 10;
+    var qDF = dfInterp(qT);
+    var qZ = zeroRate(qDF, qT, comp);
+    var qF = instFwd(qT);
+    var qPar = (qT >= 1/SWAP_FIXED_FREQ) ? parSwapRate(qT, SWAP_FIXED_FREQ) : parSwapRate(1/SWAP_FIXED_FREQ, SWAP_FIXED_FREQ);
+    var qY = (dashView==='df') ? qDF : (dashView==='zero') ? qZ : (dashView==='fwd') ? qF : qPar;
+    ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(f.tx(qT), c.PAD.top); ctx.lineTo(f.tx(qT), c.H-c.PAD.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(f.tx(qT), f.ty(qY), 5, 0, Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill();
+
+    /* Label */
+    ctx.fillStyle=color; ctx.font='10px Georgia'; ctx.textAlign='left'; ctx.textBaseline='top';
+    ctx.fillText(label, c.PAD.left+6, c.PAD.top+6);
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Time (years) →', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+
+    /* Stats */
+    var dv01_5 = swapDV01(5, 10000000, SWAP_FIXED_FREQ); /* Issue 2 */
+    document.getElementById('dashStats').innerHTML =
+        '<div class="stat-box"><div class="stat-label">DF(' + qT.toFixed(1) + 'y)</div><div class="stat-val" style="color:#10b981">' + qDF.toFixed(5) + '</div></div>'
+      + '<div class="stat-box"><div class="stat-label">Zero ' + qT.toFixed(1) + 'y</div><div class="stat-val" style="color:#22d3ee">' + (qZ*100).toFixed(3) + '%</div></div>'
+      + '<div class="stat-box"><div class="stat-label">Fwd ' + qT.toFixed(1) + 'y</div><div class="stat-val" style="color:#fbbf24">' + (qF*100).toFixed(3) + '%</div></div>'
+      + '<div class="stat-box"><div class="stat-label">Par ' + qT.toFixed(1) + 'y</div><div class="stat-val" style="color:#f472b6">' + (qPar*100).toFixed(3) + '%</div></div>'
+      + '<div class="stat-box"><div class="stat-label">DV01 5Y £10m</div><div class="stat-val" style="color:#a78bfa">£' + dv01_5.toFixed(0) + '</div></div>';
+
+    /* Enhancement 10A: Curve nodes view table */
+    var nodesHtml = '<table class="bs-table" style="margin-top:12px;font-size:0.8em">'
+        + '<thead><tr><th>Tenor</th><th>DF(t)</th><th>Zero rate</th><th>Par rate</th></tr></thead><tbody>';
+    fullCurve.slice(1).forEach(function(pt) {
+        if (pt.t > 10.5) return;
+        var z = zeroRate(pt.df, pt.t, comp);
+        var p = (pt.t >= 1/SWAP_FIXED_FREQ) ? parSwapRate(pt.t, SWAP_FIXED_FREQ) : null;
+        nodesHtml += '<tr><td>' + pt.t.toFixed(2) + 'y</td>'
+            + '<td style="color:#10b981">' + pt.df.toFixed(6) + '</td>'
+            + '<td style="color:#22d3ee">' + (z*100).toFixed(4) + '%</td>'
+            + '<td style="color:#f472b6">' + (p !== null ? (p*100).toFixed(4)+'%' : '—') + '</td></tr>';
+    });
+    nodesHtml += '</tbody></table>';
+    var nodesEl = document.getElementById('dashNodes');
+    if (nodesEl) nodesEl.innerHTML = nodesHtml;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Section 1: Concept canvas
+══════════════════════════════════════════════════════════════ */
+function drawConcept() {
+    var cvs = document.getElementById('conceptCanvas');
+    var c = setup2D(cvs);
+    var ctx = c.ctx;
+    var tMax = 10.5;
+    var legendEl = document.getElementById('conceptLegend');
+
+    var showDF = conceptMode === 'df' || conceptMode === 'all';
+    var showZ  = conceptMode === 'zero' || conceptMode === 'all';
+    var showF  = conceptMode === 'fwd' || conceptMode === 'all';
+
+    if (showF) {
+        var yMin=0, yMax=0.12;
+        var f = gridAxes(c, 0, tMax, yMin, yMax, function(x){return x+'y';}, function(v){return (v*100).toFixed(1)+'%';});
+        drawCurve(ctx, function(t){return instFwd(t);}, 0.05, tMax, f.tx, f.ty, '#fbbf24', 2, 200);
+        if (showZ) drawCurve(ctx, function(t){return zeroRate(dfInterp(t),t,compoundingMode);}, 0.05, tMax, f.tx, f.ty, '#22d3ee', 2);
+        legendEl.innerHTML = '<div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Instantaneous forward f(t)</span></div>'
+            + (showZ?'<div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Zero rate z(t)</span></div>':'');
+    } else if (showZ) {
+        var yMin=0, yMax=0.10;
+        var f = gridAxes(c, 0, tMax, yMin, yMax, function(x){return x+'y';}, function(v){return (v*100).toFixed(1)+'%';});
+        drawCurve(ctx, function(t){return zeroRate(dfInterp(t),t,compoundingMode);}, 0.05, tMax, f.tx, f.ty, '#22d3ee', 2.5);
+        legendEl.innerHTML = '<div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Zero rate z(t)</span></div>';
+    } else {
+        var yMin=0, yMax=1.05;
+        var f = gridAxes(c, 0, tMax, yMin, yMax, function(x){return x+'y';}, function(v){return v.toFixed(2);});
+        drawCurve(ctx, function(t){return dfInterp(t);}, 0, tMax, f.tx, f.ty, '#10b981', 2.5);
+        legendEl.innerHTML = '<div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Discount factor DF(t)</span></div>';
+    }
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Time (years) →', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Section 2: Instruments canvas
+══════════════════════════════════════════════════════════════ */
+var INST_INFO = {
+    dep: {
+        desc: '<strong style="color:#10b981">Deposits (O/N, 1M, 3M, 6M, 12M)</strong> anchor the short end of the curve. A bank deposit quotes a simple interest rate: you lend £1 today and receive £(1 + r·τ) at maturity. These are the most direct market instruments — each gives one discount factor with no ambiguity. The short end is typically within a year and uses ACT/365 day count.',
+        formula: '<div class="math-line"><span class="green">DF(T)</span> = 1 / (1 + r · τ) &nbsp;&nbsp; <span class="muted">r = quoted rate, τ = year fraction (ACT/365)</span></div><div class="math-line muted">One equation. One unknown. Direct solution — no bootstrapping needed.</div>',
+        cashflows: [{ label: 'Today', t: 0, amount: -1, color: '#f87171' }, { label: '3M', t: 0.25, amount: 1.0125, color: '#10b981' }]
+    },
+    fra: {
+        desc: '<strong style="color:#22d3ee">FRAs (Forward Rate Agreements) and Futures</strong> cover the 1–24 month range. A 3×6 FRA fixes a rate for a 3-month period starting in 3 months. Eurodollar / SONIA futures are exchange-traded equivalents. Their convexity adjustment (the difference between futures and FRA prices) becomes important at longer maturities. These instruments imply forward rates directly.',
+        formula: '<div class="math-line"><span class="cyan">FRA rate</span> = [DF(t1)/DF(t2) − 1] / τ &nbsp;&nbsp; <span class="muted">t1=start, t2=end, τ=year fraction</span></div><div class="math-line muted">A 3×6 FRA covers the 3-to-6-month forward period. Given DF(3M) and FRA rate, solve for DF(6M).</div>',
+        cashflows: [{ label: '3M', t: 0.25, amount: -1, color: '#f87171' }, { label: '6M', t: 0.5, amount: 1.013, color: '#22d3ee' }]
+    },
+    swap: {
+        desc: '<strong style="color:#fbbf24">Vanilla interest rate swaps</strong> (1Y, 2Y, 5Y, 10Y, 30Y) anchor the long end. A par swap pays a fixed coupon and receives floating (SOFR/SONIA) with zero NPV at inception. Each maturity adds one unknown DF, solved using the earlier bootstrapped DFs for the coupon payment dates. The fixed leg annuity is the key quantity.',
+        formula: '<div class="math-line"><span class="gold">DF(T)</span> = [1 − R · Σ<sub>i&lt;N</sub> αᵢ DF(tᵢ)] / [1 + R · α<sub>N</sub>]</div><div class="math-line muted">R = quoted par swap rate. Requires all earlier DFs — hence "bootstrapping".</div>',
+        cashflows: [
+            { label: '1Y', t: 1, amount: 0.053, color: '#fbbf24' },
+            { label: '2Y', t: 2, amount: 0.053, color: '#fbbf24' },
+            { label: '3Y', t: 3, amount: 1.053, color: '#22d3ee' }
+        ]
+    }
+};
+
+function drawInstrument() {
+    var cvs = document.getElementById('instCanvas');
+    var c = setup2D(cvs);
+    var ctx = c.ctx;
+    var info = INST_INFO[instMode];
+    var cfs = info.cashflows;
+    var tMax = (instMode === 'swap') ? 3.5 : 0.8;
+
+    /* timeline */
+    var PAD = c.PAD, H = c.H, W = c.W;
+    var midY = PAD.top + c.plotH / 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(PAD.left, midY); ctx.lineTo(W - PAD.right, midY); ctx.stroke();
+    function tx(t) { return PAD.left + t / tMax * c.plotW; }
+
+    cfs.forEach(function(cf) {
+        var x = tx(cf.t);
+        var barH = Math.abs(cf.amount) / 1.2 * c.plotH * 0.4;
+        var up = cf.amount > 0;
+        ctx.fillStyle = cf.color + '33';
+        ctx.strokeStyle = cf.color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.rect(x - 14, up ? midY - barH : midY, 28, barH);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = cf.color; ctx.font = 'bold 10px Georgia'; ctx.textAlign = 'center';
+        ctx.fillText(cf.label, x, up ? midY - barH - 12 : midY + barH + 14);
+        ctx.font = '9px Courier New';
+        ctx.fillText((cf.amount > 0 ? '+' : '') + cf.amount.toFixed(4), x, up ? midY - barH - 24 : midY + barH + 26);
+
+        /* vertical tick */
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, midY - 4); ctx.lineTo(x, midY + 4); ctx.stroke();
+    });
+
+    /* x-axis label */
+    ctx.fillStyle = '#707068'; ctx.font = '11px Georgia'; ctx.textAlign = 'center';
+    ctx.fillText('Time →', PAD.left + c.plotW / 2, H - 14);
+
+    document.getElementById('instDescription').innerHTML = info.desc;
+    document.getElementById('instFormula').innerHTML = info.formula;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Section 3a: Deposit bootstrap
+══════════════════════════════════════════════════════════════ */
+function buildDepTable() {
+    var tbody = document.getElementById('depBody');
+    var html = '';
+    DEPOSITS.forEach(function(d, i) {
+        var rowClass = d.solved ? 'solved' : (i === depStep ? 'active-row' : 'pending');
+        var dfStr = d.solved ? d.df.toFixed(6) : (i === depStep ? '→ solve' : '—');
+        var zStr = (d.solved && d.df) ? (zeroRate(d.df, d.t, compoundingMode)*100).toFixed(4)+'%' : '—';
+        html += '<tr class="' + rowClass + '">'
+            + '<td>' + d.label + '</td>'
+            + '<td><input class="rate-edit" data-type="dep" data-idx="'+i+'" value="' + (d.rate*100).toFixed(2) + '"></td>'
+            + '<td>' + d.t.toFixed(4) + '</td>'
+            + '<td>' + dfStr + '</td>'
+            + '<td>' + zStr + '</td>'
+            + '<td>' + (d.solved ? '✓ solved' : (i === depStep ? '◀ next' : '…')) + '</td>'
+            + '</tr>';
+    });
+    tbody.innerHTML = html;
+    /* wire rate edits */
+    tbody.querySelectorAll('input.rate-edit').forEach(function(inp) {
+        inp.addEventListener('change', function() {
+            var idx = parseInt(this.getAttribute('data-idx'));
+            DEPOSITS[idx].rate = parseFloat(this.value) / 100;
+            if (DEPOSITS[idx].solved) {
+                DEPOSITS[idx].df = dfFromDeposit(DEPOSITS[idx].rate, DEPOSITS[idx].t);
+                rebuildFullCurve(); redrawAll();
+            }
+        });
+    });
+    document.getElementById('btnBootstrapStep').textContent = depStep >= DEPOSITS.length ? '✓ All deposits done' : '▶ Bootstrap ' + DEPOSITS[depStep].label;
+    document.getElementById('btnBootstrapStep').disabled = depStep >= DEPOSITS.length;
+}
+
+function drawDepCanvas() {
+    var cvs = document.getElementById('depCanvas');
+    var c = setup2D(cvs);
+    var ctx = c.ctx;
+    var tMax = 1;
+
+    /* collect solved points */
+    var solved = [{ t: 0, df: 1.0 }];
+    DEPOSITS.forEach(function(d) { if (d.solved && d.df) solved.push({ t: d.t, df: d.df }); });
+
+    var f = gridAxes(c, 0, tMax, 0.9, 1.01,
+        function(x){return (x*12).toFixed(0)+'M';},
+        function(y){return y.toFixed(3);});
+
+    /* interpolated curve if 2+ points */
+    if (solved.length >= 2) {
+        ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2; ctx.setLineDash([4,3]);
+        ctx.beginPath();
+        for (var i=0;i<=100;i++) {
+            var t_ = i/100*tMax;
+            /* log-linear interp over solved points only */
+            var df_ = 1.0;
+            for (var j=0;j<solved.length-1;j++) {
+                if (t_>=solved[j].t && t_<=solved[j+1].t) {
+                    var w=(t_-solved[j].t)/(solved[j+1].t-solved[j].t);
+                    df_=Math.exp((1-w)*Math.log(solved[j].df)+w*Math.log(solved[j+1].df));
+                    break;
+                }
+            }
+            if (i===0) ctx.moveTo(f.tx(t_),f.ty(df_)); else ctx.lineTo(f.tx(t_),f.ty(df_));
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+    }
+
+    /* nodes */
+    solved.forEach(function(pt) {
+        ctx.beginPath(); ctx.arc(f.tx(pt.t), f.ty(pt.df), 5, 0, Math.PI*2);
+        ctx.fillStyle = '#10b981'; ctx.fill();
+        ctx.fillStyle = '#e0e0e0'; ctx.font = '9px Georgia'; ctx.textAlign = 'center';
+    });
+    /* pending nodes */
+    DEPOSITS.forEach(function(d,i) {
+        if (!d.solved) {
+            ctx.beginPath(); ctx.arc(f.tx(d.t), f.ty(dfFromDeposit(d.rate,d.t)), 4, 0, Math.PI*2);
+            ctx.strokeStyle = i===depStep?'#fbbf24':'#404058'; ctx.lineWidth=1.5; ctx.stroke();
+        }
+    });
+
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Maturity →', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Section 3b: Swap bootstrap
+══════════════════════════════════════════════════════════════ */
+function buildSwapTable() {
+    var tbody = document.getElementById('swapBody');
+    var html = '';
+    SWAPS.forEach(function(s, i) {
+        var rowClass = s.solved ? 'solved' : (i === swapStep ? 'active-row' : 'pending');
+        var canSolve = depStep >= DEPOSITS.length; /* only after all deposits done */
+        var freq = SWAP_FIXED_FREQ; /* Issue 2: use global frequency */
+        var A = s.solved ? annuity(s.t, freq).toFixed(4) : '—';
+        var dfStr = s.solved ? (s.df !== null ? s.df.toFixed(6) : '<span style="color:#f87171">⚠ no-arb violated</span>') : (canSolve && i === swapStep ? '→ solve' : '—');
+        var zStr = (s.solved && s.df) ? (zeroRate(s.df, s.t, compoundingMode)*100).toFixed(4)+'%' : '—';
+        var statusStr = s.solved ? (s.df !== null ? '✓ solved' : '⚠ invalid') : (canSolve && i===swapStep ? '◀ next' : (canSolve?'…':'deposits first'));
+        html += '<tr class="' + rowClass + '">'
+            + '<td>' + s.label + '</td>'
+            + '<td><input class="rate-edit" data-type="swap" data-idx="'+i+'" value="' + (s.rate*100).toFixed(3) + '"></td>'
+            + '<td>' + A + '</td>'
+            + '<td>' + dfStr + '</td>'
+            + '<td>' + zStr + '</td>'
+            + '<td>' + statusStr + '</td>'
+            + '</tr>';
+    });
+    tbody.innerHTML = html;
+    tbody.querySelectorAll('input.rate-edit').forEach(function(inp) {
+        inp.addEventListener('change', function() {
+            var idx = parseInt(this.getAttribute('data-idx'));
+            SWAPS[idx].rate = parseFloat(this.value) / 100;
+            if (SWAPS[idx].solved) {
+                /* re-solve from this point */
+                SWAPS[idx].solved = false;
+                SWAPS.forEach(function(s,j){ if(j>=idx){s.solved=false; s.df=null;} });
+                swapStep = idx;
+                rebuildFullCurve(); redrawAll();
+            }
+        });
+    });
+    var allDep = depStep >= DEPOSITS.length;
+    document.getElementById('btnSwapStep').textContent = !allDep ? 'Complete deposits first' : (swapStep >= SWAPS.length ? '✓ All swaps done' : '▶ Bootstrap ' + SWAPS[swapStep].label);
+    document.getElementById('btnSwapStep').disabled = !allDep || swapStep >= SWAPS.length;
+}
+
+function showSwapWorkings(s) {
+    if (!s) return;
+    var freq = SWAP_FIXED_FREQ; /* Issue 2: use global frequency */
+    var n = Math.round(s.t * freq);
+    var alpha = 1 / freq;
+    var knownParts = [];
+    var knownAnnuity = 0;
+    for (var i = 1; i < n; i++) {
+        var ti = i / freq;
+        var dfi = dfInterp(ti);
+        knownAnnuity += alpha * dfi;
+        knownParts.push('α·DF(' + ti.toFixed(1) + 'y) = ' + (alpha*dfi).toFixed(6));
+    }
+    var df_T = s.df !== null ? s.df.toFixed(6) : '?';
+    var html = 'Par swap rate R = ' + (s.rate*100).toFixed(3) + '%<br>'
+        + 'Known annuity Σ(i&lt;N) = ' + knownAnnuity.toFixed(6) + '<br>'
+        + 'Solving: DF(' + s.t + 'y) = [1 − R·known] / [1 + R·α]<br>'
+        + '= [1 − ' + (s.rate).toFixed(5) + '×' + knownAnnuity.toFixed(6) + '] / [1 + ' + (s.rate*alpha).toFixed(6) + ']<br>'
+        + '= <span style="color:#10b981">' + df_T + '</span>';
+    document.getElementById('swapWorkingsText').innerHTML = html;
+    document.getElementById('swapWorkings').style.display = '';
+}
+
+function drawSwapCanvas() {
+    var cvs = document.getElementById('swapCanvas');
+    var c = setup2D(cvs);
+    var ctx = c.ctx;
+    var tMax = 11;
+
+    /* draw full bootstrapped zero curve */
+    var curve = fullCurve;
+
+    var f = gridAxes(c, 0, tMax, 0.030, 0.075,
+        function(x){return x+'y';},
+        function(y){return (y*100).toFixed(1)+'%';});
+
+    if (curve.length >= 2) {
+        ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        for (var i=0;i<=300;i++) {
+            var t_=0.05+i/300*(tMax-0.05);
+            var df_=dfInterp(t_);
+            var z_=zeroRate(df_,t_,compoundingMode);
+            if (!isFinite(z_)) continue;
+            if (i===0) ctx.moveTo(f.tx(t_),f.ty(z_)); else ctx.lineTo(f.tx(t_),f.ty(z_));
+        }
+        ctx.stroke();
+    }
+
+    /* nodes */
+    curve.slice(1).forEach(function(pt) {
+        if (pt.t > tMax) return;
+        var z = zeroRate(pt.df, pt.t, compoundingMode);
+        ctx.beginPath(); ctx.arc(f.tx(pt.t), f.ty(z), 5, 0, Math.PI*2);
+        ctx.fillStyle = '#10b981'; ctx.fill();
+    });
+
+    /* pending swap nodes */
+    SWAPS.forEach(function(s,i) {
+        if (!s.solved) {
+            ctx.beginPath(); ctx.arc(f.tx(s.t), f.ty(0.0555), 4, 0, Math.PI*2);
+            ctx.strokeStyle = i===swapStep&&depStep>=DEPOSITS.length?'#fbbf24':'#303050';
+            ctx.lineWidth=1.5; ctx.stroke();
+        }
+    });
+
+    /* forward curve overlay */
+    if (curve.length >= 3) {
+        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        for (var i=0;i<=300;i++) {
+            var t_=0.1+i/300*(tMax-0.1);
+            var fv=instFwd(t_);
+            if (!isFinite(fv)||fv<0) continue;
+            if (i===0) ctx.moveTo(f.tx(t_),f.ty(fv)); else ctx.lineTo(f.tx(t_),f.ty(fv));
+        }
+        ctx.stroke(); ctx.globalAlpha=1;
+        ctx.fillStyle='#fbbf24'; ctx.font='9px Georgia'; ctx.textAlign='left';
+        ctx.fillText('forward f(t)', c.PAD.left+6, c.PAD.top+14);
+    }
+    ctx.fillStyle='#10b981'; ctx.font='9px Georgia'; ctx.textAlign='left';
+    ctx.fillText('zero z(t)', c.PAD.left+6, c.PAD.top+26);
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Maturity (years) →', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Section 4: Interpolation canvas
+══════════════════════════════════════════════════════════════ */
+var INTERP_INSIGHTS = {
+    logdf: '<strong>Log-linear in DF</strong> (recommended): Interpolate log(DF) linearly between nodes. Equivalent to piecewise-constant instantaneous forward rates. Simple, local, and arbitrage-free. Standard in most professional curve libraries.',
+    linz: '<strong>Linear in zero rates</strong>: Interpolate zero rates directly. Easy to understand, but creates kinks in the forward curve at each node — the forward rate spikes up or down at every market tenor. Widely used in textbooks, less common in production.',
+    flat: '<strong>Flat forward (step-function)</strong>: Between two nodes, the instantaneous forward rate is constant. Equivalent to log-linear DF, but visualised differently. Very transparent — each market segment has a single forward rate.',
+};
+
+function dfInterpMethod(t, curve, method) {
+    if (t <= 0) return 1.0;
+    if (curve.length === 0) return 1.0;
+    /* find surrounding nodes */
+    var t0i = 0, t1i = 1;
+    for (var i = 0; i < curve.length - 1; i++) {
+        if (t >= curve[i].t && t <= curve[i+1].t) { t0i = i; t1i = i+1; break; }
+        if (t > curve[curve.length-1].t) { t0i = curve.length-2; t1i = curve.length-1; }
+    }
+    var pt0 = curve[t0i], pt1 = curve[t1i];
+    var w = (t - pt0.t) / (pt1.t - pt0.t + 1e-12);
+    if (method === 'logdf') {
+        return Math.exp((1-w)*Math.log(pt0.df) + w*Math.log(pt1.df));
+    } else if (method === 'linz') {
+        var z0 = (pt0.t > 0) ? -Math.log(pt0.df)/pt0.t : 0;
+        var z1 = -Math.log(pt1.df)/pt1.t;
+        var z = z0 + w*(z1-z0);
+        return Math.exp(-z*t);
+    } else { /* flat fwd */
+        var fwd = (pt1.t > pt0.t) ? Math.log(pt0.df/pt1.df)/(pt1.t-pt0.t) : 0;
+        return pt0.df * Math.exp(-fwd*(t-pt0.t));
+    }
+}
+
+function drawInterp() {
+    var cvs = document.getElementById('interpCanvas');
+    var c = setup2D(cvs);
+    var ctx = c.ctx;
+    var tMax = 11;
+
+    var f = gridAxes(c, 0, tMax, 0.02, 0.10,
+        function(x){return x+'y';},
+        function(y){return (y*100).toFixed(1)+'%';});
+
+    var curve = fullCurve.length < 3 ? [
+        {t:0,df:1},{t:0.5,df:0.9752},{t:1,df:0.9506},{t:2,df:0.9022},{t:3,df:0.8556},
+        {t:5,df:0.7623},{t:7,df:0.6770},{t:10,df:0.5730}
+    ] : fullCurve;
+
+    var methods = [interpMode];
+    var colors = { logdf: '#10b981', linz: '#22d3ee', flat: '#a78bfa' };
+
+    methods.forEach(function(m) {
+        /* zero curve */
+        ctx.strokeStyle = colors[m]; ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        for (var i=0;i<=300;i++) {
+            var t_ = 0.05 + i/300*(tMax-0.05);
+            var df_ = dfInterpMethod(t_, curve, m);
+            var z_ = -Math.log(df_) / t_;
+            if (!isFinite(z_)) continue;
+            if (i===0) ctx.moveTo(f.tx(t_),f.ty(z_)); else ctx.lineTo(f.tx(t_),f.ty(z_));
+        }
+        ctx.stroke();
+
+        /* forward curve */
+        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1.8; ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        for (var i=0;i<=600;i++) {
+            var t_ = 0.1 + i/600*(tMax-0.1);
+            var dt = 0.005;
+            var dfp = dfInterpMethod(t_+dt, curve, m);
+            var dfm = dfInterpMethod(Math.max(t_-dt,0.01), curve, m);
+            var fv = -(Math.log(dfp)-Math.log(dfm))/(2*dt);
+            if (!isFinite(fv)||fv<0.001||fv>0.12) continue;
+            if (i===0) ctx.moveTo(f.tx(t_),f.ty(fv)); else ctx.lineTo(f.tx(t_),f.ty(fv));
+        }
+        ctx.stroke(); ctx.globalAlpha=1;
+    });
+
+    /* nodes */
+    curve.slice(1).forEach(function(pt) {
+        if (pt.t > tMax) return;
+        var z = -Math.log(pt.df)/pt.t;
+        ctx.beginPath(); ctx.arc(f.tx(pt.t), f.ty(z), 5, 0, Math.PI*2);
+        ctx.fillStyle='#fff'; ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=1.5;
+        ctx.fill(); ctx.stroke();
+    });
+
+    document.getElementById('interpInsight').innerHTML = INTERP_INSIGHTS[interpMode];
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Time (years) →', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Section 5: Par swap curve
+══════════════════════════════════════════════════════════════ */
+function drawParCurve() {
+    var cvs = document.getElementById('parCanvas');
+    var c = setup2D(cvs);
+    var ctx = c.ctx;
+    var tMax = 11;
+
+    var f = gridAxes(c, 0, tMax, 0.040, 0.070,
+        function(x){return x+'y';},
+        function(y){return (y*100).toFixed(2)+'%';});
+
+    /* par curve */
+    ctx.strokeStyle = '#f472b6'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (var i=0;i<=200;i++) {
+        var T_ = 0.5 + i/200*(tMax-0.5);
+        var R_ = parSwapRate(T_, SWAP_FIXED_FREQ); /* Issue 2 */
+        if (!isFinite(R_)||R_<0.03||R_>0.08) continue;
+        if (i===0) ctx.moveTo(f.tx(T_),f.ty(R_)); else ctx.lineTo(f.tx(T_),f.ty(R_));
+    }
+    ctx.stroke();
+
+    /* zero curve overlay */
+    ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7; ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    for (var i=0;i<=200;i++) {
+        var T_ = 0.1 + i/200*(tMax-0.1);
+        var z_ = zeroRate(dfInterp(T_), T_, compoundingMode);
+        if (!isFinite(z_)) continue;
+        if (i===0) ctx.moveTo(f.tx(T_),f.ty(z_)); else ctx.lineTo(f.tx(T_),f.ty(z_));
+    }
+    ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha=1;
+
+    /* query maturity */
+    var qT = parseInt(document.getElementById('sParMat').value);
+    var R_q = parSwapRate(qT, SWAP_FIXED_FREQ); /* Issue 2 */
+    var A_q = annuity(qT, SWAP_FIXED_FREQ);     /* Issue 2 */
+    var df_q = dfInterp(qT);
+    ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(f.tx(qT),c.PAD.top); ctx.lineTo(f.tx(qT),c.H-c.PAD.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(f.tx(qT), f.ty(R_q), 5, 0, Math.PI*2);
+    ctx.fillStyle='#fff'; ctx.fill();
+
+    ctx.fillStyle='#f472b6'; ctx.font='10px Georgia'; ctx.textAlign='left';
+    ctx.fillText('Par swap rate', c.PAD.left+6, c.PAD.top+12);
+    ctx.fillStyle='#22d3ee';
+    ctx.fillText('Zero rate (dashed)', c.PAD.left+6, c.PAD.top+26);
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Maturity T (years) →', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+
+    document.getElementById('parStats').innerHTML =
+        '<div class="stat-box"><div class="stat-label">Maturity</div><div class="stat-val">' + qT + 'y</div></div>'
+      + '<div class="stat-box"><div class="stat-label">Annuity A(T)</div><div class="stat-val" style="color:#f472b6">' + A_q.toFixed(4) + '</div></div>'
+      + '<div class="stat-box"><div class="stat-label">DF(T)</div><div class="stat-val" style="color:#10b981">' + df_q.toFixed(5) + '</div></div>'
+      + '<div class="stat-box"><div class="stat-label">Par swap rate</div><div class="stat-val" style="color:#f472b6">' + (R_q*100).toFixed(3) + '%</div></div>'
+      + '<div class="stat-box"><div class="stat-label">Zero rate</div><div class="stat-val" style="color:#22d3ee">' + (zeroRate(df_q,qT,compoundingMode)*100).toFixed(3) + '%</div></div>';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Section 6: DV01 canvas
+══════════════════════════════════════════════════════════════ */
+function drawDV01() {
+    var cvs = document.getElementById('dv01Canvas');
+    var c = setup2D(cvs);
+    var ctx = c.ctx;
+    var tMax = 11;
+    var notional = parseInt(document.getElementById('sNotional').value) * 1e6;
+    var qMat = parseInt(document.getElementById('sDV01Mat').value);
+    var freq = dv01Freq === 'ann' ? 1 : 2;
+
+    /* DV01 term structure */
+    var dv01Arr = [];
+    for (var T_ = 1; T_ <= 10; T_++) {
+        dv01Arr.push({ t: T_, dv01: swapDV01(T_, notional, freq) });
+    }
+    var yMax = Math.max.apply(null, dv01Arr.map(function(d){return d.dv01;})) * 1.15;
+    if (yMax < 1) yMax = 1000;
+
+    var f = gridAxes(c, 0, tMax, 0, yMax,
+        function(x){return x+'y';},
+        function(y){return '\u00A3'+y.toFixed(0);});
+
+    /* DV01 bars */
+    dv01Arr.forEach(function(d) {
+        var barW = 36;
+        var bx = f.tx(d.t) - barW/2;
+        var bh = (d.dv01 / yMax) * c.plotH;
+        var isQuery = d.t === qMat;
+        ctx.fillStyle = isQuery ? '#fbbf24' : 'rgba(167,139,250,0.4)';
+        ctx.strokeStyle = isQuery ? '#fbbf24' : '#a78bfa';
+        ctx.lineWidth = 1;
+        ctx.fillRect(bx, c.PAD.top + c.plotH - bh, barW, bh);
+        ctx.strokeRect(bx, c.PAD.top + c.plotH - bh, barW, bh);
+    });
+
+    /* DV01 line */
+    ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 2; ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    dv01Arr.forEach(function(d,i) {
+        var px=f.tx(d.t), py=f.ty(d.dv01);
+        if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    });
+    ctx.stroke(); ctx.setLineDash([]);
+
+    /* query marker */
+    var qDV01 = swapDV01(qMat, notional, freq);
+    var qAnn = annuity(qMat, freq);
+    var qPar = parSwapRate(qMat, SWAP_FIXED_FREQ); /* Issue 2 */
+    ctx.strokeStyle='rgba(255,255,255,0.15)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(f.tx(qMat),c.PAD.top); ctx.lineTo(f.tx(qMat),c.H-c.PAD.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Swap Maturity (years) →', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+    ctx.fillStyle='#a78bfa'; ctx.font='10px Georgia'; ctx.textAlign='left';
+    ctx.fillText('DV01 term structure (£ per 1bp)', c.PAD.left+6, c.PAD.top+10);
+
+    /* Issue 8: Compute full bump-reprice DV01 */
+    var qDV01_approx = qDV01; /* already computed above */
+    var qDV01_full   = swapDV01Full(qMat, notional, freq);
+
+    /* Enhancement 10C: Key-rate DV01 */
+    var krBuckets = keyRateDV01(qMat, notional, freq);
+
+    document.getElementById('dv01Stats').innerHTML =
+        '<div class="stat-box"><div class="stat-label">Maturity</div><div class="stat-val">' + qMat + 'y</div></div>'
+      + '<div class="stat-box"><div class="stat-label">Notional</div><div class="stat-val">\u00A3' + (notional/1e6).toFixed(0) + 'm</div></div>'
+      + '<div class="stat-box"><div class="stat-label">Annuity A(T)</div><div class="stat-val" style="color:#22d3ee">' + qAnn.toFixed(4) + '</div></div>'
+      + '<div class="stat-box"><div class="stat-label">Par rate</div><div class="stat-val" style="color:#f472b6">' + (qPar*100).toFixed(3) + '%</div></div>'
+      + '<div class="stat-box"><div class="stat-label">DV01 approx</div><div class="stat-val" style="color:#fbbf24">\u00A3' + qDV01_approx.toFixed(0) + '</div></div>'
+      + '<div class="stat-box"><div class="stat-label">DV01 full (bump)</div><div class="stat-val" style="color:#10b981">\u00A3' + qDV01_full.toFixed(0) + '</div></div>';
+
+    /* Key-rate DV01 panel */
+    var krEl = document.getElementById('keyRateDV01Panel');
+    if (krEl && qMat >= 2) {
+        var krHtml = '<div style="font-size:0.78em;color:#808098;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Key-rate DV01 — tenor bucket contributions (£ per 1bp)</div>'
+            + '<div class="stats-row">';
+        var totalKR = krBuckets.reduce(function(s,b){return s+b.dv01;}, 0);
+        krBuckets.forEach(function(b) {
+            var pct = totalKR > 0 ? (b.dv01/totalKR*100).toFixed(1) : '0';
+            krHtml += '<div class="stat-box" style="min-width:110px">'
+                + '<div class="stat-label" style="color:#a78bfa">' + b.label + '</div>'
+                + '<div class="stat-val" style="color:#e0e0e0">\u00A3' + b.dv01.toFixed(0) + '</div>'
+                + '<div style="font-size:0.7em;color:#606070">' + pct + '% of total</div>'
+                + '</div>';
+        });
+        krHtml += '</div><div style="font-size:0.8em;color:#505068;margin-top:6px">Key-rate DV01 shows which part of the curve drives the risk of this swap. A 5y receiver swap concentrates risk in the 2–5y bucket. This bucketed view is the foundation of IRRBB EVE sensitivity analysis.</div>';
+        krEl.innerHTML = krHtml;
+        krEl.style.display = '';
+    } else if (krEl) {
+        krEl.style.display = 'none';
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Section 7: Scenario canvas
+══════════════════════════════════════════════════════════════ */
+function scenariosDF(scenario, t) {
+    /* apply scenario shock to base DF */
+    var baseDF = dfInterp(t);
+    var baseZ = (t > 0) ? -Math.log(baseDF)/t : 0;
+    var shock = 0;
+    if (scenario === 'pup') shock = 0.01;
+    else if (scenario === 'pdn') shock = -0.01;
+    else if (scenario === 'steep') {
+        /* Issue 5 fix: Steepener = short end DOWN, long end UP.
+           At t=0 → −0.005 (short rates fall), at t=10 → +0.005 (long rates rise).
+           Simplified linear twist. Real IRRBB steepener uses prescribed bucket shocks. */
+        shock = (-0.005 * (1 - t/10) + 0.005 * t/10);
+    } else if (scenario === 'flat') {
+        /* Flattener = short end UP, long end DOWN.
+           At t=0 → +0.005, at t=10 → −0.005. */
+        shock = (0.005 * (1 - t/10) - 0.005 * t/10);
+    }
+    var shockedZ = Math.max(0.001, baseZ + shock);
+    return Math.exp(-shockedZ * t);
+}
+
+function drawScenario() {
+    var cvs = document.getElementById('scenCanvas');
+    var c = setup2D(cvs);
+    var ctx = c.ctx;
+    var tMax = 11;
+
+    var f = gridAxes(c, 0, tMax, 0.02, 0.09,
+        function(x){return x+'y';},
+        function(y){return (y*100).toFixed(1)+'%';});
+
+    /* Base curve always */
+    ctx.strokeStyle = '#505068'; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.8;
+    ctx.beginPath();
+    for (var i=0;i<=200;i++) {
+        var t_=0.05+i/200*(tMax-0.05);
+        var z_=zeroRate(dfInterp(t_),t_,compoundingMode);
+        if(!isFinite(z_)) continue;
+        if(i===0) ctx.moveTo(f.tx(t_),f.ty(z_)); else ctx.lineTo(f.tx(t_),f.ty(z_));
+    }
+    ctx.stroke(); ctx.globalAlpha=1;
+
+    /* Shocked curve */
+    if (scenMode !== 'base') {
+        var scenColors = { pup:'#f87171', pdn:'#10b981', steep:'#fbbf24', flat:'#22d3ee' };
+        var col = scenColors[scenMode] || '#10b981';
+        ctx.strokeStyle = col; ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        for (var i=0;i<=200;i++) {
+            var t_=0.05+i/200*(tMax-0.05);
+            var df_=scenariosDF(scenMode, t_);
+            var z_=-Math.log(df_)/t_;
+            if(!isFinite(z_)||z_<0.001) continue;
+            if(i===0) ctx.moveTo(f.tx(t_),f.ty(z_)); else ctx.lineTo(f.tx(t_),f.ty(z_));
+        }
+        ctx.stroke();
+
+        /* Fill between */
+        ctx.save();
+        ctx.beginPath();
+        for (var i=0;i<=200;i++) {
+            var t_=0.05+i/200*(tMax-0.05);
+            var z_=zeroRate(dfInterp(t_),t_,compoundingMode);
+            if(!isFinite(z_)) continue;
+            if(i===0) ctx.moveTo(f.tx(t_),f.ty(z_)); else ctx.lineTo(f.tx(t_),f.ty(z_));
+        }
+        for (var i=200;i>=0;i--) {
+            var t_=0.05+i/200*(tMax-0.05);
+            var df_=scenariosDF(scenMode,t_);
+            var z_=-Math.log(df_)/t_;
+            if(!isFinite(z_)) z_=0.05;
+            ctx.lineTo(f.tx(t_),f.ty(z_));
+        }
+        ctx.closePath();
+        ctx.fillStyle = col.replace('#','rgba(').replace(/^rgba\((..)(..)(..)/, function(m,r,g,b){
+            return 'rgba('+parseInt(r,16)+','+parseInt(g,16)+','+parseInt(b,16);
+        }) + ',0.08)';
+        ctx.fillStyle = 'rgba(255,255,255,0.04)'; ctx.fill();
+        ctx.restore();
+    }
+
+    /* Labels */
+    ctx.fillStyle='#505068'; ctx.font='10px Georgia'; ctx.textAlign='left';
+    ctx.fillText('Base curve', c.PAD.left+6, c.PAD.top+12);
+    if (scenMode !== 'base') {
+        var scenLabels = { pup:'Parallel +100bp', pdn:'Parallel −100bp', steep:'Steepener', flat:'Flattener' };
+        var scenColors2 = { pup:'#f87171', pdn:'#10b981', steep:'#fbbf24', flat:'#22d3ee' };
+        ctx.fillStyle=scenColors2[scenMode]||'#10b981';
+        ctx.fillText(scenLabels[scenMode], c.PAD.left+6, c.PAD.top+26);
+    }
+    ctx.fillStyle='#707068'; ctx.font='11px Georgia'; ctx.textAlign='center';
+    ctx.fillText('Maturity (years) →', c.PAD.left+c.plotW/2, c.H-c.PAD.bottom+28);
+
+    /* Stats: par rate changes at key maturities */
+    var mats = [1,2,5,10];
+    var statsHtml = '';
+    mats.forEach(function(T) {
+        var baseR = parSwapRate(T, SWAP_FIXED_FREQ); /* Issue 2 */
+        var shock = 0;
+        if (scenMode !== 'base') {
+            /* compute par rate from shocked DFs using SWAP_FIXED_FREQ */
+            var freq = SWAP_FIXED_FREQ;
+            var n = Math.round(T * freq);
+            var alpha = 1 / freq;
+            var A = 0;
+            for (var i=1; i<=n; i++) {
+                var ti = i / freq;
+                A += alpha * scenariosDF(scenMode, ti);
+            }
+            var df_T_s = scenariosDF(scenMode, T);
+            var shockedR = (1 - df_T_s) / A;
+            shock = (shockedR - baseR) * 10000;
+        }
+        statsHtml += '<div class="stat-box"><div class="stat-label">'+T+'y par Δ</div>'
+            + '<div class="stat-val" style="color:'+(shock>=0?'#f87171':'#10b981')+'">'
+            + (scenMode==='base' ? (baseR*100).toFixed(3)+'%' : (shock>=0?'+':'')+shock.toFixed(1)+'bp')
+            + '</div></div>';
+    });
+    document.getElementById('scenStats').innerHTML = statsHtml;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MAIN: Event wiring & initial render
+══════════════════════════════════════════════════════════════ */
+function redrawAll() {
+    buildDepTable();
+    drawDepCanvas();
+    buildSwapTable();
+    drawSwapCanvas();
+    drawDash();
+    drawConcept();
+    drawInstrument();
+    drawInterp();
+    drawParCurve();
+    drawDV01();
+    drawScenario();
+}
+
+/* Dashboard */
+document.getElementById('sTenor').addEventListener('input', function() {
+    var v = parseInt(this.value)/10;
+    document.getElementById('vTenor').textContent = v.toFixed(1)+'y';
+    drawDash();
+});
+['btnShowDF','btnShowZero','btnShowFwd','btnShowPar'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function() {
+        dashView = {btnShowDF:'df',btnShowZero:'zero',btnShowFwd:'fwd',btnShowPar:'par'}[id];
+        ['btnShowDF','btnShowZero','btnShowFwd','btnShowPar'].forEach(function(b){document.getElementById(b).classList.remove('active');});
+        this.classList.add('active'); drawDash();
+    });
+});
+['btnCompCont','btnCompAnn'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function() {
+        compoundingMode = id==='btnCompCont'?'cont':'ann';
+        ['btnCompCont','btnCompAnn'].forEach(function(b){document.getElementById(b).classList.remove('active');});
+        this.classList.add('active'); redrawAll();
+    });
+});
+
+/* Concept */
+['btnConceptDF','btnConceptZero','btnConceptFwd','btnConceptAll'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function() {
+        conceptMode={btnConceptDF:'df',btnConceptZero:'zero',btnConceptFwd:'fwd',btnConceptAll:'all'}[id];
+        ['btnConceptDF','btnConceptZero','btnConceptFwd','btnConceptAll'].forEach(function(b){document.getElementById(b).classList.remove('active');});
+        this.classList.add('active'); drawConcept();
+    });
+});
+
+/* Instruments */
+['btnInstDep','btnInstFRA','btnInstSwap'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function() {
+        instMode={btnInstDep:'dep',btnInstFRA:'fra',btnInstSwap:'swap'}[id];
+        ['btnInstDep','btnInstFRA','btnInstSwap'].forEach(function(b){document.getElementById(b).classList.remove('active');});
+        this.classList.add('active'); drawInstrument();
+    });
+});
+
+/* Bootstrap buttons */
+document.getElementById('btnBootstrapStep').addEventListener('click', function() {
+    if (depStep < DEPOSITS.length) {
+        var d = DEPOSITS[depStep];
+        d.df = dfFromDeposit(d.rate, d.t);
+        d.solved = true;
+        depStep++;
+        rebuildFullCurve();
+        redrawAll();
+    }
+});
+document.getElementById('btnResetDep').addEventListener('click', function() {
+    resetAll(); redrawAll();
+});
+document.getElementById('btnSwapStep').addEventListener('click', function() {
+    if (depStep < DEPOSITS.length) return;
+    if (swapStep < SWAPS.length) {
+        var s = SWAPS[swapStep];
+        s.df = dfFromSwap(s.rate, s.t, SWAP_FIXED_FREQ); /* Issue 2 */
+        s.solved = true;
+        showSwapWorkings(s);
+        swapStep++;
+        rebuildFullCurve();
+        redrawAll();
+    }
+});
+document.getElementById('btnResetSwap').addEventListener('click', function() {
+    SWAPS.forEach(function(s){s.df=null;s.solved=false;});
+    swapStep=0;
+    rebuildFullCurve(); redrawAll();
+});
+
+/* Interpolation */
+['btnInterpLogDF','btnInterpLinZ','btnInterpFlat'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function() {
+        interpMode={btnInterpLogDF:'logdf',btnInterpLinZ:'linz',btnInterpFlat:'flat'}[id];
+        ['btnInterpLogDF','btnInterpLinZ','btnInterpFlat'].forEach(function(b){document.getElementById(b).classList.remove('active');});
+        this.classList.add('active'); drawInterp();
+    });
+});
+
+/* Par / DV01 */
+document.getElementById('sParMat').addEventListener('input', function() {
+    document.getElementById('vParMat').textContent = this.value + 'y';
+    drawParCurve();
+});
+document.getElementById('sNotional').addEventListener('input', function() {
+    document.getElementById('vNotional').textContent = '\u00A3' + this.value + 'm';
+    drawDV01();
+});
+document.getElementById('sDV01Mat').addEventListener('input', function() {
+    document.getElementById('vDV01Mat').textContent = this.value + 'y';
+    drawDV01();
+});
+['btnFreqAnn','btnFreqSemi'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function() {
+        dv01Freq = id==='btnFreqAnn'?'ann':'semi';
+        ['btnFreqAnn','btnFreqSemi'].forEach(function(b){document.getElementById(b).classList.remove('active');});
+        this.classList.add('active'); drawDV01();
+    });
+});
+
+/* Scenarios */
+['btnScnBase','btnScnParUp','btnScnParDn','btnScnSteep','btnScnFlat'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function() {
+        scenMode={btnScnBase:'base',btnScnParUp:'pup',btnScnParDn:'pdn',btnScnSteep:'steep',btnScnFlat:'flat'}[id];
+        ['btnScnBase','btnScnParUp','btnScnParDn','btnScnSteep','btnScnFlat'].forEach(function(b){document.getElementById(b).classList.remove('active');});
+        this.classList.add('active'); drawScenario();
+    });
+});
+
+/* ── Initialise ── */
+resetAll();
+/* Bootstrap all instruments silently so the dashboard starts populated */
+DEPOSITS.forEach(function(d) {
+    d.df = dfFromDeposit(d.rate, d.t);
+    d.solved = true;
+});
+depStep = DEPOSITS.length;
+rebuildFullCurve();
+SWAPS.forEach(function(s) {
+    s.df = dfFromSwap(s.rate, s.t, SWAP_FIXED_FREQ); /* Issue 2 */
+    s.solved = true;
+});
+swapStep = SWAPS.length;
+rebuildFullCurve();
+redrawAll();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

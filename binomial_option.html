@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binomial Option Pricing</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 56px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#10b981}
+        h1{font-size:1.85em;font-weight:400;color:#fff;margin:16px 0 4px;letter-spacing:-0.02em}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:30px}
+        h2{font-size:1.13em;font-weight:400;color:#fff;margin:30px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.058);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.78em;color:#808098;text-transform:uppercase;letter-spacing:1.1px;margin-bottom:12px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+        .btn{background:rgba(255,255,255,0.032);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.9em;transition:all 0.18s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(16,185,129,0.13);border-color:rgba(16,185,129,0.38);color:#10b981}
+        .btn.fire{background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.32);color:#fbbf24}
+        .btn.fire:hover{background:rgba(251,191,36,0.16)}
+        .math-line{font-family:'Courier New',monospace;font-size:0.91em;color:#c0c0d8;margin:3px 0;line-height:1.9}
+        .green{color:#10b981}.cyan{color:#22d3ee}.gold{color:#fbbf24}.pink{color:#f472b6}
+        .red{color:#f87171}.purple{color:#a78bfa}.muted{color:#808098}.amber{color:#f59e0b}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:9px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.88em;min-width:175px}
+        .slider-row input[type=range]{flex:1;max-width:270px;accent-color:#10b981;cursor:pointer}
+        .slider-val{color:#10b981;font-family:'Courier New',monospace;font-size:1.05em;min-width:68px;text-align:right}
+        .result-box{background:rgba(16,185,129,0.055);border:1px solid rgba(16,185,129,0.18);border-radius:8px;padding:12px 18px;margin:12px 0}
+        .stats-row{display:flex;gap:14px;flex-wrap:wrap}
+        .stat-box{text-align:center;min-width:88px}
+        .stat-label{font-size:0.7em;color:#707088;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px}
+        .stat-val{font-family:'Courier New',monospace;font-size:1.02em}
+        .insight-box{background:rgba(16,185,129,0.035);border-left:3px solid rgba(16,185,129,0.28);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.76}
+        .warn-box{background:rgba(251,191,36,0.03);border-left:3px solid rgba(251,191,36,0.28);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.76}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.018);border-radius:6px;font-family:'Courier New',monospace;font-size:0.91em;line-height:2.0}
+        .explain{background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.058);border-radius:10px;padding:22px 26px;margin-top:20px}
+        .explain-name{color:#10b981;font-size:1.1em;margin-bottom:8px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.8}
+        .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0}
+        .mini-panel{background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:14px 16px}
+        .mini-panel h4{font-weight:400;font-size:0.78em;color:#606078;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        @media(max-width:620px){canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}.two-col{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Binomial Option Pricing</h1>
+    <p class="subtitle">Price an option with a tree &mdash; the intuitive path to Black-Scholes</p>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SECTION 1: One-Step Tree
+    ═══════════════════════════════════════════════════════ -->
+    <h2>1. The One-Step Tree &mdash; Where It All Begins</h2>
+    <div class="panel">
+        <h3>One period, two outcomes &mdash; a complete pricing argument</h3>
+        <canvas id="oneStepCanvas" width="700" height="300"></canvas>
+        <div style="margin-top:14px">
+            <div class="slider-row">
+                <label>Stock price S:</label>
+                <input type="range" id="s1S" min="60" max="140" value="100" step="1">
+                <span class="slider-val" id="v1S">&pound;100</span>
+            </div>
+            <div class="slider-row">
+                <label>Strike K:</label>
+                <input type="range" id="s1K" min="60" max="140" value="100" step="1">
+                <span class="slider-val" id="v1K">&pound;100</span>
+            </div>
+            <div class="slider-row">
+                <label>Up factor u (%):</label>
+                <input type="range" id="s1U" min="101" max="150" value="120" step="1">
+                <span class="slider-val" id="v1U">1.20</span>
+            </div>
+            <div class="slider-row">
+                <label>Down factor d (%):</label>
+                <input type="range" id="s1D" min="50" max="99" value="85" step="1">
+                <span class="slider-val" id="v1D">0.85</span>
+            </div>
+            <div class="slider-row">
+                <label>Risk-free rate r (annual):</label>
+                <input type="range" id="s1R" min="0" max="100" value="50" step="1">
+                <span class="slider-val" id="v1R">5.0%</span>
+            </div>
+            <div class="slider-row">
+                <label>Time T (months):</label>
+                <input type="range" id="s1T" min="1" max="24" value="6" step="1">
+                <span class="slider-val" id="v1T">6 mo</span>
+            </div>
+        </div>
+        <div class="btn-row" style="margin-top:6px">
+            <button class="btn active" id="btn1Call">Call</button>
+            <button class="btn" id="btn1Put">Put</button>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="oneStepStats">
+                <div class="stat-box"><div class="stat-label">Option price</div><div class="stat-val green">—</div></div>
+            </div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">p*</span> = (e<sup>rT</sup> &minus; d) / (u &minus; d) &nbsp;&nbsp; <span class="muted">risk-neutral probability of up move</span></div>
+            <div class="math-line"><span class="gold">C</span> = e<sup>&minus;rT</sup> &times; [<span class="green">p*</span> &times; C<sub>u</sub> + (1&minus;<span class="green">p*</span>) &times; C<sub>d</sub>] &nbsp;&nbsp; <span class="muted">discounted expected payoff</span></div>
+            <div class="math-line"><span class="cyan">&Delta;</span> = (C<sub>u</sub> &minus; C<sub>d</sub>) / (S<sub>u</sub> &minus; S<sub>d</sub>) &nbsp;&nbsp; <span class="muted">replicating portfolio: shares needed</span></div>
+        </div>
+        <div class="insight-box">
+            The key insight is <strong>replication</strong>: construct a portfolio of &Delta; shares and B pounds in bonds that exactly reproduces the option payoff in both the up and down states. Because this replicating portfolio has identical cash flows to the option in every outcome, no-arbitrage forces them to have the same price today.
+            <br><br>
+            The <strong style="color:#10b981">risk-neutral probability p*</strong> is not the real-world probability of an up move. It is the unique probability that makes the stock earn the risk-free rate in expectation. Using it lets us price options without knowing investors&rsquo; expected return &mu; or risk preferences &mdash; only &sigma; and r matter.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SECTION 2: Multi-Step Tree
+    ═══════════════════════════════════════════════════════ -->
+    <h2>2. Multi-Step Tree &mdash; Building the Lattice</h2>
+    <div class="panel">
+        <h3>Each node: stock price (top) &middot; option value (bottom) &middot; colour by moneyness</h3>
+        <canvas id="treeCanvas" width="700" height="460"></canvas>
+        <div style="margin-top:14px">
+            <div class="slider-row">
+                <label>Steps N:</label>
+                <input type="range" id="sSteps" min="1" max="8" value="4" step="1">
+                <span class="slider-val" id="vSteps">4</span>
+            </div>
+            <div class="slider-row">
+                <label>Volatility &sigma; (annual):</label>
+                <input type="range" id="sSig" min="5" max="80" value="25" step="1">
+                <span class="slider-val" id="vSig">25%</span>
+            </div>
+            <div class="slider-row">
+                <label>Stock price S:</label>
+                <input type="range" id="sS" min="60" max="140" value="100" step="1">
+                <span class="slider-val" id="vS">&pound;100</span>
+            </div>
+            <div class="slider-row">
+                <label>Strike K:</label>
+                <input type="range" id="sK" min="60" max="140" value="100" step="1">
+                <span class="slider-val" id="vK">&pound;100</span>
+            </div>
+            <div class="slider-row">
+                <label>Rate r (annual):</label>
+                <input type="range" id="sR" min="0" max="100" value="50" step="1">
+                <span class="slider-val" id="vR">5.0%</span>
+            </div>
+            <div class="slider-row">
+                <label>Time T (months):</label>
+                <input type="range" id="sT" min="1" max="24" value="12" step="1">
+                <span class="slider-val" id="vT">12 mo</span>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnCall">European Call</button>
+            <button class="btn" id="btnPut">European Put</button>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="treeStats">
+                <div class="stat-box"><div class="stat-label">Status</div><div class="stat-val muted">Adjust sliders</div></div>
+            </div>
+        </div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;margin:8px 0;font-size:0.82em">
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#10b981;opacity:0.75;display:inline-block"></span><span style="color:#808098">In-the-money (call)</span></span>
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#f87171;opacity:0.75;display:inline-block"></span><span style="color:#808098">Out-of-the-money</span></span>
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:3px;background:#fbbf24;opacity:0.65;display:inline-block"></span><span style="color:#808098">At-the-money (&plusmn;1.5%)</span></span>
+        </div>
+        <div class="insight-box">
+            With CRR parameterisation (Cox-Ross-Rubinstein, 1979): <strong>u = e<sup>&sigma;&radic;(T/N)</sup></strong> and <strong>d = 1/u</strong>. This makes the tree <em>recombining</em> &mdash; an up followed by a down returns to the same node as a down followed by an up. Recombination reduces nodes from 2<sup>N</sup> to &frac12;(N+1)(N+2). At N&nbsp;=&nbsp;8, there are just 45 unique nodes instead of 256 paths. This is what makes large trees computationally viable.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SECTION 3: Backward Induction — Animated
+    ═══════════════════════════════════════════════════════ -->
+    <h2>3. Backward Induction &mdash; Solving the Tree</h2>
+    <div class="panel">
+        <h3>Watch the pricing frontier sweep column by column from right to left</h3>
+        <canvas id="backCanvas" width="700" height="400"></canvas>
+        <div class="btn-row" style="margin-top:14px">
+            <button class="btn fire" id="btnAnimate">&#9654; Animate Step by Step</button>
+            <button class="btn" id="btnReset">&#8635; Reset</button>
+        </div>
+        <div id="backStepInfo" style="min-height:36px;margin:10px 0;font-family:'Courier New',monospace;font-size:0.86em;color:#a0a0b8;padding:9px 13px;background:rgba(255,255,255,0.018);border-radius:6px">
+            Press Animate to step through backward induction
+        </div>
+        <div class="insight-box">
+            Backward induction starts at the <strong>terminal nodes</strong> (rightmost column) where option value is the known payoff: max(S&nbsp;&minus;&nbsp;K,&nbsp;0) for a call. Then at each interior node we compute the <strong>discounted risk-neutral expectation</strong>:<br>
+            V = e<sup>&minus;r&Delta;t</sup>&nbsp;&times;&nbsp;[p*&nbsp;&times;&nbsp;V<sub>u</sub> + (1&minus;p*)&nbsp;&times;&nbsp;V<sub>d</sub>]<br><br>
+            The active column glows green as it is computed. The sweep arrives at the root node, which is today&rsquo;s price. This same dynamic programming algorithm prices American options, interest rate derivatives, and credit-linked structures &mdash; the tree is general, not a special case.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SECTION 4: American vs European
+    ═══════════════════════════════════════════════════════ -->
+    <h2>4. American vs European &mdash; Early Exercise</h2>
+    <div class="panel">
+        <h3>Amber nodes show where early exercise beats continuing to hold</h3>
+        <div class="two-col">
+            <div class="mini-panel">
+                <h4>European Put</h4>
+                <canvas id="eurCanvas" width="328" height="320"></canvas>
+            </div>
+            <div class="mini-panel">
+                <h4>American Put &mdash; amber = early exercise optimal</h4>
+                <canvas id="amCanvas" width="328" height="320"></canvas>
+            </div>
+        </div>
+        <div class="slider-row" style="margin-top:8px">
+            <label>Steps N:</label>
+            <input type="range" id="sAmSteps" min="2" max="6" value="4" step="1">
+            <span class="slider-val" id="vAmSteps">4</span>
+        </div>
+        <div class="slider-row">
+            <label>Dividend yield (annual):</label>
+            <input type="range" id="sDiv" min="0" max="100" value="0" step="5">
+            <span class="slider-val" id="vDiv">0%</span>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="amStats">
+                <div class="stat-box"><div class="stat-label">European Put</div><div class="stat-val cyan">—</div></div>
+                <div class="stat-box"><div class="stat-label">American Put</div><div class="stat-val amber">—</div></div>
+                <div class="stat-box"><div class="stat-label">Early Ex. Premium</div><div class="stat-val green">—</div></div>
+                <div class="stat-box"><div class="stat-label">Early Ex. Nodes</div><div class="stat-val">—</div></div>
+            </div>
+        </div>
+        <div class="insight-box">
+            At each node the American option takes the maximum of <strong>continuation value</strong> (hold) and <strong>intrinsic value</strong> (exercise now):<br>
+            V<sub>Am</sub> = max(intrinsic, e<sup>&minus;r&Delta;t</sup>[p*V<sub>u</sub>+(1&minus;p*)V<sub>d</sub>])<br><br>
+            <strong style="color:#f59e0b">American calls on non-dividend stocks are never early exercised</strong> &mdash; the time value forgone exceeds any benefit. But <strong>deep-ITM puts can be early exercised</strong>: the interest earned on the proceeds of exercise (investing K now) exceeds the remaining time value. Add a dividend yield to see early call exercise become optimal too.
+        </div>
+        <div class="warn-box">
+            <strong style="color:#fbbf24">Real-world significance:</strong> Every exchange-traded equity option in the US is American-style. Black-Scholes has no closed form for American early exercise. Binomial trees remain the practical standard. The early exercise premium is small for near-ATM options but material for deep-ITM puts approaching known dividend dates &mdash; critical for equity derivatives desks.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SECTION 5: Convergence to Black-Scholes
+    ═══════════════════════════════════════════════════════ -->
+    <h2>5. Convergence to Black-Scholes</h2>
+    <div class="panel">
+        <h3>Binomial price oscillates and converges as N &rarr; &infin;</h3>
+        <canvas id="convCanvas" width="700" height="300"></canvas>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn fire" id="btnRunConv">&#9654; Plot Convergence (N = 1 to 150)</button>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="convStats">
+                <div class="stat-box"><div class="stat-label">Status</div><div class="stat-val muted">Press Run</div></div>
+            </div>
+        </div>
+        <div class="insight-box">
+            The binomial price oscillates around the Black-Scholes value with a characteristic <strong>even/odd pattern</strong>: when the strike falls between nodes (odd N), the price overshoots; when on a node (even N), it undershoots. As N grows, these oscillations damp and the price converges. Convergence is O(1/N) &mdash; four times as many steps halves the error. Practical implementations use 200&ndash;500 steps for vanilla options. The even/odd colour coding makes the chequerboard pattern visible at low N.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SECTION 6: Risk-Neutral Probability Explorer
+    ═══════════════════════════════════════════════════════ -->
+    <h2>6. Risk-Neutral Probability &mdash; What p* Is, and What It Is Not</h2>
+    <div class="panel">
+        <h3>The option price is flat across all real-world probabilities</h3>
+        <canvas id="pStarCanvas" width="700" height="280"></canvas>
+        <div style="margin-top:14px">
+            <div class="slider-row">
+                <label>Real-world prob. of up (p):</label>
+                <input type="range" id="sPReal" min="1" max="99" value="60" step="1">
+                <span class="slider-val" id="vPReal">60%</span>
+            </div>
+            <div class="slider-row">
+                <label>Risk-free rate r:</label>
+                <input type="range" id="sPR" min="0" max="100" value="50" step="1">
+                <span class="slider-val" id="vPR">5.0%</span>
+            </div>
+            <div class="slider-row">
+                <label>Volatility &sigma;:</label>
+                <input type="range" id="sPSig" min="5" max="80" value="25" step="1">
+                <span class="slider-val" id="vPSig">25%</span>
+            </div>
+            <div class="slider-row">
+                <label>Horizon T (months):</label>
+                <input type="range" id="sPT" min="1" max="24" value="12" step="1">
+                <span class="slider-val" id="vPT">12 mo</span>
+            </div>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="pStarStats"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">p*</span> = (e<sup>r&Delta;t</sup> &minus; d) / (u &minus; d) &nbsp;&nbsp; where u = e<sup>&sigma;&radic;&Delta;t</sup>, d = e<sup>&minus;&sigma;&radic;&Delta;t</sup></div>
+            <div class="math-line"><span class="muted">p* depends on:</span> r, &sigma;, &Delta;t &nbsp;&nbsp; <span class="muted">p* does NOT depend on:</span> &mu; (drift), p (real-world probability)</div>
+        </div>
+        <div class="insight-box">
+            Move the real-world probability slider: the <strong style="color:#10b981">option price (green line) stays flat</strong>. The expected stock price (purple line) rises with p, but the option price is entirely unaffected. This is the deepest result in derivatives pricing: <strong>option prices are independent of investors&rsquo; beliefs about future returns</strong>. Two investors who completely disagree about whether a stock will rise or fall will quote the same option price, as long as they agree on volatility. p* is not a probability &mdash; it is a mathematical convenience that embeds no-arbitrage into the pricing formula.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         SECTION 7: Why This Matters
+    ═══════════════════════════════════════════════════════ -->
+    <h2>7. Why This Matters</h2>
+    <div class="explain">
+        <div class="explain-name">The Bridge Between Intuition and Rigour</div>
+        <div class="explain-text">
+            Cox, Ross and Rubinstein published the binomial model in 1979, six years after Black and Scholes. Their aim was not to replace Black-Scholes but to explain it &mdash; to give practitioners an intuitive path to the same result without requiring stochastic calculus. The CRR paper became one of the most cited in financial economics and remains the starting point for every derivatives course.
+            <br><br>
+            <strong style="color:#e0e0e0">Where binomial trees remain essential today:</strong> American options have no closed-form Black-Scholes solution &mdash; the binomial tree is the practical standard. Bermudan options (exercisable on specified dates, common in interest rate markets) are naturally priced on trees. Convertible bonds, which can be converted at the holder&rsquo;s discretion, require trees that incorporate both equity and credit dynamics simultaneously. Barrier options with discrete monitoring dates are priced on lattices where the barrier condition can be checked at each node.
+            <br><br>
+            <strong style="color:#e0e0e0">The risk-neutral measure:</strong> The substitution of p* for the real probability p is the seed of a profound mathematical framework: the change of measure, formalised as the Girsanov theorem in continuous time. Every derivative pricing model &mdash; Black-Scholes, Heston, SABR, the Libor Market Model &mdash; uses the same core idea: change to a measure under which all assets earn the risk-free rate, price in that measure, and the result holds regardless of investors&rsquo; preferences. The binomial tree makes this transparent.
+            <br><br>
+            <strong style="color:#e0e0e0">Connection to interest rate models:</strong> The Hull-White one-factor model, the standard for pricing swaptions and callable bonds, is a trinomial tree whose drift is calibrated to exactly match the observed yield curve. The Ho-Lee model, the BDT model, and the Black-Karasinski model are all tree-based. The backward induction algorithm from section 3 of this page runs inside rate derivatives desks every working day.
+            <br><br>
+            For the student of mathematics, the binomial model is a perfect microcosm: it requires nothing beyond algebra, yet it contains the full content of no-arbitrage pricing, risk-neutral valuation, dynamic programming, and the law of one price. Mastering it thoroughly means Black-Scholes is simply the continuous limit as N &rarr; &infin;.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   Binomial Option Pricing — Chapter 11, Page 6
+   Cox-Ross-Rubinstein 1979 — backward induction, American exercise,
+   BS convergence, risk-neutral probability explorer
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Normal CDF (Abramowitz & Stegun) ── */
+function normCDF(x){
+    var a=[0.319381530,-0.356563782,1.781477937,-1.821255978,1.330274429];
+    var k=1/(1+0.2316419*Math.abs(x));
+    var p=k*(a[0]+k*(a[1]+k*(a[2]+k*(a[3]+k*a[4]))));
+    var r=1-(1/Math.sqrt(2*Math.PI))*Math.exp(-x*x/2)*p;
+    return x<0?1-r:r;
+}
+function bsCall(S,K,r,sig,T){
+    if(T<=0||sig<=0)return Math.max(S-K,0);
+    var d1=(Math.log(S/K)+(r+0.5*sig*sig)*T)/(sig*Math.sqrt(T));
+    var d2=d1-sig*Math.sqrt(T);
+    return S*normCDF(d1)-K*Math.exp(-r*T)*normCDF(d2);
+}
+function bsPut(S,K,r,sig,T){
+    if(T<=0||sig<=0)return Math.max(K-S,0);
+    var d1=(Math.log(S/K)+(r+0.5*sig*sig)*T)/(sig*Math.sqrt(T));
+    var d2=d1-sig*Math.sqrt(T);
+    return K*Math.exp(-r*T)*normCDF(-d2)-S*normCDF(-d1);
+}
+
+/* ── CRR Binomial Tree Builder ──
+   Returns stock[step][upCount], optVal[step][upCount], earlyEx[][]
+   step=0 is root; upCount=0 is all-down node at that step ── */
+function buildTree(S,K,r,sig,T,N,isCall,isAmerican,divYield){
+    var dt=T/N;
+    var u=Math.exp(sig*Math.sqrt(dt));
+    var d=1/u;
+    var growth=Math.exp((r-(divYield||0))*dt);
+    var disc=Math.exp(-r*dt);
+    var pStar=(growth-d)/(u-d);
+    pStar=Math.max(0.0001,Math.min(0.9999,pStar));
+    var qStar=1-pStar;
+
+    var stock=[],optVal=[],earlyEx=[];
+    for(var i=0;i<=N;i++){
+        stock.push([]);optVal.push([]);earlyEx.push([]);
+        for(var j=0;j<=i;j++){
+            /* j up moves, (i-j) down moves from root */
+            var sv=S*Math.pow(u,j)*Math.pow(d,i-j);
+            stock[i].push(sv);
+            if(i===N){
+                optVal[i].push(isCall?Math.max(sv-K,0):Math.max(K-sv,0));
+            } else {
+                optVal[i].push(0);
+            }
+            earlyEx[i].push(false);
+        }
+    }
+    /* Backward induction */
+    for(var i=N-1;i>=0;i--){
+        for(var j=0;j<=i;j++){
+            var sv=stock[i][j];
+            /* up child = [i+1][j+1], down child = [i+1][j] */
+            var contVal=disc*(pStar*optVal[i+1][j+1]+qStar*optVal[i+1][j]);
+            var intrinsic=isCall?Math.max(sv-K,0):Math.max(K-sv,0);
+            if(isAmerican&&intrinsic>contVal){
+                optVal[i][j]=intrinsic;
+                earlyEx[i][j]=true;
+            } else {
+                optVal[i][j]=contVal;
+            }
+        }
+    }
+    return {stock,optVal,earlyEx,u,d,pStar,dt,disc};
+}
+
+/* ── Canvas helpers ── */
+function clearDark(cvs,ctx){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.fillStyle='#0a0a1a';
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+}
+/* Moneyness colour (for calls; inverted meaning for puts but we colour stock vs K) */
+function nodeColour(sv,K,earlyEx){
+    if(earlyEx) return {r:245,g:158,b:11,a:0.78};  /* amber */
+    var ratio=(sv-K)/K;
+    if(Math.abs(ratio)<0.015) return {r:251,g:191,b:36,a:0.65};  /* ATM gold */
+    if(sv>K)  return {r:16,g:185,b:129,a:0.72};    /* ITM green */
+    return {r:248,g:113,b:113,a:0.70};              /* OTM red */
+}
+function colStr(c,alpha){
+    return 'rgba('+c.r+','+c.g+','+c.b+','+(alpha!==undefined?alpha:c.a)+')';
+}
+
+/* ── Shared tree renderer ──
+   compact=true for small side-by-side canvases ── */
+function renderTree(cvs,ctx,res,K,N,compact,activeCol){
+    var W=cvs.width,H=cvs.height;
+    var PAD=compact?{l:24,r:16,t:18,b:22}:{l:46,r:26,t:36,b:36};
+    var plotW=W-PAD.l-PAD.r,plotH=H-PAD.t-PAD.b;
+    var colW=plotW/Math.max(N,1);
+    var NR=Math.max(compact?12:18,Math.min(compact?26:38,Math.floor(colW*0.34)));
+
+    function nx(step){return PAD.l+step*colW+colW*0.5;}
+    function ny(step,j){
+        /* j=0 lowest (all-down), j=step highest (all-up) */
+        var c=PAD.t+plotH*0.5;
+        if(step===0)return c;
+        var span=plotH*0.84;
+        return c-span*((j-step*0.5)/step);
+    }
+
+    /* Edges */
+    ctx.lineWidth=compact?0.6:0.85;
+    for(var i=0;i<N;i++){
+        for(var j=0;j<=i;j++){
+            var isAct=(activeCol!==undefined&&i===activeCol-1);
+            ctx.strokeStyle=isAct?'rgba(16,185,129,0.28)':'rgba(255,255,255,0.065)';
+            /* up branch */
+            ctx.beginPath();ctx.moveTo(nx(i),ny(i,j));ctx.lineTo(nx(i+1),ny(i+1,j+1));ctx.stroke();
+            /* down branch */
+            ctx.beginPath();ctx.moveTo(nx(i),ny(i,j));ctx.lineTo(nx(i+1),ny(i+1,j));ctx.stroke();
+        }
+    }
+
+    /* Nodes */
+    for(var i=0;i<=N;i++){
+        for(var j=0;j<=i;j++){
+            var sv=res.stock[i][j];
+            var ov=res.optVal[i][j];
+            var ex=res.earlyEx[i][j];
+            var x=nx(i),y=ny(i,j);
+            var isAct=(activeCol!==undefined&&i===activeCol);
+            var isDimmed=(activeCol!==undefined&&i<activeCol&&activeCol>=0);
+            var c=nodeColour(sv,K,ex);
+            var alpha=isDimmed?0.15:(isAct?0.9:c.a);
+
+            /* Glow */
+            if(!compact&&!isDimmed){
+                var grd=ctx.createRadialGradient(x,y,NR*0.25,x,y,NR*1.55);
+                grd.addColorStop(0,colStr(c,0.11));
+                grd.addColorStop(1,'rgba(0,0,0,0)');
+                ctx.fillStyle=grd;
+                ctx.beginPath();ctx.arc(x,y,NR*1.55,0,Math.PI*2);ctx.fill();
+            }
+            if(isAct){ctx.shadowColor='rgba(16,185,129,0.55)';ctx.shadowBlur=14;}
+            ctx.fillStyle=colStr(c,alpha);
+            ctx.strokeStyle=isAct?'rgba(16,185,129,0.85)':'rgba(255,255,255,0.15)';
+            ctx.lineWidth=isAct?1.5:0.6;
+            ctx.beginPath();ctx.arc(x,y,NR*(isAct?1.08:1),0,Math.PI*2);ctx.fill();ctx.stroke();
+            ctx.shadowBlur=0;
+
+            if(!isDimmed&&NR>12){
+                var fs=compact?8:9;
+                ctx.fillStyle='rgba(255,255,255,'+(isAct?0.95:0.8)+')';
+                ctx.font='bold '+fs+'px Georgia';ctx.textAlign='center';ctx.textBaseline='middle';
+                ctx.fillText('\u00A3'+sv.toFixed(compact?0:1),x,y-(compact?3.5:5));
+                ctx.font=fs+'px Georgia';
+                ctx.fillStyle='rgba(255,255,255,'+(isAct?0.88:0.68)+')';
+                ctx.fillText('\u00A3'+ov.toFixed(compact?1:2),x,y+(compact?5:7));
+            }
+        }
+        /* Time label */
+        if(!compact){
+            ctx.fillStyle='#384058';ctx.font='10px Georgia';ctx.textAlign='center';ctx.textBaseline='top';
+            ctx.fillText('t'+i,nx(i),H-PAD.b+6);
+        }
+    }
+}
+
+/* ══════════════════════════════════════════════
+   SECTION 1: One-Step Tree
+══════════════════════════════════════════════ */
+var os1={cvs:document.getElementById('oneStepCanvas'),ctx:null,type:'call'};
+os1.ctx=os1.cvs.getContext('2d');
+
+function s1v(id){return parseInt(document.getElementById(id).value);}
+
+document.getElementById('btn1Call').addEventListener('click',function(){
+    document.getElementById('btn1Call').classList.add('active');
+    document.getElementById('btn1Put').classList.remove('active');
+    os1.type='call'; drawOneStep();
+});
+document.getElementById('btn1Put').addEventListener('click',function(){
+    document.getElementById('btn1Put').classList.add('active');
+    document.getElementById('btn1Call').classList.remove('active');
+    os1.type='put'; drawOneStep();
+});
+
+function drawOneStep(){
+    var S=s1v('s1S'), K=s1v('s1K');
+    var u=s1v('s1U')/100, d=s1v('s1D')/100;
+    var r=s1v('s1R')/10/100, T=s1v('s1T')/12;
+    document.getElementById('v1S').textContent='\u00A3'+S;
+    document.getElementById('v1K').textContent='\u00A3'+K;
+    document.getElementById('v1U').textContent=u.toFixed(2);
+    document.getElementById('v1D').textContent=d.toFixed(2);
+    document.getElementById('v1R').textContent=(r*100).toFixed(1)+'%';
+    document.getElementById('v1T').textContent=s1v('s1T')+' mo';
+    if(u<=d) u=d+0.02;
+    var pStar=(Math.exp(r*T)-d)/(u-d);
+    pStar=Math.max(0.001,Math.min(0.999,pStar));
+    var Su=S*u, Sd=S*d;
+    var isCall=os1.type==='call';
+    var Cu=isCall?Math.max(Su-K,0):Math.max(K-Su,0);
+    var Cd=isCall?Math.max(Sd-K,0):Math.max(K-Sd,0);
+    var price=Math.exp(-r*T)*(pStar*Cu+(1-pStar)*Cd);
+    var delta=(Cu-Cd)/(Su-Sd);
+    var B=Math.exp(-r*T)*(u*Cd-d*Cu)/(u-d);
+
+    var W=os1.cvs.width,H=os1.cvs.height;
+    clearDark(os1.cvs,os1.ctx);
+    var ctx=os1.ctx;
+    var cx=W*0.27, ux=W*0.73, uy=H*0.17, dy=H*0.79, my=H*0.5;
+    var NR=36;
+
+    /* Branches */
+    ctx.strokeStyle='rgba(255,255,255,0.10)';ctx.lineWidth=1.4;
+    [[cx,my,ux,uy],[cx,my,ux,dy]].forEach(function(l){
+        ctx.beginPath();ctx.moveTo(l[0],l[1]);ctx.lineTo(l[2],l[3]);ctx.stroke();
+    });
+
+    /* Branch probability labels */
+    var midU=[(cx+ux)*0.5-28,(my+uy)*0.5-10];
+    var midD=[(cx+ux)*0.5-28,(my+dy)*0.5+14];
+    ctx.font='11px Georgia';ctx.textAlign='center';
+    ctx.fillStyle='rgba(16,185,129,0.9)'; ctx.fillText('p* = '+pStar.toFixed(3),midU[0],midU[1]);
+    ctx.fillStyle='rgba(248,113,113,0.9)'; ctx.fillText('1\u2212p* = '+(1-pStar).toFixed(3),midD[0],midD[1]);
+
+    /* Time labels */
+    ctx.fillStyle='#384058';ctx.font='10px Georgia';ctx.textAlign='center';
+    ctx.fillText('t = 0',cx,H-8);ctx.fillText('t = T',ux,H-8);
+
+    /* Arrow labels */
+    ctx.fillStyle='rgba(255,255,255,0.18)';ctx.font='11px Georgia';
+    ctx.fillText('\u2191 u = '+u.toFixed(2),ux+NR+10,uy-14);
+    ctx.fillText('\u2193 d = '+d.toFixed(2),ux+NR+10,dy+14);
+
+    function drawNode(x,y,sv,ov,isRoot){
+        var c=isRoot?{r:16,g:185,b:129,a:0.65}:nodeColour(sv,K,false);
+        /* Glow */
+        var grd=ctx.createRadialGradient(x,y,NR*0.3,x,y,NR*1.7);
+        grd.addColorStop(0,colStr(c,0.15));grd.addColorStop(1,'rgba(0,0,0,0)');
+        ctx.fillStyle=grd;ctx.beginPath();ctx.arc(x,y,NR*1.7,0,Math.PI*2);ctx.fill();
+        /* Circle */
+        ctx.fillStyle=colStr(c);
+        ctx.strokeStyle=isRoot?'rgba(16,185,129,0.6)':'rgba(255,255,255,0.18)';
+        ctx.lineWidth=isRoot?1.5:0.8;
+        ctx.beginPath();ctx.arc(x,y,NR,0,Math.PI*2);ctx.fill();ctx.stroke();
+        /* Text */
+        ctx.fillStyle='rgba(255,255,255,0.92)';ctx.font='bold 11px Georgia';ctx.textAlign='center';
+        ctx.fillText('S = \u00A3'+sv.toFixed(1),x,y-6);
+        ctx.fillStyle='rgba(255,255,255,0.80)';ctx.font='11px Georgia';
+        ctx.fillText('V = \u00A3'+ov.toFixed(3),x,y+10);
+    }
+
+    drawNode(ux,uy,Su,Cu,false);
+    drawNode(ux,dy,Sd,Cd,false);
+    drawNode(cx,my,S,price,true);
+
+    /* Delta & B overlay */
+    ctx.fillStyle='#404060';ctx.font='10px Georgia';ctx.textAlign='left';
+    ctx.fillText('\u0394 = '+delta.toFixed(4)+'   B = \u00A3'+B.toFixed(3),12,H-10);
+
+    document.getElementById('oneStepStats').innerHTML=
+        '<div class="stat-box"><div class="stat-label">Option price</div><div class="stat-val green">\u00A3'+price.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">p* (risk-neutral)</div><div class="stat-val" style="color:#10b981">'+pStar.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Delta \u0394</div><div class="stat-val">'+delta.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Bond B</div><div class="stat-val">\u00A3'+B.toFixed(3)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Su / Sd</div><div class="stat-val">'+Su.toFixed(1)+'/'+Sd.toFixed(1)+'</div></div>';
+}
+
+['s1S','s1K','s1U','s1D','s1R','s1T'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',drawOneStep);
+});
+
+/* ══════════════════════════════════════════════
+   SECTION 2: Multi-Step Tree
+══════════════════════════════════════════════ */
+var tc={cvs:document.getElementById('treeCanvas'),ctx:null,type:'call'};
+tc.ctx=tc.cvs.getContext('2d');
+
+document.getElementById('btnCall').addEventListener('click',function(){
+    document.getElementById('btnCall').classList.add('active');
+    document.getElementById('btnPut').classList.remove('active');
+    tc.type='call'; drawTree();
+});
+document.getElementById('btnPut').addEventListener('click',function(){
+    document.getElementById('btnPut').classList.add('active');
+    document.getElementById('btnCall').classList.remove('active');
+    tc.type='put'; drawTree();
+});
+
+function getMainParams(){
+    var N=parseInt(document.getElementById('sSteps').value);
+    var sig=parseInt(document.getElementById('sSig').value)/100;
+    var S=parseInt(document.getElementById('sS').value);
+    var K=parseInt(document.getElementById('sK').value);
+    var r=parseInt(document.getElementById('sR').value)/10/100;
+    var T=parseInt(document.getElementById('sT').value)/12;
+    document.getElementById('vSteps').textContent=N;
+    document.getElementById('vSig').textContent=(sig*100).toFixed(0)+'%';
+    document.getElementById('vS').textContent='\u00A3'+S;
+    document.getElementById('vK').textContent='\u00A3'+K;
+    document.getElementById('vR').textContent=(r*100).toFixed(1)+'%';
+    document.getElementById('vT').textContent=parseInt(document.getElementById('sT').value)+' mo';
+    return {N,sig,S,K,r,T};
+}
+
+function drawTree(){
+    var p=getMainParams();
+    var isCall=tc.type==='call';
+    var res=buildTree(p.S,p.K,p.r,p.sig,p.T,p.N,isCall,false,0);
+    clearDark(tc.cvs,tc.ctx);
+    renderTree(tc.cvs,tc.ctx,res,p.K,p.N,false,undefined);
+    var bsP=isCall?bsCall(p.S,p.K,p.r,p.sig,p.T):bsPut(p.S,p.K,p.r,p.sig,p.T);
+    document.getElementById('treeStats').innerHTML=
+        '<div class="stat-box"><div class="stat-label">Binomial price</div><div class="stat-val green">\u00A3'+res.optVal[0][0].toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">BS price</div><div class="stat-val" style="color:#fbbf24">\u00A3'+bsP.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Error</div><div class="stat-val" style="color:#f472b6">\u00A3'+Math.abs(res.optVal[0][0]-bsP).toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">p*</div><div class="stat-val">'+res.pStar.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">u / d</div><div class="stat-val">'+res.u.toFixed(4)+'/'+res.d.toFixed(4)+'</div></div>';
+}
+
+['sSteps','sSig','sS','sK','sR','sT'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',drawTree);
+});
+
+/* ══════════════════════════════════════════════
+   SECTION 3: Backward Induction Animation
+══════════════════════════════════════════════ */
+var bc={cvs:document.getElementById('backCanvas'),ctx:null};
+bc.ctx=bc.cvs.getContext('2d');
+var backStep=-2,backTimer=null,backRes=null;
+
+function drawBackState(col){
+    var p=getMainParams();
+    var N=Math.min(5,p.N);
+    if(!backRes) backRes=buildTree(p.S,p.K,p.r,p.sig,p.T,N,tc.type==='call',false,0);
+    clearDark(bc.cvs,bc.ctx);
+    renderTree(bc.cvs,bc.ctx,backRes,p.K,N,false,col);
+
+    /* Green sweep-line */
+    if(col>=0&&col<=N){
+        var W=bc.cvs.width,H=bc.cvs.height;
+        var PAD={l:46,r:26,t:36,b:36};
+        var plotW=W-PAD.l-PAD.r;
+        var colW=plotW/Math.max(N,1);
+        var nx=function(step){return PAD.l+step*colW+colW*0.5;};
+        bc.ctx.strokeStyle='rgba(16,185,129,0.35)';bc.ctx.lineWidth=1.5;
+        bc.ctx.setLineDash([5,4]);
+        bc.ctx.beginPath();bc.ctx.moveTo(nx(col),PAD.t+4);bc.ctx.lineTo(nx(col),H-PAD.b-4);bc.ctx.stroke();
+        bc.ctx.setLineDash([]);
+        bc.ctx.fillStyle='rgba(16,185,129,0.65)';bc.ctx.font='bold 10px Georgia';bc.ctx.textAlign='center';
+        bc.ctx.fillText('\u25C4 pricing frontier',nx(col),PAD.t+14);
+    }
+}
+
+document.getElementById('btnAnimate').addEventListener('click',function(){
+    if(backTimer)clearInterval(backTimer);
+    var p=getMainParams();
+    var N=Math.min(5,p.N);
+    backRes=buildTree(p.S,p.K,p.r,p.sig,p.T,N,tc.type==='call',false,0);
+    backStep=N;
+    drawBackState(backStep);
+    document.getElementById('backStepInfo').textContent='Step 0: Terminal payoffs set at column t'+N+' \u2014 max(S\u2212K, 0) for each node';
+    backTimer=setInterval(function(){
+        backStep--;
+        drawBackState(backStep);
+        if(backStep>0){
+            var vals=backRes.optVal[backStep].slice(0,Math.min(4,backRes.optVal[backStep].length))
+                .map(function(v){return '\u00A3'+v.toFixed(3);}).join(', ');
+            var more=backRes.optVal[backStep].length>4?' \u2026':'';
+            document.getElementById('backStepInfo').textContent='Column t'+backStep+' computed \u2014 ['+vals+more+']';
+        } else if(backStep===0){
+            document.getElementById('backStepInfo').textContent='\u2713 Root node reached \u2014 option price = \u00A3'+backRes.optVal[0][0].toFixed(4);
+            clearInterval(backTimer);backTimer=null;
+        }
+    },950);
+});
+
+document.getElementById('btnReset').addEventListener('click',function(){
+    if(backTimer){clearInterval(backTimer);backTimer=null;}
+    var p=getMainParams();
+    var N=Math.min(5,p.N);
+    backRes=buildTree(p.S,p.K,p.r,p.sig,p.T,N,tc.type==='call',false,0);
+    backStep=N;
+    drawBackState(backStep);
+    document.getElementById('backStepInfo').textContent='Press Animate to step through backward induction';
+});
+
+/* ══════════════════════════════════════════════
+   SECTION 4: American vs European
+══════════════════════════════════════════════ */
+var eurC={cvs:document.getElementById('eurCanvas'),ctx:document.getElementById('eurCanvas').getContext('2d')};
+var amC={cvs:document.getElementById('amCanvas'),ctx:document.getElementById('amCanvas').getContext('2d')};
+
+function drawAmerican(){
+    var N=parseInt(document.getElementById('sAmSteps').value);
+    var divY=parseInt(document.getElementById('sDiv').value)/10/100;
+    document.getElementById('vAmSteps').textContent=N;
+    document.getElementById('vDiv').textContent=(divY*100).toFixed(1)+'%';
+    var p=getMainParams();
+    /* Show puts (early exercise most interesting for puts) */
+    var resEur=buildTree(p.S,p.K,p.r,p.sig,p.T,N,false,false,divY);
+    var resAm=buildTree(p.S,p.K,p.r,p.sig,p.T,N,false,true,divY);
+    clearDark(eurC.cvs,eurC.ctx);
+    clearDark(amC.cvs,amC.ctx);
+    renderTree(eurC.cvs,eurC.ctx,resEur,p.K,N,true,undefined);
+    renderTree(amC.cvs,amC.ctx,resAm,p.K,N,true,undefined);
+    var earlyN=resAm.earlyEx.reduce(function(s,row){return s+row.filter(Boolean).length;},0);
+    var prem=resAm.optVal[0][0]-resEur.optVal[0][0];
+    document.getElementById('amStats').innerHTML=
+        '<div class="stat-box"><div class="stat-label">European Put</div><div class="stat-val cyan">\u00A3'+resEur.optVal[0][0].toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">American Put</div><div class="stat-val amber">\u00A3'+resAm.optVal[0][0].toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Early Ex. Premium</div><div class="stat-val green">\u00A3'+prem.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Early Ex. Nodes</div><div class="stat-val">'+earlyN+'</div></div>';
+}
+
+['sAmSteps','sDiv','sSig','sS','sK','sR','sT'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',drawAmerican);
+});
+
+/* ══════════════════════════════════════════════
+   SECTION 5: Convergence to Black-Scholes
+══════════════════════════════════════════════ */
+var cc={cvs:document.getElementById('convCanvas'),ctx:document.getElementById('convCanvas').getContext('2d')};
+
+document.getElementById('btnRunConv').addEventListener('click',function(){
+    var p=getMainParams();
+    var isCall=tc.type==='call';
+    var bsP=isCall?bsCall(p.S,p.K,p.r,p.sig,p.T):bsPut(p.S,p.K,p.r,p.sig,p.T);
+    var Ns=[],prices=[];
+    for(var n=1;n<=150;n++){
+        var res=buildTree(p.S,p.K,p.r,p.sig,p.T,n,isCall,false,0);
+        Ns.push(n);prices.push(res.optVal[0][0]);
+    }
+    var yMin=Math.min.apply(null,prices.concat([bsP]))*0.975;
+    var yMax=Math.max.apply(null,prices.concat([bsP]))*1.025;
+    var W=cc.cvs.width,H=cc.cvs.height;
+    var PAD={l:68,r:20,t:30,b:46};
+    var plotW=W-PAD.l-PAD.r,plotH=H-PAD.t-PAD.b;
+    function tx(n){return PAD.l+(n-1)/149*plotW;}
+    function ty(v){return PAD.t+plotH-(v-yMin)/(yMax-yMin)*plotH;}
+    clearDark(cc.cvs,cc.ctx);
+    /* Grid */
+    cc.ctx.strokeStyle='rgba(255,255,255,0.035)';cc.ctx.lineWidth=1;
+    for(var g=0;g<=5;g++){
+        var yv=yMin+g/5*(yMax-yMin);
+        cc.ctx.beginPath();cc.ctx.moveTo(PAD.l,ty(yv));cc.ctx.lineTo(W-PAD.r,ty(yv));cc.ctx.stroke();
+        cc.ctx.fillStyle='#404058';cc.ctx.font='10px Georgia';cc.ctx.textAlign='right';cc.ctx.textBaseline='middle';
+        cc.ctx.fillText('\u00A3'+yv.toFixed(3),PAD.l-5,ty(yv));
+    }
+    [1,25,50,75,100,125,150].forEach(function(n){
+        cc.ctx.fillStyle='#404058';cc.ctx.font='10px Georgia';cc.ctx.textAlign='center';cc.ctx.textBaseline='top';
+        cc.ctx.fillText('N='+n,tx(n),H-PAD.b+6);
+    });
+    /* BS reference */
+    cc.ctx.strokeStyle='rgba(251,191,36,0.5)';cc.ctx.lineWidth=1.5;cc.ctx.setLineDash([6,4]);
+    cc.ctx.beginPath();cc.ctx.moveTo(PAD.l,ty(bsP));cc.ctx.lineTo(W-PAD.r,ty(bsP));cc.ctx.stroke();
+    cc.ctx.setLineDash([]);
+    cc.ctx.fillStyle='rgba(251,191,36,0.75)';cc.ctx.font='10px Georgia';cc.ctx.textAlign='left';cc.ctx.textBaseline='bottom';
+    cc.ctx.fillText('BS exact \u00A3'+bsP.toFixed(4),PAD.l+4,ty(bsP)-3);
+    /* Binomial line — colour even/odd */
+    for(var i=0;i<Ns.length-1;i++){
+        var even=(Ns[i]%2===0);
+        cc.ctx.strokeStyle=even?'rgba(34,211,238,0.72)':'rgba(248,113,113,0.72)';
+        cc.ctx.lineWidth=1.4;
+        cc.ctx.beginPath();cc.ctx.moveTo(tx(Ns[i]),ty(prices[i]));cc.ctx.lineTo(tx(Ns[i+1]),ty(prices[i+1]));cc.ctx.stroke();
+    }
+    /* Legend */
+    cc.ctx.font='10px Georgia';cc.ctx.textAlign='left';cc.ctx.textBaseline='middle';
+    cc.ctx.fillStyle='rgba(34,211,238,0.8)';cc.ctx.fillRect(PAD.l+4,PAD.t+6,18,2);cc.ctx.fillText('Even N',PAD.l+26,PAD.t+7);
+    cc.ctx.fillStyle='rgba(248,113,113,0.8)';cc.ctx.fillRect(PAD.l+90,PAD.t+6,18,2);cc.ctx.fillText('Odd N',PAD.l+112,PAD.t+7);
+    cc.ctx.fillStyle='#404058';cc.ctx.font='11px Georgia';cc.ctx.textAlign='center';cc.ctx.textBaseline='top';
+    cc.ctx.fillText('Number of steps N \u2192',PAD.l+plotW/2,H-PAD.b+24);
+    var finalErr=Math.abs(prices[149]-bsP);
+    document.getElementById('convStats').innerHTML=
+        '<div class="stat-box"><div class="stat-label">BS Exact</div><div class="stat-val" style="color:#fbbf24">\u00A3'+bsP.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">N=150 price</div><div class="stat-val green">\u00A3'+prices[149].toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Error at N=150</div><div class="stat-val" style="color:#f472b6">\u00A3'+finalErr.toFixed(5)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">N=1 price</div><div class="stat-val" style="color:#808098">\u00A3'+prices[0].toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Type</div><div class="stat-val">'+(isCall?'Call':'Put')+'</div></div>';
+});
+
+/* ══════════════════════════════════════════════
+   SECTION 6: Risk-Neutral Probability Explorer
+══════════════════════════════════════════════ */
+var pc={cvs:document.getElementById('pStarCanvas'),ctx:document.getElementById('pStarCanvas').getContext('2d')};
+
+function drawPStar(){
+    var pReal=parseInt(document.getElementById('sPReal').value)/100;
+    var r=parseInt(document.getElementById('sPR').value)/10/100;
+    var sig=parseInt(document.getElementById('sPSig').value)/100;
+    var T=parseInt(document.getElementById('sPT').value)/12;
+    document.getElementById('vPReal').textContent=(pReal*100).toFixed(0)+'%';
+    document.getElementById('vPR').textContent=(r*100).toFixed(1)+'%';
+    document.getElementById('vPSig').textContent=(sig*100).toFixed(0)+'%';
+    document.getElementById('vPT').textContent=parseInt(document.getElementById('sPT').value)+' mo';
+
+    var u=Math.exp(sig*Math.sqrt(T)), d=1/u;
+    var pStar=(Math.exp(r*T)-d)/(u-d);
+    pStar=Math.max(0.001,Math.min(0.999,pStar));
+    var S=100,K=100,Su=S*u,Sd=S*d;
+    var Cu=Math.max(Su-K,0),Cd=Math.max(Sd-K,0);
+    var price=Math.exp(-r*T)*(pStar*Cu+(1-pStar)*Cd);
+
+    /* Expected stock price under real-world p sweep */
+    var W=pc.cvs.width,H=pc.cvs.height;
+    var PAD={l:70,r:20,t:28,b:44};
+    var plotW=W-PAD.l-PAD.r,plotH=H-PAD.t-PAD.b;
+    var ewMin=Sd*0.97,ewMax=Su*1.03;
+    function txp(p){return PAD.l+p*plotW;}
+    function tyEW(v){return PAD.t+plotH-(v-ewMin)/(ewMax-ewMin)*plotH;}
+
+    clearDark(pc.cvs,pc.ctx);
+    /* Grid */
+    pc.ctx.strokeStyle='rgba(255,255,255,0.035)';pc.ctx.lineWidth=1;
+    for(var g=0;g<=4;g++){
+        var yv=ewMin+g/4*(ewMax-ewMin);
+        pc.ctx.beginPath();pc.ctx.moveTo(PAD.l,tyEW(yv));pc.ctx.lineTo(W-PAD.r,tyEW(yv));pc.ctx.stroke();
+        pc.ctx.fillStyle='#404058';pc.ctx.font='10px Georgia';pc.ctx.textAlign='right';pc.ctx.textBaseline='middle';
+        pc.ctx.fillText('\u00A3'+yv.toFixed(1),PAD.l-5,tyEW(yv));
+    }
+    [0,0.25,0.5,0.75,1].forEach(function(p){
+        pc.ctx.fillStyle='#404058';pc.ctx.font='10px Georgia';pc.ctx.textAlign='center';pc.ctx.textBaseline='top';
+        pc.ctx.fillText((p*100).toFixed(0)+'%',txp(p),H-PAD.b+6);
+    });
+    pc.ctx.fillStyle='#404058';pc.ctx.font='11px Georgia';pc.ctx.textAlign='center';pc.ctx.textBaseline='top';
+    pc.ctx.fillText('Real-world probability of up move (p)',PAD.l+plotW/2,H-PAD.b+22);
+
+    /* Expected stock price line */
+    pc.ctx.strokeStyle='rgba(167,139,250,0.72)';pc.ctx.lineWidth=2;
+    pc.ctx.beginPath();
+    for(var pp=0;pp<=100;pp++){
+        var p=pp/100;
+        var ew=p*Su+(1-p)*Sd;
+        if(pp===0)pc.ctx.moveTo(txp(p),tyEW(ew)); else pc.ctx.lineTo(txp(p),tyEW(ew));
+    }
+    pc.ctx.stroke();
+
+    /* Option price — flat horizontal */
+    var optY=PAD.t+plotH*0.36;
+    pc.ctx.strokeStyle='rgba(16,185,129,0.85)';pc.ctx.lineWidth=2.5;pc.ctx.setLineDash([6,3]);
+    pc.ctx.beginPath();pc.ctx.moveTo(PAD.l,optY);pc.ctx.lineTo(W-PAD.r,optY);pc.ctx.stroke();
+    pc.ctx.setLineDash([]);
+    pc.ctx.fillStyle='rgba(16,185,129,0.88)';pc.ctx.font='bold 10px Georgia';pc.ctx.textAlign='left';pc.ctx.textBaseline='bottom';
+    pc.ctx.fillText('Option price = \u00A3'+price.toFixed(3)+'  (FLAT \u2014 independent of p)',PAD.l+6,optY-4);
+
+    /* p* marker */
+    pc.ctx.strokeStyle='rgba(251,191,36,0.7)';pc.ctx.lineWidth=1.5;pc.ctx.setLineDash([4,4]);
+    pc.ctx.beginPath();pc.ctx.moveTo(txp(pStar),PAD.t);pc.ctx.lineTo(txp(pStar),H-PAD.b);pc.ctx.stroke();
+    pc.ctx.setLineDash([]);
+    pc.ctx.fillStyle='rgba(251,191,36,0.88)';pc.ctx.font='bold 10px Georgia';pc.ctx.textAlign='center';pc.ctx.textBaseline='top';
+    pc.ctx.fillText('p* = '+pStar.toFixed(3),txp(pStar),PAD.t+4);
+
+    /* p_real marker */
+    pc.ctx.strokeStyle='rgba(244,114,182,0.6)';pc.ctx.lineWidth=1.5;
+    pc.ctx.beginPath();pc.ctx.moveTo(txp(pReal),PAD.t+26);pc.ctx.lineTo(txp(pReal),H-PAD.b);pc.ctx.stroke();
+    pc.ctx.fillStyle='rgba(244,114,182,0.82)';pc.ctx.font='10px Georgia';pc.ctx.textAlign='center';pc.ctx.textBaseline='bottom';
+    pc.ctx.fillText('p = '+pReal.toFixed(2),txp(pReal),H-PAD.b-2);
+
+    /* Legend */
+    pc.ctx.font='10px Georgia';pc.ctx.textAlign='left';pc.ctx.textBaseline='middle';
+    pc.ctx.fillStyle='rgba(167,139,250,0.8)';pc.ctx.fillRect(PAD.l+4,PAD.t+6,18,2);pc.ctx.fillText('E[S] under real-world p',PAD.l+26,PAD.t+7);
+    pc.ctx.fillStyle='rgba(16,185,129,0.85)';pc.ctx.fillRect(PAD.l+4,PAD.t+20,18,2);pc.ctx.fillText('Option price (flat \u2014 invariant to p)',PAD.l+26,PAD.t+21);
+
+    var ewNow=pReal*Su+(1-pReal)*Sd;
+    document.getElementById('pStarStats').innerHTML=
+        '<div class="stat-box"><div class="stat-label">p* (risk-neutral)</div><div class="stat-val green">'+pStar.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">p (real-world)</div><div class="stat-val" style="color:#f472b6">'+pReal.toFixed(2)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Option price</div><div class="stat-val" style="color:#10b981">\u00A3'+price.toFixed(4)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">E[S] under p</div><div class="stat-val" style="color:#a78bfa">\u00A3'+ewNow.toFixed(2)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">E[S] under p*</div><div class="stat-val">\u00A3'+(S*Math.exp(r*T)).toFixed(2)+'</div></div>';
+}
+
+['sPReal','sPR','sPSig','sPT'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',drawPStar);
+});
+
+/* ══════════════════════════════════════════════
+   Initialise all sections on load
+══════════════════════════════════════════════ */
+drawOneStep();
+drawTree();
+(function(){
+    var p=getMainParams();
+    var N=Math.min(5,p.N);
+    backRes=buildTree(p.S,p.K,p.r,p.sig,p.T,N,true,false,0);
+    drawBackState(N);
+})();
+drawAmerican();
+drawPStar();
+</script>
+<footer style="text-align:center;padding:26px 20px 16px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.05);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

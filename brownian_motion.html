@@ -1,0 +1,1904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Walks &amp; Brownian Motion</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#10b981}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(16,185,129,0.13);border-color:rgba(16,185,129,0.4);color:#10b981}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .gray{color:#808098}
+        .math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#10b981;cursor:pointer}
+        .slider-val{color:#10b981;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .result-big{font-size:1.5em;color:#10b981;font-family:'Courier New',monospace;font-weight:bold}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#10b981;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .insight-box{background:rgba(16,185,129,0.04);border-left:3px solid rgba(16,185,129,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .stats-row{display:flex;gap:20px;flex-wrap:wrap;margin:10px 0}
+        .stat-box{text-align:center}
+        .stat-label{font-size:0.75em;color:#808098;text-transform:uppercase;letter-spacing:0.5px}
+        .stat-val{font-family:'Courier New',monospace;font-size:1.05em;color:#e0e0e0}
+        .reality-panel{background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:16px 20px;margin:14px 0;display:none}
+        .reality-panel.visible{display:block}
+        .reality-panel h4{color:#10b981;font-weight:400;font-size:0.95em;margin-bottom:8px}
+        .reality-panel p{color:#a0a0b8;font-size:0.88em;line-height:1.7;margin-bottom:8px}
+        .reality-panel .fact{display:flex;gap:10px;margin:8px 0;padding:8px 12px;background:rgba(255,255,255,0.02);border-radius:6px}
+        .reality-panel .fact-icon{color:#fbbf24;font-size:1.1em;flex-shrink:0}
+        .reality-panel .fact-text{color:#a0a0b8;font-size:0.85em;line-height:1.6}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+            .stats-row{gap:12px}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Random Walks &amp; Brownian Motion</h1>
+    <p class="subtitle">The drunken walk that models stock prices &mdash; from coin flips to continuous motion</p>
+
+    <div style="background:rgba(34,211,238,0.04);border:1px solid rgba(34,211,238,0.15);border-radius:10px;padding:14px 20px;margin-bottom:24px;font-size:0.88em;color:#a0a0b8;line-height:1.75">
+        <strong style="color:#22d3ee">Conceptual arc:</strong> This page moves from <strong style="color:#e0e0e0">discrete randomness</strong> to <strong style="color:#e0e0e0">continuous stochastic calculus</strong> in five steps.
+        &nbsp;<strong style="color:#10b981">1.</strong> Random Walk &mdash; a coin-flip model for prices.
+        &nbsp;<strong style="color:#10b981">2.</strong> Scaling to Brownian Motion &mdash; the continuous limit (Donsker&rsquo;s theorem).
+        &nbsp;<strong style="color:#10b981">3.</strong> Geometric Brownian Motion &mdash; the canonical stock price model.
+        &nbsp;<strong style="color:#10b981">4.</strong> Properties of BM &mdash; continuity, non-differentiability, quadratic variation.
+        &nbsp;<strong style="color:#10b981">5.</strong> Extensions &mdash; mean reversion (OU) and jump diffusion.
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: The Random Walk
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. The Random Walk &mdash; Daily Price Simulation</h2>
+    <div class="panel">
+        <h3>Simulating Forward Prices Step by Step</h3>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">S(t+1)</span> = <span class="green">S(t)</span> + <span class="green">S(t)</span> &times; (<span class="gold">&sigma;</span> / &radic;252) &times; <span class="cyan">&epsilon;</span></div>
+            <div class="math-line muted"><span class="green">S(t)</span> = price at time t &nbsp;&nbsp;|&nbsp;&nbsp; <span class="gold">&sigma;</span> = annual volatility &nbsp;&nbsp;|&nbsp;&nbsp; <span class="cyan">&epsilon;</span> ~ N(0, 1) standard normal noise &nbsp;&nbsp;|&nbsp;&nbsp; 252 = trading days/year</div>
+            <div class="math-line muted">Each step: &Delta;S = S(t) &times; &sigma; &times; &radic;&Delta;t &times; &epsilon; &nbsp;&nbsp;where &Delta;t = 1/252 (daily), 5/252 (weekly), or 20/252 (monthly)</div>
+        </div>
+        <canvas id="rwCanvas" width="700" height="400"></canvas>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn" id="btnStep">Step</button>
+            <button class="btn" id="btnAuto">Auto</button>
+            <button class="btn" id="btnReset">Reset</button>
+            <span style="width:16px"></span>
+            <button class="btn active" id="btnFreqD" data-freq="1">Daily</button>
+            <button class="btn" id="btnFreqW" data-freq="5">Weekly</button>
+            <button class="btn" id="btnFreqM" data-freq="20">Monthly</button>
+            <span style="width:16px"></span>
+            <button class="btn active" id="btnWalkArith" data-walk="arithmetic">Arithmetic</button>
+            <button class="btn" id="btnWalkLog" data-walk="log">Log (GBM)</button>
+        </div>
+        <div class="slider-row">
+            <label>S&#8320; (price today):</label>
+            <input type="range" id="s1S0" min="1" max="100" value="50" step="1">
+            <span class="slider-val" id="v1S0">&pound;50</span>
+        </div>
+        <div class="slider-row">
+            <label>&sigma; (annual vol %):</label>
+            <input type="range" id="s1Sigma" min="0" max="30" value="10" step="1">
+            <span class="slider-val" id="v1Sigma">10%</span>
+        </div>
+        <div class="slider-row">
+            <label>Number of paths:</label>
+            <input type="range" id="s1Paths" min="30" max="100" value="50" step="5">
+            <span class="slider-val" id="v1Paths">50</span>
+        </div>
+        <div class="slider-row">
+            <label>Seed:</label>
+            <input type="number" id="s1Seed" value="42" min="1" max="999999" step="1" style="width:80px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#e0e0e0;border-radius:5px;padding:4px 8px;font-family:'Courier New',monospace;font-size:0.95em">
+            <button class="btn" id="btnLockSeed" style="margin-left:4px">&#x1f512; Lock Seed</button>
+            <span class="slider-val" id="v1Seed" style="font-size:0.82em;color:#808098">unlocked &mdash; random each run</span>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="rwStats">
+                <div class="stat-box"><div class="stat-label">Step</div><div class="stat-val" id="rwStatStep">0</div></div>
+                <div class="stat-box"><div class="stat-label">Frequency</div><div class="stat-val" id="rwStatFreq">Daily</div></div>
+                <div class="stat-box"><div class="stat-label">Paths</div><div class="stat-val" id="rwStatPaths">50</div></div>
+                <div class="stat-box"><div class="stat-label">Spread</div><div class="stat-val" id="rwStatSpread">&pound;0</div></div>
+                <div class="stat-box"><div class="stat-label">&plusmn;2&sigma;&radic;t</div><div class="stat-val" id="rwStatEnvelope">&pound;0.0</div></div>
+                <div class="stat-box"><div class="stat-label">Sample mean</div><div class="stat-val" id="rwStatMean">&pound;50.0</div></div>
+                <div class="stat-box"><div class="stat-label">Empirical &sigma;&radic;t</div><div class="stat-val" id="rwStatEmpStd">&mdash;</div></div>
+                <div class="stat-box"><div class="stat-label">Theoretical &sigma;&radic;t</div><div class="stat-val" id="rwStatTheoStd">&mdash;</div></div>
+            </div>
+        </div>
+        <div class="insight-box">Each path represents an <strong>expected forward price</strong> from today&#8217;s price S&#8320;. The step size scales with S(t) &mdash; so a &pound;50 stock moves in proportion to its current price, just like real markets. The noise &#949; is drawn from N(0,1). The spread grows as <strong>&sigma;&radic;t</strong>, not &sigma;t &mdash; this &#8730;t scaling law is the foundation of all financial risk measurement. With 50+ paths, the sample mean stays close to S&#8320; (standard error falls as 1/&#8730;n). Switch between daily, weekly, and monthly steps to see how the time granularity affects the simulation.</div>
+        <div class="insight-box" style="border-left-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.03)">
+            <strong style="color:#fbbf24">Reproducibility (SR 11/7):</strong> Locking the seed produces identical paths every time &mdash; essential for regulatory model validation, audit trails, and &ldquo;glass box&rdquo; transparency. The PRA&rsquo;s <em>SS1/23</em> (model risk management, superseding SR 11/7) requires that model outputs are reproducible and explainable. A fixed seed ensures any reviewer can regenerate the exact same simulation.
+        </div>
+        <div class="insight-box" style="border-left-color:rgba(34,211,238,0.3);background:rgba(34,211,238,0.03)">
+            <strong style="color:#22d3ee">References:</strong> Hull, <em>Options, Futures &amp; Other Derivatives</em> Ch. 14; Shreve, <em>Stochastic Calculus for Finance I</em> Ch. 5. PRA SS1/23 (formerly SR 11/7) on model risk management. The random walk is the discrete-time precursor to Brownian motion (Section 2) and the GBM stock price model (Section 3).
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: Scaling to Brownian Motion
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. Scaling to Brownian Motion</h2>
+    <div class="panel">
+        <h3>From Discrete to Continuous &mdash; Shrink the Step Size</h3>
+        <canvas id="scCanvas" width="700" height="400"></canvas>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn" id="btnNewPath">New Path</button>
+        </div>
+        <div class="slider-row">
+            <label>Step size &Delta;t:</label>
+            <input type="range" id="s2Dt" min="0" max="5" value="0" step="1">
+            <span class="slider-val" id="v2Dt">1</span>
+        </div>
+        <div style="margin-top:14px">
+            <div style="font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Increment Distribution &mdash; individual steps (&Delta;B values)</div>
+            <canvas id="scHistCanvas" width="700" height="140" style="border-radius:8px;border:1px solid rgba(255,255,255,0.05)"></canvas>
+            <div class="math-line muted" id="scHistInfo" style="margin-top:4px;font-size:0.82em"></div>
+        </div>
+        <div class="insight-box">This is the Central Limit Theorem in action &mdash; many small random steps produce a Gaussian continuous process. As the step size shrinks to zero, the random walk converges to Brownian motion. The histogram below confirms that <strong>increments remain normally distributed at every scale</strong>; it is only the cumulative path that becomes continuous. Formally, this convergence is <strong>in distribution</strong> (Donsker&rsquo;s theorem), not pointwise &mdash; any fixed realisation changes as &Delta;t shrinks, but the law of the process converges to Wiener measure.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 3: Geometric Brownian Motion
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. Geometric Brownian Motion &mdash; The Stock Price Model</h2>
+    <div class="panel">
+        <h3>S(t+&Delta;t) = S(t) &times; exp((&mu; &minus; &sigma;&sup2;/2)&Delta;t + &sigma;&radic;&Delta;t &times; Z)</h3>
+        <canvas id="gbmCanvas" width="700" height="400"></canvas>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn" id="btnGenerate">Generate</button>
+            <button class="btn active" id="btnTheory" data-gbmmode="theory">Theory</button>
+            <button class="btn" id="btnReality" data-gbmmode="reality">Reality</button>
+            <span style="width:16px"></span>
+            <button class="btn active" id="btnMeasureP" data-measure="physical">Physical measure (P)</button>
+            <button class="btn" id="btnMeasureQ" data-measure="rn">Risk-neutral (Q): &mu; = r</button>
+        </div>
+        <div id="rnNotice" style="display:none;font-size:0.82em;color:#a78bfa;margin-bottom:8px;padding:6px 12px;background:rgba(167,139,250,0.06);border-radius:6px;border-left:3px solid rgba(167,139,250,0.3)">
+            <strong>Risk-neutral measure:</strong> drift &mu; replaced by risk-free rate r = 5%. Under Q, all assets grow at r &mdash; the measure used for option pricing (Black-Scholes). The physical measure P uses your chosen &mu;.
+        </div>
+        <div class="slider-row">
+            <label>Drift &mu;:</label>
+            <input type="range" id="s3Mu" min="-10" max="30" value="8" step="1">
+            <span class="slider-val" id="v3Mu">+8%</span>
+        </div>
+        <div class="slider-row">
+            <label>Volatility &sigma;:</label>
+            <input type="range" id="s3Sigma" min="5" max="80" value="30" step="1">
+            <span class="slider-val" id="v3Sigma">30%</span>
+        </div>
+        <div class="slider-row">
+            <label>Number of paths:</label>
+            <input type="range" id="s3Paths" min="1" max="50" value="20" step="1">
+            <span class="slider-val" id="v3Paths">20</span>
+        </div>
+        <div class="result-box">
+            <div id="gbmResults" class="math-line"></div>
+            <div id="gbmSkewStats" class="math-line" style="margin-top:6px;font-size:0.86em"></div>
+        </div>
+        <div class="reality-panel" id="realityPanel">
+            <h4>Theory vs Reality &mdash; Where the Model Breaks Down</h4>
+            <div class="fact">
+                <div class="fact-icon">&#9888;</div>
+                <div class="fact-text"><strong style="color:#e0e0e0">Fat tails:</strong> Real returns have far more extreme events than the normal distribution predicts. The 1987 crash (&minus;22% in one day) was a 25-sigma event under GBM &mdash; essentially impossible, yet it happened.</div>
+            </div>
+            <div class="fact">
+                <div class="fact-icon">&#9888;</div>
+                <div class="fact-text"><strong style="color:#e0e0e0">Volatility clustering:</strong> GBM assumes constant volatility, but real markets show &ldquo;GARCH effects&rdquo; &mdash; calm periods and stormy periods cluster together. High-volatility days tend to follow other high-volatility days.</div>
+            </div>
+            <div class="fact">
+                <div class="fact-icon">&#9888;</div>
+                <div class="fact-text"><strong style="color:#e0e0e0">Negative skew:</strong> Stock returns are negatively skewed &mdash; crashes are larger and faster than rallies. Markets take the stairs up and the elevator down.</div>
+            </div>
+            <p style="margin-top:10px"><strong style="color:#10b981">The key lesson:</strong> Real markets have fatter tails than the model predicts &mdash; this matters enormously for risk management. GBM is the starting point, not the final word.</p>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 4: Properties of Brownian Motion
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>4. Properties of Brownian Motion</h2>
+
+    <!-- 4a: Continuous Everywhere -->
+    <div class="panel">
+        <h3>4a &mdash; Continuous Everywhere</h3>
+        <canvas id="zaCanvas" width="700" height="280"></canvas>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn" id="btnZoomA">Zoom In</button>
+            <button class="btn" id="btnResetA">Reset Zoom</button>
+            <button class="btn" id="btnNewA">New Path</button>
+        </div>
+        <div class="math-line muted" id="zaInfo">Zoom: 1&times; &mdash; viewing t &isin; [0, 1]</div>
+        <div class="insight-box">No matter how far you zoom in, the path has no gaps or jumps. This continuity is a key assumption in financial mathematics &mdash; it means prices cannot &ldquo;teleport&rdquo;.</div>
+    </div>
+
+    <!-- 4b: Differentiable Nowhere -->
+    <div class="panel">
+        <h3>4b &mdash; Differentiable Nowhere</h3>
+        <canvas id="zbCanvas" width="700" height="280"></canvas>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn" id="btnZoomB">Zoom In</button>
+            <button class="btn" id="btnResetB">Reset Zoom</button>
+        </div>
+        <div class="math-line muted" id="zbInfo">Zoom: 1&times; &mdash; viewing t &isin; [0, 1]</div>
+        <div class="result-box" style="padding:10px 16px;margin-top:8px">
+            <div id="zbSlopeStats" class="math-line" style="font-size:0.88em"></div>
+        </div>
+        <div class="insight-box">No matter how far you zoom in, the path never becomes smooth. This is why ordinary calculus fails and we need It&ocirc; calculus &mdash; you cannot compute dB/dt because it does not exist. The secant slope (B(t+h)&minus;B(t))/h is displayed above: as h shrinks with each zoom, the slope explodes rather than converging to a limit.</div>
+    </div>
+
+    <!-- 4c: Quadratic Variation = t -->
+    <div class="panel">
+        <h3>4c &mdash; Quadratic Variation = t</h3>
+        <canvas id="qvCanvas" width="700" height="280"></canvas>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn" id="btnAnimQV">Animate</button>
+            <button class="btn" id="btnNewQV">New Path</button>
+        </div>
+        <div class="slider-row">
+            <label>Partitions n:</label>
+            <input type="range" id="s4cN" min="0" max="9" value="0" step="1">
+            <span class="slider-val" id="v4cN">2</span>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="qvStats">
+                <div class="stat-box"><div class="stat-label">Partitions n</div><div class="stat-val" id="qvStatN">2</div></div>
+                <div class="stat-box"><div class="stat-label">&Sigma;(&Delta;B)&sup2; (QV)</div><div class="stat-val" id="qvStatSum">-</div></div>
+                <div class="stat-box"><div class="stat-label">Target t</div><div class="stat-val" id="qvStatTarget">1.000</div></div>
+                <div class="stat-box"><div class="stat-label">QV Error</div><div class="stat-val" id="qvStatError">-</div></div>
+                <div class="stat-box"><div class="stat-label">&Sigma;|&Delta;B| (TV)</div><div class="stat-val" id="qvStatTV" style="color:#f87171">-</div></div>
+            </div>
+        </div>
+        <div class="insight-box">The sum of squared increments &Sigma;(&Delta;B)&sup2; converges to t (quadratic variation = t). Meanwhile &Sigma;|&Delta;B| (total variation) grows without bound &mdash; watch the TV stat above increase as partitions refine while QV stabilises near 1. This contrast is the foundation of It&ocirc; calculus: (dB)&sup2; = dt while |dB| diverges.</div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 5: Beyond Standard Brownian Motion
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>5. Beyond Standard Brownian Motion</h2>
+
+    <!-- 5a: Mean-Reverting Process (Ornstein-Uhlenbeck) -->
+    <div class="panel">
+        <h3>5a &mdash; Mean-Reverting Process (Ornstein&ndash;Uhlenbeck)</h3>
+        <canvas id="ouCanvas" width="700" height="350"></canvas>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn" id="btnGenOU">Generate</button>
+        </div>
+        <div class="slider-row">
+            <label>X&sub0; (starting level):</label>
+            <input type="range" id="s5X0" min="-30" max="30" value="15" step="1">
+            <span class="slider-val" id="v5X0">1.5</span>
+        </div>
+        <div class="slider-row">
+            <label>&theta; (reversion speed):</label>
+            <input type="range" id="s5Theta" min="0" max="100" value="30" step="5">
+            <span class="slider-val" id="v5Theta">3.0</span>
+        </div>
+        <div class="slider-row">
+            <label>&mu; (mean level):</label>
+            <input type="range" id="s5Mu" min="-20" max="20" value="0" step="1">
+            <span class="slider-val" id="v5Mu">0.0</span>
+        </div>
+        <div class="slider-row">
+            <label>&sigma; (volatility):</label>
+            <input type="range" id="s5Sigma" min="1" max="30" value="10" step="1">
+            <span class="slider-val" id="v5Sigma">1.0</span>
+        </div>
+        <div class="formula-block">
+            <div class="math-line">dX = <span class="green">&theta;</span>(<span class="cyan">&mu;</span> &minus; X) dt + <span class="gold">&sigma;</span> dW</div>
+            <div class="math-line muted">The path is pulled toward &mu; with strength &theta;. Higher &theta; = faster reversion.</div>
+            <div class="math-line" style="margin-top:6px"><span class="muted">Analytical mean:</span> E[X<sub>t</sub>] = <span class="cyan">&mu;</span> + (X<sub>0</sub> &minus; <span class="cyan">&mu;</span>) e<sup>&minus;<span class="green">&theta;</span>t</sup></div>
+            <div class="math-line"><span class="muted">Analytical variance:</span> Var(X<sub>t</sub>) = (<span class="gold">&sigma;</span>&sup2; / 2<span class="green">&theta;</span>)(1 &minus; e<sup>&minus;2<span class="green">&theta;</span>t</sup>)</div>
+        </div>
+        <div class="result-box" style="padding:10px 16px">
+            <div id="ouStats" class="math-line" style="font-size:0.88em"></div>
+        </div>
+        <div class="insight-box">Unlike standard Brownian motion which can drift to infinity, the OU process always returns to its long-run mean. This is the foundation of interest rate models (Vasicek, Hull&ndash;White) &mdash; rates can wander but are pulled back by economic forces. In practice, &theta; must be carefully calibrated: too high and rates collapse unrealistically; too low and the model behaves like unconstrained BM. Modelling co-movement across multiple points on the yield curve &mdash; ensuring no-arbitrage &mdash; is explored in <em>Interest Rates</em>. Set &theta; = 0 to see pure Brownian motion for comparison.</div>
+    </div>
+
+    <!-- 5b: Jump Diffusion (Merton Model) -->
+    <div class="panel">
+        <h3>5b &mdash; Jump Diffusion (Merton Model)</h3>
+        <canvas id="jdCanvas" width="700" height="350"></canvas>
+        <div style="margin-top:14px">
+            <div style="font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Terminal Return Distribution &mdash; Jump Diffusion vs Pure GBM (100 paths each)</div>
+            <canvas id="jdHistCanvas" width="700" height="160" style="border-radius:8px;border:1px solid rgba(255,255,255,0.05)"></canvas>
+            <div class="math-line muted" id="jdHistInfo" style="margin-top:4px;font-size:0.82em"></div>
+        </div>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn" id="btnGenJD">Generate</button>
+        </div>
+        <div class="slider-row">
+            <label>&lambda; (jumps/year):</label>
+            <input type="range" id="s5Lambda" min="0" max="50" value="10" step="1">
+            <span class="slider-val" id="v5Lambda">1.0</span>
+        </div>
+        <div class="slider-row">
+            <label>Jump mean:</label>
+            <input type="range" id="s5JumpMu" min="-20" max="10" value="-5" step="1">
+            <span class="slider-val" id="v5JumpMu">&minus;5%</span>
+        </div>
+        <div class="slider-row">
+            <label>Jump std:</label>
+            <input type="range" id="s5JumpSig" min="1" max="30" value="10" step="1">
+            <span class="slider-val" id="v5JumpSig">10%</span>
+        </div>
+        <div class="formula-block">
+            <div class="math-line">dS = <span class="green">&mu;</span>S dt + <span class="gold">&sigma;</span>S dW + <span style="color:#f87171">J</span> S dN</div>
+            <div class="math-line muted">Standard GBM + random Poisson jumps. <span style="color:#f87171">&bull;</span> Red dots mark jump events.</div>
+        </div>
+        <div class="insight-box">GBM cannot produce the sudden crashes and spikes observed in real markets. Jump diffusion adds Poisson-distributed jumps &mdash; rare but large. This produces the fat tails and negative skew that GBM misses. Set &lambda; = 0 to see pure GBM for comparison. Full treatment in <em>Monte Carlo Simulation</em>.</div>
+    </div>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   Random Walks & Brownian Motion — Chapter 11
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Helpers ── */
+function randn() {
+    return Math.sqrt(-2 * Math.log(Math.random())) * Math.cos(2 * Math.PI * Math.random());
+}
+
+function niceStep(max, targetTicks) {
+    var rough = max / targetTicks;
+    var mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    var norm = rough / mag;
+    var step;
+    if (norm < 1.5) step = 1;
+    else if (norm < 3) step = 2;
+    else if (norm < 7) step = 5;
+    else step = 10;
+    return step * mag;
+}
+
+var PATH_COLORS = ['#10b981','#22d3ee','#fbbf24','#f87171','#a78bfa','#f472b6','#fb923c','#34d399','#60a5fa','#e879f9'];
+
+/* ══════════════════════════════════════════════════════════════
+   Section 1: The Random Walk — Daily Price Simulation
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Seeded PRNG (mulberry32) ── */
+function mulberry32(seed) {
+    return function() {
+        seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+        var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+function seededRandn(rng) {
+    var u1 = rng(), u2 = rng();
+    while (u1 === 0) u1 = rng(); /* avoid log(0) */
+    return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+var rwCvs = document.getElementById('rwCanvas');
+var rwCtx = rwCvs.getContext('2d');
+var RW_W = rwCvs.width, RW_H = rwCvs.height;
+var RW_PAD = { left: 70, right: 30, top: 30, bottom: 50 };
+var RW_MAX_DAYS = 252;    /* one trading year in trading days */
+
+var rwPaths = [];
+var rwStepCount = 0;       /* number of steps taken */
+var rwAutoTimer = null;
+var rwAutoRunning = false;
+var rwSeedLocked = false;
+var rwPathRngs = [];
+var rwFreqDays = 1;        /* 1=daily, 5=weekly, 20=monthly */
+var rwWalkMode = 'arithmetic'; /* 'arithmetic' | 'log' */
+var RW_FREQ_LABELS = {1: 'Daily', 5: 'Weekly', 20: 'Monthly'};
+
+function rwGetS0() { return parseInt(document.getElementById('s1S0').value); }
+function rwGetSigmaAnnual() { return parseInt(document.getElementById('s1Sigma').value) / 100; }
+function rwGetDt() { return rwFreqDays / 252; }
+function rwGetSeed() { return parseInt(document.getElementById('s1Seed').value) || 42; }
+function rwMaxSteps() { return Math.floor(RW_MAX_DAYS / rwFreqDays); }
+
+function rwInit() {
+    var n = parseInt(document.getElementById('s1Paths').value);
+    var s0 = rwGetS0();
+    document.getElementById('v1Paths').textContent = n;
+    rwPaths = [];
+    rwPathRngs = [];
+    var baseSeed = rwSeedLocked ? rwGetSeed() : Math.floor(Math.random() * 999999) + 1;
+    if (!rwSeedLocked) document.getElementById('s1Seed').value = baseSeed;
+    for (var i = 0; i < n; i++) {
+        rwPaths.push([s0]);
+        rwPathRngs.push(mulberry32(baseSeed + i * 7919));
+    }
+    rwStepCount = 0;
+    if (rwAutoRunning) rwToggleAuto();
+    drawRW();
+}
+
+function rwAdvance() {
+    if (rwStepCount >= rwMaxSteps()) return;
+    rwStepCount++;
+    var sigma = rwGetSigmaAnnual();
+    var sqrtDt = Math.sqrt(rwGetDt());
+    for (var i = 0; i < rwPaths.length; i++) {
+        var prev = rwPaths[i][rwPaths[i].length - 1];
+        var eps = seededRandn(rwPathRngs[i]);
+        if (rwWalkMode === 'log') {
+            /* Log walk: ln S(t+1) = ln S(t) + σ√Δt ε  — avoids negative prices */
+            rwPaths[i].push(prev * Math.exp(sigma * sqrtDt * eps));
+        } else {
+            /* Arithmetic walk: S(t+1) = S(t) + S(t)·σ·√Δt·ε */
+            rwPaths[i].push(prev + prev * sigma * sqrtDt * eps);
+        }
+    }
+    drawRW();
+}
+
+function rwToggleAuto() {
+    if (rwAutoRunning) {
+        clearInterval(rwAutoTimer);
+        rwAutoTimer = null;
+        rwAutoRunning = false;
+        document.getElementById('btnAuto').classList.remove('active');
+    } else {
+        rwAutoTimer = setInterval(function() {
+            if (rwStepCount >= rwMaxSteps()) { rwToggleAuto(); return; }
+            rwAdvance();
+        }, 50);
+        rwAutoRunning = true;
+        document.getElementById('btnAuto').classList.add('active');
+    }
+}
+
+function drawRW() {
+    var ctx = rwCtx, W = RW_W, H = RW_H, P = RW_PAD;
+    var plotW = W - P.left - P.right;
+    var plotH = H - P.top - P.bottom;
+    var s0 = rwGetS0();
+    var sigma = rwGetSigmaAnnual();
+    var dt = rwGetDt();
+    var maxSteps = rwMaxSteps();
+
+    /* x-axis in trading days elapsed */
+    var daysElapsed = rwStepCount * rwFreqDays;
+    var xMaxDays = Math.max(daysElapsed, Math.min(60, maxSteps * rwFreqDays));
+
+    /* theoretical envelope: ±2 * S₀ * σ * √(T) where T = days/252 */
+    var tYears = Math.max(daysElapsed, 1) / 252;
+    var envelope = 2 * s0 * sigma * Math.sqrt(tYears);
+    var yMin = s0 - Math.max(envelope, s0 * 0.05);
+    var yMax = s0 + Math.max(envelope, s0 * 0.05);
+    for (var i = 0; i < rwPaths.length; i++) {
+        for (var j = 0; j < rwPaths[i].length; j++) {
+            if (rwPaths[i][j] < yMin) yMin = rwPaths[i][j];
+            if (rwPaths[i][j] > yMax) yMax = rwPaths[i][j];
+        }
+    }
+    var yPad = (yMax - yMin) * 0.08;
+    yMin -= yPad; yMax += yPad;
+
+    function tx(dayNum) { return P.left + (dayNum / xMaxDays) * plotW; }
+    function ty(y) { return P.top + plotH - ((y - yMin) / (yMax - yMin)) * plotH; }
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+
+    /* grid */
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    var yStep = niceStep(yMax - yMin, 6);
+    var yStart = Math.ceil(yMin / yStep) * yStep;
+    for (var yv = yStart; yv <= yMax; yv += yStep) {
+        var py = ty(yv);
+        ctx.beginPath(); ctx.moveTo(P.left, py); ctx.lineTo(W - P.right, py); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText('\u00A3' + yv.toFixed(yv < 10 ? 1 : 0), P.left - 8, py);
+    }
+    var xStep = niceStep(xMaxDays, 8);
+    if (xStep < 1) xStep = 1;
+    for (var xv = 0; xv <= xMaxDays; xv += xStep) {
+        var px = tx(xv);
+        ctx.beginPath(); ctx.moveTo(px, P.top); ctx.lineTo(px, H - P.bottom); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText('d' + Math.round(xv), px, H - P.bottom + 8);
+    }
+
+    /* axes */
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(P.left, P.top); ctx.lineTo(P.left, H - P.bottom); ctx.lineTo(W - P.right, H - P.bottom); ctx.stroke();
+
+    /* axis labels */
+    ctx.fillStyle = '#808098'; ctx.font = '10px Georgia'; ctx.textAlign = 'center';
+    ctx.fillText('Trading Day', P.left + plotW / 2, H - 5);
+    ctx.save(); ctx.translate(14, P.top + plotH / 2); ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Price (\u00A3)', 0, 0); ctx.restore();
+
+    /* S₀ reference line */
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(P.left, ty(s0)); ctx.lineTo(W - P.right, ty(s0)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#808098'; ctx.font = '10px "Courier New", monospace'; ctx.textAlign = 'left';
+    ctx.fillText('S\u2080 = \u00A3' + s0 + ' (today)', P.left + 4, ty(s0) - 7);
+
+    /* ±2σ√T envelope (in year fractions) */
+    if (rwStepCount > 1) {
+        ctx.fillStyle = 'rgba(16,185,129,0.06)';
+        ctx.beginPath();
+        ctx.moveTo(tx(0), ty(s0));
+        for (var d = 1; d <= daysElapsed; d++) {
+            var T = d / 252;
+            ctx.lineTo(tx(d), ty(s0 + 2 * s0 * sigma * Math.sqrt(T)));
+        }
+        for (var d = daysElapsed; d >= 1; d--) {
+            var T = d / 252;
+            ctx.lineTo(tx(d), ty(s0 - 2 * s0 * sigma * Math.sqrt(T)));
+        }
+        ctx.lineTo(tx(0), ty(s0));
+        ctx.closePath(); ctx.fill();
+        /* envelope lines */
+        ctx.strokeStyle = 'rgba(16,185,129,0.3)'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.moveTo(tx(0), ty(s0));
+        for (var d = 1; d <= daysElapsed; d++) ctx.lineTo(tx(d), ty(s0 + 2 * s0 * sigma * Math.sqrt(d / 252)));
+        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tx(0), ty(s0));
+        for (var d = 1; d <= daysElapsed; d++) ctx.lineTo(tx(d), ty(s0 - 2 * s0 * sigma * Math.sqrt(d / 252)));
+        ctx.stroke();
+        ctx.setLineDash([]);
+        /* envelope label */
+        ctx.fillStyle = 'rgba(16,185,129,0.5)'; ctx.font = '10px "Courier New", monospace'; ctx.textAlign = 'left';
+        var envVal = (2 * s0 * sigma * Math.sqrt(daysElapsed / 252)).toFixed(1);
+        ctx.fillText('\u00B12\u03C3\u221AT = \u00B1\u00A3' + envVal, tx(daysElapsed) + 3, ty(s0 + 2 * s0 * sigma * Math.sqrt(daysElapsed / 252)) - 4);
+    }
+
+    /* seed indicator on canvas */
+    if (rwSeedLocked) {
+        ctx.fillStyle = 'rgba(251,191,36,0.5)'; ctx.font = '10px "Courier New", monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+        ctx.fillText('\uD83D\uDD12 seed=' + document.getElementById('s1Seed').value, W - P.right, P.top + 4);
+    }
+
+    /* frequency indicator */
+    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.font = '10px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    ctx.fillText(RW_FREQ_LABELS[rwFreqDays] + ' steps (\u0394t=' + rwFreqDays + 'd)', W - P.right, P.top + (rwSeedLocked ? 18 : 4));
+
+    /* paths */
+    var nP = rwPaths.length;
+    for (var p = 0; p < nP; p++) {
+        ctx.strokeStyle = PATH_COLORS[p % PATH_COLORS.length];
+        ctx.lineWidth = nP > 30 ? 0.8 : 1.5;
+        ctx.globalAlpha = nP > 30 ? 0.5 : 0.8;
+        ctx.beginPath();
+        for (var s = 0; s < rwPaths[p].length; s++) {
+            var dayNum = s * rwFreqDays;
+            var px = tx(dayNum), py = ty(rwPaths[p][s]);
+            if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    /* update stats */
+    document.getElementById('rwStatStep').textContent = rwStepCount + ' (' + daysElapsed + 'd)';
+    document.getElementById('rwStatFreq').textContent = RW_FREQ_LABELS[rwFreqDays] + (rwWalkMode === 'log' ? ' · Log' : ' · Arith');
+    document.getElementById('rwStatPaths').textContent = rwPaths.length;
+    if (rwStepCount > 0 && rwPaths.length > 0) {
+        var finals = rwPaths.map(function(p) { return p[p.length - 1]; });
+        var spread = Math.max.apply(null, finals) - Math.min.apply(null, finals);
+        var mean = finals.reduce(function(a, b) { return a + b; }, 0) / finals.length;
+        var variance = finals.reduce(function(a, b) { return a + (b - mean) * (b - mean); }, 0) / finals.length;
+        var empStd = Math.sqrt(variance);
+        var theoStd = s0 * sigma * Math.sqrt(daysElapsed / 252);
+        document.getElementById('rwStatSpread').textContent = '\u00A3' + spread.toFixed(2);
+        document.getElementById('rwStatMean').textContent = '\u00A3' + mean.toFixed(2);
+        document.getElementById('rwStatEmpStd').textContent = '\u00A3' + empStd.toFixed(2);
+        document.getElementById('rwStatTheoStd').textContent = '\u00A3' + theoStd.toFixed(2);
+    } else {
+        document.getElementById('rwStatSpread').textContent = '\u00A30';
+        document.getElementById('rwStatMean').textContent = '\u00A3' + s0.toFixed(2);
+        document.getElementById('rwStatEmpStd').textContent = '\u2014';
+        document.getElementById('rwStatTheoStd').textContent = '\u2014';
+    }
+    var envDisp = (2 * s0 * sigma * Math.sqrt(Math.max(daysElapsed, 0) / 252)).toFixed(2);
+    document.getElementById('rwStatEnvelope').textContent = '\u00B1\u00A3' + envDisp;
+}
+
+/* Section 1 events */
+document.getElementById('btnStep').addEventListener('click', rwAdvance);
+document.getElementById('btnAuto').addEventListener('click', rwToggleAuto);
+document.getElementById('btnReset').addEventListener('click', rwInit);
+
+/* frequency toggle */
+document.querySelectorAll('[data-freq]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-freq]').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        rwFreqDays = parseInt(btn.dataset.freq);
+        rwInit();
+    });
+});
+
+/* walk mode toggle */
+document.querySelectorAll('[data-walk]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-walk]').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        rwWalkMode = btn.dataset.walk;
+        /* update formula display */
+        var fml = document.querySelector('#rwCanvas').previousElementSibling;
+        rwInit();
+    });
+});
+
+document.getElementById('s1Paths').addEventListener('input', function() {
+    document.getElementById('v1Paths').textContent = this.value;
+    rwInit();
+});
+document.getElementById('s1S0').addEventListener('input', function() {
+    document.getElementById('v1S0').textContent = '\u00A3' + this.value;
+    rwInit();
+});
+document.getElementById('s1Sigma').addEventListener('input', function() {
+    document.getElementById('v1Sigma').textContent = this.value + '%';
+    rwInit();
+});
+document.getElementById('btnLockSeed').addEventListener('click', function() {
+    rwSeedLocked = !rwSeedLocked;
+    this.classList.toggle('active', rwSeedLocked);
+    this.innerHTML = rwSeedLocked ? '&#x1f512; Seed Locked' : '&#x1f512; Lock Seed';
+    document.getElementById('v1Seed').textContent = rwSeedLocked
+        ? 'LOCKED \u2014 same paths every run'
+        : 'unlocked \u2014 random each run';
+    rwInit();
+});
+document.getElementById('s1Seed').addEventListener('change', function() {
+    if (rwSeedLocked) rwInit();
+});
+[document.getElementById('s1Paths'), document.getElementById('s1Sigma'), document.getElementById('s1S0')].forEach(function(s) {
+    s.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+    s.addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
+});
+
+/* ══════════════════════════════════════════════════════════════
+   Section 2: Scaling to Brownian Motion
+   ══════════════════════════════════════════════════════════════ */
+var scCvs = document.getElementById('scCanvas');
+var scCtx = scCvs.getContext('2d');
+var SC_W = scCvs.width, SC_H = scCvs.height;
+var SC_PAD = { left: 60, right: 30, top: 30, bottom: 50 };
+var SC_DT = [1, 0.5, 0.1, 0.05, 0.01, 0.001];
+var SC_DT_LABELS = ['1', '0.5', '0.1', '0.05', '0.01', '0.001'];
+var SC_FINE_N = 1000;
+var scFine = []; /* 1000 fine increments at dt=0.001 */
+
+function scGenerate() {
+    var dt = 1.0 / SC_FINE_N;
+    scFine = [];
+    for (var i = 0; i < SC_FINE_N; i++) scFine.push(Math.sqrt(dt) * randn());
+    drawScaling();
+}
+
+function drawScaling() {
+    var ctx = scCtx, W = SC_W, H = SC_H, P = SC_PAD;
+    var plotW = W - P.left - P.right;
+    var plotH = H - P.top - P.bottom;
+    var dtIdx = parseInt(document.getElementById('s2Dt').value);
+    var dt = SC_DT[dtIdx];
+    document.getElementById('v2Dt').textContent = SC_DT_LABELS[dtIdx];
+
+    /* build path at chosen step size by aggregating fine increments */
+    var nSteps = Math.round(1.0 / dt);
+    var finePerStep = Math.round(SC_FINE_N / nSteps);
+    var path = [0];
+    for (var i = 0; i < nSteps; i++) {
+        var incr = 0;
+        for (var j = 0; j < finePerStep; j++) incr += scFine[i * finePerStep + j];
+        path.push(path[path.length - 1] + incr);
+    }
+
+    /* compute y range including envelope */
+    var yMin = 0, yMax = 0;
+    for (var i = 0; i < path.length; i++) {
+        if (path[i] < yMin) yMin = path[i];
+        if (path[i] > yMax) yMax = path[i];
+    }
+    yMin = Math.min(yMin, -2); yMax = Math.max(yMax, 2);
+    var yPad = (yMax - yMin) * 0.12;
+    yMin -= yPad; yMax += yPad;
+
+    function tx(x) { return P.left + x * plotW; } /* x in [0,1] */
+    function ty(y) { return P.top + plotH - ((y - yMin) / (yMax - yMin)) * plotH; }
+
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+
+    /* grid */
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    var yStep = niceStep(yMax - yMin, 6);
+    var yStart = Math.ceil(yMin / yStep) * yStep;
+    for (var yv = yStart; yv <= yMax; yv += yStep) {
+        var py = ty(yv);
+        ctx.beginPath(); ctx.moveTo(P.left, py); ctx.lineTo(W - P.right, py); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText(yv.toFixed(1), P.left - 8, py);
+    }
+    for (var xv = 0; xv <= 1; xv += 0.2) {
+        var px = tx(xv);
+        ctx.beginPath(); ctx.moveTo(px, P.top); ctx.lineTo(px, H - P.bottom); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(xv.toFixed(1), px, H - P.bottom + 8);
+    }
+
+    /* axes */
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(P.left, P.top); ctx.lineTo(P.left, H - P.bottom); ctx.lineTo(W - P.right, H - P.bottom); ctx.stroke();
+
+    /* ±2σ√t envelope */
+    ctx.fillStyle = 'rgba(16,185,129,0.08)';
+    ctx.beginPath(); ctx.moveTo(tx(0), ty(0));
+    var envSteps = 50;
+    for (var i = 1; i <= envSteps; i++) { var t = i / envSteps; ctx.lineTo(tx(t), ty(2 * Math.sqrt(t))); }
+    for (var i = envSteps; i >= 1; i--) { var t = i / envSteps; ctx.lineTo(tx(t), ty(-2 * Math.sqrt(t))); }
+    ctx.lineTo(tx(0), ty(0)); ctx.closePath(); ctx.fill();
+    /* envelope border */
+    ctx.strokeStyle = 'rgba(16,185,129,0.25)'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(tx(0), ty(0));
+    for (var i = 1; i <= envSteps; i++) { var t = i / envSteps; ctx.lineTo(tx(t), ty(2 * Math.sqrt(t))); }
+    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx(0), ty(0));
+    for (var i = 1; i <= envSteps; i++) { var t = i / envSteps; ctx.lineTo(tx(t), ty(-2 * Math.sqrt(t))); }
+    ctx.stroke(); ctx.setLineDash([]);
+
+    /* path */
+    ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (var i = 0; i < path.length; i++) {
+        var px = tx(i / nSteps), py = ty(path[i]);
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    /* step size label */
+    ctx.fillStyle = '#808098'; ctx.font = '11px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    ctx.fillText('\u0394t = ' + SC_DT_LABELS[dtIdx] + '  (' + nSteps + ' steps)', W - P.right, P.top + 4);
+
+    /* ±2σ√t label */
+    ctx.fillStyle = 'rgba(16,185,129,0.5)'; ctx.font = '10px "Courier New", monospace'; ctx.textAlign = 'left';
+    ctx.fillText('+2\u221At', tx(1) + 4, ty(2) - 4);
+    ctx.fillText('\u22122\u221At', tx(1) + 4, ty(-2) + 4);
+
+    /* draw increment histogram */
+    drawScHistogram(dtIdx, nSteps, finePerStep);
+}
+
+function drawScHistogram(dtIdx, nSteps, finePerStep) {
+    var hCvs = document.getElementById('scHistCanvas');
+    var hCtx = hCvs.getContext('2d');
+    var HW = hCvs.width, HH = hCvs.height;
+    var HP = { left: 55, right: 30, top: 18, bottom: 36 };
+
+    /* collect increments */
+    var increments = [];
+    for (var i = 0; i < nSteps; i++) {
+        var incr = 0;
+        for (var j = 0; j < finePerStep; j++) incr += scFine[i * finePerStep + j];
+        increments.push(incr);
+    }
+
+    /* theoretical std of each aggregate increment = √(finePerStep * dt_fine) = √dt */
+    var dt = SC_DT[dtIdx];
+    var theoStd = Math.sqrt(dt);
+
+    /* empirical stats */
+    var empMean = increments.reduce(function(a,b){ return a+b;},0) / increments.length;
+    var empVar = increments.reduce(function(a,b){ return a+(b-empMean)*(b-empMean);},0) / increments.length;
+    var empStd = Math.sqrt(empVar);
+
+    /* histogram */
+    var nBins = Math.max(8, Math.min(25, nSteps));
+    var iMin = Math.min.apply(null, increments), iMax = Math.max.apply(null, increments);
+    var range = Math.max(iMax - iMin, theoStd * 0.01);
+    var binW = range / nBins;
+    var bins = new Array(nBins).fill(0);
+    increments.forEach(function(v) {
+        var idx = Math.min(nBins - 1, Math.floor((v - iMin) / binW));
+        if (idx >= 0) bins[idx]++;
+    });
+    var maxCount = Math.max.apply(null, bins) || 1;
+
+    hCtx.clearRect(0, 0, HW, HH);
+    hCtx.fillStyle = '#0a0a1a'; hCtx.fillRect(0, 0, HW, HH);
+
+    var plotW = HW - HP.left - HP.right;
+    var plotH = HH - HP.top - HP.bottom;
+
+    function hx(v) { return HP.left + ((v - iMin) / range) * plotW; }
+
+    /* zero line */
+    hCtx.strokeStyle = 'rgba(255,255,255,0.1)'; hCtx.lineWidth = 1;
+    hCtx.beginPath(); hCtx.moveTo(hx(0), HP.top); hCtx.lineTo(hx(0), HH - HP.bottom); hCtx.stroke();
+
+    /* histogram bars */
+    for (var i = 0; i < nBins; i++) {
+        var bLeft = hx(iMin + i * binW);
+        var bRight = hx(iMin + (i + 1) * binW);
+        var bH = (bins[i] / maxCount) * plotH;
+        hCtx.fillStyle = 'rgba(16,185,129,0.3)';
+        hCtx.fillRect(bLeft, HH - HP.bottom - bH, bRight - bLeft - 1, bH);
+        hCtx.strokeStyle = 'rgba(16,185,129,0.5)'; hCtx.lineWidth = 0.5;
+        hCtx.strokeRect(bLeft, HH - HP.bottom - bH, bRight - bLeft - 1, bH);
+    }
+
+    /* theoretical normal PDF overlay */
+    hCtx.strokeStyle = '#fbbf24'; hCtx.lineWidth = 1.5;
+    hCtx.beginPath();
+    var nCurve = 100;
+    for (var i = 0; i <= nCurve; i++) {
+        var v = iMin + (i / nCurve) * range;
+        var pdf = Math.exp(-(v * v) / (2 * theoStd * theoStd)) / (theoStd * Math.sqrt(2 * Math.PI));
+        /* scale PDF to histogram: pdf * nSteps * binW = expected count */
+        var scaledH = (pdf * nSteps * binW / maxCount) * plotH;
+        var px = hx(v), py = HH - HP.bottom - scaledH;
+        if (i === 0) hCtx.moveTo(px, py); else hCtx.lineTo(px, py);
+    }
+    hCtx.stroke();
+
+    /* x axis */
+    hCtx.strokeStyle = 'rgba(255,255,255,0.18)'; hCtx.lineWidth = 1;
+    hCtx.beginPath(); hCtx.moveTo(HP.left, HH - HP.bottom); hCtx.lineTo(HW - HP.right, HH - HP.bottom); hCtx.stroke();
+
+    /* x tick labels */
+    hCtx.fillStyle = '#505068'; hCtx.font = '9px Georgia'; hCtx.textAlign = 'center'; hCtx.textBaseline = 'top';
+    [-2*theoStd, -theoStd, 0, theoStd, 2*theoStd].forEach(function(v) {
+        var px = hx(v);
+        if (px >= HP.left && px <= HW - HP.right) {
+            hCtx.fillText(v.toFixed(3), px, HH - HP.bottom + 4);
+        }
+    });
+
+    /* title */
+    hCtx.fillStyle = '#808098'; hCtx.font = '9px Georgia'; hCtx.textAlign = 'right'; hCtx.textBaseline = 'top';
+    hCtx.fillText('N(0, \u0394t) overlay', HW - HP.right, HP.top);
+
+    /* info line */
+    document.getElementById('scHistInfo').innerHTML =
+        '<span class="muted">Increments (' + nSteps + '):</span> emp. \u03C3 = <span class="gold">' + empStd.toFixed(4) +
+        '</span> &nbsp; theo. \u03C3 = \u221A\u0394t = <span class="green">' + theoStd.toFixed(4) +
+        '</span> &nbsp; <span style="color:#fbbf24">\u25ac</span> = theoretical N(0,\u0394t) PDF &nbsp;&nbsp; <span class="muted">Increments are always normal regardless of \u0394t; only the cumulative path changes character.</span>';
+}
+
+document.getElementById('s2Dt').addEventListener('input', drawScaling);
+document.getElementById('btnNewPath').addEventListener('click', scGenerate);
+document.getElementById('s2Dt').addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+document.getElementById('s2Dt').addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
+
+/* ══════════════════════════════════════════════════════════════
+   Section 3: Geometric Brownian Motion
+   ══════════════════════════════════════════════════════════════ */
+var gbmCvs = document.getElementById('gbmCanvas');
+var gbmCtx = gbmCvs.getContext('2d');
+var GBM_W = gbmCvs.width, GBM_H = gbmCvs.height;
+var GBM_PAD = { left: 70, right: 120, top: 30, bottom: 50 };
+var GBM_S0 = 100;
+var GBM_T = 1;
+var GBM_NSTEPS = 250;
+var gbmPaths = [];
+var gbmMode = 'theory';
+var gbmMeasure = 'physical'; /* 'physical' | 'rn' */
+var GBM_RFR = 0.05; /* risk-free rate for Q measure */
+
+function gbmGenerate() {
+    var muUser = parseInt(document.getElementById('s3Mu').value) / 100;
+    var sigma = parseInt(document.getElementById('s3Sigma').value) / 100;
+    var nPaths = parseInt(document.getElementById('s3Paths').value);
+    var dt = GBM_T / GBM_NSTEPS;
+    var mu = (gbmMeasure === 'rn') ? GBM_RFR : muUser;
+    gbmPaths = [];
+    for (var p = 0; p < nPaths; p++) {
+        var path = [GBM_S0];
+        for (var i = 0; i < GBM_NSTEPS; i++) {
+            var Z = randn();
+            var S = path[path.length - 1] * Math.exp((mu - sigma * sigma / 2) * dt + sigma * Math.sqrt(dt) * Z);
+            path.push(S);
+        }
+        gbmPaths.push(path);
+    }
+    drawGBM();
+}
+
+function drawGBM() {
+    var ctx = gbmCtx, W = GBM_W, H = GBM_H, P = GBM_PAD;
+    var plotW = W - P.left - P.right;
+    var plotH = H - P.top - P.bottom;
+    var muUser = parseInt(document.getElementById('s3Mu').value) / 100;
+    var sigma = parseInt(document.getElementById('s3Sigma').value) / 100;
+    var mu = (gbmMeasure === 'rn') ? GBM_RFR : muUser;
+
+    /* y range */
+    var yMin = 0, yMax = GBM_S0 * 1.5;
+    for (var p = 0; p < gbmPaths.length; p++) {
+        for (var i = 0; i < gbmPaths[p].length; i++) {
+            if (gbmPaths[p][i] > yMax) yMax = gbmPaths[p][i];
+        }
+    }
+    yMax *= 1.1;
+
+    function tx(x) { return P.left + (x / GBM_NSTEPS) * plotW; }
+    function ty(y) { return P.top + plotH - ((y - yMin) / (yMax - yMin)) * plotH; }
+
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+
+    /* grid */
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    var yStep = niceStep(yMax, 6);
+    for (var yv = 0; yv <= yMax; yv += yStep) {
+        var py = ty(yv);
+        ctx.beginPath(); ctx.moveTo(P.left, py); ctx.lineTo(P.left + plotW, py); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        if (yv >= 1) ctx.fillText(Math.round(yv), P.left - 8, py);
+    }
+    for (var xv = 0; xv <= GBM_NSTEPS; xv += 50) {
+        var px = tx(xv);
+        ctx.beginPath(); ctx.moveTo(px, P.top); ctx.lineTo(px, H - P.bottom); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        var yr = (xv / GBM_NSTEPS).toFixed(1);
+        ctx.fillText(yr + 'y', px, H - P.bottom + 8);
+    }
+
+    /* axes */
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(P.left, P.top); ctx.lineTo(P.left, H - P.bottom); ctx.lineTo(P.left + plotW, H - P.bottom); ctx.stroke();
+
+    /* S₀ reference line */
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(P.left, ty(GBM_S0)); ctx.lineTo(P.left + plotW, ty(GBM_S0)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#505068'; ctx.font = '10px "Courier New", monospace'; ctx.textAlign = 'left';
+    ctx.fillText('S\u2080=' + GBM_S0, P.left + 4, ty(GBM_S0) - 6);
+
+    /* paths */
+    for (var p = 0; p < gbmPaths.length; p++) {
+        ctx.strokeStyle = PATH_COLORS[p % PATH_COLORS.length];
+        ctx.lineWidth = gbmPaths.length > 20 ? 1 : 1.5;
+        ctx.globalAlpha = gbmPaths.length > 20 ? 0.6 : 0.8;
+        ctx.beginPath();
+        for (var i = 0; i < gbmPaths[p].length; i++) {
+            var px = tx(i), py = ty(gbmPaths[p][i]);
+            if (py < P.top) py = P.top;
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    /* histogram on right edge */
+    if (gbmPaths.length > 0) {
+        var histLeft = P.left + plotW + 10;
+        var histRight = W - 8;
+        var histW = histRight - histLeft;
+        var terminals = gbmPaths.map(function(p) { return p[p.length - 1]; });
+        var nBins = Math.min(25, Math.max(8, Math.floor(gbmPaths.length / 2)));
+        var bins = new Array(nBins).fill(0);
+        var binMin = yMin, binMax = yMax;
+        for (var i = 0; i < terminals.length; i++) {
+            var idx = Math.floor((terminals[i] - binMin) / (binMax - binMin) * nBins);
+            if (idx < 0) idx = 0; if (idx >= nBins) idx = nBins - 1;
+            bins[idx]++;
+        }
+        var maxCount = Math.max.apply(null, bins);
+        if (maxCount > 0) {
+            /* divider */
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(histLeft - 5, P.top); ctx.lineTo(histLeft - 5, H - P.bottom); ctx.stroke();
+
+            for (var i = 0; i < nBins; i++) {
+                if (bins[i] === 0) continue;
+                var priceLow = binMin + i * (binMax - binMin) / nBins;
+                var priceHigh = binMin + (i + 1) * (binMax - binMin) / nBins;
+                var yTop = ty(priceHigh);
+                var yBot = ty(priceLow);
+                var barW = (bins[i] / maxCount) * histW;
+                ctx.fillStyle = 'rgba(16,185,129,0.25)';
+                ctx.fillRect(histLeft, yTop, barW, Math.max(yBot - yTop - 1, 1));
+                ctx.strokeStyle = 'rgba(16,185,129,0.4)'; ctx.lineWidth = 0.5;
+                ctx.strokeRect(histLeft, yTop, barW, Math.max(yBot - yTop - 1, 1));
+            }
+
+            /* log-normal PDF overlay */
+            var logMean = Math.log(GBM_S0) + (mu - sigma * sigma / 2) * GBM_T;
+            var logStd = sigma * Math.sqrt(GBM_T);
+            var nCurve = 80;
+            var pMin = Math.max(0.01, binMin), pMax = binMax;
+            ctx.beginPath(); ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1.5;
+            var firstPDF = true;
+            for (var i = 0; i <= nCurve; i++) {
+                var price = pMin + (i / nCurve) * (pMax - pMin);
+                if (price <= 0) continue;
+                var lnP = Math.log(price);
+                var pdf = Math.exp(-(lnP - logMean) * (lnP - logMean) / (2 * logStd * logStd)) / (price * logStd * Math.sqrt(2 * Math.PI));
+                var binH_size = (binMax - binMin) / nBins;
+                var scaledW = (pdf * gbmPaths.length * binH_size / maxCount) * histW;
+                var py = ty(price);
+                if (py < P.top || py > H - P.bottom) continue;
+                if (firstPDF) { ctx.moveTo(histLeft + scaledW, py); firstPDF = false; }
+                else ctx.lineTo(histLeft + scaledW, py);
+            }
+            ctx.stroke();
+
+            /* legend */
+            ctx.fillStyle = '#fbbf24'; ctx.font = '9px Georgia'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+            ctx.fillText('\u25ac Theoretical', histLeft, P.top + 4);
+            ctx.fillStyle = 'rgba(16,185,129,0.7)';
+            ctx.fillText('\u2588 Sample', histLeft, P.top + 16);
+        }
+    }
+
+    /* results */
+    var expPrice = GBM_S0 * Math.exp(mu * GBM_T);
+    var medPrice = GBM_S0 * Math.exp((mu - sigma * sigma / 2) * GBM_T);
+    var measureLabel = gbmMeasure === 'rn' ? '<span style="color:#a78bfa">Q (risk-neutral, r=' + (GBM_RFR*100).toFixed(0) + '%)</span>' : '<span style="color:#10b981">P (physical, \u03bc=' + (muUser*100).toFixed(0) + '%)</span>';
+    var res = measureLabel + ' &nbsp; <span class="green">Expected:</span> ' + expPrice.toFixed(1);
+    res += ' &nbsp; <span class="cyan">Median:</span> ' + medPrice.toFixed(1);
+    if (gbmPaths.length > 0) {
+        var terms = gbmPaths.map(function(p) { return p[p.length - 1]; });
+        var sampleMean = terms.reduce(function(a, b) { return a + b; }, 0) / terms.length;
+        var sorted = terms.slice().sort(function(a, b) { return a - b; });
+        var sampleMedian = sorted[Math.floor(sorted.length / 2)];
+        res += ' &nbsp; <span class="muted">Sample mean:</span> ' + sampleMean.toFixed(1);
+        res += ' &nbsp; <span class="muted">Sample median:</span> ' + sampleMedian.toFixed(1);
+    }
+    document.getElementById('gbmResults').innerHTML = res;
+
+    /* skewness and excess kurtosis of log-returns */
+    if (gbmPaths.length >= 3) {
+        var logRets = gbmPaths.map(function(p) { return Math.log(p[p.length - 1] / GBM_S0); });
+        var lrMean = logRets.reduce(function(a,b){ return a+b;},0) / logRets.length;
+        var lrVar = logRets.reduce(function(a,b){ return a+(b-lrMean)*(b-lrMean);},0) / logRets.length;
+        var lrStd = Math.sqrt(lrVar);
+        var skew = lrStd > 0 ? logRets.reduce(function(a,b){ return a+Math.pow((b-lrMean)/lrStd,3);},0) / logRets.length : 0;
+        var kurt = lrStd > 0 ? logRets.reduce(function(a,b){ return a+Math.pow((b-lrMean)/lrStd,4);},0) / logRets.length - 3 : 0;
+        var theoSkew = sigma * Math.sqrt(GBM_T); /* skewness of log-normal S_T */
+        var skewHtml = '<span class="muted">Log-return skew:</span> <span class="gold">' + skew.toFixed(3) + '</span>';
+        skewHtml += ' &nbsp; <span class="muted">Excess kurtosis:</span> <span class="gold">' + kurt.toFixed(3) + '</span>';
+        skewHtml += ' &nbsp; <span class="muted">(GBM theory: skew=0 for log-returns; S<sub>T</sub> skew \u2248 ' + theoSkew.toFixed(2) + ')</span>';
+        document.getElementById('gbmSkewStats').innerHTML = skewHtml;
+    }
+}
+
+/* GBM events */
+document.getElementById('btnGenerate').addEventListener('click', gbmGenerate);
+
+/* risk-neutral / physical measure toggle */
+document.querySelectorAll('[data-measure]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-measure]').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        gbmMeasure = btn.dataset.measure;
+        document.getElementById('rnNotice').style.display = gbmMeasure === 'rn' ? 'block' : 'none';
+        gbmGenerate();
+    });
+});
+
+document.querySelectorAll('[data-gbmmode]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-gbmmode]').forEach(function(b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        gbmMode = btn.dataset.gbmmode;
+        document.getElementById('realityPanel').className = gbmMode === 'reality' ? 'reality-panel visible' : 'reality-panel';
+    });
+});
+document.getElementById('s3Mu').addEventListener('input', function() {
+    var v = parseInt(this.value);
+    document.getElementById('v3Mu').textContent = (v >= 0 ? '+' : '') + v + '%';
+});
+document.getElementById('s3Sigma').addEventListener('input', function() {
+    document.getElementById('v3Sigma').textContent = this.value + '%';
+});
+document.getElementById('s3Paths').addEventListener('input', function() {
+    document.getElementById('v3Paths').textContent = this.value;
+});
+[document.getElementById('s3Mu'), document.getElementById('s3Sigma'), document.getElementById('s3Paths')].forEach(function(s) {
+    s.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+    s.addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
+});
+
+/* ══════════════════════════════════════════════════════════════
+   Section 4: Properties of Brownian Motion — Shared Path
+   ══════════════════════════════════════════════════════════════ */
+var PROP_N = 50000;
+var propPath = null; /* shared by 4a and 4b */
+
+function generatePropPath() {
+    var dt = 1.0 / PROP_N;
+    propPath = new Float64Array(PROP_N + 1);
+    propPath[0] = 0;
+    for (var i = 0; i < PROP_N; i++) propPath[i + 1] = propPath[i] + Math.sqrt(dt) * randn();
+}
+
+function drawBMSegment(ctx, W, H, PAD, path, N, tMin, tMax, color, lineW) {
+    var plotW = W - PAD.left - PAD.right;
+    var plotH = H - PAD.top - PAD.bottom;
+    var iMin = Math.max(0, Math.floor(tMin * N));
+    var iMax = Math.min(N, Math.ceil(tMax * N));
+    var count = iMax - iMin;
+
+    /* y range of visible segment */
+    var yMin = Infinity, yMax = -Infinity;
+    for (var i = iMin; i <= iMax; i++) {
+        if (path[i] < yMin) yMin = path[i];
+        if (path[i] > yMax) yMax = path[i];
+    }
+    var yPad = (yMax - yMin) * 0.15;
+    if (yPad < 0.001) yPad = 0.1;
+    yMin -= yPad; yMax += yPad;
+
+    function tx(t) { return PAD.left + ((t - tMin) / (tMax - tMin)) * plotW; }
+    function ty(y) { return PAD.top + plotH - ((y - yMin) / (yMax - yMin)) * plotH; }
+
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+
+    /* grid */
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    var yStep = niceStep(yMax - yMin, 5);
+    var yStart = Math.ceil(yMin / yStep) * yStep;
+    for (var yv = yStart; yv <= yMax; yv += yStep) {
+        var py = ty(yv);
+        ctx.beginPath(); ctx.moveTo(PAD.left, py); ctx.lineTo(W - PAD.right, py); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText(yv.toFixed(3), PAD.left - 8, py);
+    }
+    var tRange = tMax - tMin;
+    var tStep = niceStep(tRange, 6);
+    var tStart = Math.ceil(tMin / tStep) * tStep;
+    for (var tv = tStart; tv <= tMax; tv += tStep) {
+        var px = tx(tv);
+        ctx.beginPath(); ctx.moveTo(px, PAD.top); ctx.lineTo(px, H - PAD.bottom); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(tv.toPrecision(4), px, H - PAD.bottom + 8);
+    }
+
+    /* axes */
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, H - PAD.bottom); ctx.lineTo(W - PAD.right, H - PAD.bottom); ctx.stroke();
+
+    /* path */
+    var step = Math.max(1, Math.floor(count / 2000));
+    ctx.strokeStyle = color; ctx.lineWidth = lineW;
+    ctx.beginPath();
+    var first = true;
+    for (var i = iMin; i <= iMax; i += step) {
+        var t = i / N;
+        var px = tx(t), py = ty(path[i]);
+        if (first) { ctx.moveTo(px, py); first = false; }
+        else ctx.lineTo(px, py);
+    }
+    /* ensure last point */
+    ctx.lineTo(tx(iMax / N), ty(path[iMax]));
+    ctx.stroke();
+
+    return { tx: tx, ty: ty, yMin: yMin, yMax: yMax };
+}
+
+/* ── 4a: Continuous Everywhere ── */
+var zaCvs = document.getElementById('zaCanvas');
+var zaCtx = zaCvs.getContext('2d');
+var ZA_W = zaCvs.width, ZA_H = zaCvs.height;
+var ZA_PAD = { left: 70, right: 30, top: 24, bottom: 44 };
+var zaZoomLevel = 0;
+var ZA_MAX_ZOOM = 4;
+
+function drawZA() {
+    var width = Math.pow(0.25, zaZoomLevel);
+    var tMin = 0.5 - width / 2;
+    var tMax = 0.5 + width / 2;
+    if (zaZoomLevel === 0) { tMin = 0; tMax = 1; }
+
+    var fns = drawBMSegment(zaCtx, ZA_W, ZA_H, ZA_PAD, propPath, PROP_N, tMin, tMax, '#10b981', 2);
+
+    /* highlight next zoom region */
+    if (zaZoomLevel < ZA_MAX_ZOOM) {
+        var nextW = width / 4;
+        var nextMin = 0.5 - nextW / 2;
+        var nextMax = 0.5 + nextW / 2;
+        if (zaZoomLevel === 0) { nextMin = 0.375; nextMax = 0.625; }
+        zaCtx.fillStyle = 'rgba(16,185,129,0.08)';
+        var x1 = fns.tx(nextMin), x2 = fns.tx(nextMax);
+        zaCtx.fillRect(x1, ZA_PAD.top, x2 - x1, ZA_H - ZA_PAD.top - ZA_PAD.bottom);
+        zaCtx.strokeStyle = 'rgba(16,185,129,0.3)'; zaCtx.lineWidth = 1; zaCtx.setLineDash([3, 3]);
+        zaCtx.beginPath(); zaCtx.moveTo(x1, ZA_PAD.top); zaCtx.lineTo(x1, ZA_H - ZA_PAD.bottom); zaCtx.stroke();
+        zaCtx.beginPath(); zaCtx.moveTo(x2, ZA_PAD.top); zaCtx.lineTo(x2, ZA_H - ZA_PAD.bottom); zaCtx.stroke();
+        zaCtx.setLineDash([]);
+    }
+
+    /* annotation */
+    zaCtx.fillStyle = 'rgba(16,185,129,0.6)'; zaCtx.font = '11px Georgia'; zaCtx.textAlign = 'right'; zaCtx.textBaseline = 'top';
+    zaCtx.fillText('Continuous \u2014 no gaps, no jumps', ZA_W - ZA_PAD.right, ZA_PAD.top + 4);
+
+    /* continuity limit annotation */
+    zaCtx.fillStyle = 'rgba(16,185,129,0.35)'; zaCtx.font = '10px "Courier New",monospace'; zaCtx.textAlign = 'left'; zaCtx.textBaseline = 'top';
+    zaCtx.fillText('lim\u2206t\u21920 |B(t+\u2206t) \u2212 B(t)| = 0', ZA_PAD.left + 4, ZA_PAD.top + 4);
+
+    var zoom = Math.pow(4, zaZoomLevel);
+    document.getElementById('zaInfo').innerHTML = 'Zoom: ' + zoom + '&times; &mdash; viewing t &isin; [' + tMin.toPrecision(4) + ', ' + tMax.toPrecision(4) + ']';
+}
+
+document.getElementById('btnZoomA').addEventListener('click', function() {
+    if (zaZoomLevel < ZA_MAX_ZOOM) { zaZoomLevel++; drawZA(); }
+});
+document.getElementById('btnResetA').addEventListener('click', function() { zaZoomLevel = 0; drawZA(); });
+document.getElementById('btnNewA').addEventListener('click', function() {
+    generatePropPath(); zaZoomLevel = 0; drawZA(); drawZB();
+});
+
+/* ── 4b: Differentiable Nowhere ── */
+var zbCvs = document.getElementById('zbCanvas');
+var zbCtx = zbCvs.getContext('2d');
+var ZB_W = zbCvs.width, ZB_H = zbCvs.height;
+var ZB_PAD = { left: 70, right: 30, top: 24, bottom: 44 };
+var zbZoomLevel = 0;
+var ZB_MAX_ZOOM = 4;
+
+function drawZB() {
+    var width = Math.pow(0.25, zbZoomLevel);
+    var tMin = 0.5 - width / 2;
+    var tMax = 0.5 + width / 2;
+    if (zbZoomLevel === 0) { tMin = 0; tMax = 1; }
+
+    var fns = drawBMSegment(zbCtx, ZB_W, ZB_H, ZB_PAD, propPath, PROP_N, tMin, tMax, '#22d3ee', 2);
+
+    /* draw local secant slopes at a few points to show jaggedness */
+    var nSlopes = 5;
+    var iMin = Math.max(0, Math.floor(tMin * PROP_N));
+    var iMax = Math.min(PROP_N, Math.ceil(tMax * PROP_N));
+    var span = iMax - iMin;
+    var slopeStep = Math.max(1, Math.floor(span / (nSlopes + 1)));
+    zbCtx.strokeStyle = 'rgba(251,191,36,0.6)'; zbCtx.lineWidth = 1.5;
+    for (var s = 1; s <= nSlopes; s++) {
+        var ci = iMin + s * slopeStep;
+        if (ci <= 0 || ci >= PROP_N) continue;
+        var di = Math.max(1, Math.floor(span / 40));
+        var i0 = Math.max(iMin, ci - di);
+        var i1 = Math.min(iMax, ci + di);
+        var t0 = i0 / PROP_N, t1 = i1 / PROP_N;
+        var y0 = propPath[i0], y1 = propPath[i1];
+        /* extend the secant line a bit */
+        var slope = (y1 - y0) / (t1 - t0);
+        var extT = (tMax - tMin) * 0.06;
+        var tA = (t0 + t1) / 2 - extT;
+        var tB = (t0 + t1) / 2 + extT;
+        var yMid = (y0 + y1) / 2;
+        var yA = yMid + slope * (tA - (t0 + t1) / 2);
+        var yB = yMid + slope * (tB - (t0 + t1) / 2);
+        zbCtx.beginPath();
+        zbCtx.moveTo(fns.tx(tA), fns.ty(yA));
+        zbCtx.lineTo(fns.tx(tB), fns.ty(yB));
+        zbCtx.stroke();
+    }
+
+    /* highlight next zoom region */
+    if (zbZoomLevel < ZB_MAX_ZOOM) {
+        var nextW = width / 4;
+        var nextMin = 0.5 - nextW / 2;
+        var nextMax = 0.5 + nextW / 2;
+        if (zbZoomLevel === 0) { nextMin = 0.375; nextMax = 0.625; }
+        zbCtx.fillStyle = 'rgba(34,211,238,0.06)';
+        var x1 = fns.tx(nextMin), x2 = fns.tx(nextMax);
+        zbCtx.fillRect(x1, ZB_PAD.top, x2 - x1, ZB_H - ZB_PAD.top - ZB_PAD.bottom);
+        zbCtx.strokeStyle = 'rgba(34,211,238,0.3)'; zbCtx.lineWidth = 1; zbCtx.setLineDash([3, 3]);
+        zbCtx.beginPath(); zbCtx.moveTo(x1, ZB_PAD.top); zbCtx.lineTo(x1, ZB_H - ZB_PAD.bottom); zbCtx.stroke();
+        zbCtx.beginPath(); zbCtx.moveTo(x2, ZB_PAD.top); zbCtx.lineTo(x2, ZB_H - ZB_PAD.bottom); zbCtx.stroke();
+        zbCtx.setLineDash([]);
+    }
+
+    /* annotation */
+    zbCtx.fillStyle = 'rgba(251,191,36,0.6)'; zbCtx.font = '11px Georgia'; zbCtx.textAlign = 'right'; zbCtx.textBaseline = 'top';
+    zbCtx.fillText('Jagged at every scale \u2014 no tangent exists', ZB_W - ZB_PAD.right, ZB_PAD.top + 4);
+
+    var zoom = Math.pow(4, zbZoomLevel);
+    document.getElementById('zbInfo').innerHTML = 'Zoom: ' + zoom + '&times; &mdash; viewing t &isin; [' + tMin.toPrecision(4) + ', ' + tMax.toPrecision(4) + ']';
+
+    /* secant slope stat: compute (B(t+h)-B(t))/h at centre of window */
+    var ci = Math.round(0.5 * PROP_N);
+    var h = (tMax - tMin) * 0.1; /* h = 10% of visible window */
+    var i0 = Math.max(0, Math.round((0.5 - h / 2) * PROP_N));
+    var i1 = Math.min(PROP_N, Math.round((0.5 + h / 2) * PROP_N));
+    var hVal = (i1 - i0) / PROP_N;
+    var secantSlope = hVal > 0 ? (propPath[i1] - propPath[i0]) / hVal : 0;
+    var slopeHtml = '<span class="muted">(B(t+h) &minus; B(t)) / h at centre of window:</span>';
+    slopeHtml += ' h = <span class="cyan">' + hVal.toPrecision(3) + '</span>';
+    slopeHtml += ' &nbsp; slope = <span class="gold">' + secantSlope.toFixed(2) + '</span>';
+    slopeHtml += ' &nbsp; <span class="muted">(grows with zoom \u2014 no limit exists)</span>';
+    document.getElementById('zbSlopeStats').innerHTML = slopeHtml;
+}
+
+document.getElementById('btnZoomB').addEventListener('click', function() {
+    if (zbZoomLevel < ZB_MAX_ZOOM) { zbZoomLevel++; drawZB(); }
+});
+document.getElementById('btnResetB').addEventListener('click', function() { zbZoomLevel = 0; drawZB(); });
+
+/* ── 4c: Quadratic Variation ── */
+var qvCvs = document.getElementById('qvCanvas');
+var qvCtx = qvCvs.getContext('2d');
+var QV_W = qvCvs.width, QV_H = qvCvs.height;
+var QV_PAD = { left: 60, right: 30, top: 24, bottom: 44 };
+var QV_FINE = 2000;
+var qvPath = null;
+var QV_N_VALUES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1000];
+var qvAnimTimer = null;
+var qvAnimRunning = false;
+
+function generateQVPath() {
+    var dt = 1.0 / QV_FINE;
+    qvPath = new Float64Array(QV_FINE + 1);
+    qvPath[0] = 0;
+    for (var i = 0; i < QV_FINE; i++) qvPath[i + 1] = qvPath[i] + Math.sqrt(dt) * randn();
+}
+
+function quadraticVariation(path, n, totalN) {
+    var sum = 0;
+    for (var i = 0; i < n; i++) {
+        var idx0 = Math.round(i * totalN / n);
+        var idx1 = Math.round((i + 1) * totalN / n);
+        var dB = path[idx1] - path[idx0];
+        sum += dB * dB;
+    }
+    return sum;
+}
+
+function drawQV() {
+    var ctx = qvCtx, W = QV_W, H = QV_H, P = QV_PAD;
+    var plotW = W - P.left - P.right;
+    var plotH = H - P.top - P.bottom;
+    var nIdx = parseInt(document.getElementById('s4cN').value);
+    var n = QV_N_VALUES[nIdx];
+
+    /* y range */
+    var yMin = Infinity, yMax = -Infinity;
+    for (var i = 0; i <= QV_FINE; i++) {
+        if (qvPath[i] < yMin) yMin = qvPath[i];
+        if (qvPath[i] > yMax) yMax = qvPath[i];
+    }
+    var yPad = (yMax - yMin) * 0.12;
+    yMin -= yPad; yMax += yPad;
+
+    function tx(t) { return P.left + t * plotW; }
+    function ty(y) { return P.top + plotH - ((y - yMin) / (yMax - yMin)) * plotH; }
+
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+
+    /* grid */
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    var yStep = niceStep(yMax - yMin, 5);
+    var yStart = Math.ceil(yMin / yStep) * yStep;
+    for (var yv = yStart; yv <= yMax; yv += yStep) {
+        var py = ty(yv);
+        ctx.beginPath(); ctx.moveTo(P.left, py); ctx.lineTo(W - P.right, py); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText(yv.toFixed(2), P.left - 8, py);
+    }
+    for (var xv = 0; xv <= 1; xv += 0.2) {
+        var px = tx(xv);
+        ctx.beginPath(); ctx.moveTo(px, P.top); ctx.lineTo(px, H - P.bottom); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(xv.toFixed(1), px, H - P.bottom + 8);
+    }
+
+    /* axes */
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(P.left, P.top); ctx.lineTo(P.left, H - P.bottom); ctx.lineTo(W - P.right, H - P.bottom); ctx.stroke();
+
+    /* BM path */
+    var step = Math.max(1, Math.floor(QV_FINE / 1500));
+    ctx.strokeStyle = 'rgba(16,185,129,0.4)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (var i = 0; i <= QV_FINE; i += step) {
+        var t = i / QV_FINE;
+        var px = tx(t), py = ty(qvPath[i]);
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.lineTo(tx(1), ty(qvPath[QV_FINE]));
+    ctx.stroke();
+
+    /* partition points and segments */
+    ctx.fillStyle = '#fbbf24';
+    ctx.strokeStyle = 'rgba(251,191,36,0.4)'; ctx.lineWidth = 1; ctx.setLineDash([2, 2]);
+    for (var i = 0; i <= n; i++) {
+        var idx = Math.round(i * QV_FINE / n);
+        var t = idx / QV_FINE;
+        var px = tx(t), py = ty(qvPath[idx]);
+        /* vertical partition line */
+        ctx.beginPath(); ctx.moveTo(px, P.top); ctx.lineTo(px, H - P.bottom); ctx.stroke();
+        /* dot at path */
+        ctx.beginPath(); ctx.arc(px, py, 2.5, 0, 2 * Math.PI); ctx.fill();
+    }
+    ctx.setLineDash([]);
+
+    /* highlight partition segments on path */
+    for (var i = 0; i < n; i++) {
+        var idx0 = Math.round(i * QV_FINE / n);
+        var idx1 = Math.round((i + 1) * QV_FINE / n);
+        ctx.strokeStyle = PATH_COLORS[i % PATH_COLORS.length]; ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        for (var j = idx0; j <= idx1; j += Math.max(1, Math.floor((idx1 - idx0) / 100))) {
+            var t = j / QV_FINE;
+            var px = tx(t), py = ty(qvPath[j]);
+            if (j === idx0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.lineTo(tx(idx1 / QV_FINE), ty(qvPath[idx1]));
+        ctx.stroke();
+    }
+
+    /* compute and display stats */
+    var qv = quadraticVariation(qvPath, n, QV_FINE);
+    var target = 1.0;
+    var error = Math.abs(qv - target) / target * 100;
+
+    /* total variation: Σ|ΔB| */
+    var tv = 0;
+    for (var i = 0; i < n; i++) {
+        var idx0 = Math.round(i * QV_FINE / n);
+        var idx1 = Math.round((i + 1) * QV_FINE / n);
+        tv += Math.abs(qvPath[idx1] - qvPath[idx0]);
+    }
+
+    document.getElementById('v4cN').textContent = n;
+    document.getElementById('qvStatN').textContent = n;
+    document.getElementById('qvStatSum').textContent = qv.toFixed(4);
+    document.getElementById('qvStatTarget').textContent = target.toFixed(3);
+    document.getElementById('qvStatError').textContent = error.toFixed(1) + '%';
+    document.getElementById('qvStatTV').textContent = tv.toFixed(4) + ' \u2191';
+}
+
+function qvToggleAnim() {
+    if (qvAnimRunning) {
+        clearInterval(qvAnimTimer);
+        qvAnimRunning = false;
+        document.getElementById('btnAnimQV').classList.remove('active');
+    } else {
+        document.getElementById('s4cN').value = 0;
+        qvAnimRunning = true;
+        document.getElementById('btnAnimQV').classList.add('active');
+        drawQV();
+        qvAnimTimer = setInterval(function() {
+            var val = parseInt(document.getElementById('s4cN').value);
+            if (val >= 9) { qvToggleAnim(); return; }
+            document.getElementById('s4cN').value = val + 1;
+            drawQV();
+        }, 600);
+    }
+}
+
+document.getElementById('btnAnimQV').addEventListener('click', qvToggleAnim);
+document.getElementById('btnNewQV').addEventListener('click', function() { generateQVPath(); drawQV(); });
+document.getElementById('s4cN').addEventListener('input', function() {
+    if (qvAnimRunning) qvToggleAnim();
+    drawQV();
+});
+document.getElementById('s4cN').addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+document.getElementById('s4cN').addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
+
+/* ══════════════════════════════════════════════════════════════
+   Section 5: Beyond Standard Brownian Motion
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── 5a: Ornstein-Uhlenbeck ── */
+var ouCvs = document.getElementById('ouCanvas');
+var ouCtx = ouCvs.getContext('2d');
+var OU_W = ouCvs.width, OU_H = ouCvs.height;
+var OU_PAD = { left: 60, right: 30, top: 30, bottom: 50 };
+var OU_T = 5;
+var OU_DT = 0.01;
+var OU_STEPS = Math.round(OU_T / OU_DT);
+var OU_N_PATHS = 10;
+var ouPaths = [];
+
+function ouGenerate() {
+    var theta = parseInt(document.getElementById('s5Theta').value) / 10;
+    var mu = parseInt(document.getElementById('s5Mu').value) / 10;
+    var sigma = parseInt(document.getElementById('s5Sigma').value) / 10;
+    var x0 = parseInt(document.getElementById('s5X0').value) / 10;
+    ouPaths = [];
+    for (var p = 0; p < OU_N_PATHS; p++) {
+        var path = [x0];
+        for (var i = 0; i < OU_STEPS; i++) {
+            var x = path[path.length - 1];
+            path.push(x + theta * (mu - x) * OU_DT + sigma * Math.sqrt(OU_DT) * randn());
+        }
+        ouPaths.push(path);
+    }
+    drawOU();
+}
+
+function drawOU() {
+    var ctx = ouCtx, W = OU_W, H = OU_H, P = OU_PAD;
+    var plotW = W - P.left - P.right;
+    var plotH = H - P.top - P.bottom;
+    var mu = parseInt(document.getElementById('s5Mu').value) / 10;
+
+    /* y range */
+    var yMin = Infinity, yMax = -Infinity;
+    for (var p = 0; p < ouPaths.length; p++) {
+        for (var i = 0; i < ouPaths[p].length; i++) {
+            if (ouPaths[p][i] < yMin) yMin = ouPaths[p][i];
+            if (ouPaths[p][i] > yMax) yMax = ouPaths[p][i];
+        }
+    }
+    var yPad = (yMax - yMin) * 0.1;
+    yMin -= yPad; yMax += yPad;
+    if (yMax - yMin < 2) { yMin = mu - 1; yMax = mu + 1; }
+
+    function tx(t) { return P.left + (t / OU_T) * plotW; }
+    function ty(y) { return P.top + plotH - ((y - yMin) / (yMax - yMin)) * plotH; }
+
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+
+    /* grid */
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    var yStep = niceStep(yMax - yMin, 6);
+    var yStart = Math.ceil(yMin / yStep) * yStep;
+    for (var yv = yStart; yv <= yMax; yv += yStep) {
+        var py = ty(yv);
+        ctx.beginPath(); ctx.moveTo(P.left, py); ctx.lineTo(W - P.right, py); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText(yv.toFixed(1), P.left - 8, py);
+    }
+    for (var xv = 0; xv <= OU_T; xv += 1) {
+        var px = tx(xv);
+        ctx.beginPath(); ctx.moveTo(px, P.top); ctx.lineTo(px, H - P.bottom); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(xv + 's', px, H - P.bottom + 8);
+    }
+
+    /* axes */
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(P.left, P.top); ctx.lineTo(P.left, H - P.bottom); ctx.lineTo(W - P.right, H - P.bottom); ctx.stroke();
+
+    /* mean level line */
+    ctx.strokeStyle = 'rgba(34,211,238,0.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(P.left, ty(mu)); ctx.lineTo(W - P.right, ty(mu)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#22d3ee'; ctx.font = '11px "Courier New", monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText('\u03BC = ' + mu.toFixed(1), W - P.right - 65, ty(mu) - 4);
+
+    /* starting point marker */
+    var x0 = ouPaths.length > 0 ? ouPaths[0][0] : 0;
+    ctx.fillStyle = '#fbbf24';
+    ctx.beginPath(); ctx.arc(tx(0), ty(x0), 5, 0, 2 * Math.PI); ctx.fill();
+    ctx.font = '11px "Courier New", monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText('X\u2080 = ' + x0.toFixed(1), tx(0) + 8, ty(x0) - 4);
+
+    /* paths */
+    var step = Math.max(1, Math.floor(OU_STEPS / 1000));
+    for (var p = 0; p < ouPaths.length; p++) {
+        ctx.strokeStyle = PATH_COLORS[p % PATH_COLORS.length]; ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (var i = 0; i < ouPaths[p].length; i += step) {
+            var px = tx(i * OU_DT), py = ty(ouPaths[p][i]);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+    }
+
+    /* analytical mean/variance and sample mean at terminal time */
+    var theta = parseInt(document.getElementById('s5Theta').value) / 10;
+    var sigma_ou = parseInt(document.getElementById('s5Sigma').value) / 10;
+    var x0 = ouPaths.length > 0 ? ouPaths[0][0] : 0;
+    var tFinal = OU_T;
+    var analyMean = mu + (x0 - mu) * Math.exp(-theta * tFinal);
+    var analyVar = theta > 0 ? (sigma_ou * sigma_ou / (2 * theta)) * (1 - Math.exp(-2 * theta * tFinal)) : sigma_ou * sigma_ou * tFinal;
+
+    /* sample mean from terminal values */
+    var sampleMeanOU = 0;
+    if (ouPaths.length > 0) {
+        ouPaths.forEach(function(p) { sampleMeanOU += p[p.length - 1]; });
+        sampleMeanOU /= ouPaths.length;
+    }
+
+    var ouHtml = '<span class="muted">At t=' + tFinal + ':</span>';
+    ouHtml += ' &nbsp; E[X<sub>t</sub>] = <span class="cyan">' + analyMean.toFixed(3) + '</span>';
+    ouHtml += ' &nbsp; Var(X<sub>t</sub>) = <span class="gold">' + analyVar.toFixed(3) + '</span>';
+    ouHtml += ' &nbsp; \u03C3(X<sub>t</sub>) = <span class="gold">' + Math.sqrt(analyVar).toFixed(3) + '</span>';
+    ouHtml += ' &nbsp; Sample mean = <span class="green">' + sampleMeanOU.toFixed(3) + '</span>';
+    ouHtml += ' &nbsp; Stationary \u03C3 = <span style="color:#a78bfa">' + (theta > 0 ? (sigma_ou / Math.sqrt(2 * theta)).toFixed(3) : '\u221e') + '</span>';
+    document.getElementById('ouStats').innerHTML = ouHtml;
+}
+
+document.getElementById('btnGenOU').addEventListener('click', ouGenerate);
+document.getElementById('s5X0').addEventListener('input', function() {
+    document.getElementById('v5X0').textContent = (parseInt(this.value) / 10).toFixed(1);
+});
+document.getElementById('s5Theta').addEventListener('input', function() {
+    document.getElementById('v5Theta').textContent = (parseInt(this.value) / 10).toFixed(1);
+});
+document.getElementById('s5Mu').addEventListener('input', function() {
+    document.getElementById('v5Mu').textContent = (parseInt(this.value) / 10).toFixed(1);
+});
+document.getElementById('s5Sigma').addEventListener('input', function() {
+    document.getElementById('v5Sigma').textContent = (parseInt(this.value) / 10).toFixed(1);
+});
+[document.getElementById('s5X0'), document.getElementById('s5Theta'), document.getElementById('s5Mu'), document.getElementById('s5Sigma')].forEach(function(s) {
+    s.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+    s.addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
+});
+
+/* ── 5b: Jump Diffusion ── */
+var jdCvs = document.getElementById('jdCanvas');
+var jdCtx = jdCvs.getContext('2d');
+var JD_W = jdCvs.width, JD_H = jdCvs.height;
+var JD_PAD = { left: 70, right: 30, top: 30, bottom: 50 };
+var JD_S0 = 100;
+var JD_T = 1;
+var JD_NSTEPS = 250;
+var JD_N_PATHS = 10;
+var jdPaths = [];
+var jdJumps = [];
+
+function jdGenerate() {
+    var lambda = parseInt(document.getElementById('s5Lambda').value) / 10;
+    var jumpMu = parseInt(document.getElementById('s5JumpMu').value) / 100;
+    var jumpSig = parseInt(document.getElementById('s5JumpSig').value) / 100;
+    var mu = 0.08;
+    var sigma = 0.25;
+    var dt = JD_T / JD_NSTEPS;
+    jdPaths = [];
+    jdJumps = [];
+    for (var p = 0; p < JD_N_PATHS; p++) {
+        var path = [JD_S0];
+        var jumps = [];
+        for (var i = 0; i < JD_NSTEPS; i++) {
+            var Z = randn();
+            var logRet = (mu - sigma * sigma / 2) * dt + sigma * Math.sqrt(dt) * Z;
+            if (Math.random() < lambda * dt) {
+                logRet += jumpMu + jumpSig * randn();
+                jumps.push(i + 1);
+            }
+            path.push(path[path.length - 1] * Math.exp(logRet));
+        }
+        jdPaths.push(path);
+        jdJumps.push(jumps);
+    }
+    drawJD();
+    drawJDHist();
+}
+
+function drawJDHist() {
+    var hCvs = document.getElementById('jdHistCanvas');
+    if (!hCvs) return;
+    var hCtx = hCvs.getContext('2d');
+    var HW = hCvs.width, HH = hCvs.height;
+    var HP = { left: 55, right: 10, top: 18, bottom: 36 };
+
+    /* generate 100 pure-GBM paths for comparison */
+    var mu = 0.08, sigma = 0.25, dt = JD_T / JD_NSTEPS;
+    var gbmTerms = [];
+    for (var p = 0; p < 100; p++) {
+        var s = JD_S0;
+        for (var i = 0; i < JD_NSTEPS; i++) {
+            s *= Math.exp((mu - sigma * sigma / 2) * dt + sigma * Math.sqrt(dt) * randn());
+        }
+        gbmTerms.push(s);
+    }
+
+    /* JD terminal values from existing paths */
+    var jdTerms = jdPaths.map(function(p) { return p[p.length - 1]; });
+
+    /* Augment jdTerms to 100 paths for fair comparison by re-running */
+    var lambda = parseInt(document.getElementById('s5Lambda').value) / 10;
+    var jumpMu = parseInt(document.getElementById('s5JumpMu').value) / 100;
+    var jumpSig = parseInt(document.getElementById('s5JumpSig').value) / 100;
+    var jdTermsFull = [];
+    for (var p = 0; p < 100; p++) {
+        var s = JD_S0;
+        for (var i = 0; i < JD_NSTEPS; i++) {
+            var logRet = (mu - sigma * sigma / 2) * dt + sigma * Math.sqrt(dt) * randn();
+            if (Math.random() < lambda * dt) logRet += jumpMu + jumpSig * randn();
+            s *= Math.exp(logRet);
+        }
+        jdTermsFull.push(s);
+    }
+
+    /* combined range */
+    var allVals = gbmTerms.concat(jdTermsFull);
+    var vMin = Math.min.apply(null, allVals), vMax = Math.max.apply(null, allVals);
+    vMin = Math.max(0, vMin * 0.95); vMax = vMax * 1.05;
+    var range = vMax - vMin || 1;
+
+    var nBins = 30;
+    function makeBins(vals) {
+        var b = new Array(nBins).fill(0);
+        vals.forEach(function(v) {
+            var idx = Math.min(nBins - 1, Math.max(0, Math.floor((v - vMin) / range * nBins)));
+            b[idx]++;
+        });
+        return b;
+    }
+    var gbmBins = makeBins(gbmTerms);
+    var jdBins = makeBins(jdTermsFull);
+    var maxCount = Math.max(Math.max.apply(null, gbmBins), Math.max.apply(null, jdBins)) || 1;
+
+    hCtx.clearRect(0, 0, HW, HH);
+    hCtx.fillStyle = '#0a0a1a'; hCtx.fillRect(0, 0, HW, HH);
+
+    var plotW = HW - HP.left - HP.right;
+    var plotH = HH - HP.top - HP.bottom;
+    var bW = plotW / nBins;
+
+    function bx(i) { return HP.left + i * bW; }
+    function bh(count) { return (count / maxCount) * plotH; }
+
+    /* GBM bars */
+    gbmBins.forEach(function(count, i) {
+        var h = bh(count);
+        hCtx.fillStyle = 'rgba(16,185,129,0.35)';
+        hCtx.fillRect(bx(i), HH - HP.bottom - h, bW - 1, h);
+        hCtx.strokeStyle = 'rgba(16,185,129,0.5)'; hCtx.lineWidth = 0.5;
+        hCtx.strokeRect(bx(i), HH - HP.bottom - h, bW - 1, h);
+    });
+
+    /* JD bars (outline style on top) */
+    jdBins.forEach(function(count, i) {
+        var h = bh(count);
+        hCtx.fillStyle = 'rgba(248,113,113,0.25)';
+        hCtx.fillRect(bx(i), HH - HP.bottom - h, bW - 1, h);
+        hCtx.strokeStyle = 'rgba(248,113,113,0.6)'; hCtx.lineWidth = 1;
+        hCtx.strokeRect(bx(i), HH - HP.bottom - h, bW - 1, h);
+    });
+
+    /* x axis */
+    hCtx.strokeStyle = 'rgba(255,255,255,0.18)'; hCtx.lineWidth = 1;
+    hCtx.beginPath(); hCtx.moveTo(HP.left, HH - HP.bottom); hCtx.lineTo(HW - HP.right, HH - HP.bottom); hCtx.stroke();
+
+    /* x ticks */
+    hCtx.fillStyle = '#505068'; hCtx.font = '9px Georgia'; hCtx.textAlign = 'center'; hCtx.textBaseline = 'top';
+    [0, 0.25, 0.5, 0.75, 1].forEach(function(f) {
+        var v = vMin + f * range;
+        var px = HP.left + f * plotW;
+        hCtx.fillText(Math.round(v), px, HH - HP.bottom + 4);
+    });
+
+    /* legend */
+    hCtx.fillStyle = 'rgba(16,185,129,0.7)'; hCtx.font = '9px Georgia'; hCtx.textAlign = 'left'; hCtx.textBaseline = 'top';
+    hCtx.fillText('\u2588 Pure GBM', HP.left + 4, HP.top);
+    hCtx.fillStyle = 'rgba(248,113,113,0.8)';
+    hCtx.fillText('\u2588 Jump Diffusion', HP.left + 68, HP.top);
+
+    /* stats */
+    function stats(vals) {
+        var m = vals.reduce(function(a,b){return a+b;},0)/vals.length;
+        var v = vals.reduce(function(a,b){return a+(b-m)*(b-m);},0)/vals.length;
+        var lrs = vals.map(function(x){return Math.log(x/JD_S0);});
+        var lm = lrs.reduce(function(a,b){return a+b;},0)/lrs.length;
+        var lv = lrs.reduce(function(a,b){return a+(b-lm)*(b-lm);},0)/lrs.length;
+        var lst = Math.sqrt(lv);
+        var sk = lst > 0 ? lrs.reduce(function(a,b){return a+Math.pow((b-lm)/lst,3);},0)/lrs.length : 0;
+        var ku = lst > 0 ? lrs.reduce(function(a,b){return a+Math.pow((b-lm)/lst,4);},0)/lrs.length - 3 : 0;
+        return { mean: m, std: Math.sqrt(v), skew: sk, kurt: ku };
+    }
+    var gs = stats(gbmTerms), js = stats(jdTermsFull);
+    document.getElementById('jdHistInfo').innerHTML =
+        '<span class="green">\u25a0 GBM:</span> mean=' + gs.mean.toFixed(1) + ' \u03C3=' + gs.std.toFixed(1) + ' skew=' + gs.skew.toFixed(2) + ' ex.kurt=' + gs.kurt.toFixed(2) +
+        ' &nbsp;&nbsp; <span style="color:#f87171">\u25a0 JD:</span> mean=' + js.mean.toFixed(1) + ' \u03C3=' + js.std.toFixed(1) + ' skew=' + js.skew.toFixed(2) + ' ex.kurt=' + js.kurt.toFixed(2) +
+        ' &nbsp;&nbsp; <span class="muted">Fatter tails and more extreme skew in JD reveal model failure of pure GBM.</span>';
+}
+
+function drawJD() {
+    var ctx = jdCtx, W = JD_W, H = JD_H, P = JD_PAD;
+    var plotW = W - P.left - P.right;
+    var plotH = H - P.top - P.bottom;
+
+    /* y range */
+    var yMin = 0, yMax = JD_S0 * 1.5;
+    for (var p = 0; p < jdPaths.length; p++) {
+        for (var i = 0; i < jdPaths[p].length; i++) {
+            if (jdPaths[p][i] > yMax) yMax = jdPaths[p][i];
+        }
+    }
+    yMax *= 1.1;
+
+    function tx(i) { return P.left + (i / JD_NSTEPS) * plotW; }
+    function ty(y) { return P.top + plotH - ((y - yMin) / (yMax - yMin)) * plotH; }
+
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+
+    /* grid */
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 1;
+    var yStep = niceStep(yMax, 6);
+    for (var yv = 0; yv <= yMax; yv += yStep) {
+        var py = ty(yv);
+        ctx.beginPath(); ctx.moveTo(P.left, py); ctx.lineTo(W - P.right, py); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        if (yv >= 1) ctx.fillText(Math.round(yv), P.left - 8, py);
+    }
+    for (var xv = 0; xv <= JD_NSTEPS; xv += 50) {
+        var px = tx(xv);
+        ctx.beginPath(); ctx.moveTo(px, P.top); ctx.lineTo(px, H - P.bottom); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText((xv / JD_NSTEPS).toFixed(1) + 'y', px, H - P.bottom + 8);
+    }
+
+    /* axes */
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(P.left, P.top); ctx.lineTo(P.left, H - P.bottom); ctx.lineTo(W - P.right, H - P.bottom); ctx.stroke();
+
+    /* S₀ reference */
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(P.left, ty(JD_S0)); ctx.lineTo(W - P.right, ty(JD_S0)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#505068'; ctx.font = '10px "Courier New", monospace'; ctx.textAlign = 'left';
+    ctx.fillText('S\u2080=' + JD_S0, P.left + 4, ty(JD_S0) - 6);
+
+    /* paths */
+    for (var p = 0; p < jdPaths.length; p++) {
+        ctx.strokeStyle = PATH_COLORS[p % PATH_COLORS.length]; ctx.lineWidth = 1.5; ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        for (var i = 0; i < jdPaths[p].length; i++) {
+            var px = tx(i), py = ty(jdPaths[p][i]);
+            if (py < P.top) py = P.top;
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke(); ctx.globalAlpha = 1;
+
+        /* highlight jump points */
+        ctx.fillStyle = '#f87171';
+        for (var j = 0; j < jdJumps[p].length; j++) {
+            var ji = jdJumps[p][j];
+            var jpx = tx(ji), jpy = ty(jdPaths[p][ji]);
+            if (jpy < P.top) jpy = P.top;
+            ctx.beginPath(); ctx.arc(jpx, jpy, 3, 0, 2 * Math.PI); ctx.fill();
+        }
+    }
+
+    /* jump count */
+    var totalJumps = 0;
+    jdJumps.forEach(function(j) { totalJumps += j.length; });
+    ctx.fillStyle = '#f87171'; ctx.font = '11px Georgia'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    ctx.fillText(totalJumps + ' jumps across ' + jdPaths.length + ' paths', W - P.right, P.top + 4);
+}
+
+document.getElementById('btnGenJD').addEventListener('click', function() { jdGenerate(); });
+document.getElementById('s5Lambda').addEventListener('input', function() {
+    document.getElementById('v5Lambda').textContent = (parseInt(this.value) / 10).toFixed(1);
+});
+document.getElementById('s5JumpMu').addEventListener('input', function() {
+    var v = parseInt(this.value);
+    document.getElementById('v5JumpMu').textContent = (v >= 0 ? '+' : '\u2212') + Math.abs(v) + '%';
+});
+document.getElementById('s5JumpSig').addEventListener('input', function() {
+    document.getElementById('v5JumpSig').textContent = this.value + '%';
+});
+[document.getElementById('s5Lambda'), document.getElementById('s5JumpMu'), document.getElementById('s5JumpSig')].forEach(function(s) {
+    s.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+    s.addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
+});
+
+/* ══════════════════════════════════════════════════════════════
+   Initialise
+   ══════════════════════════════════════════════════════════════ */
+rwInit();
+scGenerate();
+gbmGenerate();
+generatePropPath();
+drawZA();
+drawZB();
+generateQVPath();
+drawQV();
+ouGenerate();
+jdGenerate();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

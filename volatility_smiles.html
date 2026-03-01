@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volatility Smiles &amp; Surfaces</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 56px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#10b981}
+        h1{font-size:1.85em;font-weight:400;color:#fff;margin:16px 0 4px;letter-spacing:-0.02em}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:30px}
+        h2{font-size:1.13em;font-weight:400;color:#fff;margin:32px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.058);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.78em;color:#808098;text-transform:uppercase;letter-spacing:1.1px;margin-bottom:12px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+        .btn{background:rgba(255,255,255,0.032);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.9em;transition:all 0.18s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(16,185,129,0.13);border-color:rgba(16,185,129,0.38);color:#10b981}
+        .btn.fire{background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.32);color:#fbbf24}
+        .btn.fire:hover{background:rgba(251,191,36,0.16)}
+        .math-line{font-family:'Courier New',monospace;font-size:0.91em;color:#c0c0d8;margin:3px 0;line-height:1.95}
+        .green{color:#10b981}.cyan{color:#22d3ee}.gold{color:#fbbf24}.pink{color:#f472b6}
+        .red{color:#f87171}.purple{color:#a78bfa}.muted{color:#808098}.amber{color:#f59e0b}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:9px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.88em;min-width:182px}
+        .slider-row input[type=range]{flex:1;max-width:260px;accent-color:#10b981;cursor:pointer}
+        .slider-val{color:#10b981;font-family:'Courier New',monospace;font-size:1.05em;min-width:68px;text-align:right}
+        .result-box{background:rgba(16,185,129,0.055);border:1px solid rgba(16,185,129,0.18);border-radius:8px;padding:12px 18px;margin:12px 0}
+        .stats-row{display:flex;gap:12px;flex-wrap:wrap}
+        .stat-box{text-align:center;min-width:86px}
+        .stat-label{font-size:0.7em;color:#707088;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px}
+        .stat-val{font-family:'Courier New',monospace;font-size:1em}
+        .insight-box{background:rgba(16,185,129,0.035);border-left:3px solid rgba(16,185,129,0.28);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.76}
+        .warn-box{background:rgba(251,191,36,0.03);border-left:3px solid rgba(251,191,36,0.28);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.76}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.018);border-radius:6px;font-family:'Courier New',monospace;font-size:0.91em;line-height:2.05}
+        .explain{background:rgba(255,255,255,0.022);border:1px solid rgba(255,255,255,0.058);border-radius:10px;padding:22px 26px;margin-top:20px}
+        .explain-name{color:#10b981;font-size:1.1em;margin-bottom:8px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.82}
+        .surf-wrap{position:relative;width:100%;cursor:grab}
+        .surf-wrap:active{cursor:grabbing}
+        .surf-hint{position:absolute;top:8px;right:12px;font-size:0.73em;color:#404058;pointer-events:none}
+        .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:14px 0}
+        .mini-panel{background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:14px 16px}
+        .mini-panel h4{font-weight:400;font-size:0.78em;color:#606078;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        @media(max-width:620px){canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}.two-col{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Volatility Smiles &amp; Surfaces</h1>
+    <p class="subtitle">The market tells us Black-Scholes is wrong &mdash; this is what it says instead</p>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 1: The Flat Vol Assumption
+    ═══════════════════════════════════════════════════ -->
+    <h2>1. The Flat Vol Assumption &mdash; and Why the Market Rejects It</h2>
+    <div class="panel">
+        <h3>Market-implied vols across strikes &mdash; clearly not flat</h3>
+        <canvas id="ffCanvas" width="700" height="290"></canvas>
+        <div style="margin-top:14px">
+            <div class="slider-row">
+                <label>ATM vol &sigma;<sub>ATM</sub>:</label>
+                <input type="range" id="ffAtm" min="10" max="50" value="20" step="1">
+                <span class="slider-val" id="vffAtm">20%</span>
+            </div>
+            <div class="slider-row">
+                <label>Skew intensity:</label>
+                <input type="range" id="ffSkew" min="0" max="100" value="55" step="1">
+                <span class="slider-val" id="vffSkew">55</span>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnEquity">Equity Skew</button>
+            <button class="btn" id="btnFX">FX Smile</button>
+            <button class="btn" id="btnRates">Rates Hump</button>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="ffStats"></div>
+        </div>
+        <div class="insight-box">
+            In a Black-Scholes world, implied volatility would be identical at every strike &mdash; the <strong>flat vol assumption</strong>. When we invert market option prices through the BS formula, we find implied vol varies systematically with strike. This variation is the <strong>volatility smile</strong>.
+            <br><br>
+            <strong style="color:#f87171">Equity markets</strong> show a pronounced left skew: OTM put implied vols far exceed OTM call vols. Investors pay a crash insurance premium; markets fall faster than they rise. <strong style="color:#22d3ee">FX markets</strong> show a near-symmetric smile: both tails are fatter than log-normal because currency crises can go either way. <strong style="color:#a78bfa">Interest rate markets</strong> often show a hump: bounded-downside rate distributions make mid-strike swaptions richer relative to BS.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         CAUSAL ANCHOR: Why the smile exists
+    ═══════════════════════════════════════════════════ -->
+    <div style="background:rgba(248,113,113,0.045);border:1px solid rgba(248,113,113,0.18);border-radius:10px;padding:16px 22px;margin-bottom:20px">
+        <div style="font-size:0.78em;color:#f87171;text-transform:uppercase;letter-spacing:1.1px;margin-bottom:8px;font-weight:400">Why does the smile exist?</div>
+        <div style="font-size:0.9em;color:#c0b8b8;line-height:1.78">
+            The smile exists because <strong style="color:#e0e0e0">return distributions are not log-normal</strong>. They are skewed and fat-tailed. Black-Scholes assumes constant volatility and log-normal returns; the market prices <strong style="color:#f87171">jump risk</strong>, <strong style="color:#fbbf24">leverage effect</strong>, and <strong style="color:#a78bfa">tail risk premia</strong> instead. The shape of the smile is a direct fingerprint of these departures from the BS world &mdash; you are seeing the market&rsquo;s collective belief about the true distribution of returns, translated into vol space.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 2: Smile Shape Explorer
+    ═══════════════════════════════════════════════════ -->
+    <h2>2. The Implied Vol Smile &mdash; Shape Parameters</h2>
+    <div class="panel">
+        <h3>Explore how skew, curvature, and maturity shape the smile</h3>
+        <canvas id="smileCanvas" width="700" height="300"></canvas>
+        <div style="margin-top:14px">
+            <div class="slider-row">
+                <label>ATM level &sigma;<sub>0</sub>:</label>
+                <input type="range" id="smAtm" min="5" max="60" value="18" step="1">
+                <span class="slider-val" id="vsmAtm">18%</span>
+            </div>
+            <div class="slider-row">
+                <label>Skew (negative = left):</label>
+                <input type="range" id="smSkew" min="-100" max="0" value="-45" step="1">
+                <span class="slider-val" id="vsmSkew">&minus;0.45</span>
+            </div>
+            <div class="slider-row">
+                <label>Curvature (wings):</label>
+                <input type="range" id="smCurv" min="0" max="100" value="30" step="1">
+                <span class="slider-val" id="vsmCurv">0.30</span>
+            </div>
+            <div class="slider-row">
+                <label>Maturity shown (months):</label>
+                <input type="range" id="smT" min="1" max="24" value="3" step="1">
+                <span class="slider-val" id="vsmT">3 mo</span>
+            </div>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="smStats"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="muted">Parametric smile:</span> &sigma;(k,T) = &sigma;<sub>0</sub> + <span class="gold">skew</span>&middot;k/&radic;T + <span class="cyan">curv</span>&middot;k&sup2;/T &nbsp;&nbsp; k = ln(K/F) <span class="muted">(log-moneyness)</span></div>
+            <div class="math-line"><span class="muted">25&Delta; Risk reversal</span> = &sigma;<sub>put25</sub> &minus; &sigma;<sub>call25</sub> &nbsp;&nbsp; <span class="muted">25&Delta; Butterfly</span> = (&sigma;<sub>put25</sub> + &sigma;<sub>call25</sub>)/2 &minus; &sigma;<sub>ATM</sub></div>
+        </div>
+        <div class="insight-box">
+            The smile <strong>flattens with longer maturities</strong> &mdash; the five curves shown correspond to 1m, 3m, 6m, 1y, and 2y. At short maturities the skew is steep: there is very little time for mean-reversion to act. At long maturities the distribution widens and fat-tail effects are diluted across many small shocks, bringing the implied vol closer to flat. This term structure of skew is a direct signature of <strong>volatility mean-reversion</strong>.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 3: Term Structure of Volatility
+    ═══════════════════════════════════════════════════ -->
+    <h2>3. Term Structure of Volatility</h2>
+    <div class="panel">
+        <h3>ATM implied vol vs maturity &mdash; normal, inverted, and humped regimes</h3>
+        <canvas id="termCanvas" width="700" height="270"></canvas>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn active" id="btnNorm">Normal (upward)</button>
+            <button class="btn" id="btnInv">Inverted (crisis)</button>
+            <button class="btn" id="btnHump">Humped</button>
+            <button class="btn" id="btnFlat">Flat</button>
+        </div>
+        <div class="slider-row">
+            <label>Short-end vol:</label>
+            <input type="range" id="tsSpot" min="5" max="80" value="18" step="1">
+            <span class="slider-val" id="vtsSpot">18%</span>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="tsStats"></div>
+        </div>
+        <div class="insight-box">
+            The term structure traces the market&rsquo;s expectation of average future volatility at each horizon. In calm markets it slopes gently upward (long-dated vol carries a liquidity premium). During crises it <strong>inverts sharply</strong>: short-dated vol spikes as fear is concentrated in the near term, while long-dated vol rises less because the market prices eventual recovery. The <strong>VIX</strong> is essentially the ATM 30-day implied vol of S&amp;P 500 options.
+            <br><br>
+            <strong>Forward vol</strong> is implied by the term structure: if 1-year vol is 22% and 2-year vol is 20%, the 1-year vol starting in 1 year is below 20%. Variance swaps and vol forward contracts let participants trade this forward vol directly.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 4: The Full 3D Surface
+    ═══════════════════════════════════════════════════ -->
+    <h2>4. The Full 3D Volatility Surface &mdash; Drag to Rotate</h2>
+    <div class="panel">
+        <h3>Implied vol across all strikes and maturities &mdash; the surface traders live on</h3>
+        <div class="surf-wrap" id="surfWrap">
+            <canvas id="surfCanvas" width="700" height="420"></canvas>
+            <div class="surf-hint">drag &amp; scroll to rotate / zoom</div>
+        </div>
+        <div class="btn-row" style="margin-top:14px">
+            <button class="btn active" id="btnSurfEq">Equity (S&amp;P)</button>
+            <button class="btn" id="btnSurfFX">FX (symmetric)</button>
+            <button class="btn" id="btnSurfRt">Rates (cap)</button>
+        </div>
+        <div class="slider-row">
+            <label>Overall vol level:</label>
+            <input type="range" id="surfLevel" min="50" max="150" value="100" step="1">
+            <span class="slider-val" id="vSurfLevel">100%</span>
+        </div>
+        <div class="slider-row">
+            <label>Skew intensity:</label>
+            <input type="range" id="surfSkew" min="0" max="100" value="60" step="1">
+            <span class="slider-val" id="vSurfSkew">60</span>
+        </div>
+        <div class="insight-box">
+            The vol surface encodes <em>everything</em> the options market believes about future distributions that Black-Scholes cannot capture: fat tails, skewness, mean-reversion, jump risk. The surface must be internally consistent: <strong>no calendar spread arbitrage</strong> (<em>total</em> variance &sigma;&sup2;T must be non-decreasing in maturity at fixed moneyness, i.e. &part;<sub>T</sub>(&sigma;&sup2;T) &ge; 0 &mdash; it is total variance, not spot vol, that is constrained) and <strong>no butterfly arbitrage</strong> (the risk-neutral density implied by the second derivative of calls must be non-negative everywhere).
+            <br><br>
+            Fitting a smooth, arbitrage-free surface to sparse market quotes &mdash; perhaps 50&ndash;100 liquid options across all expiries &mdash; is the <strong>surface calibration problem</strong>. It is one of the central daily tasks of every quantitative vol desk. The SVI (Stochastic Volatility Inspired) parameterisation, Gatheral&rsquo;s SSVI, and polynomial models are all practical solutions.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 5: Heston Model
+    ═══════════════════════════════════════════════════ -->
+    <h2>5. What Generates the Smile &mdash; Heston Stochastic Volatility</h2>
+    <div class="panel">
+        <h3>Simulate Heston paths and observe the implied smile and terminal distribution</h3>
+        <canvas id="hestonCanvas" width="700" height="320"></canvas>
+        <div style="margin-top:14px">
+            <div class="slider-row">
+                <label>Mean reversion speed &kappa;:</label>
+                <input type="range" id="hKappa" min="5" max="100" value="30" step="5">
+                <span class="slider-val" id="vhKappa">3.0</span>
+            </div>
+            <div class="slider-row">
+                <label>Long-run vol &theta;:</label>
+                <input type="range" id="hTheta" min="5" max="60" value="20" step="1">
+                <span class="slider-val" id="vhTheta">20%</span>
+            </div>
+            <div class="slider-row">
+                <label>Vol of vol &nu;:</label>
+                <input type="range" id="hVolvol" min="5" max="100" value="50" step="5">
+                <span class="slider-val" id="vhVolvol">0.50</span>
+            </div>
+            <div class="slider-row">
+                <label>Correlation &rho; (spot&ndash;vol):</label>
+                <input type="range" id="hRho" min="-95" max="95" value="-65" step="5">
+                <span class="slider-val" id="vhRho">&minus;0.65</span>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button class="btn fire" id="btnRunHeston">&#9654; Simulate 200 Paths</button>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="hestonStats"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="muted">Stock:</span> dS = rS dt + <span class="green">&radic;v</span>&middot;S dW<sub>1</sub></div>
+            <div class="math-line"><span class="muted">Variance:</span> dv = <span class="cyan">&kappa;</span>(<span class="gold">&theta;&sup2;</span>&minus;v)dt + <span class="purple">&nu;</span>&radic;v dW<sub>2</sub> &nbsp;&nbsp; <span class="muted">corr(dW<sub>1</sub>,dW<sub>2</sub>)=<span class="pink">&rho;</span></span></div>
+            <div class="math-line" style="font-size:0.82em;color:#606070;margin-top:4px"><span class="muted">Note: </span> Here <span class="gold">&theta;</span> is the <em>long-run vol</em> (e.g. 20%), so the long-run variance is <span class="gold">&theta;&sup2;</span>. The canonical Heston (1993) uses <span class="gold">&theta;</span> directly as long-run <em>variance</em>; both conventions are equivalent &mdash; the slider controls long-run vol for intuitive reading.</div>
+        </div>
+        <div class="insight-box">
+            The critical parameter is <strong style="color:#f472b6">&rho;</strong>. When &rho; is <strong>strongly negative</strong> (typical equity range: &minus;0.5 to &minus;0.8): a stock fall coincides with a vol spike. This correlation directly generates the left skew &mdash; the terminal distribution becomes negatively skewed and leptokurtic. Drag &rho; toward zero and watch the skew symmetrise into a smile. Drag &rho; positive and the skew inverts (unusual but seen in some commodity markets where supply shocks simultaneously raise prices and uncertainty).
+            <br><br>
+            The left panel shows the implied vol smile extracted from 200 simulated paths; the right shows the terminal distribution with the log-normal reference in dashed white. The fat left tail and compressed right tail are the visual signature of negative &rho;.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 6: Local Volatility — Dupire
+    ═══════════════════════════════════════════════════ -->
+    <h2>6. Local Volatility &mdash; Dupire&rsquo;s Formula</h2>
+    <div class="panel">
+        <h3>Every implied vol surface has a unique local vol surface &mdash; always steeper</h3>
+        <div class="two-col">
+            <div class="mini-panel">
+                <h4>Implied Vol (market quotes)</h4>
+                <canvas id="ivCanvas" width="310" height="270"></canvas>
+            </div>
+            <div class="mini-panel">
+                <h4>Local Vol (Dupire extraction &mdash; more extreme)</h4>
+                <canvas id="lvCanvas" width="310" height="270"></canvas>
+            </div>
+        </div>
+        <div class="slider-row" style="margin-top:10px">
+            <label>Skew magnitude:</label>
+            <input type="range" id="dupSkew" min="0" max="100" value="50" step="5">
+            <span class="slider-val" id="vdupSkew">50</span>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="muted">Dupire (1994):</span> &sigma;<sub>loc</sub>&sup2;(K,T) = <span class="green">[2(&part;C/&part;T + rK&part;C/&part;K)]</span> / <span class="gold">[K&sup2;&part;&sup2;C/&part;K&sup2;]</span></div>
+            <div class="math-line"><span class="muted">Approximation for small skew:</span> &sigma;<sub>loc</sub>(K) &asymp; 2&sigma;<sub>imp</sub>(K) &minus; &sigma;<sub>imp</sub>(K<sub>ATM</sub>)</div>
+        </div>
+        <div class="insight-box">
+            Dupire proved that <em>any</em> arbitrage-free implied vol surface corresponds to a unique <strong>local vol function</strong> &sigma;<sub>loc</sub>(S,t) &mdash; a deterministic function of spot and time that prices all vanillas exactly. The local vol surface is always <strong>steeper and more curved</strong> than the implied vol surface it was extracted from (notice the right panel is more extreme than the left for the same skew parameter).
+            <br><br>
+            The practical limitation: local vol predicts that as spot falls, forward vol <em>decreases</em> (the surface is fixed in K-space). In reality, vol often remains elevated after a crash (the surface shifts with spot). This means <strong>local vol implies perfect replication of vanilla options but gives incorrect forward smile dynamics</strong> &mdash; it systematically under-hedges exotic options whose payoffs depend on how the smile moves when spot moves. <strong>Stochastic Local Volatility (SLV)</strong> hybrids &mdash; blending Heston dynamics with Dupire calibration &mdash; are the current industry standard for structured product pricing.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 7: Trader P&L Dashboard
+    ═══════════════════════════════════════════════════ -->
+    <h2>7. Trader P&amp;L &mdash; Vega, Delta, Gamma and the Full Picture</h2>
+    <div class="panel">
+        <h3>How a spot move translates into P&amp;L across the Greeks</h3>
+        <div class="btn-row">
+            <button class="btn active" id="btnTrVega">Vega P&amp;L only</button>
+            <button class="btn" id="btnTrFull">Delta + Gamma + Vega (full)</button>
+        </div>
+        <canvas id="traderCanvas" width="700" height="270"></canvas>
+        <div style="margin-top:14px">
+            <div class="slider-row">
+                <label>Spot move (%):</label>
+                <input type="range" id="trSpot" min="-30" max="30" value="0" step="1">
+                <span class="slider-val" id="vtrSpot">0%</span>
+            </div>
+            <div class="slider-row">
+                <label>Portfolio vega (&pound;K per vol pt):</label>
+                <input type="range" id="trVega" min="-200" max="200" value="50" step="10">
+                <span class="slider-val" id="vtrVega">&pound;+50K</span>
+            </div>
+            <div class="slider-row">
+                <label>Vol-spot beta (&Delta;&sigma;/&Delta;S):</label>
+                <input type="range" id="trBeta" min="-100" max="0" value="-60" step="5">
+                <span class="slider-val" id="vtrBeta">&minus;0.60</span>
+            </div>
+            <div class="slider-row" id="fullSliders" style="display:none;flex-direction:column;gap:0">
+                <div class="slider-row">
+                    <label>Portfolio delta (&pound;K per 1% move):</label>
+                    <input type="range" id="trDelta" min="-500" max="500" value="100" step="10">
+                    <span class="slider-val" id="vtrDelta">&pound;+100K</span>
+                </div>
+                <div class="slider-row">
+                    <label>Gamma P&amp;L factor (&pound;K per 1%&sup2;):</label>
+                    <input type="range" id="trGamma" min="-50" max="50" value="8" step="1">
+                    <span class="slider-val" id="vtrGamma">&pound;+8K</span>
+                </div>
+            </div>
+        </div>
+        <div class="result-box">
+            <div class="stats-row" id="trStats"></div>
+        </div>
+        <div class="insight-box">
+            The <strong>vol-spot beta</strong> encodes the leverage effect: a 1% spot fall typically raises ATM vol by 0.6 vol points in US equities. A long vega position (<strong>long options</strong>) benefits from a crash (vol spikes) but loses money slowly on rallies (vol drifts down and theta bleeds). This is the hidden P&amp;L of the vega book &mdash; separate from the well-understood theta decay and delta/gamma dynamics.
+            <br><br>
+            Toggle to <strong>Full P&amp;L</strong> to see the complete desk reality: delta P&amp;L (linear in spot move), gamma P&amp;L (quadratic, long-gamma positions benefit from large moves in either direction), and vega P&amp;L (from the vol-spot correlation). On a real trading desk these three sources interact continuously &mdash; a crash that is good for long-vega can simultaneously hurt a positive-delta book, and the net depends on how each book was hedged.
+        </div>
+        <div class="warn-box">
+            <strong style="color:#fbbf24">Vega bucketing:</strong> Selling an OTM put leaves you short vega at that strike, not at ATM. Hedging with an ATM option only partially covers the exposure because OTM and ATM vols move differently along the smile. A proper hedge requires matching vega at each <em>point</em> of the surface &mdash; the <strong>vega bucket grid</strong> (by strike and maturity) is a daily report in every major options risk system. Mismatched vega buckets are a common source of P&amp;L surprises when the smile shape shifts.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         SECTION 8: The Bigger Picture
+    ═══════════════════════════════════════════════════ -->
+    <h2>8. The Bigger Picture &mdash; What Volatility Surfaces Tell Us</h2>
+
+    <!-- Risk-neutral vs Physical density panel -->
+    <div class="panel" style="margin-bottom:20px">
+        <h3>Risk-neutral vs physical distribution &mdash; the vol risk premium made visible</h3>
+        <canvas id="rnCanvas" width="700" height="240"></canvas>
+        <div class="slider-row" style="margin-top:12px">
+            <label>Vol risk premium (&lambda;):</label>
+            <input type="range" id="rnLambda" min="0" max="100" value="45" step="5">
+            <span class="slider-val" id="vrnLambda">0.45</span>
+        </div>
+        <div style="display:flex;gap:22px;margin-top:8px;font-size:0.82em;flex-wrap:wrap">
+            <span><span style="display:inline-block;width:28px;height:3px;background:rgba(34,211,238,0.85);vertical-align:middle;margin-right:5px;border-radius:2px"></span>Physical (realised frequency)</span>
+            <span><span style="display:inline-block;width:28px;height:3px;background:rgba(248,113,113,0.85);vertical-align:middle;margin-right:5px;border-radius:2px"></span>Risk-neutral (pricing measure)</span>
+            <span style="color:#808098">Shaded gap = volatility risk premium</span>
+        </div>
+        <div class="insight-box" style="margin-top:10px">
+            <strong style="color:#e0e0e0">Risk-neutral (Q) &ne; Physical (P).</strong> The <span style="color:#22d3ee">physical density</span> is what you would observe if you watched markets for a long time &mdash; it reflects the actual frequency of outcomes. The <span style="color:#f87171">risk-neutral density</span> is the pricing measure: it is tilted relative to the physical to embed the price of risk. The left tail of the risk-neutral density is fatter than the physical because investors pay extra to insure against crashes &mdash; that extra cost is the <strong>volatility risk premium</strong> (the shaded gap). Drag &lambda; to see how a larger risk premium shifts the risk-neutral density leftward and fattens its tail relative to what history would predict.
+        </div>
+    </div>
+
+    <div class="explain">
+        <div class="explain-name">The Market&rsquo;s Risk-Neutral Probability Distribution</div>
+        <div class="explain-text">
+            The Breeden-Litzenberger formula (1978) shows that the second derivative of call prices with respect to strike equals the risk-neutral density of the terminal stock price: p(S<sub>T</sub>) = e<sup>rT</sup>&part;&sup2;C/&part;K&sup2;. Every fat tail, every skew, every peak visible in the vol surface is a direct encoding of the market&rsquo;s risk-neutral probability distribution. The surface is not just a quoting convention; it is the market&rsquo;s complete view of future uncertainty.
+            <br><br>
+            <strong style="color:#e0e0e0">Why the smile persists:</strong> Deep OTM puts remain expensive because they insure against scenarios that are catastrophic when they occur, even if rare. The risk-neutral density is not the physical density &mdash; the difference is the <strong>risk premium</strong> investors demand for bearing tail risk. Selling tail risk systematically earns a premium over time but accepts rare large losses. The 2008 crisis, the March 2020 COVID crash, and the 2022 rate shock all reminded even sophisticated desks that historical frequencies severely underestimate true tail probabilities.
+            <br><br>
+            <strong style="color:#e0e0e0">Model evolution &mdash; fifty years in four lines:</strong> Black-Scholes (1973) assumed constant vol; Dupire (1994) made vol a deterministic function of spot and time; Heston (1993) made vol stochastic; Gatheral-Jaisson-Rosenbaum (2018) showed that volatility follows rough fractional Brownian motion with Hurst exponent H &asymp; 0.1, explaining the power-law term structure of vol-of-vol. Each generation of models gives a better description of how volatility actually behaves, and each introduces new calibration challenges.
+            <br><br>
+            <strong style="color:#e0e0e0">Connection to XVA and counterparty credit:</strong> The volatility surface is a direct input to Monte Carlo simulations for Potential Future Exposure (PFE) and CVA. An interest rate XVA desk uses swaption vol surfaces to model future rate distributions. An equity derivatives XVA desk uses equity vol surfaces to model future stock exposures for counterparty collateral calls. The surface is not just for vanilla option traders &mdash; it underlies every mark-to-market risk calculation in a modern investment bank.
+            <br><br>
+            <strong style="color:#e0e0e0">The practical bottom line:</strong> The vol surface is the single most information-rich object in financial markets &mdash; a compressed representation of thousands of market participants&rsquo; collective beliefs about future distributions. Every options trader, every risk manager pricing exotics, every XVA desk, every model validator, and every stress tester works with the vol surface daily. Learning to read it, parameterise it, calibrate it, and understand what makes it move is the core technical skill of modern quantitative finance.
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   Volatility Smiles & Surfaces — Chapter 11, Page 10 (Capstone)
+   Sections: flat-vol failure, smile shape, term structure, 3D draggable
+   surface, Heston simulation + implied smile, Dupire local vol, trader PnL
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Shared maths ── */
+function normCDF(x){
+    var a=[0.319381530,-0.356563782,1.781477937,-1.821255978,1.330274429];
+    var k=1/(1+0.2316419*Math.abs(x));
+    var p=k*(a[0]+k*(a[1]+k*(a[2]+k*(a[3]+k*a[4]))));
+    var r=1-(1/Math.sqrt(2*Math.PI))*Math.exp(-x*x/2)*p;
+    return x<0?1-r:r;
+}
+function normPDF(x){return Math.exp(-0.5*x*x)/Math.sqrt(2*Math.PI);}
+function bsCall(S,K,r,sig,T){
+    if(T<=0||sig<=0)return Math.max(S-K,0);
+    var d1=(Math.log(S/K)+(r+0.5*sig*sig)*T)/(sig*Math.sqrt(T));
+    var d2=d1-sig*Math.sqrt(T);
+    return S*normCDF(d1)-K*Math.exp(-r*T)*normCDF(d2);
+}
+function impliedVol(C,S,K,r,T){
+    if(T<=0)return NaN;
+    var intrinsic=Math.max(S-K*Math.exp(-r*T),0);
+    if(C<=intrinsic+1e-7)return 0.001;
+    var sig=0.25;
+    for(var i=0;i<80;i++){
+        var d1=(Math.log(S/K)+(r+0.5*sig*sig)*T)/(sig*Math.sqrt(T));
+        var d2=d1-sig*Math.sqrt(T);
+        var price=S*normCDF(d1)-K*Math.exp(-r*T)*normCDF(d2);
+        var vega=S*normPDF(d1)*Math.sqrt(T);
+        var diff=price-C;
+        if(Math.abs(diff)<1e-9)break;
+        sig-=diff/(vega+1e-14);
+        sig=Math.max(0.001,Math.min(6,sig));
+    }
+    return sig;
+}
+/* 5-stop heatmap */
+function heatCol(frac){
+    frac=Math.max(0,Math.min(1,frac));
+    var stops=[[8,12,60],[10,140,180],[16,185,129],[251,191,36],[248,60,60]];
+    var t=frac*4,lo=Math.floor(t),hi=Math.min(4,lo+1),bl=t-lo;
+    var r=stops[lo][0]+(stops[hi][0]-stops[lo][0])*bl;
+    var g=stops[lo][1]+(stops[hi][1]-stops[lo][1])*bl;
+    var b=stops[lo][2]+(stops[hi][2]-stops[lo][2])*bl;
+    var alpha=0.46+0.40*frac;
+    return{r,g,b,fill:'rgba('+Math.round(r)+','+Math.round(g)+','+Math.round(b)+','+alpha+')',stroke:'rgba('+Math.round(r)+','+Math.round(g)+','+Math.round(b)+',0.16)'};
+}
+function clearDark(cvs,ctx){
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,cvs.width,cvs.height);
+}
+/* LCG + Box-Muller */
+function makeLCG(seed){
+    var s=seed|0;
+    return function(){s=(s*1664525+1013904223)&0xffffffff;return (s>>>0)/4294967296;};
+}
+function boxMuller(rng){
+    var u=1-rng(),v=rng();
+    return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+
+/* ═══════════════════════════════════════════════════
+   SECTION 1: Flat Vol Failure
+═══════════════════════════════════════════════════ */
+var ffCvs=document.getElementById('ffCanvas'),ffCtx=ffCvs.getContext('2d');
+var ffType='equity';
+
+function smileShape(k,type,sk){
+    sk=sk/100;
+    if(type==='equity') return -sk*0.22*k + 0.08*k*k;
+    if(type==='fx')     return  sk*0.06*k*k*(1+0.2*Math.abs(k));
+    /* rates hump */
+    return sk*(0.08*Math.exp(-0.5*k*k) - 0.004*k);
+}
+
+function drawFlatFail(){
+    var atm=parseInt(document.getElementById('ffAtm').value)/100;
+    var sk=parseInt(document.getElementById('ffSkew').value);
+    document.getElementById('vffAtm').textContent=(atm*100).toFixed(0)+'%';
+    document.getElementById('vffSkew').textContent=sk;
+
+    var W=ffCvs.width,H=ffCvs.height;
+    var PAD={l:60,r:28,t:26,b:42};
+    var plotW=W-PAD.l-PAD.r,plotH=H-PAD.t-PAD.b;
+    clearDark(ffCvs,ffCtx);
+
+    var kMin=-3,kMax=3,vMin=0.02,vMax=0.70;
+    function tx(k){return PAD.l+(k-kMin)/(kMax-kMin)*plotW;}
+    function ty(v){return PAD.t+plotH-(v-vMin)/(vMax-vMin)*plotH;}
+
+    /* Grid lines */
+    ffCtx.strokeStyle='rgba(255,255,255,0.03)';ffCtx.lineWidth=1;
+    [0.10,0.20,0.30,0.40,0.50,0.60].forEach(function(v){
+        ffCtx.beginPath();ffCtx.moveTo(PAD.l,ty(v));ffCtx.lineTo(W-PAD.r,ty(v));ffCtx.stroke();
+        ffCtx.fillStyle='#404058';ffCtx.font='10px Georgia';ffCtx.textAlign='right';ffCtx.textBaseline='middle';
+        ffCtx.fillText((v*100).toFixed(0)+'%',PAD.l-5,ty(v));
+    });
+    [-3,-2,-1,0,1,2,3].forEach(function(k){
+        ffCtx.fillStyle='#404058';ffCtx.font='10px Georgia';ffCtx.textAlign='center';ffCtx.textBaseline='top';
+        ffCtx.fillText(k===0?'ATM':(k>0?'+'+k+'σ':k+'σ'),tx(k),H-PAD.b+6);
+    });
+    ffCtx.fillStyle='#404058';ffCtx.font='11px Georgia';ffCtx.textAlign='center';ffCtx.textBaseline='top';
+    ffCtx.fillText('Moneyness k = ln(K/F)',PAD.l+plotW/2,H-PAD.b+22);
+
+    /* Flat BS vol */
+    ffCtx.strokeStyle='rgba(255,255,255,0.20)';ffCtx.lineWidth=1.5;ffCtx.setLineDash([7,4]);
+    ffCtx.beginPath();ffCtx.moveTo(PAD.l,ty(atm));ffCtx.lineTo(W-PAD.r,ty(atm));ffCtx.stroke();
+    ffCtx.setLineDash([]);
+    ffCtx.fillStyle='rgba(255,255,255,0.38)';ffCtx.font='10px Georgia';ffCtx.textAlign='left';ffCtx.textBaseline='bottom';
+    ffCtx.fillText('BS flat vol '+(atm*100).toFixed(0)+'%',PAD.l+6,ty(atm)-4);
+
+    /* Market smile */
+    var smColour=ffType==='equity'?'rgba(248,113,113,0.88)':(ffType==='fx'?'rgba(34,211,238,0.88)':'rgba(167,139,250,0.88)');
+    var fillColour=ffType==='equity'?'rgba(248,113,113,0.07)':(ffType==='fx'?'rgba(34,211,238,0.07)':'rgba(167,139,250,0.07)');
+
+    /* Fill between flat and smile */
+    ffCtx.beginPath();
+    for(var ki=-300;ki<=300;ki++){
+        var k=ki/100;
+        var iv=Math.max(0.03,Math.min(0.70,atm+smileShape(k,ffType,sk)));
+        if(ki===-300)ffCtx.moveTo(tx(k),ty(iv));else ffCtx.lineTo(tx(k),ty(iv));
+    }
+    ffCtx.lineTo(W-PAD.r,ty(atm));ffCtx.lineTo(PAD.l,ty(atm));ffCtx.closePath();
+    ffCtx.fillStyle=fillColour;ffCtx.fill();
+
+    /* Smile line */
+    ffCtx.strokeStyle=smColour;ffCtx.lineWidth=2.5;
+    ffCtx.beginPath();var first=true;
+    for(var ki=-300;ki<=300;ki++){
+        var k=ki/100;
+        var iv=Math.max(0.03,Math.min(0.70,atm+smileShape(k,ffType,sk)));
+        if(first){ffCtx.moveTo(tx(k),ty(iv));first=false;}else ffCtx.lineTo(tx(k),ty(iv));
+    }
+    ffCtx.stroke();
+
+    var lbl=ffType==='equity'?'Equity skew (put richness)':(ffType==='fx'?'FX smile (symmetric wings)':'Rates hump (mid-strike premium)');
+    ffCtx.fillStyle=smColour;ffCtx.font='bold 10px Georgia';ffCtx.textAlign='left';ffCtx.textBaseline='top';
+    ffCtx.fillText(lbl,PAD.l+6,PAD.t+6);
+
+    var ivATM=atm+smileShape(0,ffType,sk);
+    var iv10P=Math.max(0.03,atm+smileShape(-1.28,ffType,sk));
+    var iv10C=Math.max(0.03,atm+smileShape(1.28,ffType,sk));
+    document.getElementById('ffStats').innerHTML=
+        '<div class="stat-box"><div class="stat-label">ATM vol</div><div class="stat-val green">'+(ivATM*100).toFixed(1)+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">10&Delta; put vol</div><div class="stat-val red">'+(iv10P*100).toFixed(1)+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">10&Delta; call vol</div><div class="stat-val cyan">'+(iv10C*100).toFixed(1)+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">25&Delta; RR (P&minus;C)</div><div class="stat-val gold">'+((iv10P-iv10C)*100).toFixed(1)+' vpts</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Market</div><div class="stat-val">'+(ffType==='equity'?'Equity':(ffType==='fx'?'FX':'Rates'))+'</div></div>';
+}
+
+['btnEquity','btnFX','btnRates'].forEach(function(id){
+    document.getElementById(id).addEventListener('click',function(){
+        ffType=id==='btnEquity'?'equity':id==='btnFX'?'fx':'rates';
+        ['btnEquity','btnFX','btnRates'].forEach(function(b){document.getElementById(b).classList.toggle('active',b===id);});
+        drawFlatFail();
+    });
+});
+['ffAtm','ffSkew'].forEach(function(id){document.getElementById(id).addEventListener('input',drawFlatFail);});
+
+/* ═══════════════════════════════════════════════════
+   SECTION 2: Smile Shape
+═══════════════════════════════════════════════════ */
+var smCvs=document.getElementById('smileCanvas'),smCtx=smCvs.getContext('2d');
+
+function smileIV(k,T,atm,skew,curv){
+    var iv=atm+skew*k/Math.sqrt(T)+curv*k*k/T;
+    return Math.max(0.03,Math.min(0.85,iv));
+}
+
+function drawSmile(){
+    var atm=parseInt(document.getElementById('smAtm').value)/100;
+    var skew=parseInt(document.getElementById('smSkew').value)/100;
+    var curv=parseInt(document.getElementById('smCurv').value)/100;
+    var Tmo=parseInt(document.getElementById('smT').value);
+    var T=Tmo/12;
+    document.getElementById('vsmAtm').textContent=(atm*100).toFixed(0)+'%';
+    document.getElementById('vsmSkew').textContent=(skew<0?'\u2212':'')+Math.abs(skew).toFixed(2);
+    document.getElementById('vsmCurv').textContent=curv.toFixed(2);
+    document.getElementById('vsmT').textContent=Tmo+' mo';
+
+    var W=smCvs.width,H=smCvs.height;
+    var PAD={l:58,r:34,t:28,b:42};
+    var plotW=W-PAD.l-PAD.r,plotH=H-PAD.t-PAD.b;
+    clearDark(smCvs,smCtx);
+
+    var kMin=-3,kMax=3,vMin=0.02,vMax=0.80;
+    function tx(k){return PAD.l+(k-kMin)/(kMax-kMin)*plotW;}
+    function ty(v){return PAD.t+plotH-(v-vMin)/(vMax-vMin)*plotH;}
+
+    smCtx.strokeStyle='rgba(255,255,255,0.03)';smCtx.lineWidth=1;
+    [0.10,0.20,0.30,0.40,0.50,0.60,0.70].forEach(function(v){
+        if(v>vMax)return;
+        smCtx.beginPath();smCtx.moveTo(PAD.l,ty(v));smCtx.lineTo(W-PAD.r,ty(v));smCtx.stroke();
+        smCtx.fillStyle='#404058';smCtx.font='10px Georgia';smCtx.textAlign='right';smCtx.textBaseline='middle';
+        smCtx.fillText((v*100).toFixed(0)+'%',PAD.l-5,ty(v));
+    });
+    [-3,-2,-1,0,1,2,3].forEach(function(k){
+        smCtx.fillStyle='#404058';smCtx.font='10px Georgia';smCtx.textAlign='center';smCtx.textBaseline='top';
+        smCtx.fillText(k===0?'ATM':(k>0?'+'+k:k),tx(k),H-PAD.b+6);
+    });
+
+    /* Five expiry curves */
+    var maturities=[1/12,3/12,6/12,12/12,24/12];
+    var colours=['rgba(248,113,113,0.60)','rgba(251,191,36,0.65)','rgba(16,185,129,0.72)','rgba(34,211,238,0.65)','rgba(167,139,250,0.55)'];
+    var labels=['1m','3m','6m','1y','2y'];
+    var closestIdx=maturities.reduce(function(best,v,i){return Math.abs(v-T)<Math.abs(maturities[best]-T)?i:best;},0);
+
+    maturities.forEach(function(te,idx){
+        smCtx.strokeStyle=colours[idx];
+        smCtx.lineWidth=idx===closestIdx?2.6:1.0;
+        smCtx.beginPath();var first=true;
+        for(var ki=-300;ki<=300;ki++){
+            var k=ki/100;
+            var iv=smileIV(k,te,atm,skew,curv);
+            if(first){smCtx.moveTo(tx(k),ty(iv));first=false;}else smCtx.lineTo(tx(k),ty(iv));
+        }
+        smCtx.stroke();
+        /* Label at right edge */
+        var ivR=smileIV(3,te,atm,skew,curv);
+        smCtx.fillStyle=colours[idx];smCtx.font='9px Georgia';smCtx.textAlign='left';smCtx.textBaseline='middle';
+        smCtx.fillText(labels[idx],W-PAD.r+3,ty(ivR));
+    });
+
+    /* ATM marker */
+    var ivAtm=smileIV(0,T,atm,skew,curv);
+    smCtx.strokeStyle='rgba(255,255,255,0.14)';smCtx.lineWidth=1;smCtx.setLineDash([4,3]);
+    smCtx.beginPath();smCtx.moveTo(tx(0),PAD.t);smCtx.lineTo(tx(0),ty(ivAtm));smCtx.stroke();
+    smCtx.setLineDash([]);
+
+    smCtx.fillStyle='rgba(255,255,255,0.22)';smCtx.font='10px Georgia';smCtx.textAlign='center';smCtx.textBaseline='top';
+    smCtx.fillText('Smile flattens with longer maturities \u2014 mean reversion of vol',PAD.l+plotW/2,PAD.t+5);
+    smCtx.fillStyle='#404058';smCtx.font='11px Georgia';smCtx.textAlign='center';smCtx.textBaseline='top';
+    smCtx.fillText('Standardised moneyness k = ln(K/F)',PAD.l+plotW/2,H-PAD.b+22);
+
+    var ivP25=smileIV(-0.675,T,atm,skew,curv);
+    var ivC25=smileIV(0.675,T,atm,skew,curv);
+    document.getElementById('smStats').innerHTML=
+        '<div class="stat-box"><div class="stat-label">ATM vol</div><div class="stat-val green">'+(ivAtm*100).toFixed(1)+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">25&Delta; put vol</div><div class="stat-val red">'+(ivP25*100).toFixed(1)+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">25&Delta; call vol</div><div class="stat-val cyan">'+(ivC25*100).toFixed(1)+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Risk reversal</div><div class="stat-val gold">'+((ivP25-ivC25)*100).toFixed(1)+' vpts</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Butterfly</div><div class="stat-val purple">'+((ivP25+ivC25)/2*100-ivAtm*100).toFixed(1)+' vpts</div></div>';
+}
+['smAtm','smSkew','smCurv','smT'].forEach(function(id){document.getElementById(id).addEventListener('input',drawSmile);});
+
+/* ═══════════════════════════════════════════════════
+   SECTION 3: Term Structure
+═══════════════════════════════════════════════════ */
+var tsCvs=document.getElementById('termCanvas'),tsCtx=tsCvs.getContext('2d');
+var tsMode='normal';
+
+function tsVol(T,mode,sv){
+    sv=sv/100;
+    if(mode==='normal')   return sv+0.06*(1-Math.exp(-T/1.2));
+    if(mode==='inverted') return sv*Math.exp(-T*1.1)+0.14*(1-Math.exp(-T*1.1));
+    if(mode==='humped')   return sv+0.12*T*Math.exp(-T*1.3);
+    return sv;
+}
+
+function drawTermStructure(){
+    var sv=parseInt(document.getElementById('tsSpot').value);
+    document.getElementById('vtsSpot').textContent=sv+'%';
+    var W=tsCvs.width,H=tsCvs.height;
+    var PAD={l:60,r:26,t:26,b:42};
+    var plotW=W-PAD.l-PAD.r,plotH=H-PAD.t-PAD.b;
+    clearDark(tsCvs,tsCtx);
+
+    var tArr=[],vArr=[];
+    for(var i=0;i<=100;i++){var t=0.04+i/100*4.96;tArr.push(t);vArr.push(tsVol(t,tsMode,sv));}
+    var vMin=Math.max(0,Math.min.apply(null,vArr)*0.86);
+    var vMax=Math.max.apply(null,vArr)*1.14;
+    function tx(t){return PAD.l+(t-0.04)/4.96*plotW;}
+    function ty(v){return PAD.t+plotH-(v-vMin)/(vMax-vMin)*plotH;}
+
+    tsCtx.strokeStyle='rgba(255,255,255,0.03)';tsCtx.lineWidth=1;
+    for(var g=0;g<=4;g++){
+        var yv=vMin+g/4*(vMax-vMin);
+        tsCtx.beginPath();tsCtx.moveTo(PAD.l,ty(yv));tsCtx.lineTo(W-PAD.r,ty(yv));tsCtx.stroke();
+        tsCtx.fillStyle='#404058';tsCtx.font='10px Georgia';tsCtx.textAlign='right';tsCtx.textBaseline='middle';
+        tsCtx.fillText((yv*100).toFixed(0)+'%',PAD.l-5,ty(yv));
+    }
+    [0.25,0.5,1,2,3,5].forEach(function(t){
+        if(t>5)return;
+        tsCtx.fillStyle='#404058';tsCtx.font='10px Georgia';tsCtx.textAlign='center';tsCtx.textBaseline='top';
+        tsCtx.fillText(t<1?(t*12).toFixed(0)+'m':t+'y',tx(t),H-PAD.b+6);
+    });
+
+    /* Fill */
+    var grad=tsCtx.createLinearGradient(0,PAD.t,0,H-PAD.b);
+    grad.addColorStop(0,'rgba(16,185,129,0.20)');grad.addColorStop(1,'rgba(16,185,129,0.01)');
+    tsCtx.fillStyle=grad;
+    tsCtx.beginPath();tsCtx.moveTo(PAD.l,ty(vArr[0]));
+    tArr.forEach(function(t,i){tsCtx.lineTo(tx(t),ty(vArr[i]));});
+    tsCtx.lineTo(W-PAD.r,H-PAD.b);tsCtx.lineTo(PAD.l,H-PAD.b);tsCtx.closePath();tsCtx.fill();
+
+    /* ATM vol line */
+    tsCtx.strokeStyle='rgba(16,185,129,0.88)';tsCtx.lineWidth=2.5;
+    tsCtx.beginPath();
+    tArr.forEach(function(t,i){if(i===0)tsCtx.moveTo(tx(t),ty(vArr[i]));else tsCtx.lineTo(tx(t),ty(vArr[i]));});
+    tsCtx.stroke();
+
+    /* Forward vol */
+    tsCtx.strokeStyle='rgba(251,191,36,0.48)';tsCtx.lineWidth=1.4;tsCtx.setLineDash([5,4]);
+    tsCtx.beginPath();
+    for(var i=1;i<tArr.length-1;i++){
+        var T1=tArr[i],T2=tArr[i+1];
+        var v1=vArr[i],v2=vArr[i+1];
+        var fv=Math.sqrt(Math.max(0.0001,(v2*v2*T2-v1*v1*T1)/(T2-T1)));
+        fv=Math.max(vMin,Math.min(vMax,fv));
+        if(i===1)tsCtx.moveTo(tx(T1),ty(fv));else tsCtx.lineTo(tx(T2),ty(fv));
+    }
+    tsCtx.stroke();tsCtx.setLineDash([]);
+
+    tsCtx.fillStyle='rgba(16,185,129,0.7)';tsCtx.font='10px Georgia';tsCtx.textAlign='left';tsCtx.textBaseline='top';
+    tsCtx.fillText('ATM spot vol',PAD.l+6,PAD.t+6);
+    tsCtx.fillStyle='rgba(251,191,36,0.60)';
+    tsCtx.fillText('Forward vol (implied)',PAD.l+6,PAD.t+19);
+    tsCtx.fillStyle='#404058';tsCtx.font='11px Georgia';tsCtx.textAlign='center';tsCtx.textBaseline='top';
+    tsCtx.fillText('Maturity',PAD.l+plotW/2,H-PAD.b+22);
+
+    var v1m=tsVol(1/12,tsMode,sv),v1y=tsVol(1,tsMode,sv),v2y=tsVol(2,tsMode,sv),v5y=tsVol(5,tsMode,sv);
+    document.getElementById('tsStats').innerHTML=
+        '<div class="stat-box"><div class="stat-label">1m vol</div><div class="stat-val green">'+(v1m*100).toFixed(1)+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">1y vol</div><div class="stat-val cyan">'+(v1y*100).toFixed(1)+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">2y vol</div><div class="stat-val gold">'+(v2y*100).toFixed(1)+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">5y vol</div><div class="stat-val purple">'+(v5y*100).toFixed(1)+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">1m&rarr;1y slope</div><div class="stat-val">'+((v1y-v1m)*100).toFixed(1)+' vpts</div></div>';
+}
+
+['btnNorm','btnInv','btnHump','btnFlat'].forEach(function(id){
+    document.getElementById(id).addEventListener('click',function(){
+        tsMode=id==='btnNorm'?'normal':id==='btnInv'?'inverted':id==='btnHump'?'humped':'flat';
+        ['btnNorm','btnInv','btnHump','btnFlat'].forEach(function(b){document.getElementById(b).classList.toggle('active',b===id);});
+        drawTermStructure();
+    });
+});
+document.getElementById('tsSpot').addEventListener('input',drawTermStructure);
+
+/* ═══════════════════════════════════════════════════
+   SECTION 4: 3D Vol Surface
+═══════════════════════════════════════════════════ */
+var surfCvs=document.getElementById('surfCanvas'),surfCtx=surfCvs.getContext('2d');
+var surfType='equity';
+var sr={x:0.42,y:0.62,zoom:1.0,drag:false,lx:0,ly:0};
+
+(function(){
+    var wrap=document.getElementById('surfWrap');
+    wrap.addEventListener('mousedown',function(e){sr.drag=true;sr.lx=e.clientX;sr.ly=e.clientY;});
+    window.addEventListener('mouseup',function(){sr.drag=false;});
+    window.addEventListener('mousemove',function(e){
+        if(!sr.drag)return;
+        sr.y+=(e.clientX-sr.lx)*0.012;sr.x+=(e.clientY-sr.ly)*0.012;
+        sr.x=Math.max(-1.2,Math.min(1.2,sr.x));sr.lx=e.clientX;sr.ly=e.clientY;
+        drawSurf();
+    });
+    wrap.addEventListener('touchstart',function(e){if(e.touches.length===1){sr.drag=true;sr.lx=e.touches[0].clientX;sr.ly=e.touches[0].clientY;}},{passive:true});
+    wrap.addEventListener('touchmove',function(e){
+        if(!sr.drag||e.touches.length!==1)return;
+        sr.y+=(e.touches[0].clientX-sr.lx)*0.012;sr.x+=(e.touches[0].clientY-sr.ly)*0.012;
+        sr.x=Math.max(-1.2,Math.min(1.2,sr.x));sr.lx=e.touches[0].clientX;sr.ly=e.touches[0].clientY;
+        drawSurf();
+    },{passive:true});
+    wrap.addEventListener('touchend',function(){sr.drag=false;});
+    wrap.addEventListener('wheel',function(e){
+        sr.zoom*=e.deltaY>0?0.92:1.08;sr.zoom=Math.max(0.4,Math.min(2.5,sr.zoom));
+        drawSurf();e.preventDefault();
+    },{passive:false});
+})();
+
+function surfIV(k,T,type,level,skewInt){
+    var L=level/100,sk=skewInt/100;
+    var base=0.20*L;
+    if(type==='equity'){
+        var smile=-sk*0.24*k/Math.sqrt(T)+0.07*k*k/T;
+        var ts=0.04*(1-Math.exp(-T*0.85));
+        return Math.max(0.04,base+smile+ts);
+    }
+    if(type==='fx'){
+        var smile=sk*0.055*k*k/T;
+        var ts=0.025*(1-Math.exp(-T));
+        return Math.max(0.04,base+smile+ts);
+    }
+    /* rates */
+    var hump=0.04*sk*Math.exp(-0.5*k*k)*Math.exp(-T*0.5);
+    var ts=-0.03*Math.exp(-T*1.5)+0.025;
+    return Math.max(0.04,base+hump+ts);
+}
+
+function drawSurf(){
+    var level=parseInt(document.getElementById('surfLevel').value);
+    var skewInt=parseInt(document.getElementById('surfSkew').value);
+    document.getElementById('vSurfLevel').textContent=level+'%';
+    document.getElementById('vSurfSkew').textContent=skewInt;
+
+    var W=surfCvs.width,H=surfCvs.height;
+    clearDark(surfCvs,surfCtx);
+
+    var NK=26,NT=22;
+    var kArr=[],tArr=[];
+    for(var i=0;i<NK;i++) kArr.push(-2.6+i*5.2/(NK-1));
+    for(var j=0;j<NT;j++) tArr.push(0.08+j*4.92/(NT-1));
+
+    var grid=[],vMin=Infinity,vMax=-Infinity;
+    for(var i=0;i<NK;i++){
+        grid.push([]);
+        for(var j=0;j<NT;j++){
+            var v=surfIV(kArr[i],tArr[j],surfType,level,skewInt);
+            grid[i].push(v);
+            if(v<vMin)vMin=v;if(v>vMax)vMax=v;
+        }
+    }
+    if(vMax===vMin)vMax=vMin+0.001;
+
+    var cosY=Math.cos(sr.y),sinY=Math.sin(sr.y);
+    var cosX=Math.cos(sr.x),sinX=Math.sin(sr.x);
+    var kMid=0,kRng=2.6,tMid=(tArr[0]+tArr[NT-1])/2,tRng=(tArr[NT-1]-tArr[0])/2;
+    var vMid=(vMin+vMax)/2,vRng=(vMax-vMin)/2||0.001;
+
+    function proj(k,t,v){
+        var x=(k-kMid)/kRng,y=(v-vMid)/vRng,z=(t-tMid)/tRng;
+        var x2=x*cosY+z*sinY,z2=-x*sinY+z*cosY;
+        var y2=y*cosX-z2*sinX,z3=y*sinX+z2*cosX;
+        var fov=4.0*sr.zoom;
+        return{px:W/2+x2*fov*(W/14),py:H/2-y2*fov*(H/14),z:z3};
+    }
+
+    var faces=[];
+    for(var i=0;i<NK-1;i++){
+        for(var j=0;j<NT-1;j++){
+            var v00=grid[i][j],v10=grid[i+1][j],v11=grid[i+1][j+1],v01=grid[i][j+1];
+            var p00=proj(kArr[i],tArr[j],v00),p10=proj(kArr[i+1],tArr[j],v10);
+            var p11=proj(kArr[i+1],tArr[j+1],v11),p01=proj(kArr[i],tArr[j+1],v01);
+            var avgZ=(p00.z+p10.z+p11.z+p01.z)/4;
+            var frac=((v00+v10+v11+v01)/4-vMin)/(vMax-vMin);
+            faces.push({pts:[p00,p10,p11,p01],avgZ,frac});
+        }
+    }
+    faces.sort(function(a,b){return a.avgZ-b.avgZ;});
+    faces.forEach(function(f){
+        var c=heatCol(f.frac);
+        surfCtx.fillStyle=c.fill;surfCtx.strokeStyle=c.stroke;surfCtx.lineWidth=0.35;
+        surfCtx.beginPath();
+        surfCtx.moveTo(f.pts[0].px,f.pts[0].py);
+        [1,2,3].forEach(function(i){surfCtx.lineTo(f.pts[i].px,f.pts[i].py);});
+        surfCtx.closePath();surfCtx.fill();surfCtx.stroke();
+    });
+
+    /* Labels */
+    function surfLabel(text,k,t,v,ox,oy,col){
+        var p=proj(k,t,v);
+        surfCtx.fillStyle=col||'#505068';surfCtx.font='11px Georgia';
+        surfCtx.textAlign='center';surfCtx.textBaseline='middle';
+        surfCtx.fillText(text,p.px+ox,p.py+oy);
+    }
+    surfLabel('OTM put \u2190',kArr[0],tArr[NT/2|0],vMin,0,0,'#484860');
+    surfLabel('\u2192 OTM call',kArr[NK-1],tArr[NT/2|0],vMin,0,0,'#484860');
+    surfLabel('Short maturity',kArr[NK/2|0],tArr[0],vMin,0,12,'#484860');
+    surfLabel('Long maturity',kArr[NK/2|0],tArr[NT-1],vMin,0,12,'#484860');
+    surfLabel('\u2191 Implied Vol',kArr[0],tArr[0],vMax,10,-12,'rgba(16,185,129,0.7)');
+
+    /* Colour bar */
+    var bx=W-36,by=H-120,bh=100,bw=10;
+    for(var i=0;i<bh;i++){var c=heatCol(1-i/bh);surfCtx.fillStyle='rgba('+Math.round(c.r)+','+Math.round(c.g)+','+Math.round(c.b)+',0.85)';surfCtx.fillRect(bx,by+i,bw,1);}
+    surfCtx.fillStyle='#404058';surfCtx.font='9px Georgia';surfCtx.textAlign='left';surfCtx.textBaseline='middle';
+    surfCtx.fillText((vMax*100).toFixed(0)+'%',bx+bw+3,by);
+    surfCtx.fillText((vMin*100).toFixed(0)+'%',bx+bw+3,by+bh);
+
+    /* Type label */
+    var tlbl=surfType==='equity'?'Equity S\u0026P Skew':surfType==='fx'?'FX Symmetric Smile':'Rates Cap Surface';
+    surfCtx.fillStyle='rgba(255,255,255,0.22)';surfCtx.font='11px Georgia';surfCtx.textAlign='left';surfCtx.textBaseline='top';
+    surfCtx.fillText(tlbl,14,14);
+}
+
+['btnSurfEq','btnSurfFX','btnSurfRt'].forEach(function(id){
+    document.getElementById(id).addEventListener('click',function(){
+        surfType=id==='btnSurfEq'?'equity':id==='btnSurfFX'?'fx':'rates';
+        ['btnSurfEq','btnSurfFX','btnSurfRt'].forEach(function(b){document.getElementById(b).classList.toggle('active',b===id);});
+        drawSurf();
+    });
+});
+['surfLevel','surfSkew'].forEach(function(id){document.getElementById(id).addEventListener('input',drawSurf);});
+
+/* ═══════════════════════════════════════════════════
+   SECTION 5: Heston Simulation
+═══════════════════════════════════════════════════ */
+var hCvs=document.getElementById('hestonCanvas'),hCtx=hCvs.getContext('2d');
+
+function updateHestonLabels(){
+    document.getElementById('vhKappa').textContent=(parseInt(document.getElementById('hKappa').value)/10).toFixed(1);
+    document.getElementById('vhTheta').textContent=parseInt(document.getElementById('hTheta').value)+'%';
+    document.getElementById('vhVolvol').textContent=(parseInt(document.getElementById('hVolvol').value)/100).toFixed(2);
+    var rh=parseInt(document.getElementById('hRho').value)/100;
+    document.getElementById('vhRho').textContent=(rh<0?'\u2212':'')+Math.abs(rh).toFixed(2);
+}
+['hKappa','hTheta','hVolvol','hRho'].forEach(function(id){document.getElementById(id).addEventListener('input',updateHestonLabels);});
+
+function runHeston(){
+    var kappa=parseInt(document.getElementById('hKappa').value)/10;
+    var theta=parseInt(document.getElementById('hTheta').value)/100;
+    var volvol=parseInt(document.getElementById('hVolvol').value)/100;
+    var rho=parseInt(document.getElementById('hRho').value)/100;
+    updateHestonLabels();
+
+    var W=hCvs.width,H=hCvs.height;
+    clearDark(hCvs,hCtx);
+
+    var nPaths=200,nSteps=252,S0=100,v0=theta*theta,r=0.05,dt=1/252;
+    var rng=makeLCG(42);
+    var terminals=[];
+
+    for(var p=0;p<nPaths;p++){
+        var S=S0,v=v0;
+        for(var t=0;t<nSteps;t++){
+            var z1=boxMuller(rng),z2=boxMuller(rng);
+            var w1=z1,w2=rho*z1+Math.sqrt(1-rho*rho)*z2;
+            v=Math.max(0,v+kappa*(theta*theta-v)*dt+volvol*Math.sqrt(Math.max(0,v)*dt)*w2);
+            S=S*Math.exp((r-0.5*v)*dt+Math.sqrt(Math.max(0,v)*dt)*w1);
+        }
+        terminals.push(S);
+    }
+
+    var PAD={l:58,r:28,t:28,b:40};
+    var panelW=(W-PAD.l-PAD.r)/2-18,plotH=H-PAD.t-PAD.b;
+    var lxO=PAD.l,rxO=PAD.l+panelW+36;
+
+    /* === LEFT: smile from terminal prices === */
+    var strikes=[65,70,75,80,85,90,95,100,105,110,115,120,130,140];
+    var ivArr=[];
+    strikes.forEach(function(K){
+        var callPrice=terminals.reduce(function(s,ST){return s+Math.max(ST-K,0);},0)/nPaths*Math.exp(-r*1);
+        var iv=impliedVol(callPrice,S0,K,r,1);
+        ivArr.push(isNaN(iv)||iv<0.01||iv>2?null:iv);
+    });
+    var validIV=ivArr.filter(Boolean);
+    var ivMin=validIV.length?Math.min.apply(null,validIV)*0.85:0.05;
+    var ivMax=validIV.length?Math.max.apply(null,validIV)*1.15:0.60;
+
+    function ltx(K){return lxO+(K-65)/75*panelW;}
+    function lty(v){return PAD.t+plotH-(v-ivMin)/(ivMax-ivMin)*plotH;}
+
+    hCtx.fillStyle='rgba(255,255,255,0.018)';hCtx.fillRect(lxO,PAD.t,panelW,plotH);
+    hCtx.strokeStyle='rgba(255,255,255,0.028)';hCtx.lineWidth=1;
+    [0.10,0.20,0.30,0.40].forEach(function(v){
+        if(v<ivMin||v>ivMax)return;
+        hCtx.beginPath();hCtx.moveTo(lxO,lty(v));hCtx.lineTo(lxO+panelW,lty(v));hCtx.stroke();
+        hCtx.fillStyle='#404058';hCtx.font='9px Georgia';hCtx.textAlign='right';hCtx.textBaseline='middle';
+        hCtx.fillText((v*100).toFixed(0)+'%',lxO-4,lty(v));
+    });
+
+    /* Line */
+    hCtx.strokeStyle='rgba(16,185,129,0.88)';hCtx.lineWidth=2;
+    hCtx.beginPath();var first=true;
+    strikes.forEach(function(K,i){
+        if(ivArr[i]===null)return;
+        if(first){hCtx.moveTo(ltx(K),lty(ivArr[i]));first=false;}else hCtx.lineTo(ltx(K),lty(ivArr[i]));
+    });
+    hCtx.stroke();
+
+    /* Dots */
+    strikes.forEach(function(K,i){
+        if(ivArr[i]===null)return;
+        hCtx.fillStyle=rho<-0.2?'rgba(248,113,113,0.85)':'rgba(34,211,238,0.85)';
+        hCtx.beginPath();hCtx.arc(ltx(K),lty(ivArr[i]),3.5,0,Math.PI*2);hCtx.fill();
+    });
+
+    [70,80,90,100,110,120,130,140].forEach(function(K){
+        hCtx.fillStyle='#404058';hCtx.font='9px Georgia';hCtx.textAlign='center';hCtx.textBaseline='top';
+        hCtx.fillText(K,ltx(K),PAD.t+plotH+4);
+    });
+    hCtx.fillStyle='rgba(255,255,255,0.22)';hCtx.font='10px Georgia';hCtx.textAlign='center';hCtx.textBaseline='top';
+    hCtx.fillText('Implied vol smile from paths',lxO+panelW/2,PAD.t+4);
+
+    /* Divider */
+    hCtx.strokeStyle='rgba(255,255,255,0.05)';hCtx.lineWidth=1;
+    hCtx.beginPath();hCtx.moveTo(lxO+panelW+18,PAD.t);hCtx.lineTo(lxO+panelW+18,H-PAD.b);hCtx.stroke();
+
+    /* === RIGHT: terminal distribution === */
+    var sMin=Math.min.apply(null,terminals)*0.88;
+    var sMax=Math.max.apply(null,terminals)*1.12;
+    var nBins=50,bins=new Array(nBins).fill(0);
+    terminals.forEach(function(s){
+        var idx=Math.max(0,Math.min(nBins-1,Math.floor((s-sMin)/(sMax-sMin)*nBins)));
+        bins[idx]++;
+    });
+    var bMax=Math.max.apply(null,bins);
+    var bW=panelW/nBins;
+
+    hCtx.fillStyle='rgba(255,255,255,0.018)';hCtx.fillRect(rxO,PAD.t,panelW,plotH);
+
+    bins.forEach(function(b,i){
+        var frac=b/bMax;
+        var c=heatCol(frac);
+        hCtx.fillStyle=c.fill;
+        hCtx.fillRect(rxO+i*bW,PAD.t+plotH-frac*plotH,bW-0.5,frac*plotH);
+    });
+
+    /* Log-normal reference */
+    var muLN=Math.log(S0)+(r-0.5*theta*theta)*1,sig2LN=theta*theta*1;
+    hCtx.strokeStyle='rgba(255,255,255,0.28)';hCtx.lineWidth=1.5;hCtx.setLineDash([4,3]);
+    hCtx.beginPath();
+    for(var i=0;i<=nBins;i++){
+        var s=sMin+i/nBins*(sMax-sMin);
+        if(s<=0)continue;
+        var lnp=Math.exp(-0.5*Math.pow((Math.log(s)-muLN),2)/sig2LN)/(s*Math.sqrt(2*Math.PI*sig2LN));
+        var density=lnp*(sMax-sMin)/nBins*nPaths;
+        var y=PAD.t+plotH-density/bMax*plotH;
+        if(i===0)hCtx.moveTo(rxO+i*bW,y);else hCtx.lineTo(rxO+i*bW,y);
+    }
+    hCtx.stroke();hCtx.setLineDash([]);
+
+    /* Price axis */
+    [sMin,(sMin+sMax)/2,sMax].forEach(function(s){
+        hCtx.fillStyle='#404058';hCtx.font='9px Georgia';hCtx.textAlign='right';hCtx.textBaseline='middle';
+        var yy=PAD.t+plotH-(s-sMin)/(sMax-sMin)*plotH;
+        hCtx.fillText(Math.round(s),rxO-4,yy);
+    });
+    hCtx.fillStyle='rgba(255,255,255,0.22)';hCtx.font='10px Georgia';hCtx.textAlign='center';hCtx.textBaseline='top';
+    hCtx.fillText('Terminal distribution (1 year)',rxO+panelW/2,PAD.t+4);
+    hCtx.fillStyle='rgba(255,255,255,0.28)';hCtx.font='9px Georgia';hCtx.textAlign='left';hCtx.textBaseline='top';
+    hCtx.fillText('\u2014\u2014 log-normal (BS)',rxO+4,PAD.t+16);
+
+    var mean=terminals.reduce(function(s,v){return s+v;},0)/nPaths;
+    var variance=terminals.reduce(function(s,v){return s+(v-mean)*(v-mean);},0)/nPaths;
+    var skewStat=terminals.reduce(function(s,v){return s+Math.pow((v-mean)/Math.sqrt(variance),3);},0)/nPaths;
+    var kurt=terminals.reduce(function(s,v){return s+Math.pow((v-mean)/Math.sqrt(variance),4);},0)/nPaths;
+    document.getElementById('hestonStats').innerHTML=
+        '<div class="stat-box"><div class="stat-label">Mean S<sub>T</sub></div><div class="stat-val green">'+mean.toFixed(1)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Skewness</div><div class="stat-val pink">'+skewStat.toFixed(3)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Excess kurtosis</div><div class="stat-val gold">'+Math.max(0,kurt-3).toFixed(3)+'</div></div>'+
+        '<div class="stat-box"><div class="stat-label">P(S<sub>T</sub>&lt;80)</div><div class="stat-val red">'+(terminals.filter(function(s){return s<80;}).length/nPaths*100).toFixed(1)+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">P(S<sub>T</sub>&gt;130)</div><div class="stat-val cyan">'+(terminals.filter(function(s){return s>130;}).length/nPaths*100).toFixed(1)+'%</div></div>';
+}
+document.getElementById('btnRunHeston').addEventListener('click',runHeston);
+
+/* ═══════════════════════════════════════════════════
+   SECTION 6: Dupire Local Vol
+═══════════════════════════════════════════════════ */
+var ivCvs=document.getElementById('ivCanvas'),lvCvs=document.getElementById('lvCanvas');
+var ivCtx=ivCvs.getContext('2d'),lvCtx=lvCvs.getContext('2d');
+
+function impVolFn(K,T,sk){
+    var k=Math.log(K/100)/0.25;
+    return Math.max(0.05,0.20-sk*0.18*k+0.05*k*k);
+}
+function localVolFn(K,T,sk){
+    var eps=1.5;
+    function C(K2){return bsCall(100,K2,0.05,impVolFn(K2,T,sk),T);}
+    var dt=0.02;
+    var dC_dT=(bsCall(100,K,0.05,impVolFn(K,T+dt,sk),T+dt)-C(K))/dt;
+    var d2C_dK2=(C(K+eps)-2*C(K)+C(K-eps))/(eps*eps);
+    var dC_dK=(C(K+eps)-C(K-eps))/(2*eps);
+    var num=2*(dC_dT+0.05*K*dC_dK);
+    var den=K*K*d2C_dK2;
+    if(den<1e-10)return impVolFn(K,T,sk)*1.8;
+    var lv2=num/den;
+    return Math.max(0.04,Math.min(1.5,Math.sqrt(Math.abs(lv2))));
+}
+
+function drawVolPanel2D(cvs,ctx,fn,title){
+    var sk=parseInt(document.getElementById('dupSkew').value)/100;
+    var W=cvs.width,H=cvs.height;
+    var PAD={l:44,r:18,t:22,b:34};
+    var plotW=W-PAD.l-PAD.r,plotH=H-PAD.t-PAD.b;
+    clearDark(cvs,ctx);
+
+    var vMin=0.04,vMax=0.55;
+    function tx2(K){return PAD.l+(K-65)/80*plotW;}
+    function ty2(v){return PAD.t+plotH-(v-vMin)/(vMax-vMin)*plotH;}
+
+    ctx.strokeStyle='rgba(255,255,255,0.028)';ctx.lineWidth=1;
+    [0.10,0.20,0.30,0.40,0.50].forEach(function(v){
+        ctx.beginPath();ctx.moveTo(PAD.l,ty2(v));ctx.lineTo(W-PAD.r,ty2(v));ctx.stroke();
+        ctx.fillStyle='#404058';ctx.font='9px Georgia';ctx.textAlign='right';ctx.textBaseline='middle';
+        ctx.fillText((v*100).toFixed(0)+'%',PAD.l-3,ty2(v));
+    });
+
+    var mats=[0.25,0.5,1.0,2.0];
+    var matCols=['rgba(248,113,113,0.75)','rgba(251,191,36,0.75)','rgba(16,185,129,0.75)','rgba(34,211,238,0.65)'];
+    var matLabels=['3m','6m','1y','2y'];
+    mats.forEach(function(T,idx){
+        ctx.strokeStyle=matCols[idx];ctx.lineWidth=1.8;
+        ctx.beginPath();var first=true;
+        for(var k=655;k<=1445;k+=5){
+            var K=k/10;
+            var v=fn(K,T,sk);
+            v=Math.max(vMin,Math.min(vMax,v));
+            if(first){ctx.moveTo(tx2(K),ty2(v));first=false;}else ctx.lineTo(tx2(K),ty2(v));
+        }
+        ctx.stroke();
+        ctx.fillStyle=matCols[idx];ctx.font='9px Georgia';ctx.textAlign='left';ctx.textBaseline='middle';
+        ctx.fillText(matLabels[idx],W-PAD.r+2,ty2(fn(145,T,sk)));
+    });
+
+    [70,80,90,100,110,120,130,140].forEach(function(K){
+        ctx.fillStyle='#404058';ctx.font='9px Georgia';ctx.textAlign='center';ctx.textBaseline='top';
+        ctx.fillText(K,tx2(K),H-PAD.b+3);
+    });
+    /* ATM */
+    ctx.strokeStyle='rgba(255,255,255,0.10)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(tx2(100),PAD.t);ctx.lineTo(tx2(100),H-PAD.b);ctx.stroke();ctx.setLineDash([]);
+
+    ctx.fillStyle='rgba(255,255,255,0.22)';ctx.font='10px Georgia';ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillText(title,PAD.l+plotW/2,PAD.t+3);
+}
+
+function drawDupire(){
+    document.getElementById('vdupSkew').textContent=parseInt(document.getElementById('dupSkew').value);
+    drawVolPanel2D(ivCvs,ivCtx,impVolFn,'Implied Vol (market)');
+    drawVolPanel2D(lvCvs,lvCtx,localVolFn,'Local Vol (steeper)');
+}
+document.getElementById('dupSkew').addEventListener('input',drawDupire);
+
+/* ═══════════════════════════════════════════════════
+   SECTION 7: Trader P&L — vega-only and full toggle
+═══════════════════════════════════════════════════ */
+var trCvs=document.getElementById('traderCanvas'),trCtx=trCvs.getContext('2d');
+var trMode='vega';
+
+document.getElementById('btnTrVega').addEventListener('click',function(){
+    trMode='vega';
+    document.getElementById('btnTrVega').classList.add('active');
+    document.getElementById('btnTrFull').classList.remove('active');
+    document.getElementById('fullSliders').style.display='none';
+    drawTrader();
+});
+document.getElementById('btnTrFull').addEventListener('click',function(){
+    trMode='full';
+    document.getElementById('btnTrFull').classList.add('active');
+    document.getElementById('btnTrVega').classList.remove('active');
+    document.getElementById('fullSliders').style.display='flex';
+    drawTrader();
+});
+
+function drawTrader(){
+    var spotMove=parseInt(document.getElementById('trSpot').value);
+    var vega=parseInt(document.getElementById('trVega').value);
+    var beta=parseInt(document.getElementById('trBeta').value)/100;
+    var delta=parseInt(document.getElementById('trDelta').value);
+    var gamma=parseInt(document.getElementById('trGamma').value);
+    document.getElementById('vtrSpot').textContent=(spotMove>=0?'+':'')+spotMove+'%';
+    document.getElementById('vtrVega').textContent='\u00A3'+(vega>=0?'+':'')+vega+'K';
+    document.getElementById('vtrBeta').textContent=(beta<0?'\u2212':'')+Math.abs(beta).toFixed(2);
+    document.getElementById('vtrDelta').textContent='\u00A3'+(delta>=0?'+':'')+delta+'K';
+    document.getElementById('vtrGamma').textContent='\u00A3'+(gamma>=0?'+':'')+gamma+'K';
+
+    var W=trCvs.width,H=trCvs.height;
+    var PAD={l:70,r:28,t:28,b:44};
+    var plotW=W-PAD.l-PAD.r,plotH=H-PAD.t-PAD.b;
+    clearDark(trCvs,trCtx);
+
+    var xMin=-30,xMax=30;
+    var allPnls=[];
+    for(var s=xMin;s<=xMax;s++){
+        var vPnl=vega*beta*s;
+        allPnls.push(vPnl);
+        if(trMode==='full'){allPnls.push(vPnl+delta*(s/100)+gamma*(s/100)*(s/100)*50);}
+    }
+    var yRange=Math.max(Math.max.apply(null,allPnls.map(Math.abs))*1.22,5);
+    var yMin=-yRange,yMax=yRange;
+    function tx3(s){return PAD.l+(s-xMin)/(xMax-xMin)*plotW;}
+    function ty3(v){return PAD.t+plotH-(v-yMin)/(yMax-yMin)*plotH;}
+
+    /* Grid */
+    trCtx.strokeStyle='rgba(255,255,255,0.03)';trCtx.lineWidth=1;
+    [-yRange,-yRange/2,0,yRange/2,yRange].forEach(function(v){
+        trCtx.beginPath();trCtx.moveTo(PAD.l,ty3(v));trCtx.lineTo(W-PAD.r,ty3(v));trCtx.stroke();
+        trCtx.fillStyle=v===0?'rgba(255,255,255,0.25)':'#404058';trCtx.font='10px Georgia';trCtx.textAlign='right';trCtx.textBaseline='middle';
+        trCtx.fillText((v>=0?'+':'')+v.toFixed(0)+'K',PAD.l-5,ty3(v));
+    });
+    [-30,-20,-10,0,10,20,30].forEach(function(s){
+        trCtx.fillStyle='#404058';trCtx.font='10px Georgia';trCtx.textAlign='center';trCtx.textBaseline='top';
+        trCtx.fillText((s>=0?'+':'')+s+'%',tx3(s),H-PAD.b+6);
+    });
+    trCtx.strokeStyle='rgba(255,255,255,0.10)';trCtx.lineWidth=1;
+    trCtx.beginPath();trCtx.moveTo(PAD.l,ty3(0));trCtx.lineTo(W-PAD.r,ty3(0));trCtx.stroke();
+
+    /* Vega fill */
+    trCtx.beginPath();
+    for(var s=xMin;s<=xMax;s++){trCtx.lineTo(tx3(s),ty3(Math.max(0,vega*beta*s)));}
+    trCtx.lineTo(W-PAD.r,ty3(0));trCtx.lineTo(PAD.l,ty3(0));trCtx.closePath();
+    trCtx.fillStyle='rgba(16,185,129,0.07)';trCtx.fill();
+    trCtx.beginPath();
+    for(var s=xMin;s<=xMax;s++){trCtx.lineTo(tx3(s),ty3(Math.min(0,vega*beta*s)));}
+    trCtx.lineTo(W-PAD.r,ty3(0));trCtx.lineTo(PAD.l,ty3(0));trCtx.closePath();
+    trCtx.fillStyle='rgba(248,113,113,0.07)';trCtx.fill();
+
+    /* Vega line (always shown, dashed in full mode) */
+    trCtx.strokeStyle='rgba(16,185,129,0.72)';trCtx.lineWidth=1.8;
+    if(trMode==='full') trCtx.setLineDash([5,4]);
+    trCtx.beginPath();
+    for(var s=xMin;s<=xMax;s++){if(s===xMin)trCtx.moveTo(tx3(s),ty3(vega*beta*s));else trCtx.lineTo(tx3(s),ty3(vega*beta*s));}
+    trCtx.stroke();trCtx.setLineDash([]);
+
+    if(trMode==='full'){
+        /* Delta P&L — gold dashed */
+        trCtx.strokeStyle='rgba(251,191,36,0.75)';trCtx.lineWidth=1.6;trCtx.setLineDash([4,3]);
+        trCtx.beginPath();
+        for(var s=xMin;s<=xMax;s++){var pnl=delta*(s/100);if(s===xMin)trCtx.moveTo(tx3(s),ty3(pnl));else trCtx.lineTo(tx3(s),ty3(pnl));}
+        trCtx.stroke();trCtx.setLineDash([]);
+        /* Gamma P&L — cyan dotted */
+        trCtx.strokeStyle='rgba(34,211,238,0.68)';trCtx.lineWidth=1.6;trCtx.setLineDash([2,4]);
+        trCtx.beginPath();
+        for(var s=xMin;s<=xMax;s++){var pnl=gamma*(s/100)*(s/100)*50;if(s===xMin)trCtx.moveTo(tx3(s),ty3(pnl));else trCtx.lineTo(tx3(s),ty3(pnl));}
+        trCtx.stroke();trCtx.setLineDash([]);
+        /* Total — solid white */
+        trCtx.strokeStyle='rgba(255,255,255,0.88)';trCtx.lineWidth=2.6;
+        trCtx.beginPath();
+        for(var s=xMin;s<=xMax;s++){var pnl=vega*beta*s+delta*(s/100)+gamma*(s/100)*(s/100)*50;if(s===xMin)trCtx.moveTo(tx3(s),ty3(pnl));else trCtx.lineTo(tx3(s),ty3(pnl));}
+        trCtx.stroke();
+        /* Legend */
+        var legItems=[['Total P&L','rgba(255,255,255,0.85)'],['Delta P&L','rgba(251,191,36,0.82)'],['Gamma P&L','rgba(34,211,238,0.78)'],['Vega P&L','rgba(16,185,129,0.78)']];
+        legItems.forEach(function(li,i){trCtx.fillStyle=li[1];trCtx.font='9px Georgia';trCtx.textAlign='left';trCtx.textBaseline='top';trCtx.fillText(li[0],PAD.l+4,PAD.t+4+i*11);});
+        /* Spot marker */
+        trCtx.strokeStyle='rgba(251,191,36,0.45)';trCtx.lineWidth=1;trCtx.setLineDash([4,3]);
+        trCtx.beginPath();trCtx.moveTo(tx3(spotMove),PAD.t);trCtx.lineTo(tx3(spotMove),H-PAD.b);trCtx.stroke();trCtx.setLineDash([]);
+    } else {
+        var curPnL=vega*beta*spotMove;
+        trCtx.strokeStyle='rgba(251,191,36,0.65)';trCtx.lineWidth=1.5;trCtx.setLineDash([5,4]);
+        trCtx.beginPath();trCtx.moveTo(tx3(spotMove),PAD.t);trCtx.lineTo(tx3(spotMove),H-PAD.b);trCtx.stroke();trCtx.setLineDash([]);
+        trCtx.fillStyle=curPnL>=0?'rgba(16,185,129,0.90)':'rgba(248,113,113,0.90)';
+        trCtx.beginPath();trCtx.arc(tx3(spotMove),ty3(curPnL),6,0,Math.PI*2);trCtx.fill();
+        trCtx.fillStyle='rgba(16,185,129,0.75)';trCtx.font='9px Georgia';trCtx.textAlign='left';trCtx.textBaseline='top';
+        trCtx.fillText('Vega P&L',PAD.l+4,PAD.t+4);
+    }
+
+    trCtx.fillStyle='#404058';trCtx.font='11px Georgia';trCtx.textAlign='center';trCtx.textBaseline='top';
+    trCtx.fillText('Spot move (\u0394S/S)',PAD.l+plotW/2,H-PAD.b+24);
+    trCtx.save();trCtx.translate(14,PAD.t+plotH/2);trCtx.rotate(-Math.PI/2);
+    trCtx.textAlign='center';trCtx.textBaseline='middle';trCtx.fillText('P\u0026L (\u00A3K)',0,0);trCtx.restore();
+
+    var volChg=beta*spotMove;
+    var vegaPnL=vega*beta*spotMove;
+    var deltaPnL=delta*(spotMove/100);
+    var gammaPnL=gamma*(spotMove/100)*(spotMove/100)*50;
+    var totalPnL=vegaPnL+deltaPnL+gammaPnL;
+    var html='<div class="stat-box"><div class="stat-label">Spot move</div><div class="stat-val gold">'+(spotMove>=0?'+':'')+spotMove+'%</div></div>'+
+        '<div class="stat-box"><div class="stat-label">\u0394 Impl. Vol</div><div class="stat-val cyan">'+(volChg>=0?'+':'')+volChg.toFixed(2)+' vpts</div></div>'+
+        '<div class="stat-box"><div class="stat-label">Vega P&amp;L</div><div class="stat-val '+(vegaPnL>=0?'green':'red')+'">'+(vegaPnL>=0?'+':'')+vegaPnL.toFixed(0)+'K</div></div>';
+    if(trMode==='full'){
+        html+='<div class="stat-box"><div class="stat-label">Delta P&amp;L</div><div class="stat-val '+(deltaPnL>=0?'gold':'red')+'">'+(deltaPnL>=0?'+':'')+deltaPnL.toFixed(0)+'K</div></div>'+
+            '<div class="stat-box"><div class="stat-label">Gamma P&amp;L</div><div class="stat-val cyan">'+(gammaPnL>=0?'+':'')+gammaPnL.toFixed(0)+'K</div></div>'+
+            '<div class="stat-box"><div class="stat-label">Total P&amp;L</div><div class="stat-val '+(totalPnL>=0?'green':'red')+'">'+(totalPnL>=0?'+':'')+totalPnL.toFixed(0)+'K</div></div>';
+    } else {
+        html+='<div class="stat-box"><div class="stat-label">Portfolio vega</div><div class="stat-val">\u00A3'+(vega>=0?'+':'')+vega+'K/vpt</div></div>'+
+            '<div class="stat-box"><div class="stat-label">Vol-spot \u03B2</div><div class="stat-val">'+(beta<0?'\u2212':'')+Math.abs(beta).toFixed(2)+' vpt/%</div></div>';
+    }
+    document.getElementById('trStats').innerHTML=html;
+}
+
+['trSpot','trVega','trBeta','trDelta','trGamma'].forEach(function(id){document.getElementById(id).addEventListener('input',drawTrader);});
+
+/* ═══════════════════════════════════════════════════
+   SECTION 8: Risk-Neutral vs Physical density canvas
+═══════════════════════════════════════════════════ */
+var rnCvs=document.getElementById('rnCanvas'),rnCtx=rnCvs.getContext('2d');
+
+function drawRN(){
+    var lambda=parseInt(document.getElementById('rnLambda').value)/100;
+    document.getElementById('vrnLambda').textContent=lambda.toFixed(2);
+    var W=rnCvs.width,H=rnCvs.height;
+    var PAD={l:32,r:26,t:28,b:40};
+    var plotW=W-PAD.l-PAD.r,plotH=H-PAD.t-PAD.b;
+    clearDark(rnCvs,rnCtx);
+
+    /* Physical: log-normal, mu=0.07, sig=0.18 */
+    var muP=0.07,sigP=0.18;
+    /* Risk-neutral: fatter left tail, slightly lower mean (tilted by lambda) */
+    var muQ=muP-lambda*sigP*sigP;     /* risk-neutral mean shifted left */
+    var sigQ=sigP*(1+lambda*0.35);    /* fatter tails */
+    /* Extra left skew in RN: we add a skewed modification */
+
+    var sMin=-0.55,sMax=0.80;
+    var N=400;
+    function normPDF2(x,m,s){return Math.exp(-0.5*((x-m)/s)*((x-m)/s))/(s*Math.sqrt(2*Math.PI));}
+
+    /* Physical density */
+    var physArr=[],rnArr=[];
+    for(var i=0;i<=N;i++){
+        var x=sMin+i/N*(sMax-sMin);
+        physArr.push(normPDF2(x,muP,sigP));
+        /* RN: mixture of shifted + heavier left tail */
+        var rn=normPDF2(x,muQ,sigQ)*0.75 + normPDF2(x,muQ-0.12,sigQ*0.6)*0.25*lambda*2;
+        rnArr.push(rn);
+    }
+    /* Normalise (approximate) */
+    var pMax=Math.max.apply(null,physArr);
+    var rMax=Math.max.apply(null,rnArr);
+    var overallMax=Math.max(pMax,rMax)*1.08;
+    function tx(i){return PAD.l+i/N*plotW;}
+    function ty(v){return PAD.t+plotH-v/overallMax*plotH;}
+
+    /* Gap fill (risk premium) — between the two curves in the left tail */
+    rnCtx.beginPath();
+    for(var i=0;i<=N;i++){
+        var x=sMin+i/N*(sMax-sMin);
+        if(x>-0.02) break; /* only left tail */
+        if(i===0)rnCtx.moveTo(tx(i),ty(rnArr[i]));else rnCtx.lineTo(tx(i),ty(rnArr[i]));
+    }
+    for(var i2=i;i2>=0;i2--){
+        rnCtx.lineTo(tx(i2),ty(physArr[i2]));
+    }
+    rnCtx.closePath();
+    rnCtx.fillStyle='rgba(248,113,113,0.12)';rnCtx.fill();
+
+    /* Grid lines */
+    rnCtx.strokeStyle='rgba(255,255,255,0.03)';rnCtx.lineWidth=1;
+    rnCtx.beginPath();rnCtx.moveTo(PAD.l,ty(overallMax*0.5));rnCtx.lineTo(W-PAD.r,ty(overallMax*0.5));rnCtx.stroke();
+
+    /* Zero line */
+    rnCtx.strokeStyle='rgba(255,255,255,0.10)';rnCtx.lineWidth=1;
+    rnCtx.beginPath();rnCtx.moveTo(PAD.l,H-PAD.b);rnCtx.lineTo(W-PAD.r,H-PAD.b);rnCtx.stroke();
+
+    /* Physical density — cyan */
+    rnCtx.strokeStyle='rgba(34,211,238,0.82)';rnCtx.lineWidth=2.2;
+    rnCtx.beginPath();
+    for(var i=0;i<=N;i++){if(i===0)rnCtx.moveTo(tx(i),ty(physArr[i]));else rnCtx.lineTo(tx(i),ty(physArr[i]));}
+    rnCtx.stroke();
+    /* Physical fill */
+    rnCtx.beginPath();
+    for(var i=0;i<=N;i++){if(i===0)rnCtx.moveTo(tx(i),ty(physArr[i]));else rnCtx.lineTo(tx(i),ty(physArr[i]));}
+    rnCtx.lineTo(W-PAD.r,H-PAD.b);rnCtx.lineTo(PAD.l,H-PAD.b);rnCtx.closePath();
+    rnCtx.fillStyle='rgba(34,211,238,0.05)';rnCtx.fill();
+
+    /* Risk-neutral density — red */
+    rnCtx.strokeStyle='rgba(248,113,113,0.82)';rnCtx.lineWidth=2.2;
+    rnCtx.beginPath();
+    for(var i=0;i<=N;i++){if(i===0)rnCtx.moveTo(tx(i),ty(rnArr[i]));else rnCtx.lineTo(tx(i),ty(rnArr[i]));}
+    rnCtx.stroke();
+
+    /* X-axis ticks */
+    [-0.4,-0.2,0,0.2,0.4,0.6].forEach(function(v){
+        var i=Math.round((v-sMin)/(sMax-sMin)*N);
+        rnCtx.fillStyle='#404058';rnCtx.font='9px Georgia';rnCtx.textAlign='center';rnCtx.textBaseline='top';
+        rnCtx.fillText((v>=0?'+':'')+Math.round(v*100)+'%',tx(Math.max(0,Math.min(N,i))),H-PAD.b+5);
+    });
+    rnCtx.fillStyle='#404058';rnCtx.font='10px Georgia';rnCtx.textAlign='center';rnCtx.textBaseline='top';
+    rnCtx.fillText('1-year return',PAD.l+plotW/2,H-PAD.b+20);
+
+    /* Labels */
+    rnCtx.fillStyle='rgba(34,211,238,0.82)';rnCtx.font='bold 9px Georgia';rnCtx.textAlign='left';rnCtx.textBaseline='top';
+    rnCtx.fillText('Physical (P)',PAD.l+6,PAD.t+4);
+    rnCtx.fillStyle='rgba(248,113,113,0.82)';
+    rnCtx.fillText('Risk-neutral (Q)',PAD.l+6,PAD.t+16);
+
+    /* Annotation arrow-ish label for gap */
+    var gapX=sMin+0.06;
+    var gi=Math.round((gapX-sMin)/(sMax-sMin)*N);
+    var midY=(ty(rnArr[Math.max(0,gi)])+ty(physArr[Math.max(0,gi)]))/2;
+    rnCtx.fillStyle='rgba(248,113,113,0.55)';rnCtx.font='italic 8px Georgia';rnCtx.textAlign='right';
+    rnCtx.fillText('\u2190 vol risk premium (gap)',tx(Math.round((-0.02-sMin)/(sMax-sMin)*N)),midY);
+}
+
+document.getElementById('rnLambda').addEventListener('input',drawRN);
+
+/* ═══════════════════════════════════════════════════
+   Section 1: ATM highlight + wing shading in drawFlatFail
+   (ATM dot and wing shading injected into existing function via post-draw)
+═══════════════════════════════════════════════════ */
+var _origDrawFlatFail=drawFlatFail;
+drawFlatFail=function(){
+    _origDrawFlatFail();
+    /* ATM dot */
+    var atm=parseInt(document.getElementById('ffAtm').value)/100;
+    var sk=parseInt(document.getElementById('ffSkew').value);
+    var W=ffCvs.width,H=ffCvs.height;
+    var PAD={l:60,r:28,t:26,b:42};
+    var plotW=W-PAD.l-PAD.r,plotH=H-PAD.t-PAD.b;
+    var kMin=-3,kMax=3,vMin=0.02,vMax=0.70;
+    function tx(k){return PAD.l+(k-kMin)/(kMax-kMin)*plotW;}
+    function ty(v){return PAD.t+plotH-(v-vMin)/(vMax-vMin)*plotH;}
+    /* Wing shading — downside */
+    var fillDown='rgba(248,113,113,0.06)';
+    ffCtx.fillStyle=fillDown;
+    ffCtx.fillRect(PAD.l, PAD.t, tx(-0.5)-PAD.l, plotH);
+    /* Wing shading — upside */
+    ffCtx.fillStyle='rgba(34,211,238,0.04)';
+    ffCtx.fillRect(tx(0.5), PAD.t, W-PAD.r-tx(0.5), plotH);
+    /* Wing labels */
+    ffCtx.fillStyle='rgba(248,113,113,0.35)';ffCtx.font='9px Georgia';ffCtx.textAlign='center';ffCtx.textBaseline='top';
+    ffCtx.fillText('downside wing',tx(-1.5),PAD.t+5);
+    ffCtx.fillStyle='rgba(34,211,238,0.35)';
+    ffCtx.fillText('upside wing',tx(1.5),PAD.t+5);
+    /* ATM vertical label */
+    ffCtx.fillStyle='rgba(255,255,255,0.18)';ffCtx.font='9px Georgia';ffCtx.textAlign='center';ffCtx.textBaseline='top';
+    ffCtx.fillText('ATM',tx(0),PAD.t+plotH+6);
+    /* ATM dot on smile */
+    var ivATM2=Math.max(0.03,Math.min(0.70,atm+smileShape(0,ffType,sk)));
+    ffCtx.fillStyle='rgba(255,255,255,0.70)';
+    ffCtx.beginPath();ffCtx.arc(tx(0),ty(ivATM2),5,0,Math.PI*2);ffCtx.fill();
+    /* Updated label with negative skew text */
+    if(ffType==='equity'){
+        var smCol='rgba(248,113,113,0.88)';
+        ffCtx.fillStyle=smCol;ffCtx.font='bold 10px Georgia';ffCtx.textAlign='left';ffCtx.textBaseline='top';
+        ffCtx.fillText('Equity skew \u2014 negative skew (downside tail heavier)',PAD.l+6,PAD.t+6);
+    }
+};
+
+/* ═══════════════════════════════════════════════════
+   Initialise all on load
+═══════════════════════════════════════════════════ */
+drawFlatFail();
+drawSmile();
+drawTermStructure();
+drawSurf();
+runHeston();
+drawDupire();
+drawTrader();
+drawRN();
+</script>
+<footer style="text-align:center;padding:26px 20px 16px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.05);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

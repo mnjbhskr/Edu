@@ -2,7 +2,7 @@
 
 **A Visual Discovery of Mathematics**
 
-*Last updated: 25 February 2026*
+*Last updated: 1 March 2026*
 
 ---
 
@@ -12,8 +12,8 @@ All planned content is **live and deployed** at [mathsedu.org](https://mathsedu.
 
 | Metric | Value |
 |--------|-------|
-| Total visualisations | 61 |
-| Chapters | 10 + 1 appendix |
+| Total visualisations | 71 |
+| Chapters | 11 + 1 appendix |
 | Status | All live |
 | Hosting | GitHub Pages |
 | Custom domain | mathsedu.org |
@@ -32,6 +32,7 @@ All planned content is **live and deployed** at [mathsedu.org](https://mathsedu.
 | 8. Probability & Statistics | 6 | Complete |
 | 9. Analysis & Topology | 6 | Complete |
 | 10. Beautiful Results | 6 | Complete |
+| 11. Quantitative Finance | 10 | Complete |
 | Appendix — Physics | 1 | Complete |
 
 ## Build History
@@ -51,6 +52,18 @@ The entire collection was built on 25 February 2026 in two phases:
 - Differential Equations
 - Correlation & Regression
 - Logarithms & Exponentials
+
+**Phase 3** — Chapter 11: Quantitative Finance (1 March 2026) — 10 new visualisations:
+- Compound Interest & Time Value of Money
+- Random Walks & Brownian Motion
+- Monte Carlo Simulation in Finance
+- Bond Pricing & Risk
+- Yield Curve Construction & Bootstrapping
+- Portfolio Theory & the Efficient Frontier
+- The Black-Scholes Model
+- The Greeks
+- Option Payoffs & Strategies
+- Volatility Smiles & Surfaces
 
 ## Potential Next Steps
 

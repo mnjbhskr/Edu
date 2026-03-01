@@ -6,7 +6,7 @@
 
 ---
 
-Mathematics is the foundation of all science, yet too often it is taught as rules to memorise rather than ideas to discover. This collection of **61 interactive visualisations** across **10 chapters** invites you to see, touch, and explore the great theorems — from Euclid's geometry to Euler's identity — and build genuine intuition for the most powerful language humanity has ever created.
+Mathematics is the foundation of all science, yet too often it is taught as rules to memorise rather than ideas to discover. This collection of **71 interactive visualisations** across **11 chapters** invites you to see, touch, and explore the great theorems — from Euclid's geometry to Euler's identity — and build genuine intuition for the most powerful language humanity has ever created.
 
 ## What's Inside
 
@@ -22,6 +22,7 @@ Mathematics is the foundation of all science, yet too often it is taught as rule
 | 8. Probability & Statistics | 6 | Bayes' theorem, CLT, correlation & regression |
 | 9. Analysis & Topology | 6 | Bolzano-Weierstrass, Mobius strip, Gaussian curvature |
 | 10. Beautiful Results | 6 | Euler's identity, Mandelbrot set, Riemann hypothesis |
+| 11. Quantitative Finance | 10 | Black-Scholes, Greeks, bond pricing, yield curves, Monte Carlo |
 | Appendix — Physics | 1 | Atomic energy levels |
 
 ## Technology
@@ -41,4 +42,4 @@ Hosted on GitHub Pages with a custom domain.
 
 Copyright 2025–2026 Manoj Bhaskar. All rights reserved.
 
-Built in collaboration with [Claude Code](https://claude.ai/claude-code).
+Coded by [Claude](https://claude.ai/claude-code).

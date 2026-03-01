@@ -26,6 +26,7 @@ We aspire to cover the great arc of mathematical thought:
 - **Change** — calculus, differential equations, and dynamics
 - **Uncertainty** — probability, statistics, and inference
 - **Beauty** — the crown jewels that connect it all
+- **Markets** — quantitative finance, where mathematics meets the real world
 
 ## Principles
 
@@ -188,17 +189,33 @@ All topic files sit at the repository root — a flat structure that maps direct
 | 5 | The Riemann Hypothesis | `riemann_hypothesis.html` | 4 |
 | 6 | Pi Through the Ages | `pi_through_ages.html` | 1 |
 
+### Chapter 11 — Quantitative Finance
+*Where mathematics meets the markets*
+
+| # | Topic | File | Difficulty |
+|---|-------|------|------------|
+| 1 | Compound Interest & Time Value of Money | `compound_interest.html` | 1 |
+| 2 | Random Walks & Brownian Motion | `brownian_motion.html` | 2 |
+| 3 | Monte Carlo Simulation in Finance | `monte_carlo.html` | 2 |
+| 4 | Bond Pricing & Risk | `bond_pricing.html` | 2 |
+| 5 | Yield Curve Construction & Bootstrapping | `yield_curve.html` | 3 |
+| 6 | Portfolio Theory & the Efficient Frontier | `portfolio_theory.html` | 2 |
+| 7 | The Black-Scholes Model | `black_scholes.html` | 3 |
+| 8 | The Greeks | `the_greeks.html` | 3 |
+| 9 | Option Payoffs & Strategies | `option_strategies.html` | 2 |
+| 10 | Volatility Smiles & Surfaces | `volatility_smiles.html` | 3 |
+
 ### Appendix — Physics
 
 | # | Topic | File | Difficulty |
 |---|-------|------|------------|
 | 1 | Atomic Energy Levels | `atomic_energy_levels.html` | 2 |
 
-**Total: 61 interactive visualisations across 10 chapters + 1 appendix**
+**Total: 71 interactive visualisations across 11 chapters + 1 appendix**
 
 ## Credits
 
-Created by **Manoj Bhaskar**, built in collaboration with [Claude Code](https://claude.ai/claude-code).
+Created by **Manoj Bhaskar**. Coded by [Claude](https://claude.ai/claude-code).
 
 Licensed under [Creative Commons BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
