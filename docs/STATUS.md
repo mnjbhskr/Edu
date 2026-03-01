@@ -17,6 +17,8 @@ All planned content is **live and deployed** at [mathsedu.org](https://mathsedu.
 | Status | All live |
 | Hosting | GitHub Pages |
 | Custom domain | mathsedu.org |
+| Google Search Console | Verified, sitemap submitted |
+| SEO | Complete (meta descriptions, structured data, OG tags, canonical URLs) |
 
 ## Chapter Completion
 
@@ -65,6 +67,29 @@ The entire collection was built on 25 February 2026 in two phases:
 - Option Payoffs & Strategies
 - Volatility Smiles & Surfaces
 
+## SEO & Discoverability (1 March 2026)
+
+**Phase 4** — Complete SEO foundation across all 73 pages:
+
+| Component | Status |
+|-----------|--------|
+| `sitemap.xml` (73 URLs) | Deployed, submitted to Google Search Console |
+| `robots.txt` | Deployed |
+| Google Search Console | Verified (URL prefix method) |
+| Meta descriptions | All 73 pages — unique, 140-160 char descriptions |
+| Schema.org JSON-LD | All 73 pages — `LearningResource` with educationalLevel, teaches, chapter |
+| Open Graph tags | All 73 pages — og:title, og:description, og:url, og:type, og:site_name, og:locale |
+| Twitter Card tags | All 73 pages — twitter:card, twitter:title, twitter:description |
+| Canonical URLs | All 73 pages — `<link rel="canonical">` |
+
+**Education directory listings:**
+
+| Directory | Status |
+|-----------|--------|
+| MERLOT (merlot.org) | Registered, submission in progress |
+| OER Commons (oercommons.org) | Emailed — site submission form had loading issues |
+| STEM Learning (stem.org.uk) | Pending — email pitch to `enquiries@stem.org.uk` |
+
 ## Potential Next Steps
 
 The following are ideas for future development, not commitments. They are listed roughly by impact and feasibility.
@@ -86,6 +111,11 @@ The following are ideas for future development, not commitments. They are listed
 - **Screen reader support** — ARIA labels for all interactive canvas elements
 - **Alt text descriptions** — Text descriptions of what each visualisation shows
 - **Reduced motion mode** — Option to disable animations for users who prefer it
+
+### Discoverability
+- **Social card images** — Generate og:image preview images for richer social sharing cards
+- **STEM Learning listing** — Draft and send pitch email to UK STEM Learning directory
+- **Follow up** — Chase OER Commons and MERLOT listings once submitted
 
 ### Infrastructure
 - **Automated testing** — Visual regression tests to catch rendering issues
