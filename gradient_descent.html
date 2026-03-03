@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gradient Descent</title>
+    <meta name="description" content="Visualise gradient descent on interactive loss landscapes. Explore learning rates, loss surfaces, stochastic gradient descent, and the mathematics behind how every neural network learns.">
+    <link rel="canonical" href="https://mathsedu.org/gradient_descent.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Gradient Descent",
+      "url": "https://mathsedu.org/gradient_descent.html",
+      "description": "Visualise gradient descent on interactive loss landscapes. Explore learning rates, loss surfaces, stochastic gradient descent, and the mathematics behind how every neural network learns.",
+      "educationalLevel": "Intermediate",
+      "teaches": "Gradient descent optimisation, loss landscapes, learning rates, stochastic gradient descent, and mini-batch training",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "The Mathematics of Intelligence",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="Gradient Descent">
+    <meta property="og:description" content="Visualise gradient descent on interactive loss landscapes. Explore learning rates, loss surfaces, stochastic gradient descent, and the mathematics behind how every neural network learns.">
+    <meta property="og:url" content="https://mathsedu.org/gradient_descent.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Gradient Descent">
+    <meta name="twitter:description" content="Visualise gradient descent on interactive loss landscapes. Explore learning rates, loss surfaces, stochastic gradient descent, and the mathematics behind how every neural network learns.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#a78bfa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:8px}
+        .intro-text{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(167,139,250,0.13);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .violet{color:#a78bfa}.math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#a78bfa;cursor:pointer}
+        .slider-val{color:#a78bfa;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .insight-box{background:rgba(167,139,250,0.04);border-left:3px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#a78bfa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .section-summary{color:#a78bfa;font-size:0.85em;font-style:italic;margin:6px 0 0;padding:6px 0;border-top:1px solid rgba(167,139,250,0.1)}
+        .micro-note{color:#808098;font-size:0.85em;font-style:italic;margin:8px 0 4px;line-height:1.6}
+        .checkbox-row{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+        .checkbox-row label{color:#a0a0b8;font-size:0.9em;cursor:pointer;display:flex;align-items:center;gap:6px}
+        .steepness-bar-bg{display:inline-block;width:80px;height:7px;background:rgba(255,255,255,0.06);border-radius:3px;vertical-align:middle;margin:0 6px;overflow:hidden}
+        .steepness-bar-fill{height:100%;border-radius:3px;transition:width 0.15s}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Gradient Descent</h1>
+    <p class="subtitle">Learning is a ball rolling downhill in a billion-dimensional space</p>
+    <p class="intro-text">
+        Every neural network learns the same way: start with random guesses, measure how wrong they are, then adjust every parameter slightly in the direction that reduces the error. Repeat billions of times. The mathematics is a single equation &mdash; the update rule &mdash; applied at a scale that turns algebra into intelligence.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: The Loss Landscape
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. The Loss Landscape</h2>
+    <div class="panel">
+        <h3>Navigating the loss surface</h3>
+        <canvas id="canvas1" width="700" height="400"></canvas>
+        <p class="micro-note">Click anywhere on the surface to set a new starting position.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#f87171"></div><span style="color:#f87171">Ball (current position)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Descent path</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Gradient arrow</span></div>
+            <div class="legend-item" id="legendMomentum" style="display:none"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Momentum path</span></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnBowl">Convex bowl</button>
+            <button class="btn" id="btnRavine">Ravine</button>
+            <button class="btn" id="btnNoisy">Noisy landscape</button>
+        </div>
+        <div class="checkbox-row">
+            <label><input type="checkbox" id="chkMomentum" style="accent-color:#22d3ee"> Show momentum path (&beta; = 0.9)</label>
+        </div>
+        <div class="slider-row">
+            <label>Learning rate &eta;:</label>
+            <input type="range" id="sEta" min="1" max="200" step="1" value="100">
+            <span class="slider-val" id="vEta">0.100</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnRun">&#9654; Run</button>
+            <button class="btn" id="btnStep">Step</button>
+            <button class="btn" id="btnRandom">Random start</button>
+        </div>
+        <div class="result-box">
+            <div id="s1Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="pink">gradient</span> <span class="muted">&nabla;L</span> = [<span class="muted">&part;L/&part;&theta;</span><sub>1</sub>, <span class="muted">&part;L/&part;&theta;</span><sub>2</sub>, &hellip;, <span class="muted">&part;L/&part;&theta;</span><sub>n</sub>]</div>
+            <div class="math-line"><span class="gold">step:</span> &theta;<sub>new</sub> = &theta;<sub>old</sub> &minus; <span class="cyan">&eta;</span> &times; <span class="pink">&nabla;L</span>(&theta;<sub>old</sub>)</div>
+        </div>
+        <div class="insight-box">
+            &#x1F4A1; GPT-4 has ~1 trillion parameters. Gradient descent navigates a loss landscape of 1 trillion dimensions &mdash; and somehow finds a remarkably good solution every time.
+        </div>
+        <p class="micro-note">We visualise just two parameters here. In reality, GPT-4's loss surface lives in ~1 trillion dimensions.</p>
+        <p class="micro-note" id="momentumNote" style="display:none">In ravines, gradient descent zigzags across the valley. Optimisers like <strong style="color:#22d3ee">Momentum</strong> and <strong style="color:#a78bfa">Adam</strong> smooth this path by remembering past gradients.</p>
+        <p class="section-summary">Learning is optimisation &mdash; find the valley by following the slope downhill.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: Learning Rate
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. Learning Rate &mdash; The Most Important Hyperparameter</h2>
+    <div class="panel">
+        <h3>Loss vs iterations for three learning rates</h3>
+        <canvas id="canvas2" width="700" height="300"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">&eta; too small</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">&eta; just right</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">&eta; too large</span></div>
+        </div>
+        <div class="slider-row">
+            <label style="color:#22d3ee">&eta;<sub>1</sub> (small):</label>
+            <input type="range" id="sEta1" min="1" max="100" step="1" value="1">
+            <span class="slider-val" style="color:#22d3ee" id="vEta1">0.005</span>
+        </div>
+        <div class="slider-row">
+            <label style="color:#10b981">&eta;<sub>2</sub> (medium):</label>
+            <input type="range" id="sEta2" min="1" max="100" step="1" value="20">
+            <span class="slider-val" style="color:#10b981" id="vEta2">0.100</span>
+        </div>
+        <div class="slider-row">
+            <label style="color:#f472b6">&eta;<sub>3</sub> (large):</label>
+            <input type="range" id="sEta3" min="1" max="100" step="1" value="80">
+            <span class="slider-val" style="color:#f472b6" id="vEta3">1.500</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnRace">&#9654; Race</button>
+            <button class="btn" id="btnReset2">Reset</button>
+        </div>
+        <div class="checkbox-row">
+            <label><input type="checkbox" id="chkLogScale" style="accent-color:#a78bfa"> Log loss scale</label>
+        </div>
+        <div class="result-box">
+            <div id="s2Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="cyan">&eta; too small:</span> takes thousands of steps to converge</div>
+            <div class="math-line"><span class="green">&eta; just right:</span> converges in ~100 steps &larr; <span class="muted">Goldilocks zone</span></div>
+            <div class="math-line"><span class="pink">&eta; too large:</span> loss oscillates and explodes</div>
+        </div>
+        <div class="insight-box">
+            &#x1F4A1; A learning rate that is too large causes the ball to overshoot the valley and bounce back and forth. Real LLM training uses learning rate <em>schedules</em> &mdash; large at first, then reduced.
+        </div>
+        <p class="section-summary">Too slow wastes compute. Too fast diverges. The learning rate is the single most important choice in training.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 3: Stochastic Gradient Descent
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. Stochastic Gradient Descent</h2>
+    <div class="panel">
+        <h3>Full gradient vs mini-batch vs single sample</h3>
+        <canvas id="canvas3" width="700" height="350"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Full batch (exact)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Mini-batch</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Single sample (B=1)</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Batch size:</label>
+            <input type="range" id="sBatch" min="0" max="7" step="1" value="3">
+            <span class="slider-val" id="vBatch">32</span>
+        </div>
+        <div class="slider-row">
+            <label>Noise level:</label>
+            <input type="range" id="sNoise" min="0" max="20" step="1" value="10">
+            <span class="slider-val" id="vNoise">1.0</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnRunSGD">&#9654; Run</button>
+            <button class="btn" id="btnResetSGD">Reset</button>
+        </div>
+        <div class="result-box">
+            <div id="s3Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">Full gradient:</span> use ALL training examples &rarr; expensive but exact</div>
+            <div class="math-line"><span class="gold">Mini-batch SGD:</span> use B examples &rarr; noisy but fast, generalises better</div>
+            <div class="math-line"><span class="pink">Single sample:</span> B=1 &rarr; cheapest, noisiest</div>
+            <div class="math-line"><span class="muted">In practice: B = 256 to 4096 for large language models</span></div>
+        </div>
+        <div class="insight-box">
+            &#x1F4A1; The noise in SGD is a feature, not a bug. It helps models escape sharp local minima and find <strong style="color:#fbbf24">flatter minima that generalise better</strong>. Sharp minima tend to overfit; flat minima are robust to small perturbations in the weights. This is partly why LLMs trained on mini-batches generalise so well.
+        </div>
+        <p class="section-summary">A little randomness in the descent helps find better solutions &mdash; noise is the path to generalisation.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Closing Explain Section
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="explain">
+        <div class="explain-name">Why This Matters</div>
+        <p class="explain-text">
+            Every weight in GPT-4 was set by gradient descent. Nobody programmed what it knows &mdash; the model discovered it by descending a loss landscape of unimaginable dimension. The mathematics here &mdash; a single update rule applied trillions of times &mdash; is the engine of the AI revolution.
+        </p>
+        <p class="explain-text" style="margin-top:10px">
+            Training GPT-3 consumed approximately 3.14&times;10&sup2;&sup3; floating-point operations. Every one of those operations was a step of gradient descent.
+        </p>
+        <p class="explain-text" style="margin-top:10px;color:#808098;font-size:0.85em">
+            <em>See also:</em> <a href="derivatives.html" style="color:#a78bfa">Derivatives</a> &middot; <a href="differential_equations.html" style="color:#a78bfa">Differential Equations</a>
+        </p>
+    </div>
+
+</div>
+
+<script>
+/* ================================================================
+   SHARED: Surface definitions, utilities
+   ================================================================ */
+
+/* --- Loss surfaces (analytical) --- */
+function bowlLoss(x, y) { return x * x + y * y; }
+function bowlGrad(x, y) { return [2 * x, 2 * y]; }
+
+function ravineLoss(x, y) {
+    return (1 - x) * (1 - x) + 10 * (y - x * x) * (y - x * x);
+}
+function ravineGrad(x, y) {
+    var dx = -2 * (1 - x) - 40 * x * (y - x * x);
+    var dy = 20 * (y - x * x);
+    return [dx, dy];
+}
+
+function noisyLoss(x, y) {
+    return 0.5 * (x * x + y * y)
+         + 2 * Math.sin(1.5 * x) * Math.sin(1.5 * y)
+         + Math.sin(3 * x) * Math.cos(2 * y);
+}
+function noisyGrad(x, y) {
+    var dx = x + 3 * Math.cos(1.5 * x) * Math.sin(1.5 * y)
+           + 3 * Math.cos(3 * x) * Math.cos(2 * y);
+    var dy = y + 3 * Math.sin(1.5 * x) * Math.cos(1.5 * y)
+           - 2 * Math.sin(3 * x) * Math.sin(2 * y);
+    return [dx, dy];
+}
+
+var SURFACES = {
+    bowl:   { label: 'Convex bowl',     lossFn: bowlLoss,   gradFn: bowlGrad,   domain: [-4, 4],  maxLoss: 32 },
+    ravine: { label: 'Ravine',          lossFn: ravineLoss, gradFn: ravineGrad,  domain: [-2, 3],  maxLoss: 100 },
+    noisy:  { label: 'Noisy landscape', lossFn: noisyLoss,  gradFn: noisyGrad,  domain: [-4, 4],  maxLoss: 20 }
+};
+
+/* --- Utilities --- */
+function randn() {
+    var u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+function isVisible(el) {
+    var r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight;
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* --- Colour map: loss value → RGB --- */
+function lossToRGB(loss, maxLoss) {
+    var t = clamp(loss / maxLoss, 0, 1);
+    /* Deep violet (low) → bright violet (mid) → white/gold (high) */
+    var r, g, b;
+    if (t < 0.5) {
+        var s = t / 0.5;
+        r = Math.round(15 + s * (167 - 15));
+        g = Math.round(10 + s * (139 - 10));
+        b = Math.round(50 + s * (250 - 50));
+    } else {
+        var s = (t - 0.5) / 0.5;
+        r = Math.round(167 + s * (255 - 167));
+        g = Math.round(139 + s * (230 - 139));
+        b = Math.round(250 + s * (180 - 250));
+    }
+    return [r, g, b];
+}
+
+/* ================================================================
+   Section 1: The Loss Landscape
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas1');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var MARGIN = { left: 45, right: 15, top: 15, bottom: 40 };
+    var plotW = W - MARGIN.left - MARGIN.right;
+    var plotH = H - MARGIN.top - MARGIN.bottom;
+
+    var curSurface = 'bowl';
+    var state = 'idle'; /* idle | running | paused | converged */
+    var rafId = null;
+    var stepCount = 0;
+    var MAX_STEPS = 500;
+
+    var ball = { x: 3.0, y: 3.0, path: [] };
+    var momentum = { x: 3.0, y: 3.0, vx: 0, vy: 0, path: [] };
+    var BETA = 0.9;
+    var diverged = false;
+    var contourImg = null;
+
+    function getSurface() { return SURFACES[curSurface]; }
+
+    function paramToCanvas(px, py) {
+        var d = getSurface().domain;
+        var range = d[1] - d[0];
+        return {
+            x: MARGIN.left + ((px - d[0]) / range) * plotW,
+            y: MARGIN.top + ((d[1] - py) / range) * plotH
+        };
+    }
+    function canvasToParam(cx, cy) {
+        var d = getSurface().domain;
+        var range = d[1] - d[0];
+        return {
+            x: d[0] + ((cx - MARGIN.left) / plotW) * range,
+            y: d[1] - ((cy - MARGIN.top) / plotH) * range
+        };
+    }
+
+    /* Pre-render contour heatmap */
+    function renderContour() {
+        var s = getSurface();
+        contourImg = ctx.createImageData(W, H);
+        var data = contourImg.data;
+        var step = 2;
+        for (var py = MARGIN.top; py < H - MARGIN.bottom; py += step) {
+            for (var px = MARGIN.left; px < W - MARGIN.right; px += step) {
+                var p = canvasToParam(px, py);
+                var loss = s.lossFn(p.x, p.y);
+                var rgb = lossToRGB(loss, s.maxLoss);
+                for (var dy = 0; dy < step && py + dy < H - MARGIN.bottom; dy++) {
+                    for (var dx = 0; dx < step && px + dx < W - MARGIN.right; dx++) {
+                        var idx = ((py + dy) * W + (px + dx)) * 4;
+                        data[idx] = rgb[0];
+                        data[idx + 1] = rgb[1];
+                        data[idx + 2] = rgb[2];
+                        data[idx + 3] = 255;
+                    }
+                }
+            }
+        }
+    }
+
+    function getEta() {
+        /* Logarithmic mapping: slider 1–200 → eta 0.005–2.0 */
+        var v = parseInt(document.getElementById('sEta').value);
+        return 0.005 * Math.pow(400, v / 200);
+    }
+
+    function resetBall(x, y) {
+        var d = getSurface().domain;
+        ball.x = (x !== undefined) ? x : d[0] + Math.random() * (d[1] - d[0]);
+        ball.y = (y !== undefined) ? y : d[0] + Math.random() * (d[1] - d[0]);
+        ball.path = [{ x: ball.x, y: ball.y }];
+        momentum.x = ball.x; momentum.y = ball.y;
+        momentum.vx = 0; momentum.vy = 0;
+        momentum.path = [{ x: ball.x, y: ball.y }];
+        stepCount = 0;
+        diverged = false;
+        state = 'idle';
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        updateRunBtn();
+        draw();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        /* Background */
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        /* Contour heatmap */
+        if (contourImg) ctx.putImageData(contourImg, 0, 0);
+
+        /* Contour iso-lines */
+        var s = getSurface();
+        var d = s.domain;
+        var range = d[1] - d[0];
+        var numLevels = 12;
+        var levelStep = s.maxLoss / numLevels;
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 0.5;
+        for (var py = MARGIN.top; py < H - MARGIN.bottom; py += 3) {
+            for (var px = MARGIN.left; px < W - MARGIN.right; px += 3) {
+                var p = canvasToParam(px, py);
+                var L = s.lossFn(p.x, p.y);
+                var pR = canvasToParam(px + 3, py);
+                var LR = s.lossFn(pR.x, pR.y);
+                if (Math.floor(L / levelStep) !== Math.floor(LR / levelStep)) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+                    ctx.fillRect(px, py, 1, 1);
+                }
+                var pD = canvasToParam(px, py + 3);
+                var LD = s.lossFn(pD.x, pD.y);
+                if (Math.floor(L / levelStep) !== Math.floor(LD / levelStep)) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+                    ctx.fillRect(px, py, 1, 1);
+                }
+            }
+        }
+
+        /* Axis labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Courier New, monospace';
+        ctx.textAlign = 'center';
+        for (var v = Math.ceil(d[0]); v <= d[1]; v++) {
+            var cp = paramToCanvas(v, d[0]);
+            ctx.fillText(v.toString(), cp.x, H - MARGIN.bottom + 16);
+        }
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '12px Georgia, serif';
+        ctx.fillText('\u03b8\u2081', MARGIN.left + plotW / 2, H - 5);
+
+        ctx.save();
+        ctx.translate(12, MARGIN.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.fillText('\u03b8\u2082', 0, 0);
+        ctx.restore();
+
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Courier New, monospace';
+        ctx.textAlign = 'right';
+        for (var v = Math.ceil(d[0]); v <= d[1]; v++) {
+            var cp = paramToCanvas(d[0], v);
+            ctx.fillText(v.toString(), MARGIN.left - 6, cp.y + 4);
+        }
+
+        /* Path trail */
+        if (ball.path.length > 1) {
+            for (var i = 1; i < ball.path.length; i++) {
+                var alpha = 0.15 + 0.85 * (i / ball.path.length);
+                var p0 = paramToCanvas(ball.path[i - 1].x, ball.path[i - 1].y);
+                var p1 = paramToCanvas(ball.path[i].x, ball.path[i].y);
+                ctx.strokeStyle = 'rgba(251,191,36,' + alpha.toFixed(2) + ')';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(p0.x, p0.y);
+                ctx.lineTo(p1.x, p1.y);
+                ctx.stroke();
+            }
+        }
+
+        /* Momentum path (drawn before gradient arrow so arrow is on top) */
+        var showMom = document.getElementById('chkMomentum').checked;
+        if (showMom && momentum.path.length > 1) {
+            for (var i = 1; i < momentum.path.length; i++) {
+                var alpha = 0.15 + 0.85 * (i / momentum.path.length);
+                var mp0 = paramToCanvas(momentum.path[i - 1].x, momentum.path[i - 1].y);
+                var mp1 = paramToCanvas(momentum.path[i].x, momentum.path[i].y);
+                ctx.strokeStyle = 'rgba(34,211,238,' + alpha.toFixed(2) + ')';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(mp0.x, mp0.y);
+                ctx.lineTo(mp1.x, mp1.y);
+                ctx.stroke();
+            }
+            /* Momentum ball */
+            var mlast = momentum.path[momentum.path.length - 1];
+            var mcp = paramToCanvas(mlast.x, mlast.y);
+            ctx.shadowColor = '#22d3ee';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = '#22d3ee';
+            ctx.beginPath();
+            ctx.arc(mcp.x, mcp.y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        /* Gradient arrow — colour intensity proportional to gradient magnitude */
+        var grad = s.gradFn(ball.x, ball.y);
+        var gradMag = Math.sqrt(grad[0] * grad[0] + grad[1] * grad[1]);
+        if (gradMag > 0.01) {
+            var arrowLen = Math.min(60, gradMag * 15);
+            var dx = -grad[0] / gradMag;
+            var dy = -grad[1] / gradMag;
+            var bp = paramToCanvas(ball.x, ball.y);
+            var ax = bp.x + dx * arrowLen;
+            var ay = bp.y - dy * arrowLen;
+            /* Intensity: pale at low gradient, bright at high */
+            var intensity = clamp(gradMag / (s.maxLoss * 0.3), 0.2, 1.0);
+            var gr = Math.round(16 + intensity * (16 - 16));
+            var gg = Math.round(100 + intensity * (185 - 100));
+            var gb = Math.round(80 + intensity * (129 - 80));
+            var arrowColor = 'rgb(' + gr + ',' + gg + ',' + gb + ')';
+            ctx.strokeStyle = arrowColor;
+            ctx.lineWidth = 1.5 + intensity * 1.5;
+            ctx.beginPath();
+            ctx.moveTo(bp.x, bp.y);
+            ctx.lineTo(ax, ay);
+            ctx.stroke();
+            /* Arrowhead */
+            var headLen = 6 + intensity * 4;
+            var angle = Math.atan2(ay - bp.y, ax - bp.x);
+            ctx.fillStyle = arrowColor;
+            ctx.beginPath();
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(ax - headLen * Math.cos(angle - 0.4), ay - headLen * Math.sin(angle - 0.4));
+            ctx.lineTo(ax - headLen * Math.cos(angle + 0.4), ay - headLen * Math.sin(angle + 0.4));
+            ctx.fill();
+        }
+
+        /* Ball with glow — green when converged, red when active */
+        var bp = paramToCanvas(ball.x, ball.y);
+        var isConverged = (state === 'converged' && !diverged);
+        ctx.shadowColor = isConverged ? '#10b981' : (diverged ? '#f87171' : '#f87171');
+        ctx.shadowBlur = isConverged ? 22 : 14;
+        ctx.fillStyle = isConverged ? '#10b981' : '#f87171';
+        ctx.beginPath();
+        ctx.arc(bp.x, bp.y, isConverged ? 7 : 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        /* State label */
+        if (state === 'converged' && diverged) {
+            ctx.fillStyle = '#f87171';
+            ctx.font = 'bold 13px Georgia, serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('Diverged \u2014 learning rate too large', MARGIN.left + 8, MARGIN.top + 20);
+        } else if (state === 'converged' && stepCount >= MAX_STEPS) {
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = 'bold 13px Georgia, serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('Stopped at ' + MAX_STEPS + ' steps', MARGIN.left + 8, MARGIN.top + 20);
+        } else if (state === 'converged') {
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 13px Georgia, serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('\u2714 Converged!', MARGIN.left + 8, MARGIN.top + 20);
+        } else if (state === 'running') {
+            ctx.fillStyle = '#a78bfa';
+            ctx.font = '12px Georgia, serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('Descending...', MARGIN.left + 8, MARGIN.top + 20);
+        }
+
+        /* Results with steepness bar */
+        var loss = s.lossFn(ball.x, ball.y);
+        var steepPct = clamp(gradMag / (s.maxLoss * 0.4) * 100, 0, 100);
+        var barColor = steepPct > 60 ? '#10b981' : (steepPct > 20 ? '#a78bfa' : '#808098');
+        document.getElementById('s1Results').innerHTML =
+            'Step: <span class="violet">' + stepCount + '</span>' +
+            ' &nbsp;&nbsp; Loss: <span class="pink">' + loss.toFixed(4) + '</span>' +
+            ' &nbsp;&nbsp; |&nabla;L|: <span class="green">' + gradMag.toFixed(4) + '</span>' +
+            ' <span class="steepness-bar-bg"><span class="steepness-bar-fill" style="width:' + steepPct.toFixed(0) + '%;background:' + barColor + '"></span></span>' +
+            '&theta; = (<span class="gold">' + ball.x.toFixed(3) + '</span>, <span class="gold">' + ball.y.toFixed(3) + '</span>)';
+    }
+
+    function tick() {
+        if (state !== 'running') return;
+        var s = getSurface();
+        var grad = s.gradFn(ball.x, ball.y);
+        var gradMag = Math.sqrt(grad[0] * grad[0] + grad[1] * grad[1]);
+        var eta = getEta();
+
+        if (gradMag < 0.001 || stepCount >= MAX_STEPS) {
+            state = 'converged';
+            updateRunBtn();
+            draw();
+            return;
+        }
+
+        /* Vanilla GD step */
+        ball.x -= eta * grad[0];
+        ball.y -= eta * grad[1];
+        var d = s.domain;
+        ball.x = clamp(ball.x, d[0], d[1]);
+        ball.y = clamp(ball.y, d[0], d[1]);
+        ball.path.push({ x: ball.x, y: ball.y });
+
+        /* Momentum step (always computed so toggling visibility is instant) */
+        var mGrad = s.gradFn(momentum.x, momentum.y);
+        momentum.vx = BETA * momentum.vx - eta * mGrad[0];
+        momentum.vy = BETA * momentum.vy - eta * mGrad[1];
+        momentum.x += momentum.vx;
+        momentum.y += momentum.vy;
+        momentum.x = clamp(momentum.x, d[0], d[1]);
+        momentum.y = clamp(momentum.y, d[0], d[1]);
+        momentum.path.push({ x: momentum.x, y: momentum.y });
+
+        stepCount++;
+
+        /* Divergence check */
+        var loss = s.lossFn(ball.x, ball.y);
+        if (loss > 1e6 || isNaN(loss)) {
+            diverged = true;
+            state = 'converged';
+            updateRunBtn();
+            draw();
+            return;
+        }
+
+        draw();
+        rafId = requestAnimationFrame(tick);
+    }
+
+    function doStep() {
+        if (state === 'converged') return;
+        var s = getSurface();
+        var grad = s.gradFn(ball.x, ball.y);
+        var eta = getEta();
+        ball.x -= eta * grad[0];
+        ball.y -= eta * grad[1];
+        var d = s.domain;
+        ball.x = clamp(ball.x, d[0], d[1]);
+        ball.y = clamp(ball.y, d[0], d[1]);
+        ball.path.push({ x: ball.x, y: ball.y });
+        /* Momentum step */
+        var mGrad = s.gradFn(momentum.x, momentum.y);
+        momentum.vx = BETA * momentum.vx - eta * mGrad[0];
+        momentum.vy = BETA * momentum.vy - eta * mGrad[1];
+        momentum.x += momentum.vx;
+        momentum.y += momentum.vy;
+        momentum.x = clamp(momentum.x, d[0], d[1]);
+        momentum.y = clamp(momentum.y, d[0], d[1]);
+        momentum.path.push({ x: momentum.x, y: momentum.y });
+        stepCount++;
+        state = 'paused';
+        updateRunBtn();
+        draw();
+    }
+
+    function updateRunBtn() {
+        var btn = document.getElementById('btnRun');
+        if (state === 'running') {
+            btn.textContent = '\u23F8 Pause';
+        } else {
+            btn.textContent = '\u25B6 Run';
+        }
+    }
+
+    /* Event listeners */
+    document.getElementById('btnRun').addEventListener('click', function() {
+        if (state === 'running') {
+            state = 'paused';
+            if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        } else if (state === 'converged') {
+            return;
+        } else {
+            state = 'running';
+            rafId = requestAnimationFrame(tick);
+        }
+        updateRunBtn();
+    });
+    document.getElementById('btnStep').addEventListener('click', function() {
+        if (state === 'running') {
+            state = 'paused';
+            if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+            updateRunBtn();
+        }
+        doStep();
+    });
+    document.getElementById('btnRandom').addEventListener('click', function() {
+        resetBall();
+    });
+    document.getElementById('sEta').addEventListener('input', function() {
+        document.getElementById('vEta').textContent = getEta().toFixed(3);
+    });
+    document.getElementById('chkMomentum').addEventListener('change', function() {
+        document.getElementById('legendMomentum').style.display = this.checked ? '' : 'none';
+        document.getElementById('momentumNote').style.display = this.checked ? '' : 'none';
+        draw();
+    });
+
+    /* Surface buttons */
+    ['btnBowl', 'btnRavine', 'btnNoisy'].forEach(function(id) {
+        document.getElementById(id).addEventListener('click', function() {
+            document.querySelectorAll('#btnBowl,#btnRavine,#btnNoisy').forEach(function(b) { b.classList.remove('active'); });
+            this.classList.add('active');
+            if (id === 'btnBowl') curSurface = 'bowl';
+            else if (id === 'btnRavine') curSurface = 'ravine';
+            else curSurface = 'noisy';
+            renderContour();
+            var d = getSurface().domain;
+            resetBall(d[0] + (d[1] - d[0]) * 0.8, d[0] + (d[1] - d[0]) * 0.8);
+        });
+    });
+
+    /* Click to place ball */
+    cvs.addEventListener('click', function(e) {
+        var rect = cvs.getBoundingClientRect();
+        var mx = (e.clientX - rect.left) * (W / rect.width);
+        var my = (e.clientY - rect.top) * (H / rect.height);
+        if (mx >= MARGIN.left && mx <= W - MARGIN.right && my >= MARGIN.top && my <= H - MARGIN.bottom) {
+            var p = canvasToParam(mx, my);
+            resetBall(p.x, p.y);
+        }
+    });
+
+    /* Init */
+    renderContour();
+    resetBall(3.0, 3.0);
+})();
+
+/* ================================================================
+   Section 2: Learning Rate Race
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas2');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var PAD = { left: 70, right: 30, top: 20, bottom: 40 };
+    var plotW = W - PAD.left - PAD.right;
+    var plotH = H - PAD.top - PAD.bottom;
+
+    var MAX_STEPS = 300;
+    var runners = [];
+    var raceStep = 0;
+    var raceState = 'idle';
+    var rafId = null;
+    var START_X = 3.0, START_Y = 3.0;
+    var INITIAL_LOSS = bowlLoss(START_X, START_Y);
+
+    function sliderToEta(id) {
+        var v = parseInt(document.getElementById(id).value);
+        /* Non-linear mapping: 0.001 to 2.0 */
+        return 0.001 + (v / 100) * (v / 100) * 2.0;
+    }
+    function updateEtaDisplays() {
+        document.getElementById('vEta1').textContent = sliderToEta('sEta1').toFixed(3);
+        document.getElementById('vEta2').textContent = sliderToEta('sEta2').toFixed(3);
+        document.getElementById('vEta3').textContent = sliderToEta('sEta3').toFixed(3);
+    }
+
+    function initRunners() {
+        runners = [
+            { eta: sliderToEta('sEta1'), x: START_X, y: START_Y, lossHist: [INITIAL_LOSS], color: '#22d3ee', label: '\u03b7 too small', diverged: false },
+            { eta: sliderToEta('sEta2'), x: START_X, y: START_Y, lossHist: [INITIAL_LOSS], color: '#10b981', label: '\u03b7 just right', diverged: false },
+            { eta: sliderToEta('sEta3'), x: START_X, y: START_Y, lossHist: [INITIAL_LOSS], color: '#f472b6', label: '\u03b7 too large', diverged: false }
+        ];
+        raceStep = 0;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var logScale = document.getElementById('chkLogScale').checked;
+
+        /* Determine Y range */
+        var maxDisplayLoss = INITIAL_LOSS * 1.2;
+        var minDisplayLoss = 0;
+        for (var i = 0; i < runners.length; i++) {
+            for (var j = 0; j < runners[i].lossHist.length; j++) {
+                if (runners[i].lossHist[j] > maxDisplayLoss && runners[i].lossHist[j] < 200) {
+                    maxDisplayLoss = runners[i].lossHist[j];
+                }
+            }
+        }
+        maxDisplayLoss = Math.min(maxDisplayLoss * 1.1, 200);
+
+        /* Log scale Y range */
+        var logMin = -4; /* log10(0.0001) */
+        var logMax = Math.log10(Math.max(maxDisplayLoss, 1));
+
+        /* Helper: loss value → canvas Y */
+        function lossToY(loss) {
+            if (logScale) {
+                var lv = clamp(Math.log10(Math.max(loss, 1e-4)), logMin, logMax);
+                return PAD.top + plotH * (1 - (lv - logMin) / (logMax - logMin));
+            } else {
+                var lv = clamp(loss, minDisplayLoss, maxDisplayLoss);
+                return PAD.top + plotH * (1 - (lv - minDisplayLoss) / (maxDisplayLoss - minDisplayLoss));
+            }
+        }
+
+        /* Grid */
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 0.5;
+        var yTicks = 5;
+        for (var i = 0; i <= yTicks; i++) {
+            var y = PAD.top + (i / yTicks) * plotH;
+            ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + plotW, y); ctx.stroke();
+        }
+        var xTicks = 6;
+        for (var i = 0; i <= xTicks; i++) {
+            var x = PAD.left + (i / xTicks) * plotW;
+            ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + plotH); ctx.stroke();
+        }
+
+        /* Axes */
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(PAD.left, PAD.top);
+        ctx.lineTo(PAD.left, PAD.top + plotH);
+        ctx.lineTo(PAD.left + plotW, PAD.top + plotH);
+        ctx.stroke();
+
+        /* Axis labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'center';
+        for (var i = 0; i <= xTicks; i++) {
+            var step = Math.round(i * MAX_STEPS / xTicks);
+            var x = PAD.left + (i / xTicks) * plotW;
+            ctx.fillText(step.toString(), x, PAD.top + plotH + 16);
+        }
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '12px Georgia, serif';
+        ctx.fillText('Iteration', PAD.left + plotW / 2, H - 5);
+
+        ctx.textAlign = 'right';
+        ctx.font = '10px Courier New, monospace';
+        ctx.fillStyle = '#808098';
+        if (logScale) {
+            for (var i = 0; i <= yTicks; i++) {
+                var lv = logMax - (i / yTicks) * (logMax - logMin);
+                var y = PAD.top + (i / yTicks) * plotH;
+                if (lv >= 0) ctx.fillText('10^' + lv.toFixed(1), PAD.left - 6, y + 3);
+                else ctx.fillText('10^' + lv.toFixed(1), PAD.left - 6, y + 3);
+            }
+        } else {
+            for (var i = 0; i <= yTicks; i++) {
+                var lossVal = maxDisplayLoss * (1 - i / yTicks);
+                var y = PAD.top + (i / yTicks) * plotH;
+                ctx.fillText(lossVal.toFixed(1), PAD.left - 8, y + 3);
+            }
+        }
+
+        ctx.save();
+        ctx.translate(14, PAD.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.font = '12px Georgia, serif';
+        ctx.fillStyle = '#a0a0b8';
+        ctx.fillText(logScale ? 'Loss (log\u2081\u2080)' : 'Loss', 0, 0);
+        ctx.restore();
+
+        /* Draw loss curves */
+        for (var r = 0; r < runners.length; r++) {
+            var runner = runners[r];
+            if (runner.lossHist.length < 2) continue;
+            ctx.strokeStyle = runner.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (var i = 0; i < runner.lossHist.length; i++) {
+                var x = PAD.left + (i / MAX_STEPS) * plotW;
+                var y = lossToY(runner.lossHist[i]);
+                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            /* Endpoint dot */
+            if (runner.lossHist.length > 0) {
+                var lastI = runner.lossHist.length - 1;
+                var lx = PAD.left + (lastI / MAX_STEPS) * plotW;
+                var ly = lossToY(runner.lossHist[lastI]);
+                ctx.beginPath();
+                ctx.arc(lx, ly, 4, 0, Math.PI * 2);
+                ctx.fillStyle = runner.color;
+                ctx.fill();
+            }
+
+            /* Diverged label — explicit red warning */
+            if (runner.diverged) {
+                ctx.fillStyle = '#f87171';
+                ctx.font = 'bold 11px Georgia, serif';
+                ctx.textAlign = 'left';
+                var labelY = PAD.top + 15 + r * 15;
+                ctx.fillText('Diverged \u2014 \u03b7 too large', PAD.left + plotW - 130, labelY);
+            }
+        }
+
+        /* Results */
+        var html = '';
+        for (var r = 0; r < runners.length; r++) {
+            var ru = runners[r];
+            var finalLoss = ru.lossHist.length > 0 ? ru.lossHist[ru.lossHist.length - 1] : INITIAL_LOSS;
+            var status = ru.diverged ? ' <span style="color:#f87171">(diverged)</span>' : (finalLoss < 0.01 ? ' <span style="color:#10b981">(converged)</span>' : '');
+            html += '<span style="color:' + ru.color + '">\u03b7=' + ru.eta.toFixed(3) + ' \u2192 Loss=' + (ru.diverged ? '\u221e' : finalLoss.toFixed(4)) + status + '</span><br>';
+        }
+        document.getElementById('s2Results').innerHTML = html;
+    }
+
+    function raceTick() {
+        if (raceState !== 'running' || raceStep >= MAX_STEPS) {
+            raceState = 'done';
+            draw();
+            return;
+        }
+        raceStep++;
+        for (var r = 0; r < runners.length; r++) {
+            var ru = runners[r];
+            if (ru.diverged) { ru.lossHist.push(ru.lossHist[ru.lossHist.length - 1]); continue; }
+            var grad = bowlGrad(ru.x, ru.y);
+            ru.x -= ru.eta * grad[0];
+            ru.y -= ru.eta * grad[1];
+            var loss = bowlLoss(ru.x, ru.y);
+            if (loss > 1e6 || isNaN(loss)) {
+                ru.diverged = true;
+                ru.lossHist.push(200);
+            } else {
+                ru.lossHist.push(loss);
+            }
+        }
+        draw();
+        rafId = requestAnimationFrame(raceTick);
+    }
+
+    /* Event listeners */
+    document.getElementById('btnRace').addEventListener('click', function() {
+        if (raceState === 'running') return;
+        initRunners();
+        raceState = 'running';
+        rafId = requestAnimationFrame(raceTick);
+    });
+    document.getElementById('btnReset2').addEventListener('click', function() {
+        raceState = 'idle';
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+        initRunners();
+        draw();
+    });
+    ['sEta1', 'sEta2', 'sEta3'].forEach(function(id) {
+        document.getElementById(id).addEventListener('input', updateEtaDisplays);
+    });
+    document.getElementById('chkLogScale').addEventListener('change', function() { draw(); });
+
+    /* Init */
+    updateEtaDisplays();
+    initRunners();
+    draw();
+})();
+
+/* ================================================================
+   Section 3: Stochastic Gradient Descent
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas3');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var MARGIN = { left: 45, right: 15, top: 15, bottom: 40 };
+    var plotW = W - MARGIN.left - MARGIN.right;
+    var plotH = H - MARGIN.top - MARGIN.bottom;
+
+    var BATCH_SIZES = [1, 4, 16, 32, 64, 128, 256, Infinity];
+    var MAX_STEPS = 400;
+    var ETA = 0.08;
+    var sgdState = 'idle';
+    var sgdStep = 0;
+    var rafId = null;
+    var contourImg = null;
+
+    var paths = [
+        { label: 'Full batch', noiseScale: 0, trail: [], color: '#10b981', x: 0, y: 0 },
+        { label: 'Mini-batch', noiseScale: 1, trail: [], color: '#fbbf24', x: 0, y: 0 },
+        { label: 'Single (B=1)', noiseScale: 1, trail: [], color: '#f472b6', x: 0, y: 0 }
+    ];
+    var startX = -3.0, startY = 3.0;
+
+    var useSurface = SURFACES.noisy;
+
+    function paramToCanvas(px, py) {
+        var d = useSurface.domain;
+        var range = d[1] - d[0];
+        return {
+            x: MARGIN.left + ((px - d[0]) / range) * plotW,
+            y: MARGIN.top + ((d[1] - py) / range) * plotH
+        };
+    }
+    function canvasToParam(cx, cy) {
+        var d = useSurface.domain;
+        var range = d[1] - d[0];
+        return {
+            x: d[0] + ((cx - MARGIN.left) / plotW) * range,
+            y: d[1] - ((cy - MARGIN.top) / plotH) * range
+        };
+    }
+
+    function renderContour() {
+        contourImg = ctx.createImageData(W, H);
+        var data = contourImg.data;
+        var step = 2;
+        for (var py = MARGIN.top; py < H - MARGIN.bottom; py += step) {
+            for (var px = MARGIN.left; px < W - MARGIN.right; px += step) {
+                var p = canvasToParam(px, py);
+                var loss = useSurface.lossFn(p.x, p.y);
+                var rgb = lossToRGB(loss, useSurface.maxLoss);
+                for (var dy = 0; dy < step && py + dy < H - MARGIN.bottom; dy++) {
+                    for (var dx = 0; dx < step && px + dx < W - MARGIN.right; dx++) {
+                        var idx = ((py + dy) * W + (px + dx)) * 4;
+                        data[idx] = rgb[0];
+                        data[idx + 1] = rgb[1];
+                        data[idx + 2] = rgb[2];
+                        data[idx + 3] = 255;
+                    }
+                }
+            }
+        }
+    }
+
+    function getBatchSize() {
+        var idx = parseInt(document.getElementById('sBatch').value);
+        return BATCH_SIZES[idx];
+    }
+    function getNoiseLevel() {
+        return parseInt(document.getElementById('sNoise').value) / 10;
+    }
+    function updateBatchDisplay() {
+        var bs = getBatchSize();
+        document.getElementById('vBatch').textContent = bs === Infinity ? 'Full' : bs.toString();
+    }
+    function updateNoiseDisplay() {
+        document.getElementById('vNoise').textContent = getNoiseLevel().toFixed(1);
+    }
+
+    function resetPaths() {
+        startX = -3.0;
+        startY = 3.0;
+        paths[0].x = startX; paths[0].y = startY; paths[0].trail = [{ x: startX, y: startY }];
+        paths[1].x = startX; paths[1].y = startY; paths[1].trail = [{ x: startX, y: startY }];
+        paths[2].x = startX; paths[2].y = startY; paths[2].trail = [{ x: startX, y: startY }];
+        sgdStep = 0;
+        sgdState = 'idle';
+        if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        if (contourImg) ctx.putImageData(contourImg, 0, 0);
+
+        /* Contour iso-lines */
+        var d = useSurface.domain;
+        var numLevels = 10;
+        var levelStep = useSurface.maxLoss / numLevels;
+        for (var py = MARGIN.top; py < H - MARGIN.bottom; py += 3) {
+            for (var px = MARGIN.left; px < W - MARGIN.right; px += 3) {
+                var p = canvasToParam(px, py);
+                var L = useSurface.lossFn(p.x, p.y);
+                var pR = canvasToParam(px + 3, py);
+                var LR = useSurface.lossFn(pR.x, pR.y);
+                if (Math.floor(L / levelStep) !== Math.floor(LR / levelStep)) {
+                    ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                    ctx.fillRect(px, py, 1, 1);
+                }
+            }
+        }
+
+        /* Axis labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Courier New, monospace';
+        ctx.textAlign = 'center';
+        for (var v = Math.ceil(d[0]); v <= d[1]; v += 2) {
+            var cp = paramToCanvas(v, d[0]);
+            ctx.fillText(v.toString(), cp.x, H - MARGIN.bottom + 16);
+        }
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '12px Georgia, serif';
+        ctx.fillText('\u03b8\u2081', MARGIN.left + plotW / 2, H - 5);
+
+        /* Trails */
+        for (var p = 0; p < paths.length; p++) {
+            var path = paths[p];
+            if (path.trail.length < 2) continue;
+            ctx.strokeStyle = path.color;
+            ctx.lineWidth = p === 0 ? 2.5 : 1.8;
+            ctx.globalAlpha = 0.8;
+            ctx.beginPath();
+            for (var i = 0; i < path.trail.length; i++) {
+                var cp = paramToCanvas(path.trail[i].x, path.trail[i].y);
+                if (i === 0) ctx.moveTo(cp.x, cp.y); else ctx.lineTo(cp.x, cp.y);
+            }
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            /* Current position dot */
+            var last = path.trail[path.trail.length - 1];
+            var lp = paramToCanvas(last.x, last.y);
+            ctx.beginPath();
+            ctx.arc(lp.x, lp.y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = path.color;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        /* Results with noise sigma */
+        var batchSize = getBatchSize();
+        var noiseLevel = getNoiseLevel();
+        var sigma = batchSize === Infinity ? 0 : noiseLevel / Math.sqrt(batchSize);
+        var html = 'Step: <span class="violet">' + sgdStep + '</span>' +
+            ' &nbsp; <span class="muted">&sigma;=' + sigma.toFixed(3) + '</span> &nbsp;&nbsp; ';
+        for (var p = 0; p < paths.length; p++) {
+            var last = paths[p].trail[paths[p].trail.length - 1];
+            var loss = useSurface.lossFn(last.x, last.y);
+            html += '<span style="color:' + paths[p].color + '">' + paths[p].label + ': ' + loss.toFixed(3) + '</span> &nbsp; ';
+        }
+        document.getElementById('s3Results').innerHTML = html;
+    }
+
+    function sgdTick() {
+        if (sgdState !== 'running' || sgdStep >= MAX_STEPS) {
+            sgdState = 'done';
+            draw();
+            return;
+        }
+        sgdStep++;
+        var noiseLevel = getNoiseLevel();
+        var batchSize = getBatchSize();
+        var d = useSurface.domain;
+
+        for (var p = 0; p < paths.length; p++) {
+            var path = paths[p];
+            var grad = useSurface.gradFn(path.x, path.y);
+            var gradMag = Math.sqrt(grad[0] * grad[0] + grad[1] * grad[1]);
+
+            var noise = 0;
+            if (p === 0) {
+                /* Full batch: no noise */
+                noise = 0;
+            } else if (p === 1) {
+                /* Mini-batch: noise ~ noiseLevel / sqrt(batchSize) */
+                var nf = batchSize >= 256 ? 0 : noiseLevel / Math.sqrt(batchSize);
+                var nx = nf * randn() * Math.max(Math.abs(grad[0]), 0.3);
+                var ny = nf * randn() * Math.max(Math.abs(grad[1]), 0.3);
+                path.x -= ETA * (grad[0] + nx);
+                path.y -= ETA * (grad[1] + ny);
+                path.x = clamp(path.x, d[0], d[1]);
+                path.y = clamp(path.y, d[0], d[1]);
+                path.trail.push({ x: path.x, y: path.y });
+                continue;
+            } else {
+                /* Single sample: maximum noise */
+                var nf = noiseLevel;
+                var nx = nf * randn() * Math.max(Math.abs(grad[0]), 0.3);
+                var ny = nf * randn() * Math.max(Math.abs(grad[1]), 0.3);
+                path.x -= ETA * (grad[0] + nx);
+                path.y -= ETA * (grad[1] + ny);
+                path.x = clamp(path.x, d[0], d[1]);
+                path.y = clamp(path.y, d[0], d[1]);
+                path.trail.push({ x: path.x, y: path.y });
+                continue;
+            }
+
+            /* Full batch (no noise) */
+            path.x -= ETA * grad[0];
+            path.y -= ETA * grad[1];
+            path.x = clamp(path.x, d[0], d[1]);
+            path.y = clamp(path.y, d[0], d[1]);
+            path.trail.push({ x: path.x, y: path.y });
+        }
+
+        draw();
+        rafId = requestAnimationFrame(sgdTick);
+    }
+
+    /* Events */
+    document.getElementById('btnRunSGD').addEventListener('click', function() {
+        if (sgdState === 'running') {
+            sgdState = 'paused';
+            if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+            this.textContent = '\u25B6 Run';
+        } else {
+            if (sgdState === 'done' || sgdState === 'idle') {
+                if (sgdStep >= MAX_STEPS) resetPaths();
+            }
+            sgdState = 'running';
+            this.textContent = '\u23F8 Pause';
+            rafId = requestAnimationFrame(sgdTick);
+        }
+    });
+    document.getElementById('btnResetSGD').addEventListener('click', function() {
+        resetPaths();
+        document.getElementById('btnRunSGD').textContent = '\u25B6 Run';
+        draw();
+    });
+    document.getElementById('sBatch').addEventListener('input', updateBatchDisplay);
+    document.getElementById('sNoise').addEventListener('input', updateNoiseDisplay);
+
+    /* Init */
+    updateBatchDisplay();
+    updateNoiseDisplay();
+    renderContour();
+    resetPaths();
+    draw();
+})();
+</script>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

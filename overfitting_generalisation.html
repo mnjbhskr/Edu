@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overfitting &amp; Generalisation</title>
+    <meta name="description" content="Visualise the bias-variance tradeoff. Watch polynomial curves overfit noisy data, explore L2 regularisation and dropout, and understand why generalisation is the central challenge of machine learning.">
+    <link rel="canonical" href="https://mathsedu.org/overfitting_generalisation.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Overfitting & Generalisation",
+      "url": "https://mathsedu.org/overfitting_generalisation.html",
+      "description": "Visualise the bias-variance tradeoff. Watch polynomial curves overfit noisy data, explore L2 regularisation and dropout, and understand why generalisation is the central challenge of machine learning.",
+      "educationalLevel": "Intermediate",
+      "teaches": "Overfitting, underfitting, bias-variance tradeoff, polynomial regression, L2 regularisation, and dropout",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "The Mathematics of Intelligence",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="Overfitting &amp; Generalisation">
+    <meta property="og:description" content="Visualise the bias-variance tradeoff. Watch polynomial curves overfit noisy data, explore L2 regularisation and dropout, and understand why generalisation is the central challenge of machine learning.">
+    <meta property="og:url" content="https://mathsedu.org/overfitting_generalisation.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Overfitting &amp; Generalisation">
+    <meta name="twitter:description" content="Visualise the bias-variance tradeoff. Watch polynomial curves overfit noisy data, explore L2 regularisation and dropout, and understand why generalisation is the central challenge of machine learning.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#a78bfa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:8px}
+        .intro-text{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(167,139,250,0.13);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .violet{color:#a78bfa}.math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#a78bfa;cursor:pointer}
+        .slider-val{color:#a78bfa;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .insight-box{background:rgba(167,139,250,0.04);border-left:3px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#a78bfa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .section-summary{color:#a78bfa;font-size:0.85em;font-style:italic;margin:6px 0 0;padding:6px 0;border-top:1px solid rgba(167,139,250,0.1)}
+        .micro-note{color:#808098;font-size:0.85em;font-style:italic;margin:8px 0 4px;line-height:1.6}
+        .checkbox-row{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+        .checkbox-row label{color:#a0a0b8;font-size:0.9em;cursor:pointer;display:flex;align-items:center;gap:6px}
+        .steepness-bar-bg{display:inline-block;width:80px;height:7px;background:rgba(255,255,255,0.06);border-radius:3px;vertical-align:middle;margin:0 6px;overflow:hidden}
+        .steepness-bar-fill{height:100%;border-radius:3px;transition:width 0.15s}
+        .select-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .select-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .select-row select{background:#14142a;color:#b0b0c4;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:5px 10px;font-family:Georgia,serif;font-size:0.9em;cursor:pointer;accent-color:#a78bfa}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+            .select-row{flex-wrap:wrap}.select-row label{min-width:100%}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Overfitting &amp; Generalisation</h1>
+    <p class="subtitle">The fundamental tension of learning &mdash; memorising vs understanding</p>
+    <p class="intro-text">
+        A model that memorises its training data perfectly is useless &mdash; like a student who learns exam answers by heart but cannot solve a new problem. The central challenge of machine learning is <em>generalisation</em>: building models that perform well on data they have never seen. This page lets you watch overfitting happen in real time, see why test error follows a U-shaped curve, and explore the techniques that tame it.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: The Polynomial Fitting Demo
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. The Polynomial Fitting Demo</h2>
+    <div class="panel">
+        <h3>Fitting polynomials to noisy data</h3>
+        <canvas id="canvas1" width="700" height="400"></canvas>
+        <p class="micro-note">The true function is sin(2&pi;x). We observe it with noise &mdash; how much complexity should the model use?</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Underfit (degree 1)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Good fit</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Overfit (high degree)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24;width:12px;height:1px;border-top:1px dashed #fbbf24;background:transparent"></div><span style="color:#fbbf24">True function</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Polynomial degree:</label>
+            <input type="range" id="sDegree" min="1" max="14" step="1" value="3">
+            <span class="slider-val" id="vDegree">3</span>
+        </div>
+        <div class="checkbox-row">
+            <label><input type="checkbox" id="chkTestPts" style="accent-color:#a78bfa" checked> Show test points</label>
+            <label style="margin-left:16px"><input type="checkbox" id="chkTrue" style="accent-color:#fbbf24" checked> Show true function</label>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnNewData">New data</button>
+            <button class="btn" id="btnSweep">&#9654; Sweep degrees</button>
+        </div>
+        <div class="result-box">
+            <div id="s1Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">f</span>(<span class="cyan">x</span>) = <span class="gold">w</span><sub>0</sub> + <span class="gold">w</span><sub>1</sub><span class="cyan">x</span> + <span class="gold">w</span><sub>2</sub><span class="cyan">x</span>&sup2; + &hellip; + <span class="gold">w</span><sub>d</sub><span class="cyan">x</span><sup>d</sup></div>
+            <div class="math-line"><span class="pink">Train error</span> = <span class="muted">&frac12;n</span> &Sigma; (<span class="green">f</span>(<span class="cyan">x</span><sub>i</sub>) &minus; y<sub>i</sub>)&sup2; &nbsp; <span class="muted">// always decreases with degree</span></div>
+            <div class="math-line"><span class="violet">Test error</span> = <span class="muted">&frac12;m</span> &Sigma; (<span class="green">f</span>(<span class="cyan">x</span><sub>j</sub>) &minus; y<sub>j</sub>)&sup2; &nbsp; <span class="muted">// U-shaped &mdash; the key insight</span></div>
+        </div>
+        <div class="insight-box">
+            A degree-14 polynomial fits every training point perfectly &mdash; and is spectacularly wrong everywhere else. Language models with billions of parameters face exactly this challenge: they have more than enough capacity to memorise their training data, so we need techniques to force them to <em>generalise</em> instead.
+        </div>
+        <p class="section-summary">More complexity reduces training error but eventually increases test error &mdash; the U-shaped curve is the signature of overfitting.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: Regularisation Techniques
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. Regularisation &mdash; Taming the Overfit</h2>
+    <div class="panel">
+        <h3>Regularisation constrains model complexity</h3>
+        <canvas id="canvas2" width="700" height="300"></canvas>
+        <p class="micro-note">Same data, same high-degree polynomial &mdash; but regularisation keeps the fit smooth.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Unregularised</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Regularised</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24;width:12px;height:1px;border-top:1px dashed #fbbf24;background:transparent"></div><span style="color:#fbbf24">True function</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Polynomial degree:</label>
+            <input type="range" id="sDegree2" min="1" max="14" step="1" value="10">
+            <span class="slider-val" id="vDegree2">10</span>
+        </div>
+        <div class="select-row">
+            <label>Regularisation:</label>
+            <select id="selRegType">
+                <option value="none">Off</option>
+                <option value="l2" selected>L2 (Ridge)</option>
+                <option value="dropout">Dropout simulation</option>
+            </select>
+        </div>
+        <div class="slider-row" id="lambdaRow">
+            <label>&lambda; (L2 strength):</label>
+            <input type="range" id="sLambda" min="0" max="200" step="1" value="50">
+            <span class="slider-val" id="vLambda">0.50</span>
+        </div>
+        <div class="slider-row" id="dropoutRow" style="display:none">
+            <label>Dropout rate:</label>
+            <input type="range" id="sDropout" min="0" max="80" step="1" value="30">
+            <span class="slider-val" id="vDropout">0.30</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnNewData2">New data</button>
+            <button class="btn" id="btnSweepLambda">&#9654; Sweep &lambda;</button>
+        </div>
+        <div class="result-box">
+            <div id="s2Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="pink">Standard loss:</span> L(<span class="gold">&theta;</span>) = <span class="muted">&frac12;n</span> &Sigma; (<span class="green">f</span>(<span class="cyan">x</span><sub>i</sub>) &minus; y<sub>i</sub>)&sup2;</div>
+            <div class="math-line"><span class="green">L2 regularised:</span> L(<span class="gold">&theta;</span>) + <span class="violet">&lambda;</span> &Sigma; <span class="gold">w</span><sub>i</sub>&sup2; &nbsp; <span class="muted">// penalises large weights</span></div>
+            <div class="math-line"><span class="cyan">Dropout:</span> randomly zero out each <span class="gold">w</span><sub>i</sub> with probability <span class="violet">p</span> during training</div>
+            <div class="math-line"><span class="muted">Effect: prevents co-adaptation &mdash; forces redundant representations</span></div>
+        </div>
+        <div class="insight-box">
+            GPT-4 has an estimated 1.7 trillion parameters but was trained on only ~13 trillion tokens. Without regularisation techniques &mdash; dropout, weight decay (L2), and careful architecture design &mdash; it would memorise its training data and fail on new prompts. The fact that it generalises at all is one of the deepest puzzles in modern AI.
+        </div>
+        <p class="section-summary">Regularisation adds a cost for complexity &mdash; forcing the model to find simpler, more general solutions.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Closing Explain Section
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="explain">
+        <div class="explain-name">Why This Matters</div>
+        <p class="explain-text">
+            Overfitting is not an edge case &mdash; it is the <em>default</em> behaviour of any sufficiently powerful model. Every advance in machine learning, from early stopping to dropout to data augmentation, is fundamentally an answer to the same question: how do we build models that learn the pattern, not the noise?
+        </p>
+        <p class="explain-text" style="margin-top:10px">
+            GPT-4 has 1.7 trillion parameters but was trained on only ~13 trillion tokens. Preventing overfitting at this scale requires careful architecture design, dropout, and weight decay. The fact that it generalises &mdash; that it can write poetry it has never seen, or solve problems never in its training data &mdash; is the central miracle and mystery of deep learning.
+        </p>
+        <p class="explain-text" style="margin-top:10px;color:#808098;font-size:0.85em">
+            <em>See also:</em> <a href="correlation_regression.html" style="color:#a78bfa">Correlation &amp; Regression</a> &middot; <a href="gradient_descent.html" style="color:#a78bfa">Gradient Descent</a>
+        </p>
+    </div>
+
+</div>
+
+<script>
+/* ================================================================
+   SHARED: Utilities
+   ================================================================ */
+function randn() {
+    var u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+function isVisible(el) {
+    var r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight;
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* ================================================================
+   LINEAR ALGEBRA: Polynomial fitting via normal equations
+   Vandermonde matrix approach: X^T X w = X^T y  (or with L2: (X^T X + lambda I) w = X^T y)
+   ================================================================ */
+function buildVandermonde(xs, degree) {
+    var n = xs.length;
+    var X = [];
+    for (var i = 0; i < n; i++) {
+        var row = [];
+        for (var j = 0; j <= degree; j++) {
+            row.push(Math.pow(xs[i], j));
+        }
+        X.push(row);
+    }
+    return X;
+}
+
+function transpose(A) {
+    var rows = A.length, cols = A[0].length;
+    var T = [];
+    for (var j = 0; j < cols; j++) {
+        var row = [];
+        for (var i = 0; i < rows; i++) {
+            row.push(A[i][j]);
+        }
+        T.push(row);
+    }
+    return T;
+}
+
+function matMul(A, B) {
+    var rA = A.length, cA = A[0].length, cB = B[0].length;
+    var C = [];
+    for (var i = 0; i < rA; i++) {
+        C[i] = [];
+        for (var j = 0; j < cB; j++) {
+            var sum = 0;
+            for (var k = 0; k < cA; k++) {
+                sum += A[i][k] * B[k][j];
+            }
+            C[i][j] = sum;
+        }
+    }
+    return C;
+}
+
+function matVecMul(A, v) {
+    var n = A.length;
+    var result = [];
+    for (var i = 0; i < n; i++) {
+        var sum = 0;
+        for (var j = 0; j < v.length; j++) {
+            sum += A[i][j] * v[j];
+        }
+        result.push(sum);
+    }
+    return result;
+}
+
+/* Solve Ax = b via Gaussian elimination with partial pivoting */
+function solveLinear(A, b) {
+    var n = A.length;
+    /* Create augmented matrix */
+    var M = [];
+    for (var i = 0; i < n; i++) {
+        M[i] = [];
+        for (var j = 0; j < n; j++) {
+            M[i][j] = A[i][j];
+        }
+        M[i][n] = b[i];
+    }
+    /* Forward elimination with partial pivoting */
+    for (var col = 0; col < n; col++) {
+        /* Find pivot */
+        var maxVal = Math.abs(M[col][col]);
+        var maxRow = col;
+        for (var row = col + 1; row < n; row++) {
+            if (Math.abs(M[row][col]) > maxVal) {
+                maxVal = Math.abs(M[row][col]);
+                maxRow = row;
+            }
+        }
+        /* Swap rows */
+        if (maxRow !== col) {
+            var tmp = M[col];
+            M[col] = M[maxRow];
+            M[maxRow] = tmp;
+        }
+        /* Eliminate */
+        if (Math.abs(M[col][col]) < 1e-14) {
+            M[col][col] = 1e-14; /* regularise near-singular */
+        }
+        for (var row = col + 1; row < n; row++) {
+            var factor = M[row][col] / M[col][col];
+            for (var j = col; j <= n; j++) {
+                M[row][j] -= factor * M[col][j];
+            }
+        }
+    }
+    /* Back substitution */
+    var x = new Array(n);
+    for (var i = n - 1; i >= 0; i--) {
+        x[i] = M[i][n];
+        for (var j = i + 1; j < n; j++) {
+            x[i] -= M[i][j] * x[j];
+        }
+        x[i] /= M[i][i];
+    }
+    return x;
+}
+
+/* Fit polynomial of given degree to (xs, ys), optional L2 regularisation lambda */
+function fitPolynomial(xs, ys, degree, lambda) {
+    if (lambda === undefined) lambda = 0;
+    var X = buildVandermonde(xs, degree);
+    var XT = transpose(X);
+    var XTX = matMul(XT, X);
+    var XTy = matVecMul(XT, ys);
+    /* Add L2 regularisation: (X^T X + lambda * I) */
+    if (lambda > 0) {
+        for (var i = 0; i < XTX.length; i++) {
+            /* Don't regularise the bias term */
+            if (i > 0) XTX[i][i] += lambda;
+        }
+    }
+    return solveLinear(XTX, XTy);
+}
+
+/* Evaluate polynomial at x given coefficients [w0, w1, ..., wd] */
+function evalPoly(coeffs, x) {
+    var sum = 0;
+    for (var i = 0; i < coeffs.length; i++) {
+        sum += coeffs[i] * Math.pow(x, i);
+    }
+    return sum;
+}
+
+/* Compute MSE */
+function computeMSE(coeffs, xs, ys) {
+    var sum = 0;
+    for (var i = 0; i < xs.length; i++) {
+        var pred = evalPoly(coeffs, xs[i]);
+        var err = pred - ys[i];
+        sum += err * err;
+    }
+    return sum / xs.length;
+}
+
+/* The true underlying function */
+function trueFunc(x) {
+    return Math.sin(2 * Math.PI * x);
+}
+
+/* Generate noisy data from sin(2*pi*x) */
+function generateData(n, noiseLevel) {
+    var xs = [], ys = [];
+    for (var i = 0; i < n; i++) {
+        var x = i / (n - 1); /* Uniform in [0, 1] */
+        var y = trueFunc(x) + randn() * noiseLevel;
+        xs.push(x);
+        ys.push(y);
+    }
+    return { xs: xs, ys: ys };
+}
+
+
+/* ================================================================
+   Section 1: The Polynomial Fitting Demo
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas1');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var MARGIN = { left: 50, right: 180, top: 25, bottom: 40 };
+    var plotW = W - MARGIN.left - MARGIN.right;
+    var plotH = H - MARGIN.top - MARGIN.bottom;
+
+    /* State */
+    var NOISE = 0.3;
+    var N_TRAIN = 15;
+    var N_TEST = 30;
+    var trainData, testData;
+    var sweepId = null;
+    var sweepDeg = 0;
+
+    /* Y-axis range for data plot */
+    var yMin = -2.0, yMax = 2.0;
+
+    function dataToCanvas(dx, dy) {
+        return {
+            x: MARGIN.left + (dx / 1.0) * plotW,
+            y: MARGIN.top + ((yMax - dy) / (yMax - yMin)) * plotH
+        };
+    }
+
+    function init() {
+        trainData = generateData(N_TRAIN, NOISE);
+        testData = generateData(N_TEST, NOISE);
+        draw();
+    }
+
+    function getDegree() {
+        return parseInt(document.getElementById('sDegree').value);
+    }
+
+    function getColor(deg) {
+        if (deg <= 2) return '#22d3ee';
+        if (deg <= 6) return '#10b981';
+        return '#f472b6';
+    }
+
+    function getLabel(deg) {
+        if (deg <= 2) return 'Underfit';
+        if (deg <= 6) return 'Good fit';
+        return 'Overfit';
+    }
+
+    /* Compute errors for all degrees for the mini error plot */
+    function computeAllErrors() {
+        var trainErrors = [];
+        var testErrors = [];
+        for (var d = 1; d <= 14; d++) {
+            try {
+                var coeffs = fitPolynomial(trainData.xs, trainData.ys, d, 0);
+                var tr = computeMSE(coeffs, trainData.xs, trainData.ys);
+                var te = computeMSE(coeffs, testData.xs, testData.ys);
+                /* Clamp extreme values */
+                trainErrors.push(Math.min(tr, 10));
+                testErrors.push(Math.min(te, 10));
+            } catch(e) {
+                trainErrors.push(trainErrors.length > 0 ? trainErrors[trainErrors.length-1] : 1);
+                testErrors.push(testErrors.length > 0 ? testErrors[testErrors.length-1] : 1);
+            }
+        }
+        return { train: trainErrors, test: testErrors };
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var deg = getDegree();
+        var showTest = document.getElementById('chkTestPts').checked;
+        var showTrue = document.getElementById('chkTrue').checked;
+
+        /* --- Axes --- */
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(MARGIN.left, MARGIN.top);
+        ctx.lineTo(MARGIN.left, H - MARGIN.bottom);
+        ctx.lineTo(MARGIN.left + plotW, H - MARGIN.bottom);
+        ctx.stroke();
+
+        /* X axis labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Courier New, monospace';
+        ctx.textAlign = 'center';
+        for (var v = 0; v <= 1.0; v += 0.2) {
+            var cp = dataToCanvas(v, yMin);
+            ctx.fillText(v.toFixed(1), cp.x, cp.y + 16);
+            /* Grid line */
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+            ctx.beginPath();
+            ctx.moveTo(cp.x, MARGIN.top);
+            ctx.lineTo(cp.x, H - MARGIN.bottom);
+            ctx.stroke();
+        }
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '12px Georgia, serif';
+        ctx.fillText('x', MARGIN.left + plotW / 2, H - 4);
+
+        /* Y axis labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Courier New, monospace';
+        ctx.textAlign = 'right';
+        for (var v = yMin; v <= yMax; v += 0.5) {
+            var cp = dataToCanvas(0, v);
+            ctx.fillText(v.toFixed(1), MARGIN.left - 6, cp.y + 4);
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+            ctx.beginPath();
+            ctx.moveTo(MARGIN.left, cp.y);
+            ctx.lineTo(MARGIN.left + plotW, cp.y);
+            ctx.stroke();
+        }
+        ctx.save();
+        ctx.translate(12, MARGIN.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '12px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('y', 0, 0);
+        ctx.restore();
+
+        /* --- True function (dashed gold) --- */
+        if (showTrue) {
+            ctx.setLineDash([6, 4]);
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            var first = true;
+            for (var px = 0; px <= plotW; px += 2) {
+                var xVal = px / plotW;
+                var yVal = trueFunc(xVal);
+                var cp = dataToCanvas(xVal, yVal);
+                if (cp.y < MARGIN.top || cp.y > H - MARGIN.bottom) {
+                    first = true;
+                    continue;
+                }
+                if (first) { ctx.moveTo(cp.x, cp.y); first = false; }
+                else ctx.lineTo(cp.x, cp.y);
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        /* --- Polynomial fit curve --- */
+        var coeffs;
+        try {
+            coeffs = fitPolynomial(trainData.xs, trainData.ys, deg, 0);
+        } catch(e) {
+            coeffs = null;
+        }
+
+        if (coeffs) {
+            var curveColor = getColor(deg);
+            ctx.strokeStyle = curveColor;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            var first = true;
+            for (var px = 0; px <= plotW; px += 1) {
+                var xVal = px / plotW;
+                var yVal = evalPoly(coeffs, xVal);
+                var cp = dataToCanvas(xVal, yVal);
+                /* Clip to plot area */
+                var clippedY = clamp(cp.y, MARGIN.top, H - MARGIN.bottom);
+                if (first) { ctx.moveTo(cp.x, clippedY); first = false; }
+                else ctx.lineTo(cp.x, clippedY);
+            }
+            ctx.stroke();
+        }
+
+        /* --- Training points (solid circles) --- */
+        for (var i = 0; i < trainData.xs.length; i++) {
+            var cp = dataToCanvas(trainData.xs[i], trainData.ys[i]);
+            if (cp.y < MARGIN.top - 5 || cp.y > H - MARGIN.bottom + 5) continue;
+            ctx.fillStyle = '#e0e0e0';
+            ctx.strokeStyle = '#0a0a1a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cp.x, cp.y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        /* --- Test points (hollow circles) --- */
+        if (showTest) {
+            for (var i = 0; i < testData.xs.length; i++) {
+                var cp = dataToCanvas(testData.xs[i], testData.ys[i]);
+                if (cp.y < MARGIN.top - 5 || cp.y > H - MARGIN.bottom + 5) continue;
+                ctx.strokeStyle = 'rgba(167,139,250,0.5)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(cp.x, cp.y, 4, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        /* --- Mini error plot (right panel) --- */
+        var errs = computeAllErrors();
+        var miniLeft = MARGIN.left + plotW + 20;
+        var miniTop = MARGIN.top + 10;
+        var miniW = 140;
+        var miniH = plotH - 20;
+
+        /* Background */
+        ctx.fillStyle = 'rgba(255,255,255,0.015)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(miniLeft - 6, miniTop - 6, miniW + 12, miniH + 30, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        /* Title */
+        ctx.fillStyle = '#808098';
+        ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Error vs Degree', miniLeft + miniW / 2, miniTop + 6);
+
+        /* Scale */
+        var errMax = 0.01;
+        for (var i = 0; i < 14; i++) {
+            errMax = Math.max(errMax, errs.train[i], errs.test[i]);
+        }
+        errMax = Math.min(errMax, 5);
+        var errPlotTop = miniTop + 16;
+        var errPlotH = miniH - 30;
+
+        function errToY(e) {
+            return errPlotTop + errPlotH - (Math.min(e, errMax) / errMax) * errPlotH;
+        }
+        function degToX(d) {
+            return miniLeft + ((d - 1) / 13) * miniW;
+        }
+
+        /* X axis */
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.beginPath();
+        ctx.moveTo(miniLeft, errPlotTop + errPlotH);
+        ctx.lineTo(miniLeft + miniW, errPlotTop + errPlotH);
+        ctx.stroke();
+        ctx.fillStyle = '#808098';
+        ctx.font = '9px Courier New, monospace';
+        ctx.textAlign = 'center';
+        for (var d = 1; d <= 14; d += 2) {
+            ctx.fillText(d.toString(), degToX(d), errPlotTop + errPlotH + 12);
+        }
+        ctx.fillText('degree', miniLeft + miniW / 2, errPlotTop + errPlotH + 22);
+
+        /* Train error line (solid pink) */
+        ctx.strokeStyle = '#f472b6';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (var i = 0; i < 14; i++) {
+            var px = degToX(i + 1);
+            var py = errToY(errs.train[i]);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        /* Test error line (dashed violet) */
+        ctx.strokeStyle = '#a78bfa';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        for (var i = 0; i < 14; i++) {
+            var px = degToX(i + 1);
+            var py = errToY(errs.test[i]);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        /* Current degree marker */
+        var markerX = degToX(deg);
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(markerX, errPlotTop);
+        ctx.lineTo(markerX, errPlotTop + errPlotH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        /* Dots at current degree */
+        var trainErrCur = errs.train[deg - 1];
+        var testErrCur = errs.test[deg - 1];
+        ctx.fillStyle = '#f472b6';
+        ctx.beginPath();
+        ctx.arc(markerX, errToY(trainErrCur), 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#a78bfa';
+        ctx.beginPath();
+        ctx.arc(markerX, errToY(testErrCur), 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* Mini legend */
+        ctx.font = '9px Courier New, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#f472b6';
+        ctx.fillText('train', miniLeft + 2, errPlotTop + errPlotH + 34);
+        ctx.fillStyle = '#a78bfa';
+        ctx.fillText('test', miniLeft + 42, errPlotTop + errPlotH + 34);
+
+        /* Degree label on main plot */
+        ctx.fillStyle = getColor(deg);
+        ctx.font = 'bold 13px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Degree ' + deg + ' \u2014 ' + getLabel(deg), MARGIN.left + 8, MARGIN.top + 18);
+
+        /* Update results */
+        if (coeffs) {
+            var trainErr = computeMSE(coeffs, trainData.xs, trainData.ys);
+            var testErr = computeMSE(coeffs, testData.xs, testData.ys);
+            document.getElementById('s1Results').innerHTML =
+                'Degree: <span class="violet">' + deg + '</span>' +
+                ' &nbsp;&nbsp; <span class="pink">Train MSE: ' + trainErr.toFixed(4) + '</span>' +
+                ' &nbsp;&nbsp; <span class="violet">Test MSE: ' + testErr.toFixed(4) + '</span>' +
+                ' &nbsp;&nbsp; Parameters: <span class="gold">' + (deg + 1) + '</span>' +
+                ' &nbsp;&nbsp; Status: <span style="color:' + getColor(deg) + '">' + getLabel(deg) + '</span>';
+        }
+    }
+
+    /* Event listeners */
+    document.getElementById('sDegree').addEventListener('input', function() {
+        document.getElementById('vDegree').textContent = this.value;
+        draw();
+    });
+    document.getElementById('chkTestPts').addEventListener('change', draw);
+    document.getElementById('chkTrue').addEventListener('change', draw);
+    document.getElementById('btnNewData').addEventListener('click', function() {
+        trainData = generateData(N_TRAIN, NOISE);
+        testData = generateData(N_TEST, NOISE);
+        draw();
+    });
+    document.getElementById('btnSweep').addEventListener('click', function() {
+        if (sweepId) { clearInterval(sweepId); sweepId = null; return; }
+        sweepDeg = 1;
+        var slider = document.getElementById('sDegree');
+        sweepId = setInterval(function() {
+            slider.value = sweepDeg;
+            document.getElementById('vDegree').textContent = sweepDeg;
+            draw();
+            sweepDeg++;
+            if (sweepDeg > 14) { clearInterval(sweepId); sweepId = null; }
+        }, 500);
+    });
+
+    /* Visibility-based rendering */
+    var drawn = false;
+    function checkVisible() {
+        if (isVisible(cvs) && !drawn) { init(); drawn = true; }
+    }
+    window.addEventListener('scroll', checkVisible);
+    window.addEventListener('resize', function() {
+        if (isVisible(cvs)) draw();
+    });
+    checkVisible();
+    if (!drawn) init();
+})();
+
+
+/* ================================================================
+   Section 2: Regularisation Techniques
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas2');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var MARGIN = { left: 50, right: 20, top: 25, bottom: 40 };
+    var plotW = W - MARGIN.left - MARGIN.right;
+    var plotH = H - MARGIN.top - MARGIN.bottom;
+
+    var NOISE = 0.3;
+    var N_TRAIN = 15;
+    var N_TEST = 30;
+    var trainData, testData;
+    var sweepId = null;
+
+    var yMin = -2.5, yMax = 2.5;
+
+    function dataToCanvas(dx, dy) {
+        return {
+            x: MARGIN.left + (dx / 1.0) * plotW,
+            y: MARGIN.top + ((yMax - dy) / (yMax - yMin)) * plotH
+        };
+    }
+
+    function init() {
+        trainData = generateData(N_TRAIN, NOISE);
+        testData = generateData(N_TEST, NOISE);
+        draw();
+    }
+
+    function getDegree() {
+        return parseInt(document.getElementById('sDegree2').value);
+    }
+
+    function getLambda() {
+        return parseInt(document.getElementById('sLambda').value) / 100;
+    }
+
+    function getDropoutRate() {
+        return parseInt(document.getElementById('sDropout').value) / 100;
+    }
+
+    function getRegType() {
+        return document.getElementById('selRegType').value;
+    }
+
+    /* Fit with dropout simulation: average multiple fits with randomly dropped features */
+    function fitWithDropout(xs, ys, degree, dropRate) {
+        var numTrials = 20;
+        var allCoeffs = [];
+        for (var t = 0; t < numTrials; t++) {
+            /* Create masked x values: randomly zero out polynomial terms */
+            var mask = [];
+            for (var j = 0; j <= degree; j++) {
+                mask.push(j === 0 ? 1 : (Math.random() > dropRate ? 1 : 0));
+            }
+            /* Build masked Vandermonde */
+            var X = [];
+            for (var i = 0; i < xs.length; i++) {
+                var row = [];
+                for (var j = 0; j <= degree; j++) {
+                    row.push(mask[j] * Math.pow(xs[i], j));
+                }
+                X.push(row);
+            }
+            var XT = transpose(X);
+            var XTX = matMul(XT, X);
+            var XTy = matVecMul(XT, ys);
+            /* Small regularisation for numerical stability */
+            for (var i = 0; i < XTX.length; i++) {
+                XTX[i][i] += 0.001;
+            }
+            try {
+                var c = solveLinear(XTX, XTy);
+                /* Scale by mask and survival probability */
+                for (var j = 1; j <= degree; j++) {
+                    c[j] *= mask[j];
+                }
+                allCoeffs.push(c);
+            } catch(e) { /* skip failed fits */ }
+        }
+        if (allCoeffs.length === 0) return new Array(degree + 1).fill(0);
+        /* Average */
+        var avg = new Array(degree + 1).fill(0);
+        for (var t = 0; t < allCoeffs.length; t++) {
+            for (var j = 0; j <= degree; j++) {
+                avg[j] += allCoeffs[t][j];
+            }
+        }
+        for (var j = 0; j <= degree; j++) {
+            avg[j] /= allCoeffs.length;
+        }
+        return avg;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var deg = getDegree();
+        var regType = getRegType();
+        var lambda = getLambda();
+        var dropRate = getDropoutRate();
+
+        /* Show/hide parameter rows */
+        document.getElementById('lambdaRow').style.display = (regType === 'l2') ? 'flex' : 'none';
+        document.getElementById('dropoutRow').style.display = (regType === 'dropout') ? 'flex' : 'none';
+
+        /* --- Axes --- */
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(MARGIN.left, MARGIN.top);
+        ctx.lineTo(MARGIN.left, H - MARGIN.bottom);
+        ctx.lineTo(MARGIN.left + plotW, H - MARGIN.bottom);
+        ctx.stroke();
+
+        /* X axis labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Courier New, monospace';
+        ctx.textAlign = 'center';
+        for (var v = 0; v <= 1.0; v += 0.2) {
+            var cp = dataToCanvas(v, yMin);
+            ctx.fillText(v.toFixed(1), cp.x, cp.y + 16);
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+            ctx.beginPath();
+            ctx.moveTo(cp.x, MARGIN.top);
+            ctx.lineTo(cp.x, H - MARGIN.bottom);
+            ctx.stroke();
+        }
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '12px Georgia, serif';
+        ctx.fillText('x', MARGIN.left + plotW / 2, H - 4);
+
+        /* Y axis labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Courier New, monospace';
+        ctx.textAlign = 'right';
+        for (var v = yMin; v <= yMax; v += 1.0) {
+            var cp = dataToCanvas(0, v);
+            ctx.fillText(v.toFixed(1), MARGIN.left - 6, cp.y + 4);
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+            ctx.beginPath();
+            ctx.moveTo(MARGIN.left, cp.y);
+            ctx.lineTo(MARGIN.left + plotW, cp.y);
+            ctx.stroke();
+        }
+
+        /* --- True function (dashed gold) --- */
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        var first = true;
+        for (var px = 0; px <= plotW; px += 2) {
+            var xVal = px / plotW;
+            var yVal = trueFunc(xVal);
+            var cp = dataToCanvas(xVal, yVal);
+            if (cp.y < MARGIN.top || cp.y > H - MARGIN.bottom) { first = true; continue; }
+            if (first) { ctx.moveTo(cp.x, cp.y); first = false; }
+            else ctx.lineTo(cp.x, cp.y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        /* --- Unregularised fit (pink, semi-transparent) --- */
+        var coeffsRaw;
+        try {
+            coeffsRaw = fitPolynomial(trainData.xs, trainData.ys, deg, 0);
+        } catch(e) { coeffsRaw = null; }
+
+        if (coeffsRaw) {
+            ctx.strokeStyle = 'rgba(244,114,182,0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            first = true;
+            for (var px = 0; px <= plotW; px += 1) {
+                var xVal = px / plotW;
+                var yVal = evalPoly(coeffsRaw, xVal);
+                var cp = dataToCanvas(xVal, yVal);
+                var clippedY = clamp(cp.y, MARGIN.top, H - MARGIN.bottom);
+                if (first) { ctx.moveTo(cp.x, clippedY); first = false; }
+                else ctx.lineTo(cp.x, clippedY);
+            }
+            ctx.stroke();
+        }
+
+        /* --- Regularised fit (green) --- */
+        var coeffsReg;
+        if (regType === 'none') {
+            coeffsReg = coeffsRaw;
+        } else if (regType === 'l2') {
+            try {
+                coeffsReg = fitPolynomial(trainData.xs, trainData.ys, deg, lambda * trainData.xs.length);
+            } catch(e) { coeffsReg = null; }
+        } else if (regType === 'dropout') {
+            try {
+                coeffsReg = fitWithDropout(trainData.xs, trainData.ys, deg, dropRate);
+            } catch(e) { coeffsReg = null; }
+        }
+
+        if (coeffsReg && regType !== 'none') {
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            first = true;
+            for (var px = 0; px <= plotW; px += 1) {
+                var xVal = px / plotW;
+                var yVal = evalPoly(coeffsReg, xVal);
+                var cp = dataToCanvas(xVal, yVal);
+                var clippedY = clamp(cp.y, MARGIN.top, H - MARGIN.bottom);
+                if (first) { ctx.moveTo(cp.x, clippedY); first = false; }
+                else ctx.lineTo(cp.x, clippedY);
+            }
+            ctx.stroke();
+        }
+
+        /* --- Training points --- */
+        for (var i = 0; i < trainData.xs.length; i++) {
+            var cp = dataToCanvas(trainData.xs[i], trainData.ys[i]);
+            if (cp.y < MARGIN.top - 5 || cp.y > H - MARGIN.bottom + 5) continue;
+            ctx.fillStyle = '#e0e0e0';
+            ctx.strokeStyle = '#0a0a1a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cp.x, cp.y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        /* --- Label --- */
+        var regLabel = regType === 'none' ? 'No regularisation' :
+                       regType === 'l2' ? 'L2 (\u03BB = ' + lambda.toFixed(2) + ')' :
+                       'Dropout (p = ' + dropRate.toFixed(2) + ')';
+        ctx.fillStyle = regType === 'none' ? '#f472b6' : '#10b981';
+        ctx.font = 'bold 13px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Degree ' + deg + ' \u2014 ' + regLabel, MARGIN.left + 8, MARGIN.top + 18);
+
+        /* --- Results --- */
+        if (coeffsReg) {
+            var trainErrReg = computeMSE(coeffsReg, trainData.xs, trainData.ys);
+            var testErrReg = computeMSE(coeffsReg, testData.xs, testData.ys);
+            var trainErrRaw = coeffsRaw ? computeMSE(coeffsRaw, trainData.xs, trainData.ys) : 0;
+            var testErrRaw = coeffsRaw ? computeMSE(coeffsRaw, testData.xs, testData.ys) : 0;
+
+            /* Compute weight norm */
+            var wNormRaw = 0, wNormReg = 0;
+            if (coeffsRaw) {
+                for (var i = 1; i < coeffsRaw.length; i++) wNormRaw += coeffsRaw[i] * coeffsRaw[i];
+            }
+            for (var i = 1; i < coeffsReg.length; i++) wNormReg += coeffsReg[i] * coeffsReg[i];
+
+            var html = '<span class="pink">Unreg test MSE: ' + testErrRaw.toFixed(4) + '</span>';
+            if (regType !== 'none') {
+                html += ' &nbsp;&rarr;&nbsp; <span class="green">Reg test MSE: ' + testErrReg.toFixed(4) + '</span>';
+            }
+            html += ' &nbsp;&nbsp; <span class="gold">\u2016w\u2016\u00B2</span>: ';
+            if (regType !== 'none') {
+                html += '<span class="pink">' + wNormRaw.toFixed(1) + '</span> &rarr; <span class="green">' + wNormReg.toFixed(1) + '</span>';
+            } else {
+                html += '<span class="pink">' + wNormRaw.toFixed(1) + '</span>';
+            }
+            document.getElementById('s2Results').innerHTML = html;
+        }
+    }
+
+    /* Event listeners */
+    document.getElementById('sDegree2').addEventListener('input', function() {
+        document.getElementById('vDegree2').textContent = this.value;
+        draw();
+    });
+    document.getElementById('selRegType').addEventListener('change', draw);
+    document.getElementById('sLambda').addEventListener('input', function() {
+        var val = parseInt(this.value) / 100;
+        document.getElementById('vLambda').textContent = val.toFixed(2);
+        draw();
+    });
+    document.getElementById('sDropout').addEventListener('input', function() {
+        var val = parseInt(this.value) / 100;
+        document.getElementById('vDropout').textContent = val.toFixed(2);
+        draw();
+    });
+    document.getElementById('btnNewData2').addEventListener('click', function() {
+        trainData = generateData(N_TRAIN, NOISE);
+        testData = generateData(N_TEST, NOISE);
+        draw();
+    });
+    document.getElementById('btnSweepLambda').addEventListener('click', function() {
+        if (sweepId) { clearInterval(sweepId); sweepId = null; return; }
+        var slider = document.getElementById('sLambda');
+        var step = 0;
+        slider.value = 0;
+        document.getElementById('vLambda').textContent = '0.00';
+        document.getElementById('selRegType').value = 'l2';
+        draw();
+        sweepId = setInterval(function() {
+            step += 5;
+            if (step > 200) { clearInterval(sweepId); sweepId = null; return; }
+            slider.value = step;
+            document.getElementById('vLambda').textContent = (step / 100).toFixed(2);
+            draw();
+        }, 100);
+    });
+
+    /* Visibility-based init */
+    var drawn = false;
+    function checkVisible() {
+        if (isVisible(cvs) && !drawn) { init(); drawn = true; }
+    }
+    window.addEventListener('scroll', checkVisible);
+    window.addEventListener('resize', function() {
+        if (isVisible(cvs)) draw();
+    });
+    checkVisible();
+    if (!drawn) init();
+})();
+</script>
+</body>
+</html>

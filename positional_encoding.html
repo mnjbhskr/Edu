@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Positional Encoding</title>
+    <meta name="description" content="Visualise how Transformers encode word order using sinusoidal positional encoding. Explore the encoding heatmap, see why position matters, and understand the elegant mathematics behind sequence awareness.">
+    <link rel="canonical" href="https://mathsedu.org/positional_encoding.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Positional Encoding",
+      "url": "https://mathsedu.org/positional_encoding.html",
+      "description": "Visualise how Transformers encode word order using sinusoidal positional encoding. Explore the encoding heatmap, see why position matters, and understand the elegant mathematics behind sequence awareness.",
+      "educationalLevel": "Intermediate",
+      "teaches": "Positional encoding, sinusoidal encoding, why word order matters for Transformers, and the mathematics of sequence position",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "The Mathematics of Intelligence",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="Positional Encoding">
+    <meta property="og:description" content="Visualise how Transformers encode word order using sinusoidal positional encoding. Explore the encoding heatmap, see why position matters, and understand the elegant mathematics behind sequence awareness.">
+    <meta property="og:url" content="https://mathsedu.org/positional_encoding.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Positional Encoding">
+    <meta name="twitter:description" content="Visualise how Transformers encode word order using sinusoidal positional encoding. Explore the encoding heatmap, see why position matters, and understand the elegant mathematics behind sequence awareness.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#a78bfa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:8px}
+        .intro-text{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(167,139,250,0.13);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .violet{color:#a78bfa}.math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#a78bfa;cursor:pointer}
+        .slider-val{color:#a78bfa;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .insight-box{background:rgba(167,139,250,0.04);border-left:3px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#a78bfa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .section-summary{color:#a78bfa;font-size:0.85em;font-style:italic;margin:6px 0 0;padding:6px 0;border-top:1px solid rgba(167,139,250,0.1)}
+        .micro-note{color:#808098;font-size:0.85em;font-style:italic;margin:8px 0 4px;line-height:1.6}
+        .checkbox-row{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+        .checkbox-row label{color:#a0a0b8;font-size:0.9em;cursor:pointer;display:flex;align-items:center;gap:6px}
+        .steepness-bar-bg{display:inline-block;width:80px;height:7px;background:rgba(255,255,255,0.06);border-radius:3px;vertical-align:middle;margin:0 6px;overflow:hidden}
+        .steepness-bar-fill{height:100%;border-radius:3px;transition:width 0.15s}
+        .word-token{display:inline-block;padding:4px 10px;margin:3px;border-radius:6px;font-family:'Courier New',monospace;font-size:0.9em;border:1px solid rgba(255,255,255,0.1);position:relative}
+        .word-token .pos-idx{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:0.65em;color:#a78bfa;white-space:nowrap}
+        .sentence-display{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px;padding:12px 8px;min-height:50px}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Positional Encoding</h1>
+    <p class="subtitle">Order is not free &mdash; how Transformers learn where words stand</p>
+    <p class="intro-text">
+        A Transformer sees every token at once &mdash; it has no built-in notion of first, second, or last. Without positional encoding, "dog bites man" and "man bites dog" would produce identical representations. The solution is elegant: add a unique, smooth signal to each token that encodes its position using sine and cosine waves at different frequencies, much like how a clock encodes time across hours, minutes, and seconds.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: Why Order Matters
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. Why Order Matters</h2>
+    <div class="panel">
+        <h3>Same words, different meaning</h3>
+        <canvas id="canvas1" width="700" height="250"></canvas>
+        <p class="micro-note">Watch how shuffling words with identical bag-of-words representations produces completely different meanings.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Position index</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Subject</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Object</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Verb</span></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnShuffle">&#9634; Shuffle Words</button>
+            <button class="btn" id="btnReset1">Reset</button>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnEx1">The dog bit the man</button>
+            <button class="btn" id="btnEx2">Time flies like an arrow</button>
+            <button class="btn" id="btnEx3">The cat sat on the mat</button>
+        </div>
+        <div class="result-box">
+            <div id="s1Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="muted">Bag of words:</span> {<span class="cyan">the</span>, <span class="green">dog</span>, <span class="gold">bit</span>, <span class="cyan">the</span>, <span class="pink">man</span>} = {<span class="cyan">the</span>, <span class="pink">man</span>, <span class="gold">bit</span>, <span class="cyan">the</span>, <span class="green">dog</span>}</div>
+            <div class="math-line"><span class="violet">With positions:</span> [<span class="green">dog</span><sub>1</sub>, <span class="gold">bit</span><sub>2</sub>, <span class="pink">man</span><sub>4</sub>] &ne; [<span class="pink">man</span><sub>1</sub>, <span class="gold">bit</span><sub>2</sub>, <span class="green">dog</span><sub>4</sub>]</div>
+        </div>
+        <div class="insight-box">
+            Unlike RNNs which read left-to-right, Transformers see all tokens at once. Without positional encoding, "dog bites man" and "man bites dog" would be mathematically identical &mdash; the attention mechanism treats inputs as an unordered set.
+        </div>
+        <p class="section-summary">Position gives meaning &mdash; the same words in different order tell a completely different story.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: Sinusoidal Encoding Waves
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. Sinusoidal Encoding Waves</h2>
+    <div class="panel">
+        <h3>Positional encoding heatmap</h3>
+        <canvas id="canvas2" width="700" height="380"></canvas>
+        <p class="micro-note">Rows = positions (0&ndash;49), columns = encoding dimensions (0&ndash;127). Hover to inspect values.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#7c3aed"></div><span style="color:#7c3aed">Negative (sin/cos &lt; 0)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#0a0a1a"></div><span style="color:#808098">Zero</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Positive (sin/cos &gt; 0)</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Dimension:</label>
+            <input type="range" id="sDim" min="0" max="127" step="1" value="0">
+            <span class="slider-val" id="vDim">0</span>
+        </div>
+        <div class="slider-row">
+            <label>Position:</label>
+            <input type="range" id="sPos" min="0" max="49" step="1" value="0">
+            <span class="slider-val" id="vPos">0</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnSinusoidal">Sinusoidal</button>
+            <button class="btn" id="btnLearned">Learned (random)</button>
+        </div>
+        <canvas id="canvas2wave" width="700" height="120"></canvas>
+        <p class="micro-note" id="waveLabel">Dimension 0: wavelength = 2&pi; &mdash; highest frequency</p>
+        <div class="result-box">
+            <div id="s2Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">PE</span>(<span class="cyan">pos</span>, <span class="gold">2i</span>) = sin(<span class="cyan">pos</span> / 10000<sup><span class="gold">2i</span>/<span class="violet">d</span></sup>)</div>
+            <div class="math-line"><span class="green">PE</span>(<span class="cyan">pos</span>, <span class="gold">2i+1</span>) = cos(<span class="cyan">pos</span> / 10000<sup><span class="gold">2i</span>/<span class="violet">d</span></sup>)</div>
+            <div class="math-line"><span class="muted">where</span> <span class="cyan">pos</span> = position, <span class="gold">i</span> = dimension index, <span class="violet">d</span> = model dimension</div>
+            <div class="math-line" style="margin-top:6px;border-top:1px solid rgba(255,255,255,0.04);padding-top:6px"><span class="green">PE</span>(<span class="cyan">pos</span> + <span class="pink">k</span>) = <span class="gold">T<sub>k</sub></span> &times; <span class="green">PE</span>(<span class="cyan">pos</span>) &nbsp;&nbsp;&nbsp; <span class="muted">where</span> <span class="gold">T<sub>k</sub></span> <span class="muted">is a rotation matrix</span></div>
+        </div>
+        <div class="insight-box">
+            The sinusoidal encoding is elegant: each dimension oscillates at a different frequency. Like a binary number system, this guarantees every position has a unique, smooth encoding. Dimension 0 oscillates rapidly (high frequency), while dimension <em>d</em> oscillates very slowly (low frequency) &mdash; together they create a unique fingerprint for every position.
+        </div>
+        <div class="insight-box">
+            <strong>The elegant trick:</strong> for any fixed offset <em>k</em>, the encoding PE(pos+k) can be expressed as a linear transformation of PE(pos). This means relative positions are computable via simple matrix operations &mdash; the model can learn &ldquo;three words apart&rdquo; without knowing absolute position. This is why sinusoidal encoding works: it encodes both absolute AND relative position simultaneously.
+        </div>
+        <p class="section-summary">Sine waves at geometrically-spaced frequencies give every position a unique, smooth encoding that generalises to unseen sequence lengths.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Closing Explain Section
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="explain">
+        <div class="explain-name">Why This Matters</div>
+        <p class="explain-text">
+            Positional encoding is what gives Transformers their sense of order. Without it, self-attention would treat language as a bag of words &mdash; losing syntax, grammar, and meaning. The sinusoidal design from the original "Attention Is All You Need" paper (Vaswani et al., 2017) remains widely used, though modern models like RoFormer (Su et al., 2021) have introduced Rotary Position Embeddings (RoPE) that encode relative positions through rotation matrices.
+        </p>
+        <p class="explain-text" style="margin-top:10px">
+            GPT-4 and similar models process sequences of thousands of tokens. Every single token carries its positional encoding, ensuring the model knows not just <em>what</em> each token is, but <em>where</em> it stands in the sequence.
+        </p>
+        <div class="result-box" style="margin-top:16px">
+            <div class="explain-name" style="font-size:0.95em;margin-bottom:8px">Modern Alternative: Rotary Position Embedding (RoPE)</div>
+            <p class="explain-text">
+                Modern models (LLaMA, GPT-NeoX, Mistral) use Rotary Position Embedding (RoPE) instead of additive sinusoidal encoding. The key idea: multiply query and key vectors by a rotation matrix that depends on position. Two tokens at positions <em>i</em> and <em>j</em> have their attention score depend only on (<em>i</em>&nbsp;&minus;&nbsp;<em>j</em>), not on absolute position. Geometrically, RoPE rotates vectors in the complex plane &mdash; pairs of embedding dimensions form 2D rotation planes, each at a different frequency. The result preserves the distance-based attention that makes sinusoidal encoding elegant, while being naturally compatible with relative position.
+            </p>
+        </div>
+        <p class="explain-text" style="margin-top:10px;color:#808098;font-size:0.85em">
+            <em>See also:</em> <a href="fourier_transform.html" style="color:#a78bfa">Fourier Transform</a> &middot; <a href="attention_mechanism.html" style="color:#a78bfa">Attention Mechanism</a>
+        </p>
+        <p class="explain-text" style="margin-top:8px;color:#808098;font-size:0.8em">
+            <em>References:</em> Vaswani, A. et al. (2017) "Attention Is All You Need", NeurIPS. &middot; Su, J. et al. (2021) "RoFormer: Enhanced Transformer with Rotary Position Embedding", arXiv:2104.09864.
+        </p>
+    </div>
+
+</div>
+
+<script>
+/* ================================================================
+   SHARED: Utilities
+   ================================================================ */
+function isVisible(el) {
+    var r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight;
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* ================================================================
+   Section 1: Why Order Matters
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas1');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    var EXAMPLES = [
+        {
+            id: 'ex1',
+            original: ['The', 'dog', 'bit', 'the', 'man'],
+            roles:     ['det', 'subj', 'verb', 'det', 'obj'],
+            meaning1:  'A dog attacked a person',
+            meaning2:  'Meaning changes with order!'
+        },
+        {
+            id: 'ex2',
+            original: ['Time', 'flies', 'like', 'an', 'arrow'],
+            roles:     ['subj', 'verb', 'prep', 'det', 'obj'],
+            meaning1:  'Time passes quickly',
+            meaning2:  'Meaning changes with order!'
+        },
+        {
+            id: 'ex3',
+            original: ['The', 'cat', 'sat', 'on', 'the', 'mat'],
+            roles:     ['det', 'subj', 'verb', 'prep', 'det', 'obj'],
+            meaning1:  'A cat is sitting on a mat',
+            meaning2:  'Meaning changes with order!'
+        }
+    ];
+
+    var curExample = 0;
+    var displayWords = [];
+    var displayPositions = [];
+    var isShuffled = false;
+    var shuffleAnim = null;
+    var shuffleFrame = 0;
+    var SHUFFLE_FRAMES = 40;
+    var startPositions = [];
+    var endPositions = [];
+
+    var ROLE_COLORS = {
+        'subj': '#10b981',
+        'verb': '#fbbf24',
+        'obj': '#f472b6',
+        'det': '#808098',
+        'prep': '#22d3ee'
+    };
+
+    function init() {
+        var ex = EXAMPLES[curExample];
+        displayWords = ex.original.slice();
+        displayPositions = [];
+        for (var i = 0; i < displayWords.length; i++) displayPositions.push(i);
+        isShuffled = false;
+        if (shuffleAnim) { cancelAnimationFrame(shuffleAnim); shuffleAnim = null; }
+        shuffleFrame = 0;
+        draw();
+        updateResults();
+    }
+
+    function getWordLayout(words, yCenter, totalW) {
+        var padding = 14;
+        ctx.font = '16px Courier New, monospace';
+        var widths = [];
+        var totalWidth = 0;
+        for (var i = 0; i < words.length; i++) {
+            var w = ctx.measureText(words[i]).width + padding * 2;
+            widths.push(w);
+            totalWidth += w + 6;
+        }
+        totalWidth -= 6;
+        var startX = (totalW - totalWidth) / 2;
+        var positions = [];
+        var cx = startX;
+        for (var i = 0; i < words.length; i++) {
+            positions.push({ x: cx, y: yCenter - 16, w: widths[i], h: 32 });
+            cx += widths[i] + 6;
+        }
+        return positions;
+    }
+
+    function drawWordBoxes(words, roles, positions, posIndices, alpha, yOffset) {
+        ctx.globalAlpha = alpha;
+        for (var i = 0; i < words.length; i++) {
+            var p = positions[i];
+            var role = roles[posIndices ? posIndices[i] : i];
+            var color = ROLE_COLORS[role] || '#808098';
+
+            /* Box */
+            ctx.fillStyle = 'rgba(255,255,255,0.04)';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(p.x, p.y + (yOffset || 0), p.w, p.h, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            /* Word text */
+            ctx.fillStyle = '#e0e0e0';
+            ctx.font = '16px Courier New, monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(words[i], p.x + p.w / 2, p.y + p.h / 2 + (yOffset || 0));
+
+            /* Position index */
+            ctx.fillStyle = '#a78bfa';
+            ctx.font = '10px Courier New, monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('pos ' + i, p.x + p.w / 2, p.y - 8 + (yOffset || 0));
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var ex = EXAMPLES[curExample];
+
+        /* Title labels */
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '13px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Original order', W / 2, 22);
+
+        /* Original sentence - top */
+        var origLayout = getWordLayout(ex.original, 58, W);
+        var origRoleMap = [];
+        for (var i = 0; i < ex.original.length; i++) origRoleMap.push(i);
+        drawWordBoxes(ex.original, ex.roles, origLayout, origRoleMap, 1, 0);
+
+        /* Arrow or equals */
+        ctx.fillStyle = '#808098';
+        ctx.font = '20px Georgia, serif';
+        ctx.textAlign = 'center';
+        if (isShuffled) {
+            ctx.fillText('\u2260', W / 2, 110);
+            ctx.fillStyle = '#f472b6';
+            ctx.font = '11px Georgia, serif';
+            ctx.fillText('different meaning!', W / 2, 126);
+        } else {
+            ctx.fillText('\u2193', W / 2, 110);
+        }
+
+        /* Shuffled / current order - bottom */
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '13px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(isShuffled ? 'Shuffled order' : 'Current order', W / 2, 148);
+
+        var shuffledLayout = getWordLayout(displayWords, 184, W);
+        /* Map roles from original indices through current display positions */
+        var shuffledRoleMap = displayPositions.slice();
+        drawWordBoxes(displayWords, ex.roles, shuffledLayout, shuffledRoleMap, 1, 0);
+
+        /* Bag-of-words comparison at bottom */
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Courier New, monospace';
+        ctx.textAlign = 'center';
+        var sorted1 = ex.original.slice().sort().join(', ');
+        var sorted2 = displayWords.slice().sort().join(', ');
+        var same = sorted1 === sorted2;
+        ctx.fillStyle = same ? '#10b981' : '#f472b6';
+        ctx.fillText('Bag of words: {' + sorted2 + '} ' + (same ? '= identical set' : '\u2260 different set'), W / 2, 232);
+    }
+
+    function shuffleWords() {
+        var ex = EXAMPLES[curExample];
+        /* Fisher-Yates shuffle */
+        var indices = [];
+        for (var i = 0; i < ex.original.length; i++) indices.push(i);
+        for (var i = indices.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = indices[i]; indices[i] = indices[j]; indices[j] = tmp;
+        }
+        /* Only accept if it's actually different from original */
+        var same = true;
+        for (var i = 0; i < indices.length; i++) {
+            if (indices[i] !== i) { same = false; break; }
+        }
+        if (same && indices.length > 1) {
+            /* Swap first two to guarantee difference */
+            var t = indices[0]; indices[0] = indices[1]; indices[1] = t;
+        }
+
+        displayWords = [];
+        displayPositions = [];
+        for (var i = 0; i < indices.length; i++) {
+            displayWords.push(ex.original[indices[i]]);
+            displayPositions.push(indices[i]);
+        }
+        isShuffled = true;
+        draw();
+        updateResults();
+    }
+
+    function updateResults() {
+        var ex = EXAMPLES[curExample];
+        var html = '';
+        if (isShuffled) {
+            html += '<span class="violet">Original:</span> "' + ex.original.join(' ') + '" &rarr; <span class="green">' + ex.meaning1 + '</span><br>';
+            html += '<span class="violet">Shuffled:</span> "' + displayWords.join(' ') + '" &rarr; <span class="pink">Different meaning!</span><br>';
+            html += '<span class="muted">Same tokens, same bag-of-words &mdash; but order changes everything.</span>';
+        } else {
+            html += '<span class="violet">Sentence:</span> "' + ex.original.join(' ') + '"<br>';
+            html += '<span class="muted">Meaning:</span> <span class="green">' + ex.meaning1 + '</span><br>';
+            html += '<span class="muted">Click "Shuffle Words" to see why position matters.</span>';
+        }
+        document.getElementById('s1Results').innerHTML = html;
+    }
+
+    /* Event listeners */
+    document.getElementById('btnShuffle').addEventListener('click', shuffleWords);
+    document.getElementById('btnReset1').addEventListener('click', init);
+
+    ['btnEx1', 'btnEx2', 'btnEx3'].forEach(function(id, idx) {
+        document.getElementById(id).addEventListener('click', function() {
+            document.querySelectorAll('#btnEx1,#btnEx2,#btnEx3').forEach(function(b) { b.classList.remove('active'); });
+            this.classList.add('active');
+            curExample = idx;
+            init();
+        });
+    });
+
+    /* Init */
+    init();
+})();
+
+/* ================================================================
+   Section 2: Sinusoidal Encoding Heatmap
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas2');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    var waveCvs = document.getElementById('canvas2wave');
+    var waveCtx = waveCvs.getContext('2d');
+    var wW = waveCvs.width, wH = waveCvs.height;
+
+    var NUM_POSITIONS = 50;
+    var D_MODEL = 128;
+    var PAD = { left: 50, right: 20, top: 30, bottom: 30 };
+    var plotW = W - PAD.left - PAD.right;
+    var plotH = H - PAD.top - PAD.bottom;
+
+    var mode = 'sinusoidal'; /* sinusoidal | learned */
+    var selectedDim = 0;
+    var selectedPos = 0;
+    var heatmapImg = null;
+    var learnedMatrix = null;
+    var hoverPos = -1;
+    var hoverDim = -1;
+
+    /* Compute PE value */
+    function peValue(pos, dim) {
+        var i = Math.floor(dim / 2);
+        var freq = 1.0 / Math.pow(10000, (2 * i) / D_MODEL);
+        if (dim % 2 === 0) {
+            return Math.sin(pos * freq);
+        } else {
+            return Math.cos(pos * freq);
+        }
+    }
+
+    /* Generate random learned encoding (fixed pattern for consistency) */
+    function generateLearnedMatrix() {
+        /* Use a seeded pseudo-random for reproducibility */
+        var seed = 42;
+        function seededRandom() {
+            seed = (seed * 16807 + 0) % 2147483647;
+            return (seed - 1) / 2147483646;
+        }
+        learnedMatrix = [];
+        for (var p = 0; p < NUM_POSITIONS; p++) {
+            learnedMatrix[p] = [];
+            for (var d = 0; d < D_MODEL; d++) {
+                learnedMatrix[p][d] = (seededRandom() * 2 - 1); /* -1 to 1 */
+            }
+        }
+    }
+
+    function getValue(pos, dim) {
+        if (mode === 'sinusoidal') {
+            return peValue(pos, dim);
+        } else {
+            return learnedMatrix[pos][dim];
+        }
+    }
+
+    /* Colour map: value in [-1, 1] -> RGB */
+    function valueToRGB(v) {
+        /* Negative: dark purple, Zero: near-black, Positive: bright green/yellow */
+        var t = clamp(v, -1, 1);
+        var r, g, b;
+        if (t < 0) {
+            /* -1 (deep purple) to 0 (black) */
+            var s = -t; /* 0 to 1 */
+            r = Math.round(s * 124);
+            g = Math.round(s * 58);
+            b = Math.round(s * 237);
+        } else {
+            /* 0 (black) to 1 (bright green/yellow) */
+            var s = t;
+            r = Math.round(s * 50);
+            g = Math.round(s * 185);
+            b = Math.round(s * 129);
+        }
+        return [r, g, b];
+    }
+
+    /* Render heatmap using ImageData for performance */
+    function renderHeatmap() {
+        heatmapImg = ctx.createImageData(W, H);
+        var data = heatmapImg.data;
+
+        /* Fill entire image with background */
+        for (var py = 0; py < H; py++) {
+            for (var px = 0; px < W; px++) {
+                var idx = (py * W + px) * 4;
+                data[idx] = 10;
+                data[idx + 1] = 10;
+                data[idx + 2] = 26;
+                data[idx + 3] = 255;
+            }
+        }
+
+        /* Cell dimensions */
+        var cellW = plotW / D_MODEL;
+        var cellH = plotH / NUM_POSITIONS;
+
+        for (var p = 0; p < NUM_POSITIONS; p++) {
+            for (var d = 0; d < D_MODEL; d++) {
+                var val = getValue(p, d);
+                var rgb = valueToRGB(val);
+
+                var x0 = Math.floor(PAD.left + d * cellW);
+                var y0 = Math.floor(PAD.top + p * cellH);
+                var x1 = Math.floor(PAD.left + (d + 1) * cellW);
+                var y1 = Math.floor(PAD.top + (p + 1) * cellH);
+
+                for (var py = y0; py < y1 && py < H; py++) {
+                    for (var px = x0; px < x1 && px < W; px++) {
+                        var idx = (py * W + px) * 4;
+                        data[idx] = rgb[0];
+                        data[idx + 1] = rgb[1];
+                        data[idx + 2] = rgb[2];
+                        data[idx + 3] = 255;
+                    }
+                }
+            }
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        /* Heatmap */
+        if (heatmapImg) ctx.putImageData(heatmapImg, 0, 0);
+
+        var cellW = plotW / D_MODEL;
+        var cellH = plotH / NUM_POSITIONS;
+
+        /* Highlight selected dimension (column) */
+        var dimX = PAD.left + selectedDim * cellW;
+        ctx.strokeStyle = 'rgba(167,139,250,0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(dimX, PAD.top, cellW, plotH);
+
+        /* Highlight selected position (row) */
+        var posY = PAD.top + selectedPos * cellH;
+        ctx.strokeStyle = 'rgba(251,191,36,0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(PAD.left, posY, plotW, cellH);
+
+        /* Crosshair intersection */
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(dimX, posY, cellW, cellH);
+
+        /* Hover tooltip */
+        if (hoverPos >= 0 && hoverPos < NUM_POSITIONS && hoverDim >= 0 && hoverDim < D_MODEL) {
+            var val = getValue(hoverPos, hoverDim);
+            var hx = PAD.left + hoverDim * cellW + cellW / 2;
+            var hy = PAD.top + hoverPos * cellH;
+            var label = 'pos=' + hoverPos + ' dim=' + hoverDim + ' val=' + val.toFixed(4);
+            ctx.font = '10px Courier New, monospace';
+            var tw = ctx.measureText(label).width + 12;
+            var tx = Math.min(hx - tw / 2, W - tw - 5);
+            tx = Math.max(tx, 5);
+            var ty = hy - 20;
+            if (ty < 5) ty = hy + cellH + 5;
+            ctx.fillStyle = 'rgba(10,10,26,0.92)';
+            ctx.beginPath();
+            ctx.roundRect(tx, ty, tw, 18, 4);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(167,139,250,0.4)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.fillStyle = '#e0e0e0';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, tx + 6, ty + 9);
+        }
+
+        /* Axis labels */
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Encoding Dimension', PAD.left + plotW / 2, H - 12);
+
+        /* Dimension tick marks */
+        ctx.fillStyle = '#808098';
+        ctx.font = '9px Courier New, monospace';
+        var dimTicks = [0, 32, 64, 96, 127];
+        for (var t = 0; t < dimTicks.length; t++) {
+            var dx = PAD.left + dimTicks[t] * cellW + cellW / 2;
+            ctx.textAlign = 'center';
+            ctx.fillText(dimTicks[t].toString(), dx, PAD.top + plotH + 4);
+        }
+
+        /* Position tick marks */
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        var posTicks = [0, 10, 20, 30, 40, 49];
+        for (var t = 0; t < posTicks.length; t++) {
+            var py = PAD.top + posTicks[t] * cellH + cellH / 2;
+            ctx.fillText(posTicks[t].toString(), PAD.left - 6, py);
+        }
+
+        ctx.save();
+        ctx.translate(12, PAD.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '11px Georgia, serif';
+        ctx.fillText('Position', 0, 0);
+        ctx.restore();
+
+        /* Mode label */
+        ctx.fillStyle = '#a78bfa';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(mode === 'sinusoidal' ? 'Sinusoidal PE' : 'Learned PE (random)', PAD.left, 6);
+
+        /* Frequency annotation */
+        if (mode === 'sinusoidal') {
+            ctx.fillStyle = '#808098';
+            ctx.font = '9px Courier New, monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText('\u2190 high freq', PAD.left, PAD.top - 6);
+            ctx.textAlign = 'right';
+            ctx.fillText('low freq \u2192', PAD.left + plotW, PAD.top - 6);
+        }
+
+        updateResults();
+    }
+
+    function drawWave() {
+        waveCtx.clearRect(0, 0, wW, wH);
+        waveCtx.fillStyle = '#0a0a1a';
+        waveCtx.fillRect(0, 0, wW, wH);
+
+        var wPad = { left: 50, right: 20, top: 15, bottom: 25 };
+        var wpW = wW - wPad.left - wPad.right;
+        var wpH = wH - wPad.top - wPad.bottom;
+
+        /* Grid */
+        waveCtx.strokeStyle = 'rgba(255,255,255,0.04)';
+        waveCtx.lineWidth = 0.5;
+        /* Horizontal zero line */
+        var zeroY = wPad.top + wpH / 2;
+        waveCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+        waveCtx.beginPath();
+        waveCtx.moveTo(wPad.left, zeroY);
+        waveCtx.lineTo(wPad.left + wpW, zeroY);
+        waveCtx.stroke();
+
+        /* Y axis ticks */
+        waveCtx.fillStyle = '#808098';
+        waveCtx.font = '9px Courier New, monospace';
+        waveCtx.textAlign = 'right';
+        waveCtx.textBaseline = 'middle';
+        waveCtx.fillText('+1', wPad.left - 6, wPad.top);
+        waveCtx.fillText(' 0', wPad.left - 6, zeroY);
+        waveCtx.fillText('-1', wPad.left - 6, wPad.top + wpH);
+
+        /* X axis label */
+        waveCtx.fillStyle = '#a0a0b8';
+        waveCtx.font = '10px Georgia, serif';
+        waveCtx.textAlign = 'center';
+        waveCtx.textBaseline = 'top';
+        waveCtx.fillText('Position', wPad.left + wpW / 2, wH - 10);
+
+        /* X axis ticks */
+        waveCtx.fillStyle = '#808098';
+        waveCtx.font = '9px Courier New, monospace';
+        var xTicks = [0, 10, 20, 30, 40, 49];
+        for (var t = 0; t < xTicks.length; t++) {
+            var x = wPad.left + (xTicks[t] / (NUM_POSITIONS - 1)) * wpW;
+            waveCtx.textAlign = 'center';
+            waveCtx.textBaseline = 'top';
+            waveCtx.fillText(xTicks[t].toString(), x, wPad.top + wpH + 3);
+        }
+
+        if (mode === 'sinusoidal') {
+            /* Draw the wave for the selected dimension across all positions */
+            waveCtx.strokeStyle = '#a78bfa';
+            waveCtx.lineWidth = 2;
+            waveCtx.beginPath();
+            for (var p = 0; p < NUM_POSITIONS; p++) {
+                var val = peValue(p, selectedDim);
+                var x = wPad.left + (p / (NUM_POSITIONS - 1)) * wpW;
+                var y = zeroY - val * (wpH / 2 - 2);
+                if (p === 0) waveCtx.moveTo(x, y); else waveCtx.lineTo(x, y);
+            }
+            waveCtx.stroke();
+
+            /* Highlight selected position on the wave */
+            var selVal = peValue(selectedPos, selectedDim);
+            var selX = wPad.left + (selectedPos / (NUM_POSITIONS - 1)) * wpW;
+            var selY = zeroY - selVal * (wpH / 2 - 2);
+            waveCtx.fillStyle = '#fbbf24';
+            waveCtx.beginPath();
+            waveCtx.arc(selX, selY, 5, 0, Math.PI * 2);
+            waveCtx.fill();
+            waveCtx.strokeStyle = '#fff';
+            waveCtx.lineWidth = 1;
+            waveCtx.stroke();
+
+            /* Value label at dot */
+            waveCtx.fillStyle = '#fbbf24';
+            waveCtx.font = '10px Courier New, monospace';
+            waveCtx.textAlign = 'left';
+            waveCtx.textBaseline = 'bottom';
+            waveCtx.fillText(selVal.toFixed(4), selX + 8, selY - 4);
+
+            /* Update wave label */
+            var i = Math.floor(selectedDim / 2);
+            var wavelength = 2 * Math.PI * Math.pow(10000, (2 * i) / D_MODEL);
+            var freqStr = selectedDim < 4 ? 'highest frequency' : (selectedDim > 120 ? 'lowest frequency' : 'mid frequency');
+            var sincos = selectedDim % 2 === 0 ? 'sin' : 'cos';
+            document.getElementById('waveLabel').innerHTML = 'Dimension ' + selectedDim + ' (' + sincos + '): wavelength \u2248 ' + (wavelength < 100 ? wavelength.toFixed(1) : wavelength.toExponential(1)) + ' &mdash; ' + freqStr;
+        } else {
+            /* Learned: draw the encoding vector for the selected position */
+            waveCtx.strokeStyle = '#22d3ee';
+            waveCtx.lineWidth = 1.5;
+            waveCtx.beginPath();
+            for (var d = 0; d < D_MODEL; d++) {
+                var val = learnedMatrix[selectedPos][d];
+                var x = wPad.left + (d / (D_MODEL - 1)) * wpW;
+                var y = zeroY - val * (wpH / 2 - 2);
+                if (d === 0) waveCtx.moveTo(x, y); else waveCtx.lineTo(x, y);
+            }
+            waveCtx.stroke();
+
+            /* Highlight selected dimension */
+            var selVal = learnedMatrix[selectedPos][selectedDim];
+            var selX = wPad.left + (selectedDim / (D_MODEL - 1)) * wpW;
+            var selY = zeroY - selVal * (wpH / 2 - 2);
+            waveCtx.fillStyle = '#fbbf24';
+            waveCtx.beginPath();
+            waveCtx.arc(selX, selY, 5, 0, Math.PI * 2);
+            waveCtx.fill();
+
+            document.getElementById('waveLabel').innerHTML = 'Learned encoding vector for position ' + selectedPos + ' (random &mdash; no structure)';
+        }
+    }
+
+    function updateResults() {
+        var val = getValue(selectedPos, selectedDim);
+        var sincos = selectedDim % 2 === 0 ? 'sin' : 'cos';
+        var i = Math.floor(selectedDim / 2);
+        var freq = 1.0 / Math.pow(10000, (2 * i) / D_MODEL);
+        var html = '';
+        html += '<span class="violet">Position:</span> <span class="cyan">' + selectedPos + '</span>';
+        html += ' &nbsp;&nbsp; <span class="violet">Dimension:</span> <span class="gold">' + selectedDim + '</span>';
+        html += ' &nbsp;&nbsp; <span class="violet">Value:</span> <span class="green">' + val.toFixed(6) + '</span><br>';
+        if (mode === 'sinusoidal') {
+            html += '<span class="muted">' + sincos + '(' + selectedPos + ' / 10000^(' + (2*i) + '/' + D_MODEL + ')) = ' + sincos + '(' + selectedPos + ' &times; ' + freq.toExponential(3) + ') = ' + val.toFixed(6) + '</span>';
+        } else {
+            html += '<span class="muted">Learned value (no mathematical structure &mdash; must be trained)</span>';
+        }
+        document.getElementById('s2Results').innerHTML = html;
+    }
+
+    /* Mouse hover for heatmap */
+    cvs.addEventListener('mousemove', function(e) {
+        var rect = cvs.getBoundingClientRect();
+        var mx = (e.clientX - rect.left) * (W / rect.width);
+        var my = (e.clientY - rect.top) * (H / rect.height);
+
+        var cellW = plotW / D_MODEL;
+        var cellH = plotH / NUM_POSITIONS;
+
+        if (mx >= PAD.left && mx <= PAD.left + plotW && my >= PAD.top && my <= PAD.top + plotH) {
+            hoverDim = Math.floor((mx - PAD.left) / cellW);
+            hoverPos = Math.floor((my - PAD.top) / cellH);
+            hoverDim = clamp(hoverDim, 0, D_MODEL - 1);
+            hoverPos = clamp(hoverPos, 0, NUM_POSITIONS - 1);
+        } else {
+            hoverPos = -1;
+            hoverDim = -1;
+        }
+        draw();
+    });
+
+    cvs.addEventListener('mouseleave', function() {
+        hoverPos = -1;
+        hoverDim = -1;
+        draw();
+    });
+
+    /* Click on heatmap to select */
+    cvs.addEventListener('click', function(e) {
+        var rect = cvs.getBoundingClientRect();
+        var mx = (e.clientX - rect.left) * (W / rect.width);
+        var my = (e.clientY - rect.top) * (H / rect.height);
+
+        var cellW = plotW / D_MODEL;
+        var cellH = plotH / NUM_POSITIONS;
+
+        if (mx >= PAD.left && mx <= PAD.left + plotW && my >= PAD.top && my <= PAD.top + plotH) {
+            var d = Math.floor((mx - PAD.left) / cellW);
+            var p = Math.floor((my - PAD.top) / cellH);
+            d = clamp(d, 0, D_MODEL - 1);
+            p = clamp(p, 0, NUM_POSITIONS - 1);
+            selectedDim = d;
+            selectedPos = p;
+            document.getElementById('sDim').value = d;
+            document.getElementById('sPos').value = p;
+            document.getElementById('vDim').textContent = d;
+            document.getElementById('vPos').textContent = p;
+            draw();
+            drawWave();
+        }
+    });
+
+    /* Sliders */
+    document.getElementById('sDim').addEventListener('input', function() {
+        selectedDim = parseInt(this.value);
+        document.getElementById('vDim').textContent = selectedDim;
+        draw();
+        drawWave();
+    });
+    document.getElementById('sPos').addEventListener('input', function() {
+        selectedPos = parseInt(this.value);
+        document.getElementById('vPos').textContent = selectedPos;
+        draw();
+        drawWave();
+    });
+
+    /* Mode buttons */
+    document.getElementById('btnSinusoidal').addEventListener('click', function() {
+        mode = 'sinusoidal';
+        document.getElementById('btnSinusoidal').classList.add('active');
+        document.getElementById('btnLearned').classList.remove('active');
+        renderHeatmap();
+        draw();
+        drawWave();
+    });
+    document.getElementById('btnLearned').addEventListener('click', function() {
+        mode = 'learned';
+        document.getElementById('btnLearned').classList.add('active');
+        document.getElementById('btnSinusoidal').classList.remove('active');
+        renderHeatmap();
+        draw();
+        drawWave();
+    });
+
+    /* Init */
+    generateLearnedMatrix();
+    renderHeatmap();
+    draw();
+    drawWave();
+})();
+</script>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

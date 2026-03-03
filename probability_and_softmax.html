@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Probability &amp; Softmax</title>
+    <meta name="description" content="Visualise how softmax converts raw neural network scores into probabilities. Explore temperature scaling, cross-entropy loss, and the mathematics that turns confidence into prediction.">
+    <link rel="canonical" href="https://mathsedu.org/probability_and_softmax.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Probability & Softmax",
+      "url": "https://mathsedu.org/probability_and_softmax.html",
+      "description": "Visualise how softmax converts raw neural network scores into probabilities. Explore temperature scaling, cross-entropy loss, and the mathematics that turns confidence into prediction.",
+      "educationalLevel": "Beginner",
+      "teaches": "Softmax function, temperature scaling, cross-entropy loss, and probability distributions in neural networks",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "The Mathematics of Intelligence",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="Probability &amp; Softmax">
+    <meta property="og:description" content="Visualise how softmax converts raw neural network scores into probabilities. Explore temperature scaling, cross-entropy loss, and the mathematics that turns confidence into prediction.">
+    <meta property="og:url" content="https://mathsedu.org/probability_and_softmax.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Probability &amp; Softmax">
+    <meta name="twitter:description" content="Visualise how softmax converts raw neural network scores into probabilities. Explore temperature scaling, cross-entropy loss, and the mathematics that turns confidence into prediction.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#a78bfa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:8px}
+        .intro-text{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(167,139,250,0.13);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .violet{color:#a78bfa}.math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#a78bfa;cursor:pointer}
+        .slider-val{color:#a78bfa;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .insight-box{background:rgba(167,139,250,0.04);border-left:3px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#a78bfa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .section-summary{color:#a78bfa;font-size:0.85em;font-style:italic;margin:6px 0 0;padding:6px 0;border-top:1px solid rgba(167,139,250,0.1)}
+        .micro-note{color:#808098;font-size:0.85em;font-style:italic;margin:8px 0 4px;line-height:1.6}
+        .checkbox-row{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+        .checkbox-row label{color:#a0a0b8;font-size:0.9em;cursor:pointer;display:flex;align-items:center;gap:6px}
+        .steepness-bar-bg{display:inline-block;width:80px;height:7px;background:rgba(255,255,255,0.06);border-radius:3px;vertical-align:middle;margin:0 6px;overflow:hidden}
+        .steepness-bar-fill{height:100%;border-radius:3px;transition:width 0.15s}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Probability &amp; Softmax</h1>
+    <p class="subtitle">Raw scores become probabilities &mdash; the gateway between algebra and uncertainty</p>
+    <p class="intro-text">
+        A neural network's final layer outputs raw numbers called <em>logits</em> &mdash; they can be any magnitude, positive or negative, and they certainly don't sum to one. Softmax is the elegant function that converts these raw scores into a proper probability distribution: every value between 0 and 1, and all values summing to exactly 1. This is the mathematical bridge between a network's internal algebra and the probabilistic predictions we actually need.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: From Scores to Probabilities
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. From Scores to Probabilities</h2>
+    <div class="panel">
+        <h3>Logits vs softmax output</h3>
+        <canvas id="canvas1" width="700" height="350"></canvas>
+        <p class="micro-note">Drag the bars on the left panel to change the raw logit scores. The right panel updates live.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Raw logits</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Softmax probabilities</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Number of classes:</label>
+            <input type="range" id="sClasses" min="3" max="8" step="1" value="4">
+            <span class="slider-val" id="vClasses">4</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnRandomise">Randomise logits</button>
+        </div>
+        <div class="result-box">
+            <div id="s1Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="gold">softmax</span>(<span class="cyan">z</span><sub>i</sub>) = <span class="green">exp</span>(<span class="cyan">z</span><sub>i</sub>) / <span class="muted">&Sigma;</span><sub>j</sub> <span class="green">exp</span>(<span class="cyan">z</span><sub>j</sub>)</div>
+            <div class="math-line"><span class="muted">Example:</span> logits = [<span class="cyan">2.0</span>, <span class="cyan">1.0</span>, <span class="cyan">0.1</span>]</div>
+            <div class="math-line">&rarr; exp = [<span class="green">7.39</span>, <span class="green">2.72</span>, <span class="green">1.11</span>] &rarr; sum = <span class="violet">11.21</span></div>
+            <div class="math-line">&rarr; softmax = [<span class="green">0.659</span>, <span class="green">0.242</span>, <span class="green">0.099</span>] &rarr; <span class="green">&Sigma; = 1.000</span></div>
+        </div>
+        <div class="insight-box">
+            A neural network never directly outputs probabilities. It outputs raw scores (logits). Softmax is the function that converts confidence scores into a proper probability distribution &mdash; every output positive, every output less than 1, and the whole thing summing to exactly 1.
+        </div>
+        <p class="section-summary">Softmax turns arbitrary real numbers into a valid probability distribution &mdash; the final step in every classifier.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: Temperature — The Creativity Dial
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. Temperature &mdash; The Creativity Dial</h2>
+    <div class="panel">
+        <h3>Softmax at different temperatures</h3>
+        <canvas id="canvas2" width="700" height="350"></canvas>
+        <p class="micro-note">All three panels share the same logits. Temperature controls how peaked or flat the distribution becomes.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">T = low (confident)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">T = 1.0 (normal)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">T = high (creative)</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Temperature T:</label>
+            <input type="range" id="sTemp" min="1" max="30" step="1" value="10">
+            <span class="slider-val" id="vTemp">1.0</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnRandomise2">Randomise logits</button>
+        </div>
+        <div class="result-box">
+            <div id="s2Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="gold">softmax</span><sub>T</sub>(<span class="cyan">z</span><sub>i</sub>) = <span class="green">exp</span>(<span class="cyan">z</span><sub>i</sub> / <span class="pink">T</span>) / <span class="muted">&Sigma;</span><sub>j</sub> <span class="green">exp</span>(<span class="cyan">z</span><sub>j</sub> / <span class="pink">T</span>)</div>
+            <div class="math-line"><span class="pink">T &rarr; 0:</span> argmax &mdash; all probability on the highest logit <span class="muted">(deterministic)</span></div>
+            <div class="math-line"><span class="violet">T = 1:</span> standard softmax <span class="muted">(balanced)</span></div>
+            <div class="math-line"><span class="cyan">T &rarr; &infin;:</span> uniform distribution &mdash; every class equally likely <span class="muted">(maximum randomness)</span></div>
+        </div>
+        <div class="insight-box">
+            When you set ChatGPT's &lsquo;temperature&rsquo; to 0, you get deterministic responses &mdash; it always picks the most likely next token. At high temperature, it gets creative &mdash; and occasionally wrong. Temperature is not a metaphor; it is literally this parameter in the softmax function.
+        </div>
+        <p class="section-summary">Temperature is the single dial that controls the confidence-creativity tradeoff in every language model.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 3: Cross-Entropy Loss
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. Cross-Entropy Loss</h2>
+    <div class="panel">
+        <h3>Prediction vs true label &mdash; measuring the cost of being wrong</h3>
+        <canvas id="canvas3" width="700" height="300"></canvas>
+        <p class="micro-note">Drag the prediction bars to change the model's output. Watch the loss change live. The true label is highlighted in green.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">True label</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Prediction (softmax)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Cross-entropy loss</span></div>
+        </div>
+        <div class="slider-row">
+            <label>True class:</label>
+            <input type="range" id="sTrueClass" min="0" max="3" step="1" value="0">
+            <span class="slider-val" id="vTrueClass">cat</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnPerfect">Perfect prediction</button>
+            <button class="btn" id="btnUniform">Uniform prediction</button>
+            <button class="btn" id="btnWrong">Maximally wrong</button>
+            <button class="btn" id="btnRandomise3">Randomise</button>
+        </div>
+        <div class="result-box">
+            <div id="s3Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="pink">H(p, q)</span> = &minus;<span class="muted">&Sigma;</span><sub>i</sub> <span class="green">p</span>(i) &middot; <span class="violet">log</span> <span class="gold">q</span>(i)</div>
+            <div class="math-line"><span class="muted">where</span> <span class="green">p</span> = true distribution (one-hot), <span class="gold">q</span> = model's prediction</div>
+            <div class="math-line"><span class="muted">For one-hot labels:</span> <span class="pink">H</span> = &minus;<span class="violet">log</span> <span class="gold">q</span>(true class)</div>
+            <div class="math-line"><span class="muted">Example:</span> true = cat, q(cat) = <span class="gold">0.7</span> &rarr; loss = &minus;log(0.7) = <span class="pink">0.357</span></div>
+        </div>
+        <div class="insight-box">
+            Cross-entropy is how we measure the cost of being wrong. The entire training process of an LLM is the minimisation of this single number across billions of examples. When the model is confident and correct, loss is near zero. When confident and wrong, loss explodes toward infinity.
+        </div>
+        <p class="section-summary">Cross-entropy loss is the objective function of intelligence &mdash; minimise it, and the model learns.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Closing Explain Section
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="explain">
+        <div class="explain-name">Why This Matters</div>
+        <p class="explain-text">
+            Every prediction a language model makes &mdash; every next-token probability, every classification, every decision &mdash; passes through softmax. Temperature scaling is the reason ChatGPT can be both precise and creative. Cross-entropy loss is the single number that the entire training process works to minimise. These three ideas &mdash; softmax, temperature, and cross-entropy &mdash; form the mathematical foundation of how neural networks express and refine uncertainty.
+        </p>
+        <p class="explain-text" style="margin-top:10px">
+            Claude Shannon introduced cross-entropy in his 1948 paper <em>&ldquo;A Mathematical Theory of Communication&rdquo;</em>. Seventy-seven years later, it remains the loss function of choice for every large language model on Earth.
+        </p>
+        <p class="explain-text" style="margin-top:10px;color:#808098;font-size:0.85em">
+            <em>See also:</em> <a href="probability_distributions.html" style="color:#a78bfa">Probability Distributions</a> &middot; <a href="bayes_theorem.html" style="color:#a78bfa">Bayes' Theorem</a>
+        </p>
+        <p class="explain-text" style="margin-top:6px;color:#808098;font-size:0.82em">
+            <em>References:</em> Shannon, C. E. (1948). <em>A Mathematical Theory of Communication</em>. Bell System Technical Journal. &middot; Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Chapter 3.
+        </p>
+    </div>
+
+</div>
+
+<script>
+/* ================================================================
+   SHARED UTILITIES
+   ================================================================ */
+function isVisible(el) {
+    var r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight;
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* Stable softmax: subtract max to prevent overflow */
+function softmax(logits, temperature) {
+    var T = temperature || 1.0;
+    var scaled = logits.map(function(z) { return z / T; });
+    var maxZ = Math.max.apply(null, scaled);
+    var exps = scaled.map(function(z) { return Math.exp(z - maxZ); });
+    var sumExp = exps.reduce(function(a, b) { return a + b; }, 0);
+    return exps.map(function(e) { return e / sumExp; });
+}
+
+var CLASS_NAMES = ['cat', 'dog', 'bird', 'fish', 'car', 'tree', 'star', 'moon'];
+var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87171', '#38bdf8', '#fb923c'];
+
+/* ================================================================
+   Section 1: From Scores to Probabilities
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas1');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    var numClasses = 4;
+    var logits = [2.0, 1.0, 0.1, -1.0];
+    var dragging = -1;
+    var dragStartY = 0;
+    var dragStartVal = 0;
+
+    /* Layout constants */
+    var PAD = { top: 30, bottom: 50, left: 50, right: 30 };
+    var GAP = 60; /* gap between left and right panels */
+
+    function getLayout() {
+        var plotW = (W - PAD.left - PAD.right - GAP) / 2;
+        var plotH = H - PAD.top - PAD.bottom;
+        return {
+            leftX: PAD.left,
+            rightX: PAD.left + plotW + GAP,
+            plotW: plotW,
+            plotH: plotH,
+            barW: Math.min(40, (plotW - 20) / numClasses - 6)
+        };
+    }
+
+    function randomiseLogits() {
+        logits = [];
+        for (var i = 0; i < numClasses; i++) {
+            logits.push((Math.random() - 0.3) * 6);
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var L = getLayout();
+        var probs = softmax(logits);
+        var maxLogit = Math.max(Math.abs(Math.min.apply(null, logits)), Math.abs(Math.max.apply(null, logits)), 3);
+        maxLogit = Math.ceil(maxLogit) + 1;
+
+        /* ── Left panel: Logits ── */
+        drawPanel(L.leftX, L.plotW, L.plotH, 'Raw Logits', logits, -maxLogit, maxLogit, false, '#a78bfa', true);
+
+        /* ── Right panel: Probabilities ── */
+        drawPanel(L.rightX, L.plotW, L.plotH, 'Softmax Output', probs, 0, 1.0, true, '#10b981', false);
+
+        /* Arrow between panels */
+        var arrowY = PAD.top + L.plotH / 2;
+        var arrowX1 = L.leftX + L.plotW + 8;
+        var arrowX2 = L.rightX - 8;
+        ctx.strokeStyle = '#808098';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(arrowX1, arrowY);
+        ctx.lineTo(arrowX2, arrowY);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(arrowX2, arrowY);
+        ctx.lineTo(arrowX2 - 8, arrowY - 5);
+        ctx.lineTo(arrowX2 - 8, arrowY + 5);
+        ctx.closePath();
+        ctx.fillStyle = '#808098';
+        ctx.fill();
+
+        /* softmax label on arrow */
+        ctx.fillStyle = '#a78bfa';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('softmax', (arrowX1 + arrowX2) / 2, arrowY - 10);
+
+        /* Update results */
+        updateResults(probs);
+    }
+
+    function drawPanel(startX, plotW, plotH, title, values, minVal, maxVal, showSum, barColor, isLogit) {
+        /* Background */
+        ctx.fillStyle = 'rgba(255,255,255,0.015)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(startX - 5, PAD.top - 5, plotW + 10, plotH + 10, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        /* Title */
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(title, startX + plotW / 2, PAD.top - 12);
+
+        var n = values.length;
+        var totalBarSpace = plotW - 20;
+        var barW = Math.min(40, (totalBarSpace / n) - 6);
+        var barSpacing = (totalBarSpace - n * barW) / (n + 1);
+        var zeroY;
+
+        if (isLogit) {
+            /* Logits: zero line in middle */
+            var range = maxVal - minVal;
+            zeroY = PAD.top + plotH * (maxVal / range);
+        } else {
+            /* Probabilities: zero at bottom */
+            zeroY = PAD.top + plotH;
+        }
+
+        /* Grid lines */
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 0.5;
+        var nTicks = isLogit ? 6 : 5;
+        for (var i = 0; i <= nTicks; i++) {
+            var y = PAD.top + (i / nTicks) * plotH;
+            ctx.beginPath();
+            ctx.moveTo(startX, y);
+            ctx.lineTo(startX + plotW, y);
+            ctx.stroke();
+        }
+
+        /* Zero line for logits */
+        if (isLogit) {
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(startX, zeroY);
+            ctx.lineTo(startX + plotW, zeroY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        /* Y-axis labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'right';
+        for (var i = 0; i <= nTicks; i++) {
+            var val;
+            if (isLogit) {
+                val = maxVal - (i / nTicks) * (maxVal - minVal);
+            } else {
+                val = maxVal - (i / nTicks) * (maxVal - minVal);
+            }
+            var y = PAD.top + (i / nTicks) * plotH;
+            ctx.fillText(val.toFixed(1), startX - 4, y + 3);
+        }
+
+        /* Bars */
+        for (var i = 0; i < n; i++) {
+            var x = startX + 10 + barSpacing + i * (barW + barSpacing);
+            var val = values[i];
+            var barH, barY;
+
+            if (isLogit) {
+                var range = maxVal - minVal;
+                barH = Math.abs(val) / range * plotH;
+                if (val >= 0) {
+                    barY = zeroY - barH;
+                } else {
+                    barY = zeroY;
+                }
+            } else {
+                barH = (val / maxVal) * plotH;
+                barY = PAD.top + plotH - barH;
+            }
+
+            /* Bar fill */
+            var gradient = ctx.createLinearGradient(x, barY, x, barY + barH);
+            gradient.addColorStop(0, barColor);
+            gradient.addColorStop(1, barColor + '66');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x, barY, barW, barH);
+
+            /* Bar outline */
+            ctx.strokeStyle = barColor;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, barY, barW, barH);
+
+            /* Value label */
+            ctx.fillStyle = barColor;
+            ctx.font = 'bold 11px Courier New, monospace';
+            ctx.textAlign = 'center';
+            if (isLogit) {
+                var labelY = val >= 0 ? barY - 5 : barY + barH + 13;
+                ctx.fillText(val.toFixed(2), x + barW / 2, labelY);
+            } else {
+                ctx.fillText(val.toFixed(3), x + barW / 2, barY - 5);
+            }
+
+            /* Class name */
+            ctx.fillStyle = '#a0a0b8';
+            ctx.font = '10px Georgia, serif';
+            ctx.fillText(CLASS_NAMES[i], x + barW / 2, PAD.top + plotH + 16);
+        }
+
+        /* Sum label for probabilities */
+        if (showSum) {
+            var sum = values.reduce(function(a, b) { return a + b; }, 0);
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 12px Courier New, monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('\u03A3 = ' + sum.toFixed(3), startX + plotW / 2, PAD.top + plotH + 35);
+        }
+    }
+
+    function updateResults(probs) {
+        var maxIdx = 0;
+        for (var i = 1; i < probs.length; i++) {
+            if (probs[i] > probs[maxIdx]) maxIdx = i;
+        }
+        var html = '<span class="violet">Logits:</span> [';
+        for (var i = 0; i < logits.length; i++) {
+            html += '<span class="cyan">' + logits[i].toFixed(2) + '</span>';
+            if (i < logits.length - 1) html += ', ';
+        }
+        html += '] &rarr; <span class="green">Prediction: ' + CLASS_NAMES[maxIdx] + ' (' + (probs[maxIdx] * 100).toFixed(1) + '%)</span>';
+        document.getElementById('s1Results').innerHTML = html;
+    }
+
+    /* ── Mouse / touch interaction for dragging logit bars ── */
+    function getBarHitInfo(mx, my) {
+        var L = getLayout();
+        var n = numClasses;
+        var totalBarSpace = L.plotW - 20;
+        var barW = Math.min(40, (totalBarSpace / n) - 6);
+        var barSpacing = (totalBarSpace - n * barW) / (n + 1);
+
+        for (var i = 0; i < n; i++) {
+            var x = L.leftX + 10 + barSpacing + i * (barW + barSpacing);
+            if (mx >= x && mx <= x + barW) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function getCanvasPos(e) {
+        var rect = cvs.getBoundingClientRect();
+        var scaleX = W / rect.width;
+        var scaleY = H / rect.height;
+        var clientX, clientY;
+        if (e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+        };
+    }
+
+    function yToLogitValue(canvasY) {
+        var L = getLayout();
+        var maxLogit = Math.max(Math.abs(Math.min.apply(null, logits)), Math.abs(Math.max.apply(null, logits)), 3);
+        maxLogit = Math.ceil(maxLogit) + 1;
+        var minVal = -maxLogit;
+        var maxVal = maxLogit;
+        var range = maxVal - minVal;
+        var t = (canvasY - PAD.top) / L.plotH;
+        return maxVal - t * range;
+    }
+
+    function onPointerDown(e) {
+        e.preventDefault();
+        var pos = getCanvasPos(e);
+        var hit = getBarHitInfo(pos.x, pos.y);
+        if (hit >= 0) {
+            dragging = hit;
+            dragStartY = pos.y;
+            dragStartVal = logits[hit];
+        }
+    }
+
+    function onPointerMove(e) {
+        if (dragging < 0) return;
+        e.preventDefault();
+        var pos = getCanvasPos(e);
+        var newVal = yToLogitValue(pos.y);
+        logits[dragging] = clamp(newVal, -8, 8);
+        draw();
+    }
+
+    function onPointerUp(e) {
+        dragging = -1;
+    }
+
+    cvs.addEventListener('mousedown', onPointerDown);
+    cvs.addEventListener('mousemove', onPointerMove);
+    cvs.addEventListener('mouseup', onPointerUp);
+    cvs.addEventListener('mouseleave', onPointerUp);
+    cvs.addEventListener('touchstart', onPointerDown, { passive: false });
+    cvs.addEventListener('touchmove', onPointerMove, { passive: false });
+    cvs.addEventListener('touchend', onPointerUp);
+
+    /* ── Controls ── */
+    document.getElementById('btnRandomise').addEventListener('click', function() {
+        randomiseLogits();
+        draw();
+    });
+
+    document.getElementById('sClasses').addEventListener('input', function() {
+        numClasses = parseInt(this.value);
+        document.getElementById('vClasses').textContent = numClasses;
+        /* Adjust logits array */
+        while (logits.length < numClasses) logits.push((Math.random() - 0.3) * 4);
+        while (logits.length > numClasses) logits.pop();
+        /* Update true class slider in section 3 */
+        var sTrueClass = document.getElementById('sTrueClass');
+        if (sTrueClass) {
+            sTrueClass.max = numClasses - 1;
+            if (parseInt(sTrueClass.value) >= numClasses) {
+                sTrueClass.value = 0;
+            }
+        }
+        draw();
+    });
+
+    /* Init */
+    draw();
+})();
+
+/* ================================================================
+   Section 2: Temperature — The Creativity Dial
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas2');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    var logits2 = [3.0, 1.5, 0.5, -0.5];
+    var PAD = { top: 30, bottom: 50, left: 30, right: 20 };
+
+    function getTemp() {
+        return parseInt(document.getElementById('sTemp').value) / 10;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var T = getTemp();
+        var temps = [Math.max(0.1, T * 0.1), 1.0, Math.max(T, 1.01)];
+        var tempLabels = [
+            'T = ' + temps[0].toFixed(1) + ' (confident)',
+            'T = 1.0 (normal)',
+            'T = ' + temps[2].toFixed(1) + ' (creative)'
+        ];
+        var tempColors = ['#f472b6', '#a78bfa', '#22d3ee'];
+
+        var panelGap = 12;
+        var totalW = W - PAD.left - PAD.right;
+        var panelW = (totalW - 2 * panelGap) / 3;
+        var plotH = H - PAD.top - PAD.bottom;
+        var n = logits2.length;
+        var barW = Math.min(28, (panelW - 20) / n - 4);
+        var barSpacing = (panelW - 20 - n * barW) / (n + 1);
+
+        for (var p = 0; p < 3; p++) {
+            var px = PAD.left + p * (panelW + panelGap);
+            var probs = softmax(logits2, temps[p]);
+
+            /* Panel background */
+            ctx.fillStyle = 'rgba(255,255,255,0.015)';
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(px - 3, PAD.top - 3, panelW + 6, plotH + 6, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            /* Title */
+            ctx.fillStyle = tempColors[p];
+            ctx.font = '10px Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(tempLabels[p], px + panelW / 2, PAD.top - 10);
+
+            /* Grid */
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+            ctx.lineWidth = 0.5;
+            for (var g = 0; g <= 5; g++) {
+                var gy = PAD.top + (g / 5) * plotH;
+                ctx.beginPath();
+                ctx.moveTo(px, gy);
+                ctx.lineTo(px + panelW, gy);
+                ctx.stroke();
+            }
+
+            /* Y-axis labels for first panel only */
+            if (p === 0) {
+                ctx.fillStyle = '#808098';
+                ctx.font = '9px Courier New, monospace';
+                ctx.textAlign = 'right';
+                for (var g = 0; g <= 5; g++) {
+                    var val = 1.0 - (g / 5);
+                    var gy = PAD.top + (g / 5) * plotH;
+                    ctx.fillText(val.toFixed(1), px - 4, gy + 3);
+                }
+            }
+
+            /* Bars */
+            for (var i = 0; i < n; i++) {
+                var bx = px + 10 + barSpacing + i * (barW + barSpacing);
+                var barH = probs[i] * plotH;
+                var barY = PAD.top + plotH - barH;
+
+                var gradient = ctx.createLinearGradient(bx, barY, bx, barY + barH);
+                gradient.addColorStop(0, tempColors[p]);
+                gradient.addColorStop(1, tempColors[p] + '44');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(bx, barY, barW, barH);
+
+                ctx.strokeStyle = tempColors[p];
+                ctx.lineWidth = 0.8;
+                ctx.strokeRect(bx, barY, barW, barH);
+
+                /* Value */
+                if (probs[i] > 0.03) {
+                    ctx.fillStyle = tempColors[p];
+                    ctx.font = 'bold 9px Courier New, monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(probs[i].toFixed(2), bx + barW / 2, barY - 4);
+                }
+
+                /* Class label */
+                ctx.fillStyle = '#808098';
+                ctx.font = '9px Georgia, serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(CLASS_NAMES[i], bx + barW / 2, PAD.top + plotH + 14);
+            }
+
+            /* Max probability indicator */
+            var maxProb = Math.max.apply(null, probs);
+            ctx.fillStyle = tempColors[p];
+            ctx.font = '10px Courier New, monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('max: ' + (maxProb * 100).toFixed(1) + '%', px + panelW / 2, PAD.top + plotH + 32);
+        }
+
+        /* Results */
+        var probsNorm = softmax(logits2, 1.0);
+        var probsLow = softmax(logits2, temps[0]);
+        var probsHigh = softmax(logits2, temps[2]);
+        var maxNorm = Math.max.apply(null, probsNorm);
+        var maxLow = Math.max.apply(null, probsLow);
+        var maxHigh = Math.max.apply(null, probsHigh);
+
+        var html = '<span class="pink">T=' + temps[0].toFixed(1) + ': max=' + (maxLow * 100).toFixed(1) + '%</span>';
+        html += ' &nbsp; <span class="violet">T=1.0: max=' + (maxNorm * 100).toFixed(1) + '%</span>';
+        html += ' &nbsp; <span class="cyan">T=' + temps[2].toFixed(1) + ': max=' + (maxHigh * 100).toFixed(1) + '%</span>';
+        document.getElementById('s2Results').innerHTML = html;
+    }
+
+    /* Controls */
+    document.getElementById('sTemp').addEventListener('input', function() {
+        var T = parseInt(this.value) / 10;
+        document.getElementById('vTemp').textContent = T.toFixed(1);
+        draw();
+    });
+
+    document.getElementById('btnRandomise2').addEventListener('click', function() {
+        logits2 = [];
+        for (var i = 0; i < 4; i++) {
+            logits2.push((Math.random() - 0.3) * 6);
+        }
+        draw();
+    });
+
+    /* Init */
+    draw();
+})();
+
+/* ================================================================
+   Section 3: Cross-Entropy Loss
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas3');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    var PAD = { top: 35, bottom: 55, left: 50, right: 30 };
+    var predLogits = [2.5, 0.5, -0.5, -1.0];
+    var trueClass = 0;
+    var dragging = -1;
+    var animFrame = null;
+    var lossHistory = [];
+    var maxHistoryLen = 80;
+
+    function getNumClasses() {
+        return predLogits.length;
+    }
+
+    function getTrueClass() {
+        return parseInt(document.getElementById('sTrueClass').value);
+    }
+
+    function crossEntropy(probs, trueIdx) {
+        var p = Math.max(probs[trueIdx], 1e-15);
+        return -Math.log(p);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var n = getNumClasses();
+        trueClass = getTrueClass();
+        var probs = softmax(predLogits);
+        var loss = crossEntropy(probs, trueClass);
+
+        /* Layout: bar chart on left, loss meter on right */
+        var barAreaW = W * 0.6;
+        var lossAreaX = barAreaW + 20;
+        var lossAreaW = W - lossAreaX - PAD.right;
+        var plotH = H - PAD.top - PAD.bottom;
+
+        /* ── Bar chart ── */
+        var barW = Math.min(50, (barAreaW - PAD.left - 20) / n - 8);
+        var barSpacing = ((barAreaW - PAD.left - 20) - n * barW) / (n + 1);
+
+        /* Panel background */
+        ctx.fillStyle = 'rgba(255,255,255,0.015)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(PAD.left - 5, PAD.top - 5, barAreaW - PAD.left + 10, plotH + 10, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        /* Title */
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Predicted Probabilities', PAD.left + (barAreaW - PAD.left) / 2, PAD.top - 12);
+
+        /* Grid */
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 0.5;
+        for (var g = 0; g <= 5; g++) {
+            var gy = PAD.top + (g / 5) * plotH;
+            ctx.beginPath();
+            ctx.moveTo(PAD.left, gy);
+            ctx.lineTo(barAreaW, gy);
+            ctx.stroke();
+        }
+
+        /* Y-axis labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'right';
+        for (var g = 0; g <= 5; g++) {
+            var val = 1.0 - (g / 5);
+            var gy = PAD.top + (g / 5) * plotH;
+            ctx.fillText(val.toFixed(1), PAD.left - 6, gy + 3);
+        }
+
+        /* Draw bars */
+        for (var i = 0; i < n; i++) {
+            var x = PAD.left + 10 + barSpacing + i * (barW + barSpacing);
+            var barH = probs[i] * plotH;
+            var barY = PAD.top + plotH - barH;
+
+            var isTrue = (i === trueClass);
+            var color = isTrue ? '#10b981' : '#a78bfa';
+
+            /* Bar fill */
+            var gradient = ctx.createLinearGradient(x, barY, x, barY + barH);
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(1, color + '44');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x, barY, barW, barH);
+
+            /* Bar outline */
+            ctx.strokeStyle = color;
+            ctx.lineWidth = isTrue ? 2 : 1;
+            ctx.strokeRect(x, barY, barW, barH);
+
+            /* True label indicator */
+            if (isTrue) {
+                ctx.fillStyle = '#10b981';
+                ctx.font = 'bold 9px Courier New, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('\u2713 TRUE', x + barW / 2, PAD.top + plotH + 28);
+            }
+
+            /* Probability value */
+            ctx.fillStyle = color;
+            ctx.font = 'bold 11px Courier New, monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(probs[i].toFixed(3), x + barW / 2, barY - 6);
+
+            /* Class name */
+            ctx.fillStyle = '#a0a0b8';
+            ctx.font = '10px Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(CLASS_NAMES[i], x + barW / 2, PAD.top + plotH + 16);
+        }
+
+        /* ── Loss meter (right side) ── */
+        ctx.fillStyle = 'rgba(255,255,255,0.015)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(lossAreaX - 5, PAD.top - 5, lossAreaW + 10, plotH + 10, 6);
+        ctx.fill();
+        ctx.stroke();
+
+        /* Loss title */
+        ctx.fillStyle = '#f472b6';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Cross-Entropy Loss', lossAreaX + lossAreaW / 2, PAD.top - 12);
+
+        /* Loss bar (vertical thermometer) */
+        var maxLoss = 5.0;
+        var displayLoss = Math.min(loss, maxLoss);
+        var meterW = 30;
+        var meterX = lossAreaX + (lossAreaW - meterW) / 2;
+        var meterH = plotH - 20;
+        var meterY = PAD.top + 10;
+
+        /* Meter background */
+        ctx.fillStyle = 'rgba(255,255,255,0.03)';
+        ctx.fillRect(meterX, meterY, meterW, meterH);
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(meterX, meterY, meterW, meterH);
+
+        /* Meter fill (from bottom) */
+        var fillH = (displayLoss / maxLoss) * meterH;
+        var fillY = meterY + meterH - fillH;
+        var lossGradient = ctx.createLinearGradient(meterX, fillY, meterX, fillY + fillH);
+        if (loss < 0.5) {
+            lossGradient.addColorStop(0, '#10b981');
+            lossGradient.addColorStop(1, '#10b98166');
+        } else if (loss < 2.0) {
+            lossGradient.addColorStop(0, '#fbbf24');
+            lossGradient.addColorStop(1, '#fbbf2466');
+        } else {
+            lossGradient.addColorStop(0, '#f472b6');
+            lossGradient.addColorStop(1, '#f472b666');
+        }
+        ctx.fillStyle = lossGradient;
+        ctx.fillRect(meterX, fillY, meterW, fillH);
+
+        /* Loss scale labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '9px Courier New, monospace';
+        ctx.textAlign = 'left';
+        var scaleX = meterX + meterW + 5;
+        for (var g = 0; g <= 5; g++) {
+            var val = (g / 5) * maxLoss;
+            var gy = meterY + meterH - (g / 5) * meterH;
+            ctx.fillText(val.toFixed(1), scaleX, gy + 3);
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(meterX, gy);
+            ctx.lineTo(meterX + meterW, gy);
+            ctx.stroke();
+        }
+
+        /* Loss value */
+        var lossColor = loss < 0.5 ? '#10b981' : (loss < 2.0 ? '#fbbf24' : '#f472b6');
+        ctx.fillStyle = lossColor;
+        ctx.font = 'bold 16px Courier New, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(loss.toFixed(3), lossAreaX + lossAreaW / 2, PAD.top + plotH + 20);
+
+        /* Quality label */
+        var qualityLabel = loss < 0.1 ? 'Excellent!' : (loss < 0.5 ? 'Good' : (loss < 1.5 ? 'Mediocre' : (loss < 3.0 ? 'Poor' : 'Terrible!')));
+        ctx.fillStyle = lossColor;
+        ctx.font = '10px Georgia, serif';
+        ctx.fillText(qualityLabel, lossAreaX + lossAreaW / 2, PAD.top + plotH + 36);
+
+        /* Update results */
+        var html = '<span class="green">True: ' + CLASS_NAMES[trueClass] + '</span>';
+        html += ' &nbsp; <span class="violet">P(true) = ' + probs[trueClass].toFixed(4) + '</span>';
+        html += ' &nbsp; <span class="pink">Loss = &minus;log(' + probs[trueClass].toFixed(4) + ') = ' + loss.toFixed(4) + '</span>';
+        document.getElementById('s3Results').innerHTML = html;
+    }
+
+    /* ── Drag interaction on prediction bars ── */
+    function getBarHitInfo(mx, my) {
+        var n = getNumClasses();
+        var barAreaW = W * 0.6;
+        var barW = Math.min(50, (barAreaW - PAD.left - 20) / n - 8);
+        var barSpacing = ((barAreaW - PAD.left - 20) - n * barW) / (n + 1);
+
+        for (var i = 0; i < n; i++) {
+            var x = PAD.left + 10 + barSpacing + i * (barW + barSpacing);
+            if (mx >= x - 4 && mx <= x + barW + 4) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function getCanvasPos(e) {
+        var rect = cvs.getBoundingClientRect();
+        var scaleX = W / rect.width;
+        var scaleY = H / rect.height;
+        var clientX, clientY;
+        if (e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+        };
+    }
+
+    function onPointerDown(e) {
+        e.preventDefault();
+        var pos = getCanvasPos(e);
+        var hit = getBarHitInfo(pos.x, pos.y);
+        if (hit >= 0) {
+            dragging = hit;
+        }
+    }
+
+    function onPointerMove(e) {
+        if (dragging < 0) return;
+        e.preventDefault();
+        var pos = getCanvasPos(e);
+        var plotH = H - PAD.top - PAD.bottom;
+        /* Map y position to logit value */
+        var t = 1.0 - (pos.y - PAD.top) / plotH;
+        t = clamp(t, 0.01, 0.99);
+        /* Convert desired probability to logit (approximate) */
+        var newLogit = Math.log(t / (1.0 - t)) * 1.5;
+        predLogits[dragging] = clamp(newLogit, -6, 6);
+        draw();
+    }
+
+    function onPointerUp(e) {
+        dragging = -1;
+    }
+
+    cvs.addEventListener('mousedown', onPointerDown);
+    cvs.addEventListener('mousemove', onPointerMove);
+    cvs.addEventListener('mouseup', onPointerUp);
+    cvs.addEventListener('mouseleave', onPointerUp);
+    cvs.addEventListener('touchstart', onPointerDown, { passive: false });
+    cvs.addEventListener('touchmove', onPointerMove, { passive: false });
+    cvs.addEventListener('touchend', onPointerUp);
+
+    /* ── Preset buttons ── */
+    document.getElementById('btnPerfect').addEventListener('click', function() {
+        trueClass = getTrueClass();
+        for (var i = 0; i < predLogits.length; i++) {
+            predLogits[i] = (i === trueClass) ? 6.0 : -3.0;
+        }
+        draw();
+    });
+
+    document.getElementById('btnUniform').addEventListener('click', function() {
+        for (var i = 0; i < predLogits.length; i++) {
+            predLogits[i] = 0.0;
+        }
+        draw();
+    });
+
+    document.getElementById('btnWrong').addEventListener('click', function() {
+        trueClass = getTrueClass();
+        for (var i = 0; i < predLogits.length; i++) {
+            predLogits[i] = (i === trueClass) ? -6.0 : 2.0;
+        }
+        draw();
+    });
+
+    document.getElementById('btnRandomise3').addEventListener('click', function() {
+        for (var i = 0; i < predLogits.length; i++) {
+            predLogits[i] = (Math.random() - 0.3) * 6;
+        }
+        draw();
+    });
+
+    document.getElementById('sTrueClass').addEventListener('input', function() {
+        trueClass = parseInt(this.value);
+        document.getElementById('vTrueClass').textContent = CLASS_NAMES[trueClass];
+        draw();
+    });
+
+    /* Init */
+    draw();
+})();
+</script>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

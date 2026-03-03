@@ -221,7 +221,29 @@ All topic files sit at the repository root — a flat structure that maps direct
 | 9 | Physics of Light | `physics_of_light.html` | 2 |
 | 10 | The Electromagnetic Spectrum | `electromagnetic_spectrum.html` | 2 |
 
-**Total: 80 interactive visualisations across 12 chapters**
+### Chapter 13 — The Mathematics of Intelligence
+*How neural networks and language models actually work*
+
+| # | Topic | File | Difficulty |
+|---|-------|------|------------|
+| 0 | The Mathematics of Intelligence — A Map | `ai_mathematics_map.html` | 1 |
+| 1 | Vectors & Embeddings | `vectors_and_embeddings.html` | 1 |
+| 2 | Probability & Softmax | `probability_and_softmax.html` | 1 |
+| 3 | The Single Neuron | `neuron_and_activation.html` | 1 |
+| 4 | Gradient Descent | `gradient_descent.html` | 2 |
+| 5 | Backpropagation | `backpropagation.html` | 2 |
+| 6 | Overfitting & Generalisation | `overfitting_generalisation.html` | 2 |
+| 7 | The Attention Mechanism | `attention_mechanism.html` | 3 |
+| 8 | Positional Encoding | `positional_encoding.html` | 2 |
+| 9 | The Transformer Architecture | `transformer_architecture.html` | 3 |
+| 10 | Next-Token Prediction | `next_token_prediction.html` | 2 |
+| 11 | Train Your Own Language Model | `toy_language_model.html` | 2 |
+| 12 | Scaling Laws | `scaling_laws.html` | 2 |
+| 13 | Chain-of-Thought Reasoning | `chain_of_thought.html` | 2 |
+| 14 | Retrieval-Augmented Generation | `retrieval_augmented_generation.html` | 2 |
+| 15 | Agentic AI Systems | `agentic_systems.html` | 2 |
+
+**Total: 96 interactive visualisations across 13 chapters**
 
 ## Credits
 

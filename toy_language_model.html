@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Your Own Language Model</title>
+    <meta name="description" content="Train a tiny language model in your browser. Build a bigram probability table from a micro-corpus, visualise token frequencies, and generate text by sampling — the complete LLM pipeline in miniature.">
+    <link rel="canonical" href="https://mathsedu.org/toy_language_model.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Train Your Own Language Model",
+      "url": "https://mathsedu.org/toy_language_model.html",
+      "description": "Train a tiny language model in your browser. Build a bigram probability table from a micro-corpus, visualise token frequencies, and generate text by sampling — the complete LLM pipeline in miniature.",
+      "educationalLevel": "Intermediate",
+      "teaches": "Language model training, bigram models, tokenisation, maximum likelihood estimation, and text generation by sampling",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "The Mathematics of Intelligence",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="Train Your Own Language Model">
+    <meta property="og:description" content="Train a tiny language model in your browser. Build a bigram probability table from a micro-corpus, visualise token frequencies, and generate text by sampling — the complete LLM pipeline in miniature.">
+    <meta property="og:url" content="https://mathsedu.org/toy_language_model.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Train Your Own Language Model">
+    <meta name="twitter:description" content="Train a tiny language model in your browser. Build a bigram probability table from a micro-corpus, visualise token frequencies, and generate text by sampling — the complete LLM pipeline in miniature.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#a78bfa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:8px}
+        .intro-text{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(167,139,250,0.13);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .violet{color:#a78bfa}.math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#a78bfa;cursor:pointer}
+        .slider-val{color:#a78bfa;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .insight-box{background:rgba(167,139,250,0.04);border-left:3px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#a78bfa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .section-summary{color:#a78bfa;font-size:0.85em;font-style:italic;margin:6px 0 0;padding:6px 0;border-top:1px solid rgba(167,139,250,0.1)}
+        .micro-note{color:#808098;font-size:0.85em;font-style:italic;margin:8px 0 4px;line-height:1.6}
+        .checkbox-row{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+        .checkbox-row label{color:#a0a0b8;font-size:0.9em;cursor:pointer;display:flex;align-items:center;gap:6px}
+        .corpus-area{width:100%;min-height:120px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#d0d0e0;font-family:Georgia,'Times New Roman',serif;font-size:0.9em;line-height:1.7;padding:14px 16px;resize:vertical;outline:none;transition:border-color 0.2s}
+        .corpus-area:focus{border-color:rgba(167,139,250,0.4)}
+        .add-sentence-row{display:flex;gap:8px;margin:10px 0 14px}
+        .add-sentence-input{flex:1;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#d0d0e0;font-family:Georgia,serif;font-size:0.9em;padding:6px 12px;outline:none}
+        .add-sentence-input:focus{border-color:rgba(167,139,250,0.4)}
+        .add-sentence-input::placeholder{color:#606078}
+        .vocab-tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+        .vocab-tag{background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);border-radius:5px;padding:2px 10px;font-size:0.82em;color:#a78bfa;font-family:'Courier New',monospace}
+        .heatmap-tooltip{position:absolute;background:rgba(10,10,26,0.95);border:1px solid rgba(167,139,250,0.3);border-radius:6px;padding:8px 12px;color:#e0e0e0;font-family:'Courier New',monospace;font-size:0.85em;pointer-events:none;z-index:10;display:none;white-space:nowrap}
+        .gen-output{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:16px 20px;margin:14px 0;min-height:50px;font-size:1.05em;line-height:1.8;color:#e0e0e0}
+        .gen-word{display:inline;transition:color 0.3s}
+        .gen-word-new{color:#10b981;font-weight:bold}
+        .gen-word-old{color:#c0c0d8}
+        select{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;outline:none;appearance:auto}
+        select:focus{border-color:rgba(167,139,250,0.4)}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+            .add-sentence-row{flex-direction:column}
+            .corpus-area{min-height:100px}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Train Your Own Language Model</h1>
+    <p class="subtitle">A vocabulary of 12 words, trained in your browser &mdash; the full pipeline in miniature</p>
+    <p class="intro-text">
+        Every large language model &mdash; from GPT-4 to Claude &mdash; does exactly three things: reads text, counts patterns, and predicts the next word. The mathematics is probability. Here you will build that entire pipeline from scratch: tokenise a micro-corpus, estimate bigram probabilities by maximum likelihood, and generate new text by sampling. The model is tiny. The principle is identical to what runs at trillion-parameter scale.
+    </p>
+
+    <!-- ===============================================================
+         Section 1: The Corpus
+         =============================================================== -->
+    <h2>1. The Corpus</h2>
+    <div class="panel">
+        <h3>Your training data</h3>
+        <textarea id="corpusText" class="corpus-area">the sun is warm today. the rain is cold today. tomorrow the sun will shine. the cloud brings rain. warm sun makes people happy. cold rain makes the day grey. today is warm and sunny. the wind brings cold rain tomorrow. sun and cloud together today. warm days are the best days.</textarea>
+        <div class="add-sentence-row">
+            <input type="text" id="addSentenceInput" class="add-sentence-input" placeholder="Add a sentence and press Enter...">
+            <button class="btn" id="btnAddSentence">Add</button>
+            <button class="btn" id="btnResetCorpus">Reset to default</button>
+        </div>
+        <p class="micro-note">Edit the text above or add new sentences. The model retrains instantly.</p>
+        <div id="vocabDisplay" class="vocab-tags"></div>
+        <div class="result-box">
+            <div id="s1Stats" class="math-line"></div>
+        </div>
+        <canvas id="canvas1" width="700" height="200"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Token frequency</span></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="cyan">Vocabulary</span> V = {<span class="violet">sun</span>, <span class="violet">rain</span>, <span class="violet">cloud</span>, <span class="violet">warm</span>, <span class="violet">cold</span>, ...}</div>
+            <div class="math-line"><span class="cyan">Tokenisation:</span> <span class="muted">"the sun is warm"</span> &rarr; [<span class="violet">the</span>, <span class="violet">sun</span>, <span class="violet">is</span>, <span class="violet">warm</span>]</div>
+            <div class="math-line"><span class="green">P</span>(<span class="gold">warm</span> | <span class="violet">sun</span>) = <span class="green">count</span>(<span class="violet">sun</span> <span class="gold">warm</span>) / <span class="green">count</span>(<span class="violet">sun</span>)</div>
+        </div>
+        <div class="insight-box">
+            Tokenisation is the first step of every language model. GPT-4 uses byte-pair encoding to split text into ~100,000 sub-word tokens. Here we use the simplest possible scheme: split on spaces and punctuation, lowercase everything. The vocabulary that emerges from a tiny weather corpus is the foundation of the entire model.
+        </div>
+        <p class="section-summary">A language model begins with text. Tokenise it, count the words, and you have a vocabulary.</p>
+    </div>
+
+    <!-- ===============================================================
+         Section 2: The Bigram Probability Table
+         =============================================================== -->
+    <h2>2. The Bigram Probability Table</h2>
+    <div class="panel">
+        <h3>Interactive bigram matrix</h3>
+        <div style="position:relative;display:inline-block">
+            <canvas id="canvas2" width="700" height="400"></canvas>
+            <div id="heatmapTooltip" class="heatmap-tooltip"></div>
+        </div>
+        <p class="micro-note">Hover over any cell to inspect. Click to lock the detail view.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#0a2a1a"></div><span style="color:#808098">Low probability</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">High probability</span></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnShowProb">Show probabilities</button>
+            <button class="btn" id="btnShowCounts">Show raw counts</button>
+        </div>
+        <div class="checkbox-row">
+            <label><input type="checkbox" id="chkSparsity"> Show sparsity</label>
+        </div>
+        <div class="checkbox-row">
+            <label><input type="checkbox" id="chkLogProb"> Show log-probabilities</label>
+        </div>
+        <p class="micro-note" id="logProbNote" style="display:none">Log-probabilities are how neural networks actually compute &mdash; cross-entropy loss is the negative log-probability of the correct token.</p>
+        <div class="result-box">
+            <div id="s2Detail" class="math-line">Hover over a cell to inspect bigram probabilities.</div>
+            <div id="s2Sparsity" class="math-line" style="display:none;margin-top:6px"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">P</span>(<span class="gold">w<sub>next</sub></span> | <span class="violet">w<sub>current</sub></span>) = <span class="green">count</span>(<span class="violet">w<sub>current</sub></span>, <span class="gold">w<sub>next</sub></span>) / <span class="pink">&Sigma;</span> <span class="green">count</span>(<span class="violet">w<sub>current</sub></span>, <span class="muted">*</span>)</div>
+            <div class="math-line"><span class="muted">This is maximum likelihood estimation &mdash; the simplest way to fit a probability distribution to data.</span></div>
+        </div>
+        <div class="insight-box">
+            This 12&times;12 table <em>is</em> a language model. GPT-4 has a vocabulary of 100,000 tokens and works in 12,288 dimensions &mdash; but the core idea is identical: estimate P(next token | context). The only difference is scale and the depth of context the model can consider.
+        </div>
+        <div class="insight-box" id="sparsityInsight" style="display:none">
+            Most word pairs never appear together. This sparsity is a fundamental property of language &mdash; it means the model only needs to learn a small fraction of all possible transitions.
+        </div>
+        <p class="section-summary">A bigram table is a complete language model &mdash; just the smallest possible one.</p>
+    </div>
+
+    <!-- ===============================================================
+         Section 3: Generate Text
+         =============================================================== -->
+    <h2>3. Generate Text</h2>
+    <div class="panel">
+        <h3>Sample from your language model</h3>
+        <div class="btn-row" style="align-items:center;gap:14px">
+            <label style="color:#a0a0b8;font-size:0.9em">Start word:</label>
+            <select id="startWordSelect"></select>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnBigram">Bigram</button>
+            <button class="btn" id="btnTrigram">Trigram</button>
+        </div>
+        <p class="micro-note" id="trigramNote" style="display:none">Notice how trigram text is more coherent than bigram text. Increasing context length from 1 word to 2 dramatically improves quality. GPT-4 uses a context window of 128,000 tokens.</p>
+        <div class="slider-row">
+            <label>Temperature &tau;:</label>
+            <input type="range" id="sTemp" min="1" max="30" step="1" value="10">
+            <span class="slider-val" id="vTemp">1.00</span>
+        </div>
+        <div class="slider-row">
+            <label>Max length:</label>
+            <input type="range" id="sMaxLen" min="5" max="20" step="1" value="12">
+            <span class="slider-val" id="vMaxLen">12</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnGenerate">&#9654; Generate</button>
+            <button class="btn" id="btnAutoGen">Auto-generate</button>
+            <button class="btn" id="btnClearGen">Clear</button>
+        </div>
+        <div id="genOutput" class="gen-output" style="min-height:50px">
+            <span class="muted" style="font-size:0.9em">Press Generate to sample from the bigram model...</span>
+        </div>
+        <canvas id="canvas3" width="700" height="250"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Probability distribution</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Sampled word</span></div>
+        </div>
+        <div class="result-box">
+            <div id="s3Results" class="math-line">Awaiting generation...</div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="cyan">Temperature scaling:</span> <span class="green">P</span><sub>&tau;</sub>(<span class="gold">w<sub>i</sub></span>) = exp(<span class="muted">logit<sub>i</sub></span> / <span class="cyan">&tau;</span>) / <span class="pink">&Sigma;</span> exp(<span class="muted">logit<sub>j</sub></span> / <span class="cyan">&tau;</span>)</div>
+            <div class="math-line"><span class="cyan">&tau; &rarr; 0:</span> <span class="muted">always picks the most likely word (greedy)</span></div>
+            <div class="math-line"><span class="cyan">&tau; = 1.0:</span> <span class="muted">samples from the true distribution</span></div>
+            <div class="math-line"><span class="cyan">&tau; &rarr; &infin;:</span> <span class="muted">uniform random &mdash; every word equally likely</span></div>
+        </div>
+        <div class="insight-box">
+            The generated text is grammatically plausible but meaningless &mdash; because a bigram model has no understanding, only statistics. It sees one word of context. GPT-4 uses the same sampling mechanism across 100 trillion parameters with a context window of 128,000 tokens. Scale creates the illusion of understanding.
+        </div>
+        <p class="section-summary">Generation is sampling &mdash; roll the probabilistic dice one word at a time.</p>
+    </div>
+
+    <!-- ===============================================================
+         Why This Matters
+         =============================================================== -->
+    <div class="explain">
+        <div class="explain-name">Why This Matters</div>
+        <p class="explain-text">
+            You just built the complete pipeline that powers every language model: tokenise text, estimate conditional probabilities, and generate by sampling. The bigram model here uses a 12&times;12 table. GPT-4 uses the same mathematics across 1.8 trillion parameters and 12,288-dimensional embeddings. The difference is not the idea &mdash; it is the scale at which the idea is applied, and the depth of context the model can attend to.
+        </p>
+        <p class="explain-text" style="margin-top:10px">
+            Modern LLMs replace bigram counts with neural networks that can condition on thousands of preceding tokens. But at inference time, the final step is always the same: compute a probability distribution over the vocabulary and sample the next token. What you see here is that final step, laid bare.
+        </p>
+        <p class="explain-text" style="margin-top:10px;color:#808098;font-size:0.85em">
+            <em>See also:</em> <a href="next_token_prediction.html" style="color:#a78bfa">Next-Token Prediction</a> &middot; <a href="probability_and_softmax.html" style="color:#a78bfa">Probability &amp; Softmax</a>
+        </p>
+    </div>
+
+</div>
+
+<script>
+/* ================================================================
+   POLYFILL: roundRect for older browsers
+   ================================================================ */
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        if (typeof r === 'number') r = [r, r, r, r];
+        var tl = r[0] || 0, tr = r[1] || r[0] || 0, br = r[2] || r[0] || 0, bl = r[3] || r[1] || r[0] || 0;
+        this.moveTo(x + tl, y);
+        this.lineTo(x + w - tr, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + tr);
+        this.lineTo(x + w, y + h - br);
+        this.quadraticCurveTo(x + w, y + h, x + w - br, y + h);
+        this.lineTo(x + bl, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - bl);
+        this.lineTo(x, y + tl);
+        this.quadraticCurveTo(x, y, x + tl, y);
+        this.closePath();
+        return this;
+    };
+}
+
+/* ================================================================
+   SHARED UTILITIES
+   ================================================================ */
+function isVisible(el) {
+    var r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight;
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* ================================================================
+   CORPUS ENGINE — shared across all sections
+   ================================================================ */
+var CorpusEngine = (function() {
+    var DEFAULT_CORPUS = 'the sun is warm today. the rain is cold today. tomorrow the sun will shine. the cloud brings rain. warm sun makes people happy. cold rain makes the day grey. today is warm and sunny. the wind brings cold rain tomorrow. sun and cloud together today. warm days are the best days.';
+
+    var tokens = [];
+    var vocab = [];
+    var freqMap = {};
+    var bigramCounts = {};
+    var bigramProbs = {};
+    var trigramCounts = {};
+    var trigramProbs = {};
+    var listeners = [];
+
+    function tokenise(text) {
+        /* Lowercase, replace punctuation with spaces, split, filter empties */
+        return text.toLowerCase()
+            .replace(/[^a-z\s]/g, ' ')
+            .split(/\s+/)
+            .filter(function(t) { return t.length > 0; });
+    }
+
+    function rebuild(text) {
+        tokens = tokenise(text);
+        /* Build frequency map */
+        freqMap = {};
+        for (var i = 0; i < tokens.length; i++) {
+            freqMap[tokens[i]] = (freqMap[tokens[i]] || 0) + 1;
+        }
+        /* Build sorted vocabulary */
+        vocab = Object.keys(freqMap).sort(function(a, b) {
+            return freqMap[b] - freqMap[a];
+        });
+        /* Build bigram counts */
+        bigramCounts = {};
+        for (var i = 0; i < tokens.length - 1; i++) {
+            var key = tokens[i];
+            if (!bigramCounts[key]) bigramCounts[key] = {};
+            bigramCounts[key][tokens[i + 1]] = (bigramCounts[key][tokens[i + 1]] || 0) + 1;
+        }
+        /* Build bigram probabilities */
+        bigramProbs = {};
+        for (var w in bigramCounts) {
+            bigramProbs[w] = {};
+            var total = 0;
+            for (var n in bigramCounts[w]) total += bigramCounts[w][n];
+            for (var n in bigramCounts[w]) {
+                bigramProbs[w][n] = bigramCounts[w][n] / total;
+            }
+        }
+        /* Build trigram counts */
+        trigramCounts = {};
+        for (var i = 0; i < tokens.length - 2; i++) {
+            var key = tokens[i] + '|' + tokens[i + 1];
+            if (!trigramCounts[key]) trigramCounts[key] = {};
+            trigramCounts[key][tokens[i + 2]] = (trigramCounts[key][tokens[i + 2]] || 0) + 1;
+        }
+        /* Build trigram probabilities */
+        trigramProbs = {};
+        for (var k in trigramCounts) {
+            trigramProbs[k] = {};
+            var total = 0;
+            for (var n in trigramCounts[k]) total += trigramCounts[k][n];
+            for (var n in trigramCounts[k]) {
+                trigramProbs[k][n] = trigramCounts[k][n] / total;
+            }
+        }
+        /* Notify listeners */
+        for (var i = 0; i < listeners.length; i++) listeners[i]();
+    }
+
+    function onChange(fn) { listeners.push(fn); }
+
+    function getVocab() { return vocab; }
+    function getTokens() { return tokens; }
+    function getFreqMap() { return freqMap; }
+    function getBigramCounts() { return bigramCounts; }
+    function getBigramProbs() { return bigramProbs; }
+    function getTrigramCounts() { return trigramCounts; }
+    function getTrigramProbs() { return trigramProbs; }
+    function getDefault() { return DEFAULT_CORPUS; }
+
+    /* Sample next word with temperature */
+    function sampleNext(currentWord, temperature) {
+        var probs = bigramProbs[currentWord];
+        if (!probs) return null;
+        var words = Object.keys(probs);
+        if (words.length === 0) return null;
+
+        /* Apply temperature */
+        var logits = [];
+        for (var i = 0; i < words.length; i++) {
+            logits.push(Math.log(probs[words[i]] + 1e-10));
+        }
+        /* Temperature-scaled softmax */
+        var tau = Math.max(temperature, 0.01);
+        var maxL = -Infinity;
+        for (var i = 0; i < logits.length; i++) {
+            var scaled = logits[i] / tau;
+            if (scaled > maxL) maxL = scaled;
+        }
+        var expSum = 0;
+        var exps = [];
+        for (var i = 0; i < logits.length; i++) {
+            var e = Math.exp(logits[i] / tau - maxL);
+            exps.push(e);
+            expSum += e;
+        }
+        var scaledProbs = [];
+        for (var i = 0; i < exps.length; i++) {
+            scaledProbs.push(exps[i] / expSum);
+        }
+        /* Sample from distribution */
+        var r = Math.random();
+        var cumul = 0;
+        for (var i = 0; i < words.length; i++) {
+            cumul += scaledProbs[i];
+            if (r <= cumul) return { word: words[i], probs: scaledProbs, words: words, index: i };
+        }
+        return { word: words[words.length - 1], probs: scaledProbs, words: words, index: words.length - 1 };
+    }
+
+    /* Sample next word using trigram context with bigram backoff */
+    function sampleNextTrigram(prevWord, currentWord, temperature) {
+        var key = prevWord + '|' + currentWord;
+        var probs = trigramProbs[key];
+        /* Backoff to bigram if trigram context is missing */
+        if (!probs || Object.keys(probs).length === 0) {
+            return sampleNext(currentWord, temperature);
+        }
+        var words = Object.keys(probs);
+        /* Apply temperature */
+        var logits = [];
+        for (var i = 0; i < words.length; i++) {
+            logits.push(Math.log(probs[words[i]] + 1e-10));
+        }
+        var tau = Math.max(temperature, 0.01);
+        var maxL = -Infinity;
+        for (var i = 0; i < logits.length; i++) {
+            var scaled = logits[i] / tau;
+            if (scaled > maxL) maxL = scaled;
+        }
+        var expSum = 0;
+        var exps = [];
+        for (var i = 0; i < logits.length; i++) {
+            var e = Math.exp(logits[i] / tau - maxL);
+            exps.push(e);
+            expSum += e;
+        }
+        var scaledProbs = [];
+        for (var i = 0; i < exps.length; i++) {
+            scaledProbs.push(exps[i] / expSum);
+        }
+        var r = Math.random();
+        var cumul = 0;
+        for (var i = 0; i < words.length; i++) {
+            cumul += scaledProbs[i];
+            if (r <= cumul) return { word: words[i], probs: scaledProbs, words: words, index: i, usedTrigram: true };
+        }
+        return { word: words[words.length - 1], probs: scaledProbs, words: words, index: words.length - 1, usedTrigram: true };
+    }
+
+    return {
+        rebuild: rebuild,
+        onChange: onChange,
+        getVocab: getVocab,
+        getTokens: getTokens,
+        getFreqMap: getFreqMap,
+        getBigramCounts: getBigramCounts,
+        getBigramProbs: getBigramProbs,
+        getTrigramCounts: getTrigramCounts,
+        getTrigramProbs: getTrigramProbs,
+        getDefault: getDefault,
+        sampleNext: sampleNext,
+        sampleNextTrigram: sampleNextTrigram
+    };
+})();
+
+/* ================================================================
+   Section 1: The Corpus
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas1');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var textArea = document.getElementById('corpusText');
+    var addInput = document.getElementById('addSentenceInput');
+
+    function updateVocabDisplay() {
+        var vocab = CorpusEngine.getVocab();
+        var container = document.getElementById('vocabDisplay');
+        container.innerHTML = '';
+        for (var i = 0; i < vocab.length; i++) {
+            var tag = document.createElement('span');
+            tag.className = 'vocab-tag';
+            tag.textContent = vocab[i];
+            container.appendChild(tag);
+        }
+    }
+
+    function updateStats() {
+        var tokens = CorpusEngine.getTokens();
+        var vocab = CorpusEngine.getVocab();
+        var el = document.getElementById('s1Stats');
+        el.innerHTML =
+            'Tokens: <span class="violet">' + tokens.length + '</span>' +
+            ' &nbsp;&nbsp; Vocabulary size |V|: <span class="green">' + vocab.length + '</span>' +
+            ' &nbsp;&nbsp; Unique bigrams: <span class="gold">' + countBigrams() + '</span>';
+    }
+
+    function countBigrams() {
+        var bc = CorpusEngine.getBigramCounts();
+        var count = 0;
+        for (var w in bc) {
+            for (var n in bc[w]) count++;
+        }
+        return count;
+    }
+
+    function drawFreqChart() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var vocab = CorpusEngine.getVocab();
+        var freqMap = CorpusEngine.getFreqMap();
+        if (vocab.length === 0) return;
+
+        var MARGIN = { left: 80, right: 20, top: 20, bottom: 10 };
+        var plotW = W - MARGIN.left - MARGIN.right;
+        var plotH = H - MARGIN.top - MARGIN.bottom;
+
+        /* Find max frequency */
+        var maxFreq = 0;
+        for (var i = 0; i < vocab.length; i++) {
+            if (freqMap[vocab[i]] > maxFreq) maxFreq = freqMap[vocab[i]];
+        }
+
+        var barH = Math.min(18, (plotH - vocab.length * 2) / vocab.length);
+        var gap = 2;
+        var totalBarSpace = vocab.length * (barH + gap);
+        var startY = MARGIN.top + (plotH - totalBarSpace) / 2;
+
+        for (var i = 0; i < vocab.length; i++) {
+            var freq = freqMap[vocab[i]];
+            var barW = (freq / maxFreq) * plotW * 0.85;
+            var y = startY + i * (barH + gap);
+
+            /* Bar with gradient feel */
+            var alpha = 0.3 + 0.7 * (freq / maxFreq);
+            ctx.fillStyle = 'rgba(167, 139, 250, ' + alpha.toFixed(2) + ')';
+            ctx.beginPath();
+            ctx.roundRect(MARGIN.left, y, barW, barH, 3);
+            ctx.fill();
+
+            /* Frequency count at end of bar */
+            ctx.fillStyle = '#a0a0b8';
+            ctx.font = '11px Courier New, monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(freq.toString(), MARGIN.left + barW + 6, y + barH / 2);
+
+            /* Word label */
+            ctx.fillStyle = '#c0c0d8';
+            ctx.font = '11px Courier New, monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText(vocab[i], MARGIN.left - 8, y + barH / 2);
+        }
+    }
+
+    function onCorpusChange() {
+        CorpusEngine.rebuild(textArea.value);
+        updateVocabDisplay();
+        updateStats();
+        if (isVisible(cvs)) drawFreqChart();
+    }
+
+    /* Event listeners */
+    var debounceTimer = null;
+    textArea.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(onCorpusChange, 150);
+    });
+
+    document.getElementById('btnAddSentence').addEventListener('click', function() {
+        var sentence = addInput.value.trim();
+        if (sentence) {
+            textArea.value = textArea.value.trim() + ' ' + sentence;
+            addInput.value = '';
+            onCorpusChange();
+        }
+    });
+
+    addInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('btnAddSentence').click();
+        }
+    });
+
+    document.getElementById('btnResetCorpus').addEventListener('click', function() {
+        textArea.value = CorpusEngine.getDefault();
+        onCorpusChange();
+    });
+
+    CorpusEngine.onChange(function() {
+        updateVocabDisplay();
+        updateStats();
+        if (isVisible(cvs)) drawFreqChart();
+    });
+
+    /* Initial build */
+    CorpusEngine.rebuild(textArea.value);
+    updateVocabDisplay();
+    updateStats();
+
+    /* Visibility-driven rendering */
+    function onScroll() {
+        if (isVisible(cvs)) drawFreqChart();
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    setTimeout(drawFreqChart, 50);
+})();
+
+/* ================================================================
+   Section 2: The Bigram Probability Table
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas2');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var tooltip = document.getElementById('heatmapTooltip');
+
+    var showCounts = false;
+    var showLogProbs = false;
+    var lockedCell = null;
+    var hoverCell = null;
+
+    function getMatrixLayout() {
+        var vocab = CorpusEngine.getVocab();
+        var n = vocab.length;
+        if (n === 0) return null;
+
+        var MARGIN = { left: 75, right: 20, top: 75, bottom: 20 };
+        var plotW = W - MARGIN.left - MARGIN.right;
+        var plotH = H - MARGIN.top - MARGIN.bottom;
+        var cellW = plotW / n;
+        var cellH = plotH / n;
+
+        return { vocab: vocab, n: n, MARGIN: MARGIN, plotW: plotW, plotH: plotH, cellW: cellW, cellH: cellH };
+    }
+
+    function cellAtPos(mx, my) {
+        var layout = getMatrixLayout();
+        if (!layout) return null;
+        var col = Math.floor((mx - layout.MARGIN.left) / layout.cellW);
+        var row = Math.floor((my - layout.MARGIN.top) / layout.cellH);
+        if (row < 0 || row >= layout.n || col < 0 || col >= layout.n) return null;
+        return { row: row, col: col };
+    }
+
+    function drawHeatmap() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var layout = getMatrixLayout();
+        if (!layout) return;
+
+        var vocab = layout.vocab;
+        var n = layout.n;
+        var probs = CorpusEngine.getBigramProbs();
+        var counts = CorpusEngine.getBigramCounts();
+
+        /* Draw cells */
+        for (var row = 0; row < n; row++) {
+            for (var col = 0; col < n; col++) {
+                var x = layout.MARGIN.left + col * layout.cellW;
+                var y = layout.MARGIN.top + row * layout.cellH;
+                var rowWord = vocab[row];
+                var colWord = vocab[col];
+
+                var prob = (probs[rowWord] && probs[rowWord][colWord]) ? probs[rowWord][colWord] : 0;
+                var count = (counts[rowWord] && counts[rowWord][colWord]) ? counts[rowWord][colWord] : 0;
+
+                /* Colour: dark to bright green based on probability */
+                var intensity = Math.pow(prob, 0.6); /* gamma for better visual contrast */
+                var r = Math.round(10 + intensity * (16 - 10));
+                var g = Math.round(20 + intensity * (185 - 20));
+                var b = Math.round(20 + intensity * (129 - 20));
+                var alpha = 0.15 + intensity * 0.85;
+
+                ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + alpha.toFixed(2) + ')';
+                ctx.fillRect(x + 0.5, y + 0.5, layout.cellW - 1, layout.cellH - 1);
+
+                /* Show value in cell if cells are big enough */
+                if (layout.cellW > 28 && layout.cellH > 18) {
+                    var displayText = '';
+                    if (showCounts) {
+                        if (count > 0) displayText = count.toString();
+                    } else if (showLogProbs) {
+                        if (prob > 0) {
+                            displayText = (Math.log2(prob)).toFixed(1);
+                        } else {
+                            displayText = '-\u221E';
+                        }
+                    } else {
+                        if (prob > 0) displayText = prob.toFixed(2);
+                    }
+                    if (displayText) {
+                        ctx.fillStyle = prob > 0.35 ? '#fff' : (prob > 0.1 ? '#c0c0d8' : '#606078');
+                        if (showLogProbs && prob === 0) ctx.fillStyle = '#404058';
+                        ctx.font = (layout.cellW > 40 ? '10' : '8') + 'px Courier New, monospace';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(
+                            displayText,
+                            x + layout.cellW / 2,
+                            y + layout.cellH / 2
+                        );
+                    }
+                }
+
+                /* Highlight hovered/locked cell */
+                var active = lockedCell || hoverCell;
+                if (active && active.row === row && active.col === col) {
+                    ctx.strokeStyle = '#a78bfa';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(x + 1, y + 1, layout.cellW - 2, layout.cellH - 2);
+                }
+            }
+        }
+
+        /* Row labels (current word) */
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        for (var row = 0; row < n; row++) {
+            var y = layout.MARGIN.top + row * layout.cellH + layout.cellH / 2;
+            ctx.fillText(vocab[row], layout.MARGIN.left - 6, y);
+        }
+
+        /* Column labels (next word) — rotated */
+        ctx.save();
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        for (var col = 0; col < n; col++) {
+            var x = layout.MARGIN.left + col * layout.cellW + layout.cellW / 2;
+            ctx.save();
+            ctx.translate(x, layout.MARGIN.top - 6);
+            ctx.rotate(-Math.PI / 3);
+            ctx.fillText(vocab[col], 0, 0);
+            ctx.restore();
+        }
+        ctx.restore();
+
+        /* Axis titles */
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('next word \u2192', layout.MARGIN.left + layout.plotW / 2, 10);
+
+        ctx.save();
+        ctx.translate(10, layout.MARGIN.top + layout.plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('current word \u2192', 0, 0);
+        ctx.restore();
+
+        /* Grid lines */
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 0.5;
+        for (var i = 0; i <= n; i++) {
+            var x = layout.MARGIN.left + i * layout.cellW;
+            ctx.beginPath();
+            ctx.moveTo(x, layout.MARGIN.top);
+            ctx.lineTo(x, layout.MARGIN.top + layout.plotH);
+            ctx.stroke();
+            var y = layout.MARGIN.top + i * layout.cellH;
+            ctx.beginPath();
+            ctx.moveTo(layout.MARGIN.left, y);
+            ctx.lineTo(layout.MARGIN.left + layout.plotW, y);
+            ctx.stroke();
+        }
+    }
+
+    function updateDetail(cell) {
+        if (!cell) {
+            document.getElementById('s2Detail').innerHTML = 'Hover over a cell to inspect bigram probabilities.';
+            return;
+        }
+        var vocab = CorpusEngine.getVocab();
+        var probs = CorpusEngine.getBigramProbs();
+        var counts = CorpusEngine.getBigramCounts();
+        var rowWord = vocab[cell.row];
+        var colWord = vocab[cell.col];
+        var prob = (probs[rowWord] && probs[rowWord][colWord]) ? probs[rowWord][colWord] : 0;
+        var count = (counts[rowWord] && counts[rowWord][colWord]) ? counts[rowWord][colWord] : 0;
+
+        /* Get total count for the row */
+        var totalRow = 0;
+        if (counts[rowWord]) {
+            for (var w in counts[rowWord]) totalRow += counts[rowWord][w];
+        }
+
+        var probDisplay = showLogProbs
+            ? (prob > 0 ? 'log\u2082(P) <span class="green">' + (Math.log2(prob)).toFixed(4) + '</span>' : 'log\u2082(P) <span class="muted">-\u221E</span>')
+            : 'probability <span class="green">' + prob.toFixed(4) + '</span>';
+
+        document.getElementById('s2Detail').innerHTML =
+            '<span class="violet">' + rowWord + '</span> &rarr; <span class="gold">' + colWord + '</span>: ' +
+            probDisplay +
+            ' &nbsp;&nbsp; count: <span class="cyan">' + count + '</span> / <span class="muted">' + totalRow + '</span>';
+    }
+
+    /* Mouse interaction */
+    cvs.addEventListener('mousemove', function(e) {
+        var rect = cvs.getBoundingClientRect();
+        var scaleX = W / rect.width;
+        var scaleY = H / rect.height;
+        var mx = (e.clientX - rect.left) * scaleX;
+        var my = (e.clientY - rect.top) * scaleY;
+        hoverCell = cellAtPos(mx, my);
+
+        if (hoverCell && !lockedCell) {
+            updateDetail(hoverCell);
+            /* Position tooltip */
+            var vocab = CorpusEngine.getVocab();
+            var probs = CorpusEngine.getBigramProbs();
+            var rowWord = vocab[hoverCell.row];
+            var colWord = vocab[hoverCell.col];
+            var prob = (probs[rowWord] && probs[rowWord][colWord]) ? probs[rowWord][colWord] : 0;
+            var tooltipVal = showLogProbs ? (prob > 0 ? 'log\u2082 = ' + (Math.log2(prob)).toFixed(3) : '-\u221E') : prob.toFixed(3);
+            tooltip.innerHTML = '<span style="color:#a78bfa">' + rowWord + '</span> &rarr; <span style="color:#fbbf24">' + colWord + '</span>: <span style="color:#10b981">' + tooltipVal + '</span>';
+            tooltip.style.display = 'block';
+            tooltip.style.left = (e.clientX - rect.left + 14) + 'px';
+            tooltip.style.top = (e.clientY - rect.top - 10) + 'px';
+        } else if (!lockedCell) {
+            tooltip.style.display = 'none';
+        }
+
+        drawHeatmap();
+    });
+
+    cvs.addEventListener('mouseleave', function() {
+        hoverCell = null;
+        if (!lockedCell) {
+            tooltip.style.display = 'none';
+            updateDetail(null);
+        }
+        drawHeatmap();
+    });
+
+    cvs.addEventListener('click', function(e) {
+        var rect = cvs.getBoundingClientRect();
+        var scaleX = W / rect.width;
+        var scaleY = H / rect.height;
+        var mx = (e.clientX - rect.left) * scaleX;
+        var my = (e.clientY - rect.top) * scaleY;
+        var cell = cellAtPos(mx, my);
+
+        if (lockedCell && cell && lockedCell.row === cell.row && lockedCell.col === cell.col) {
+            lockedCell = null;
+            tooltip.style.display = 'none';
+        } else {
+            lockedCell = cell;
+            if (cell) updateDetail(cell);
+        }
+        drawHeatmap();
+    });
+
+    /* Toggle buttons */
+    document.getElementById('btnShowProb').addEventListener('click', function() {
+        showCounts = false;
+        this.classList.add('active');
+        document.getElementById('btnShowCounts').classList.remove('active');
+        drawHeatmap();
+    });
+
+    document.getElementById('btnShowCounts').addEventListener('click', function() {
+        showCounts = true;
+        this.classList.add('active');
+        document.getElementById('btnShowProb').classList.remove('active');
+        drawHeatmap();
+    });
+
+    /* Sparsity checkbox */
+    function updateSparsity() {
+        var vocab = CorpusEngine.getVocab();
+        var probs = CorpusEngine.getBigramProbs();
+        var n = vocab.length;
+        var totalCells = n * n;
+        var zeroCells = 0;
+        for (var r = 0; r < n; r++) {
+            for (var c = 0; c < n; c++) {
+                var p = (probs[vocab[r]] && probs[vocab[r]][vocab[c]]) ? probs[vocab[r]][vocab[c]] : 0;
+                if (p === 0) zeroCells++;
+            }
+        }
+        var sparsityPct = totalCells > 0 ? (zeroCells / totalCells * 100).toFixed(1) : 0;
+        document.getElementById('s2Sparsity').innerHTML =
+            'Sparsity: <span class="gold">' + sparsityPct + '%</span> of bigram entries are zero &mdash; language structure is inherently sparse.';
+    }
+
+    document.getElementById('chkSparsity').addEventListener('change', function() {
+        var show = this.checked;
+        document.getElementById('s2Sparsity').style.display = show ? 'block' : 'none';
+        document.getElementById('sparsityInsight').style.display = show ? 'block' : 'none';
+        if (show) updateSparsity();
+    });
+
+    /* Log-probability checkbox */
+    document.getElementById('chkLogProb').addEventListener('change', function() {
+        showLogProbs = this.checked;
+        document.getElementById('logProbNote').style.display = showLogProbs ? 'block' : 'none';
+        drawHeatmap();
+        var active = lockedCell || hoverCell;
+        if (active) updateDetail(active);
+    });
+
+    CorpusEngine.onChange(function() {
+        lockedCell = null;
+        hoverCell = null;
+        if (document.getElementById('chkSparsity').checked) updateSparsity();
+        if (isVisible(cvs)) drawHeatmap();
+    });
+
+    function onScroll() {
+        if (isVisible(cvs)) drawHeatmap();
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    setTimeout(drawHeatmap, 100);
+})();
+
+/* ================================================================
+   Section 3: Generate Text
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas3');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    var generatedWords = [];
+    var genSteps = []; /* Array of { word, dist: {words, probs, chosenIdx} } */
+    var currentStepIdx = -1;
+    var animTimer = null;
+    var autoGenTimer = null;
+    var isAutoGen = false;
+    var useTrigramMode = false;
+
+    function populateStartWords() {
+        var select = document.getElementById('startWordSelect');
+        var vocab = CorpusEngine.getVocab();
+        var currentVal = select.value;
+        select.innerHTML = '';
+        for (var i = 0; i < vocab.length; i++) {
+            var opt = document.createElement('option');
+            opt.value = vocab[i];
+            opt.textContent = vocab[i];
+            select.appendChild(opt);
+        }
+        /* Try to restore previous selection */
+        if (currentVal && vocab.indexOf(currentVal) >= 0) {
+            select.value = currentVal;
+        }
+    }
+
+    function getTemperature() {
+        return parseInt(document.getElementById('sTemp').value) / 10.0;
+    }
+
+    function getMaxLen() {
+        return parseInt(document.getElementById('sMaxLen').value);
+    }
+
+    document.getElementById('sTemp').addEventListener('input', function() {
+        document.getElementById('vTemp').textContent = getTemperature().toFixed(2);
+    });
+
+    document.getElementById('sMaxLen').addEventListener('input', function() {
+        document.getElementById('vMaxLen').textContent = getMaxLen();
+    });
+
+    function generateSentence() {
+        var startWord = document.getElementById('startWordSelect').value;
+        if (!startWord) return;
+
+        var temp = getTemperature();
+        var maxLen = getMaxLen();
+
+        generatedWords = [startWord];
+        genSteps = [];
+
+        var currentWord = startWord;
+        var prevWord = null;
+        for (var i = 0; i < maxLen - 1; i++) {
+            var result;
+            if (useTrigramMode && prevWord !== null) {
+                result = CorpusEngine.sampleNextTrigram(prevWord, currentWord, temp);
+            } else {
+                result = CorpusEngine.sampleNext(currentWord, temp);
+            }
+            if (!result) break;
+            var contextLabel = currentWord;
+            if (useTrigramMode && prevWord !== null) {
+                contextLabel = prevWord + ' ' + currentWord;
+                if (result.usedTrigram) contextLabel += ' [3g]';
+                else contextLabel += ' [2g\u2193]';
+            }
+            genSteps.push({
+                fromWord: contextLabel,
+                word: result.word,
+                dist: { words: result.words, probs: result.probs, chosenIdx: result.index }
+            });
+            generatedWords.push(result.word);
+            prevWord = currentWord;
+            currentWord = result.word;
+        }
+
+        /* Animate the output */
+        currentStepIdx = -1;
+        animateGeneration();
+    }
+
+    function animateGeneration() {
+        if (animTimer) clearInterval(animTimer);
+        currentStepIdx = 0;
+        renderGenOutput(0);
+        drawStepVis(0);
+
+        animTimer = setInterval(function() {
+            currentStepIdx++;
+            if (currentStepIdx >= generatedWords.length) {
+                clearInterval(animTimer);
+                animTimer = null;
+                renderGenOutput(generatedWords.length);
+                if (currentStepIdx > 0 && genSteps.length > 0) {
+                    drawStepVis(genSteps.length - 1);
+                }
+                updateResults();
+                return;
+            }
+            renderGenOutput(currentStepIdx + 1);
+            if (currentStepIdx - 1 < genSteps.length) {
+                drawStepVis(currentStepIdx - 1);
+            }
+        }, 350);
+    }
+
+    function renderGenOutput(upTo) {
+        var el = document.getElementById('genOutput');
+        var html = '';
+        for (var i = 0; i < Math.min(upTo, generatedWords.length); i++) {
+            var cls = (i === upTo - 1) ? 'gen-word gen-word-new' : 'gen-word gen-word-old';
+            html += '<span class="' + cls + '">' + generatedWords[i] + '</span>';
+            if (i < generatedWords.length - 1) html += ' ';
+        }
+        if (upTo < generatedWords.length) {
+            html += '<span style="color:#a78bfa;animation:blink 1s infinite">|</span>';
+        }
+        el.innerHTML = html;
+    }
+
+    function drawStepVis(stepIdx) {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        if (stepIdx < 0 || stepIdx >= genSteps.length) {
+            /* Draw placeholder */
+            ctx.fillStyle = '#808098';
+            ctx.font = '13px Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Probability distribution will appear here during generation', W / 2, H / 2);
+            return;
+        }
+
+        var step = genSteps[stepIdx];
+        var words = step.dist.words;
+        var probs = step.dist.probs;
+        var chosenIdx = step.dist.chosenIdx;
+
+        var MARGIN = { left: 80, right: 30, top: 50, bottom: 30 };
+        var plotW = W - MARGIN.left - MARGIN.right;
+        var plotH = H - MARGIN.top - MARGIN.bottom;
+
+        /* Title */
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '12px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Current word: ', MARGIN.left, 10);
+        ctx.fillStyle = '#a78bfa';
+        ctx.font = 'bold 13px Georgia, serif';
+        ctx.fillText(step.fromWord, MARGIN.left + ctx.measureText('Current word: ').width + 4, 9);
+
+        /* Step label */
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('Step ' + (stepIdx + 1) + ' of ' + genSteps.length, W - MARGIN.right, 12);
+
+        /* Arrow to chosen word */
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '12px Georgia, serif';
+        ctx.textAlign = 'left';
+        var arrowText = '\u2192 sampled: ';
+        ctx.fillText(arrowText, MARGIN.left + ctx.measureText('Current word: ').width + 4 + ctx.measureText(step.fromWord).width + 14, 10);
+        ctx.fillStyle = '#10b981';
+        ctx.font = 'bold 13px Georgia, serif';
+        var arrowX = MARGIN.left + 140 + ctx.measureText(step.fromWord).width + ctx.measureText(arrowText).width;
+        ctx.fillText(step.word, Math.min(arrowX, W - MARGIN.right - 60), 9);
+
+        /* Find max prob for scaling */
+        var maxProb = 0;
+        for (var i = 0; i < probs.length; i++) {
+            if (probs[i] > maxProb) maxProb = probs[i];
+        }
+        if (maxProb === 0) maxProb = 1;
+
+        /* Draw horizontal bars */
+        var barH = Math.min(22, (plotH - words.length * 3) / words.length);
+        var gap = 3;
+        var totalH = words.length * (barH + gap);
+        var startY = MARGIN.top + (plotH - totalH) / 2;
+
+        /* Sort by probability descending for nice visual */
+        var indices = [];
+        for (var i = 0; i < words.length; i++) indices.push(i);
+        indices.sort(function(a, b) { return probs[b] - probs[a]; });
+
+        for (var j = 0; j < indices.length; j++) {
+            var i = indices[j];
+            var barW = (probs[i] / maxProb) * plotW * 0.8;
+            var y = startY + j * (barH + gap);
+            var isChosen = (i === chosenIdx);
+
+            /* Bar */
+            if (isChosen) {
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.7)';
+                ctx.shadowColor = '#10b981';
+                ctx.shadowBlur = 8;
+            } else {
+                ctx.fillStyle = 'rgba(167, 139, 250, ' + (0.2 + 0.6 * probs[i] / maxProb).toFixed(2) + ')';
+                ctx.shadowBlur = 0;
+            }
+            ctx.beginPath();
+            ctx.roundRect(MARGIN.left, y, Math.max(barW, 2), barH, 3);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            /* Probability value */
+            ctx.fillStyle = isChosen ? '#10b981' : '#a0a0b8';
+            ctx.font = '10px Courier New, monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText((probs[i] * 100).toFixed(1) + '%', MARGIN.left + barW + 6, y + barH / 2);
+
+            /* Word label */
+            ctx.fillStyle = isChosen ? '#10b981' : '#c0c0d8';
+            ctx.font = (isChosen ? 'bold ' : '') + '10px Courier New, monospace';
+            ctx.textAlign = 'right';
+            ctx.fillText(words[i], MARGIN.left - 6, y + barH / 2);
+        }
+    }
+
+    function updateResults() {
+        var el = document.getElementById('s3Results');
+        var temp = getTemperature();
+        var modeLabel = useTrigramMode ? 'Trigram' : 'Bigram';
+        el.innerHTML =
+            'Words generated: <span class="violet">' + generatedWords.length + '</span>' +
+            ' &nbsp;&nbsp; Temperature: <span class="cyan">' + temp.toFixed(2) + '</span>' +
+            ' &nbsp;&nbsp; Steps: <span class="gold">' + genSteps.length + '</span>' +
+            ' &nbsp;&nbsp; Mode: <span class="pink">' + modeLabel + '</span>';
+    }
+
+    document.getElementById('btnGenerate').addEventListener('click', function() {
+        stopAutoGen();
+        generateSentence();
+    });
+
+    document.getElementById('btnClearGen').addEventListener('click', function() {
+        stopAutoGen();
+        if (animTimer) { clearInterval(animTimer); animTimer = null; }
+        generatedWords = [];
+        genSteps = [];
+        currentStepIdx = -1;
+        document.getElementById('genOutput').innerHTML = '<span class="muted" style="font-size:0.9em">Press Generate to sample from the bigram model...</span>';
+        document.getElementById('s3Results').innerHTML = 'Awaiting generation...';
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#808098';
+        ctx.font = '13px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Probability distribution will appear here during generation', W / 2, H / 2);
+    });
+
+    function stopAutoGen() {
+        isAutoGen = false;
+        if (autoGenTimer) { clearInterval(autoGenTimer); autoGenTimer = null; }
+        document.getElementById('btnAutoGen').classList.remove('active');
+        document.getElementById('btnAutoGen').textContent = 'Auto-generate';
+    }
+
+    document.getElementById('btnAutoGen').addEventListener('click', function() {
+        if (isAutoGen) {
+            stopAutoGen();
+            return;
+        }
+        isAutoGen = true;
+        this.classList.add('active');
+        this.textContent = 'Stop auto';
+        generateSentence();
+        autoGenTimer = setInterval(function() {
+            if (!isAutoGen) return;
+            generateSentence();
+        }, 5000);
+    });
+
+    /* Bigram / Trigram mode toggle */
+    document.getElementById('btnBigram').addEventListener('click', function() {
+        useTrigramMode = false;
+        this.classList.add('active');
+        document.getElementById('btnTrigram').classList.remove('active');
+        document.getElementById('trigramNote').style.display = 'none';
+    });
+
+    document.getElementById('btnTrigram').addEventListener('click', function() {
+        useTrigramMode = true;
+        this.classList.add('active');
+        document.getElementById('btnBigram').classList.remove('active');
+        document.getElementById('trigramNote').style.display = 'block';
+    });
+
+    CorpusEngine.onChange(function() {
+        populateStartWords();
+        stopAutoGen();
+    });
+
+    populateStartWords();
+
+    /* Draw initial placeholder */
+    setTimeout(function() {
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#808098';
+        ctx.font = '13px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Probability distribution will appear here during generation', W / 2, H / 2);
+    }, 120);
+})();
+
+/* Blinking cursor animation */
+var styleEl = document.createElement('style');
+styleEl.textContent = '@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}';
+document.head.appendChild(styleEl);
+</script>
+</body>
+</html>

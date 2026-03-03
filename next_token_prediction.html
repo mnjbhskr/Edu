@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next-Token Prediction</title>
+    <meta name="description" content="Explore how language models predict the next word. Visualise token probabilities, understand entropy and perplexity, and see why hallucination is a mathematical phenomenon, not a bug.">
+    <link rel="canonical" href="https://mathsedu.org/next_token_prediction.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Next-Token Prediction",
+      "url": "https://mathsedu.org/next_token_prediction.html",
+      "description": "Explore how language models predict the next word. Visualise token probabilities, understand entropy and perplexity, and see why hallucination is a mathematical phenomenon, not a bug.",
+      "educationalLevel": "Intermediate",
+      "teaches": "Next-token prediction, autoregressive language models, entropy, perplexity, and the mathematical basis of hallucination",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "The Mathematics of Intelligence",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="Next-Token Prediction">
+    <meta property="og:description" content="Explore how language models predict the next word. Visualise token probabilities, understand entropy and perplexity, and see why hallucination is a mathematical phenomenon, not a bug.">
+    <meta property="og:url" content="https://mathsedu.org/next_token_prediction.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Next-Token Prediction">
+    <meta name="twitter:description" content="Explore how language models predict the next word. Visualise token probabilities, understand entropy and perplexity, and see why hallucination is a mathematical phenomenon, not a bug.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#a78bfa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:8px}
+        .intro-text{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(167,139,250,0.13);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .violet{color:#a78bfa}.math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#a78bfa;cursor:pointer}
+        .slider-val{color:#a78bfa;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .insight-box{background:rgba(167,139,250,0.04);border-left:3px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#a78bfa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .section-summary{color:#a78bfa;font-size:0.85em;font-style:italic;margin:6px 0 0;padding:6px 0;border-top:1px solid rgba(167,139,250,0.1)}
+        .micro-note{color:#808098;font-size:0.85em;font-style:italic;margin:8px 0 4px;line-height:1.6}
+        .checkbox-row{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+        .checkbox-row label{color:#a0a0b8;font-size:0.9em;cursor:pointer;display:flex;align-items:center;gap:6px}
+        select.prompt-select{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#c0c0d8;padding:6px 12px;border-radius:6px;font-family:Georgia,serif;font-size:0.92em;cursor:pointer;max-width:100%;margin-bottom:10px}
+        select.prompt-select option{background:#1a1a2e;color:#c0c0d8}
+        .token-display{font-family:'Courier New',monospace;font-size:1.05em;color:#e0e0ef;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:12px 16px;margin:10px 0;min-height:48px;line-height:1.8;word-wrap:break-word}
+        .token-display .sampled{color:#a78bfa;border-bottom:1px dotted rgba(167,139,250,0.4)}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+            select.prompt-select{width:100%}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Next-Token Prediction</h1>
+    <p class="subtitle">Everything an LLM does reduces to one question: what comes next?</p>
+    <p class="intro-text">
+        A large language model does not think, plan, or reason in the way humans do. At every step it performs a single mathematical operation: given all the tokens so far, compute a probability distribution over every possible next token, then sample from that distribution. The entire miracle of fluent text generation &mdash; from poetry to code to medical diagnosis &mdash; emerges from this one act repeated thousands of times.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: The Prediction Game
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. The Prediction Game</h2>
+    <div class="panel">
+        <h3>Interactive sentence completion</h3>
+        <canvas id="canvas1" width="700" height="350"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Token probabilities</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Sampled token</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Entropy indicator</span></div>
+        </div>
+        <p class="micro-note">The bar chart shows the top-10 most likely next tokens from a bigram/trigram model built on an embedded corpus.</p>
+        <select class="prompt-select" id="promptSelect">
+            <option value="0">the cat sat on the</option>
+            <option value="1">the weather today is</option>
+            <option value="2">i like to eat</option>
+            <option value="3">the dog ran to</option>
+            <option value="4">she went to the</option>
+            <option value="5">the sun is very</option>
+            <option value="6">we need to buy</option>
+            <option value="7">the bird flew over</option>
+            <option value="8">he was happy because</option>
+            <option value="9">the water in the</option>
+        </select>
+        <div class="token-display" id="tokenDisplay"></div>
+        <div class="slider-row">
+            <label>Temperature &tau;:</label>
+            <input type="range" id="sTemp" min="1" max="30" step="1" value="10">
+            <span class="slider-val" id="vTemp">1.00</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnSample">Sample next</button>
+            <button class="btn" id="btnAuto">Auto-generate</button>
+            <button class="btn" id="btnReset1">Reset</button>
+        </div>
+        <div class="result-box">
+            <div id="s1Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="violet">P</span>(<span class="cyan">w</span><sub>1</sub>, <span class="cyan">w</span><sub>2</sub>, &hellip;, <span class="cyan">w</span><sub>n</sub>) = <span class="muted">&Pi;</span> <span class="violet">P</span>(<span class="cyan">w</span><sub>t</sub> | <span class="cyan">w</span><sub>1</sub>, &hellip;, <span class="cyan">w</span><sub>t&minus;1</sub>)</div>
+            <div class="math-line"><span class="gold">temperature:</span> <span class="violet">P</span>(<span class="cyan">w</span><sub>i</sub>) = exp(<span class="green">logit</span><sub>i</sub> / <span class="gold">&tau;</span>) / <span class="muted">&Sigma;</span> exp(<span class="green">logit</span><sub>j</sub> / <span class="gold">&tau;</span>)</div>
+        </div>
+        <div class="insight-box">
+            An LLM doesn&rsquo;t choose the right answer &mdash; it samples from a probability distribution. At temperature 1.0, GPT-4 is literally rolling a very sophisticated weighted die.
+        </div>
+        <div class="result-box" style="background:rgba(167,139,250,0.04);border:1px solid rgba(167,139,250,0.15)">
+            <div class="math-line" style="margin-bottom:4px"><span class="gold">Temperature extremes &mdash; the entropy connection:</span></div>
+            <div class="math-line"><span class="cyan">At temperature &tau; &rarr; 0:</span></div>
+            <div class="math-line" style="padding-left:18px"><span class="muted">Entropy &rarr;</span> <span class="green">0 bits</span></div>
+            <div class="math-line" style="padding-left:18px"><span class="muted">Perplexity &rarr;</span> <span class="green">1</span></div>
+            <div class="math-line" style="padding-left:18px"><span class="muted">Behaviour:</span> always picks the single most likely token <span class="muted">(greedy decoding)</span></div>
+            <div class="math-line" style="margin-top:6px"><span class="pink">At temperature &tau; &rarr; &infin;:</span></div>
+            <div class="math-line" style="padding-left:18px"><span class="muted">Entropy &rarr;</span> <span class="pink">log<sub>2</sub>(V) bits</span> &nbsp;<span class="muted">(V = vocabulary size)</span></div>
+            <div class="math-line" style="padding-left:18px"><span class="muted">Perplexity &rarr;</span> <span class="pink">V</span></div>
+            <div class="math-line" style="padding-left:18px"><span class="muted">Behaviour:</span> uniform random selection from entire vocabulary</div>
+        </div>
+        <p class="section-summary">Language generation is repeated sampling from a conditional probability distribution &mdash; nothing more, nothing less.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: Entropy & Uncertainty
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. Entropy &amp; Uncertainty</h2>
+    <div class="panel">
+        <h3>When is the model confident?</h3>
+        <canvas id="canvas2" width="700" height="300"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Low entropy (confident)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">High entropy (uncertain)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Perplexity</span></div>
+        </div>
+        <p class="micro-note">Slide between a confident prediction (left) and total uncertainty (right). Watch how entropy and perplexity change.</p>
+        <div class="slider-row">
+            <label>Uncertainty:</label>
+            <input type="range" id="sEntropy" min="0" max="100" step="1" value="0">
+            <span class="slider-val" id="vEntropy">0%</span>
+        </div>
+        <div class="result-box">
+            <div id="s2Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="pink">H</span> = &minus;<span class="muted">&Sigma;</span> <span class="violet">p</span>(<span class="cyan">x</span><sub>i</sub>) &times; log<sub>2</sub> <span class="violet">p</span>(<span class="cyan">x</span><sub>i</sub>)</div>
+            <div class="math-line"><span class="gold">perplexity</span> = 2<sup><span class="pink">H</span></sup></div>
+            <div class="math-line" style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px"><span class="violet">Cross-entropy loss</span> = &minus;log<sub>2</sub> <span class="violet">P</span>(<span class="cyan">true token</span>)</div>
+            <div class="math-line"><span class="green">If the model assigns P = 0.9 to the correct next token: &nbsp;loss = 0.15 bits</span></div>
+            <div class="math-line"><span class="pink">If the model assigns P = 0.1 to the correct next token: &nbsp;loss = 3.32 bits</span></div>
+        </div>
+        <p class="micro-note">This is exactly the training objective. Every step of gradient descent reduces this number across billions of examples.</p>
+        <div class="insight-box">
+            Perplexity is how we measure language model quality. A perplexity of 8 means the model is, on average, as confused as if it were choosing between 8 equally likely next tokens.
+        </div>
+        <p class="section-summary">Entropy measures surprise. Low entropy = confident prediction. High entropy = the model is guessing.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 3: Hallucination — The Mathematical View
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. Hallucination &mdash; The Mathematical View</h2>
+    <div class="panel">
+        <h3>Token probability flow</h3>
+        <canvas id="canvas3" width="700" height="300"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Correct path</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Hallucination path</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Error point</span></div>
+        </div>
+        <p class="micro-note">Watch how one wrong token shifts all subsequent probabilities, producing fluent but incorrect text.</p>
+        <div class="btn-row">
+            <button class="btn" id="btnCorrect">&#9654; Run correct path</button>
+            <button class="btn" id="btnHallucinate">&#9654; Run hallucination</button>
+            <button class="btn" id="btnReset3">Reset</button>
+        </div>
+        <div class="result-box">
+            <div id="s3Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">correct:</span> &ldquo;Paris is the capital of <span class="green">France</span>&rdquo; &larr; <span class="violet">P</span> &asymp; 0.92</div>
+            <div class="math-line"><span class="pink">hallucination:</span> &ldquo;Paris is the capital of <span class="pink">Germany</span>&rdquo; &larr; <span class="violet">P</span> &asymp; 0.03</div>
+            <div class="math-line"><span class="muted">Once &ldquo;Germany&rdquo; is sampled, the model conditions on it &mdash; and continues fluently but wrongly.</span></div>
+        </div>
+        <div class="insight-box">
+            <strong style="color:#c0c0d8">Hallucination</strong> = sampling from a distribution whose high-probability region does not encode factual truth. The model maximises <span style="color:#a78bfa">P</span>(grammatically coherent sequence), not <span style="color:#a78bfa">P</span>(factually correct sequence). These objectives diverge when the training data contains contradictions or the model generalises beyond its evidence.
+        </div>
+        <p class="section-summary">Every token is a fork in the road. One wrong turn, and the model confidently walks the wrong path.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Closing Explain Section
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="explain">
+        <div class="explain-name">Why This Matters</div>
+        <p class="explain-text">
+            Next-token prediction is the atomic operation of modern AI. GPT-4, Claude, Gemini &mdash; they all reduce to this single mathematical act performed trillions of times during training. The chain rule of probability, applied at scale with neural networks, produces systems that can write code, translate languages, and explain quantum physics. Understanding this mechanism is the key to understanding both the power and the limitations of large language models.
+        </p>
+        <p class="explain-text" style="margin-top:10px">
+            Shannon showed in 1948 that entropy sets a fundamental limit on compression and prediction. Bengio et al. (2003) demonstrated that neural networks could learn distributed word representations. Together, these ideas underpin every language model in use today.
+        </p>
+        <p class="explain-text" style="margin-top:10px;color:#808098;font-size:0.85em">
+            <em>References:</em> Shannon, C. E. (1948). <em>A Mathematical Theory of Communication</em>. Bell System Technical Journal. &middot; Bengio, Y. et al. (2003). <em>A Neural Probabilistic Language Model</em>. JMLR.
+        </p>
+        <p class="explain-text" style="margin-top:10px;color:#808098;font-size:0.85em">
+            <em>See also:</em> <a href="probability_and_softmax.html" style="color:#a78bfa">Probability &amp; Softmax</a> &middot; <a href="gradient_descent.html" style="color:#a78bfa">Gradient Descent</a>
+        </p>
+    </div>
+
+</div>
+
+<script>
+/* ================================================================
+   SHARED: Utilities
+   ================================================================ */
+function isVisible(el) {
+    var r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight;
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* ================================================================
+   CORPUS & LANGUAGE MODEL
+   Build a bigram + trigram model from an embedded English corpus.
+   ================================================================ */
+var CORPUS_SENTENCES = [
+    "the cat sat on the mat and purred softly",
+    "the cat chased the mouse around the garden",
+    "the cat slept in the warm sunlight all day",
+    "the dog ran to the park and fetched the ball",
+    "the dog barked at the mailman every morning",
+    "the dog chased the cat up the tall tree",
+    "the bird flew over the house and into the forest",
+    "the bird sang a beautiful song at dawn",
+    "the bird built a nest in the old oak tree",
+    "the sun is very bright and warm today",
+    "the sun set behind the mountains in the west",
+    "the sun rose early and the sky turned golden",
+    "the weather today is sunny and warm outside",
+    "the weather today is cold and rainy again",
+    "the weather today is cloudy with a chance of rain",
+    "the water in the river flows to the sea",
+    "the water in the lake is clear and cold",
+    "the water in the pool is warm and blue",
+    "i like to eat apples and bananas for breakfast",
+    "i like to eat pizza with cheese and tomato",
+    "i like to eat fish and chips on friday",
+    "i like to read books in the evening",
+    "i like to walk in the park after dinner",
+    "she went to the store to buy some food",
+    "she went to the school to pick up her children",
+    "she went to the park to meet her friends",
+    "she went to the beach and swam in the sea",
+    "he was happy because he got a new job",
+    "he was happy because the sun was shining brightly",
+    "he was happy because his team won the game",
+    "he was sad because the rain would not stop",
+    "we need to buy some milk and bread today",
+    "we need to buy a new car this year",
+    "we need to buy food for the party tonight",
+    "the children played in the garden all afternoon",
+    "the children went to school and learned new things",
+    "the sky is blue and the clouds are white",
+    "the sky turned dark and the rain started falling",
+    "the moon is bright and full tonight",
+    "the stars shine brightly in the clear night sky",
+    "the flowers in the garden are beautiful and colourful",
+    "the tree is tall and provides shade in summer",
+    "the fish swam in the pond near the house",
+    "the book on the table is very interesting",
+    "the music played softly in the background all evening",
+    "the train arrived at the station on time",
+    "the car drove slowly down the narrow road",
+    "the rain fell heavily on the roof all night",
+    "the wind blew strongly and the leaves scattered everywhere",
+    "the snow covered the ground and the trees looked white"
+];
+
+/* Build bigram and trigram frequency tables */
+var BIGRAMS = {};   /* key: "w1" -> {w2: count, ...} */
+var TRIGRAMS = {};   /* key: "w1 w2" -> {w3: count, ...} */
+var VOCAB = {};
+
+(function buildModel() {
+    for (var s = 0; s < CORPUS_SENTENCES.length; s++) {
+        var words = CORPUS_SENTENCES[s].split(' ');
+        for (var i = 0; i < words.length; i++) {
+            VOCAB[words[i]] = (VOCAB[words[i]] || 0) + 1;
+            if (i < words.length - 1) {
+                var key = words[i];
+                if (!BIGRAMS[key]) BIGRAMS[key] = {};
+                BIGRAMS[key][words[i + 1]] = (BIGRAMS[key][words[i + 1]] || 0) + 1;
+            }
+            if (i < words.length - 2) {
+                var tkey = words[i] + ' ' + words[i + 1];
+                if (!TRIGRAMS[tkey]) TRIGRAMS[tkey] = {};
+                TRIGRAMS[tkey][words[i + 2]] = (TRIGRAMS[tkey][words[i + 2]] || 0) + 1;
+            }
+        }
+    }
+})();
+
+/* Get next-token distribution given context words */
+function getNextTokenDist(contextWords, temperature) {
+    temperature = temperature || 1.0;
+    var dist = {};
+    var words = contextWords.slice();
+
+    /* Try trigram first, then bigram, then unigram fallback */
+    var triKey = null;
+    if (words.length >= 2) {
+        triKey = words[words.length - 2] + ' ' + words[words.length - 1];
+    }
+    var biKey = words[words.length - 1];
+
+    var counts = null;
+    var source = 'unigram';
+    if (triKey && TRIGRAMS[triKey]) {
+        counts = TRIGRAMS[triKey];
+        source = 'trigram';
+    } else if (biKey && BIGRAMS[biKey]) {
+        counts = BIGRAMS[biKey];
+        source = 'bigram';
+    } else {
+        counts = VOCAB;
+        source = 'unigram';
+    }
+
+    /* Convert counts to logits and apply temperature */
+    var tokens = Object.keys(counts);
+    var total = 0;
+    for (var i = 0; i < tokens.length; i++) total += counts[tokens[i]];
+
+    var logits = [];
+    for (var i = 0; i < tokens.length; i++) {
+        logits.push(Math.log(counts[tokens[i]] / total));
+    }
+
+    /* Apply temperature */
+    var maxLogit = -Infinity;
+    for (var i = 0; i < logits.length; i++) {
+        logits[i] = logits[i] / temperature;
+        if (logits[i] > maxLogit) maxLogit = logits[i];
+    }
+
+    /* Softmax */
+    var expSum = 0;
+    var probs = [];
+    for (var i = 0; i < logits.length; i++) {
+        probs[i] = Math.exp(logits[i] - maxLogit);
+        expSum += probs[i];
+    }
+    for (var i = 0; i < probs.length; i++) {
+        probs[i] /= expSum;
+    }
+
+    /* Build sorted distribution */
+    var result = [];
+    for (var i = 0; i < tokens.length; i++) {
+        result.push({ token: tokens[i], prob: probs[i] });
+    }
+    result.sort(function(a, b) { return b.prob - a.prob; });
+
+    return { dist: result, source: source };
+}
+
+/* Sample from a distribution */
+function sampleFromDist(dist) {
+    var r = Math.random();
+    var cumulative = 0;
+    for (var i = 0; i < dist.length; i++) {
+        cumulative += dist[i].prob;
+        if (r <= cumulative) return dist[i].token;
+    }
+    return dist[dist.length - 1].token;
+}
+
+/* Compute entropy in bits */
+function computeEntropy(dist) {
+    var h = 0;
+    for (var i = 0; i < dist.length; i++) {
+        if (dist[i].prob > 0) {
+            h -= dist[i].prob * Math.log2(dist[i].prob);
+        }
+    }
+    return h;
+}
+
+/* ================================================================
+   Section 1: The Prediction Game
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas1');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    var STARTERS = [
+        "the cat sat on the",
+        "the weather today is",
+        "i like to eat",
+        "the dog ran to",
+        "she went to the",
+        "the sun is very",
+        "we need to buy",
+        "the bird flew over",
+        "he was happy because",
+        "the water in the"
+    ];
+
+    var currentWords = [];
+    var sampledIndices = []; /* track which words were sampled */
+    var currentDist = [];
+    var currentEntropy = 0;
+    var currentSource = 'bigram';
+    var autoRunning = false;
+    var autoTimer = null;
+    var highlightIdx = -1; /* which bar was just sampled */
+    var highlightFade = 0;
+    var MAX_GENERATE = 25;
+
+    function getTemperature() {
+        return parseInt(document.getElementById('sTemp').value) / 10;
+    }
+
+    function init() {
+        var idx = parseInt(document.getElementById('promptSelect').value);
+        currentWords = STARTERS[idx].split(' ');
+        sampledIndices = [];
+        updateDist();
+        highlightIdx = -1;
+        highlightFade = 0;
+    }
+
+    function updateDist() {
+        var temp = getTemperature();
+        var result = getNextTokenDist(currentWords, temp);
+        currentDist = result.dist.slice(0, 10);
+        currentSource = result.source;
+        currentEntropy = computeEntropy(result.dist);
+        updateDisplay();
+        draw();
+    }
+
+    function updateDisplay() {
+        var el = document.getElementById('tokenDisplay');
+        var html = '';
+        for (var i = 0; i < currentWords.length; i++) {
+            if (sampledIndices.indexOf(i) >= 0) {
+                html += '<span class="sampled">' + currentWords[i] + '</span> ';
+            } else {
+                html += currentWords[i] + ' ';
+            }
+        }
+        html += '<span style="color:#a78bfa;opacity:0.5">_</span>';
+        el.innerHTML = html;
+
+        var resEl = document.getElementById('s1Results');
+        var perplexity = Math.pow(2, currentEntropy);
+        resEl.innerHTML = '<span class="gold">Entropy:</span> ' + currentEntropy.toFixed(2) + ' bits &nbsp;&middot;&nbsp; ' +
+            '<span class="gold">Perplexity:</span> ' + perplexity.toFixed(1) + ' &nbsp;&middot;&nbsp; ' +
+            '<span class="muted">Model: ' + currentSource + '</span> &nbsp;&middot;&nbsp; ' +
+            '<span class="muted">Tokens generated: ' + sampledIndices.length + '</span>';
+    }
+
+    function draw() {
+        if (!isVisible(cvs)) return;
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var PAD = { left: 120, right: 30, top: 50, bottom: 20 };
+        var barAreaW = W - PAD.left - PAD.right;
+        var barAreaH = H - PAD.top - PAD.bottom;
+
+        /* Title */
+        ctx.font = '13px Georgia';
+        ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center';
+        ctx.fillText('Top-10 Next-Token Probabilities', W / 2, 22);
+
+        /* Entropy bar at top-right */
+        var entBarX = W - PAD.right - 140;
+        var entBarY = 10;
+        var entBarW = 120;
+        var entBarH = 8;
+        ctx.fillStyle = 'rgba(255,255,255,0.04)';
+        ctx.fillRect(entBarX, entBarY, entBarW, entBarH);
+        var maxEnt = Math.log2(Math.max(currentDist.length, 2));
+        var entFrac = maxEnt > 0 ? clamp(currentEntropy / maxEnt, 0, 1) : 0;
+        var entGrad = ctx.createLinearGradient(entBarX, 0, entBarX + entBarW, 0);
+        entGrad.addColorStop(0, '#22d3ee');
+        entGrad.addColorStop(1, '#f472b6');
+        ctx.fillStyle = entGrad;
+        ctx.fillRect(entBarX, entBarY, entBarW * entFrac, entBarH);
+        ctx.font = '10px Courier New';
+        ctx.fillStyle = '#fbbf24';
+        ctx.textAlign = 'right';
+        ctx.fillText('H=' + currentEntropy.toFixed(2) + ' bits', entBarX - 6, entBarY + 8);
+
+        if (currentDist.length === 0) {
+            ctx.font = '14px Georgia';
+            ctx.fillStyle = '#808098';
+            ctx.textAlign = 'center';
+            ctx.fillText('No predictions available for this context', W / 2, H / 2);
+            return;
+        }
+
+        /* Draw horizontal bar chart */
+        var maxProb = currentDist[0].prob;
+        var nBars = currentDist.length;
+        var barGap = 4;
+        var barH = Math.min(26, (barAreaH - barGap * (nBars - 1)) / nBars);
+        var totalH = nBars * barH + (nBars - 1) * barGap;
+        var startY = PAD.top + (barAreaH - totalH) / 2;
+
+        for (var i = 0; i < nBars; i++) {
+            var y = startY + i * (barH + barGap);
+            var barW = (currentDist[i].prob / Math.max(maxProb, 0.001)) * barAreaW * 0.85;
+
+            /* Bar colour */
+            var alpha = 0.7 + 0.3 * (1 - i / nBars);
+            if (i === highlightIdx && highlightFade > 0) {
+                ctx.fillStyle = 'rgba(16, 185, 129, ' + (0.5 + 0.5 * highlightFade) + ')';
+            } else {
+                ctx.fillStyle = 'rgba(167, 139, 250, ' + alpha + ')';
+            }
+
+            /* Rounded bar */
+            var radius = Math.min(4, barH / 2);
+            ctx.beginPath();
+            ctx.moveTo(PAD.left + radius, y);
+            ctx.lineTo(PAD.left + barW - radius, y);
+            ctx.quadraticCurveTo(PAD.left + barW, y, PAD.left + barW, y + radius);
+            ctx.lineTo(PAD.left + barW, y + barH - radius);
+            ctx.quadraticCurveTo(PAD.left + barW, y + barH, PAD.left + barW - radius, y + barH);
+            ctx.lineTo(PAD.left + radius, y + barH);
+            ctx.quadraticCurveTo(PAD.left, y + barH, PAD.left, y + barH - radius);
+            ctx.lineTo(PAD.left, y + radius);
+            ctx.quadraticCurveTo(PAD.left, y, PAD.left + radius, y);
+            ctx.fill();
+
+            /* Token label */
+            ctx.font = '12px Courier New';
+            ctx.fillStyle = '#c0c0d8';
+            ctx.textAlign = 'right';
+            ctx.fillText(currentDist[i].token, PAD.left - 8, y + barH / 2 + 4);
+
+            /* Probability label */
+            ctx.font = '11px Courier New';
+            ctx.fillStyle = '#808098';
+            ctx.textAlign = 'left';
+            var probText = (currentDist[i].prob * 100).toFixed(1) + '%';
+            ctx.fillText(probText, PAD.left + barW + 8, y + barH / 2 + 4);
+        }
+    }
+
+    function sampleNext() {
+        if (currentDist.length === 0) return;
+        if (currentWords.length >= MAX_GENERATE + 10) return;
+
+        var token = sampleFromDist(currentDist);
+        /* Find the index of the sampled token in the displayed distribution */
+        highlightIdx = -1;
+        for (var i = 0; i < currentDist.length; i++) {
+            if (currentDist[i].token === token) { highlightIdx = i; break; }
+        }
+        highlightFade = 1.0;
+
+        currentWords.push(token);
+        sampledIndices.push(currentWords.length - 1);
+        updateDist();
+
+        /* Fade out highlight */
+        var fadeInterval = setInterval(function() {
+            highlightFade -= 0.05;
+            if (highlightFade <= 0) {
+                highlightFade = 0;
+                highlightIdx = -1;
+                clearInterval(fadeInterval);
+            }
+            draw();
+        }, 30);
+    }
+
+    function stopAuto() {
+        autoRunning = false;
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        document.getElementById('btnAuto').textContent = 'Auto-generate';
+    }
+
+    /* Event listeners */
+    document.getElementById('btnSample').addEventListener('click', function() {
+        stopAuto();
+        sampleNext();
+    });
+
+    document.getElementById('btnAuto').addEventListener('click', function() {
+        if (autoRunning) {
+            stopAuto();
+        } else {
+            autoRunning = true;
+            document.getElementById('btnAuto').textContent = 'Stop';
+            autoTimer = setInterval(function() {
+                if (currentWords.length >= MAX_GENERATE + 10 || currentDist.length === 0) {
+                    stopAuto();
+                    return;
+                }
+                sampleNext();
+            }, 400);
+        }
+    });
+
+    document.getElementById('btnReset1').addEventListener('click', function() {
+        stopAuto();
+        init();
+    });
+
+    document.getElementById('promptSelect').addEventListener('change', function() {
+        stopAuto();
+        init();
+    });
+
+    document.getElementById('sTemp').addEventListener('input', function() {
+        var temp = getTemperature();
+        document.getElementById('vTemp').textContent = temp.toFixed(2);
+        updateDist();
+    });
+
+    /* Redraw on scroll */
+    var drawThrottle = null;
+    window.addEventListener('scroll', function() {
+        if (!drawThrottle) {
+            drawThrottle = setTimeout(function() {
+                drawThrottle = null;
+                draw();
+            }, 60);
+        }
+    });
+
+    /* Init */
+    init();
+})();
+
+/* ================================================================
+   Section 2: Entropy & Uncertainty
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas2');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    /* Low entropy scenario: "The sky is ___" */
+    var lowEntropyDist = [
+        { token: 'blue', prob: 0.55 },
+        { token: 'clear', prob: 0.15 },
+        { token: 'dark', prob: 0.08 },
+        { token: 'grey', prob: 0.06 },
+        { token: 'bright', prob: 0.05 },
+        { token: 'cloudy', prob: 0.04 },
+        { token: 'red', prob: 0.03 },
+        { token: 'beautiful', prob: 0.02 },
+        { token: 'falling', prob: 0.01 },
+        { token: 'endless', prob: 0.01 }
+    ];
+
+    /* High entropy scenario: "My hobby is ___" */
+    var highEntropyDist = [
+        { token: 'reading', prob: 0.10 },
+        { token: 'painting', prob: 0.10 },
+        { token: 'cooking', prob: 0.10 },
+        { token: 'running', prob: 0.10 },
+        { token: 'gardening', prob: 0.10 },
+        { token: 'swimming', prob: 0.10 },
+        { token: 'writing', prob: 0.10 },
+        { token: 'fishing', prob: 0.10 },
+        { token: 'cycling', prob: 0.10 },
+        { token: 'dancing', prob: 0.10 }
+    ];
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    function getBlendedDist(t) {
+        var result = [];
+        for (var i = 0; i < 10; i++) {
+            var prob = lerp(lowEntropyDist[i].prob, highEntropyDist[i].prob, t);
+            var token = t < 0.5 ? lowEntropyDist[i].token : highEntropyDist[i].token;
+            result.push({ token: token, prob: prob });
+        }
+        /* Normalise */
+        var sum = 0;
+        for (var i = 0; i < result.length; i++) sum += result[i].prob;
+        for (var i = 0; i < result.length; i++) result[i].prob /= sum;
+        result.sort(function(a, b) { return b.prob - a.prob; });
+        return result;
+    }
+
+    function draw() {
+        if (!isVisible(cvs)) return;
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var t = parseInt(document.getElementById('sEntropy').value) / 100;
+        document.getElementById('vEntropy').textContent = Math.round(t * 100) + '%';
+
+        var dist = getBlendedDist(t);
+        var entropy = 0;
+        for (var i = 0; i < dist.length; i++) {
+            if (dist[i].prob > 0) entropy -= dist[i].prob * Math.log2(dist[i].prob);
+        }
+        var perplexity = Math.pow(2, entropy);
+
+        /* Layout: two panels side by side */
+        var halfW = W / 2;
+        var PAD = { left: 30, right: 20, top: 55, bottom: 35 };
+
+        /* --- LEFT panel: bar chart --- */
+        var barAreaW = halfW - PAD.left - PAD.right;
+        var barAreaH = H - PAD.top - PAD.bottom;
+        var nBars = dist.length;
+        var barGap = 3;
+        var barH = Math.min(20, (barAreaH - barGap * (nBars - 1)) / nBars);
+        var totalH = nBars * barH + (nBars - 1) * barGap;
+        var startY = PAD.top + (barAreaH - totalH) / 2;
+        var maxProb = dist[0].prob;
+
+        /* Context label */
+        ctx.font = '12px Georgia';
+        ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center';
+        var contextLabel = t < 0.5 ? '"The sky is ___"' : '"My hobby is ___"';
+        ctx.fillText(contextLabel, halfW / 2, 20);
+
+        /* Transition label */
+        ctx.font = '11px Georgia';
+        ctx.fillStyle = t < 0.5 ? '#22d3ee' : '#f472b6';
+        ctx.fillText(t < 0.5 ? 'Confident' : 'Uncertain', halfW / 2, 38);
+
+        for (var i = 0; i < nBars; i++) {
+            var y = startY + i * (barH + barGap);
+            var barW = (dist[i].prob / Math.max(maxProb, 0.001)) * barAreaW * 0.75;
+
+            /* Colour blend: cyan (confident) to pink (uncertain) */
+            var r = Math.round(lerp(34, 244, t));
+            var g = Math.round(lerp(211, 114, t));
+            var b = Math.round(lerp(238, 182, t));
+            ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',0.7)';
+
+            ctx.beginPath();
+            var radius = Math.min(3, barH / 2);
+            ctx.moveTo(PAD.left + radius, y);
+            ctx.lineTo(PAD.left + barW - radius, y);
+            ctx.quadraticCurveTo(PAD.left + barW, y, PAD.left + barW, y + radius);
+            ctx.lineTo(PAD.left + barW, y + barH - radius);
+            ctx.quadraticCurveTo(PAD.left + barW, y + barH, PAD.left + barW - radius, y + barH);
+            ctx.lineTo(PAD.left + radius, y + barH);
+            ctx.quadraticCurveTo(PAD.left, y + barH, PAD.left, y + barH - radius);
+            ctx.lineTo(PAD.left, y + radius);
+            ctx.quadraticCurveTo(PAD.left, y, PAD.left + radius, y);
+            ctx.fill();
+
+            /* Labels (only if bars are tall enough) */
+            if (barH >= 12) {
+                ctx.font = '10px Courier New';
+                ctx.fillStyle = '#a0a0b8';
+                ctx.textAlign = 'left';
+                ctx.fillText(dist[i].token, PAD.left + barW + 6, y + barH / 2 + 3);
+            }
+        }
+
+        /* --- RIGHT panel: entropy/perplexity gauge --- */
+        var gaugeX = halfW + 40;
+        var gaugeW = halfW - 80;
+
+        /* Entropy section */
+        ctx.font = '13px Georgia';
+        ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center';
+        ctx.fillText('Entropy & Perplexity', halfW + halfW / 2, 20);
+
+        /* Large entropy value */
+        ctx.font = '36px Courier New';
+        ctx.fillStyle = '#f472b6';
+        ctx.textAlign = 'center';
+        ctx.fillText(entropy.toFixed(2), halfW + halfW / 2, 90);
+        ctx.font = '12px Georgia';
+        ctx.fillStyle = '#808098';
+        ctx.fillText('bits', halfW + halfW / 2, 108);
+
+        /* Entropy bar visualisation */
+        var entBarY = 125;
+        var entBarH = 14;
+        ctx.fillStyle = 'rgba(255,255,255,0.04)';
+        roundRect(ctx, gaugeX, entBarY, gaugeW, entBarH, 7);
+        ctx.fill();
+
+        var maxEntropy = Math.log2(10); /* max for 10 tokens */
+        var entFrac = clamp(entropy / maxEntropy, 0, 1);
+        var entGrad = ctx.createLinearGradient(gaugeX, 0, gaugeX + gaugeW, 0);
+        entGrad.addColorStop(0, '#22d3ee');
+        entGrad.addColorStop(0.5, '#a78bfa');
+        entGrad.addColorStop(1, '#f472b6');
+        ctx.fillStyle = entGrad;
+        roundRect(ctx, gaugeX, entBarY, gaugeW * entFrac, entBarH, 7);
+        ctx.fill();
+
+        ctx.font = '10px Courier New';
+        ctx.fillStyle = '#22d3ee';
+        ctx.textAlign = 'left';
+        ctx.fillText('0', gaugeX, entBarY + entBarH + 14);
+        ctx.fillStyle = '#f472b6';
+        ctx.textAlign = 'right';
+        ctx.fillText(maxEntropy.toFixed(1), gaugeX + gaugeW, entBarY + entBarH + 14);
+        ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center';
+        ctx.fillText('entropy (bits)', gaugeX + gaugeW / 2, entBarY + entBarH + 14);
+
+        /* Perplexity */
+        ctx.font = '36px Courier New';
+        ctx.fillStyle = '#fbbf24';
+        ctx.textAlign = 'center';
+        ctx.fillText(perplexity.toFixed(1), halfW + halfW / 2, 195);
+        ctx.font = '12px Georgia';
+        ctx.fillStyle = '#808098';
+        ctx.fillText('perplexity = 2^H', halfW + halfW / 2, 213);
+
+        /* Interpretation */
+        ctx.font = '11px Georgia';
+        ctx.fillStyle = '#a0a0b8';
+        ctx.textAlign = 'center';
+        var interpText = 'Choosing between ~' + Math.round(perplexity) + ' equally likely options';
+        ctx.fillText(interpText, halfW + halfW / 2, 245);
+
+        /* Divider line */
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(halfW, PAD.top - 10);
+        ctx.lineTo(halfW, H - PAD.bottom + 10);
+        ctx.stroke();
+
+        /* Update results */
+        document.getElementById('s2Results').innerHTML =
+            '<span class="pink">Entropy H:</span> ' + entropy.toFixed(3) + ' bits &nbsp;&middot;&nbsp; ' +
+            '<span class="gold">Perplexity 2<sup>H</sup>:</span> ' + perplexity.toFixed(2) + ' &nbsp;&middot;&nbsp; ' +
+            '<span class="muted">Max entropy for 10 tokens: ' + maxEntropy.toFixed(2) + ' bits</span>';
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+        if (w < 2 * r) r = w / 2;
+        if (h < 2 * r) r = h / 2;
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + w, y, x + w, y + h, r);
+        ctx.arcTo(x + w, y + h, x, y + h, r);
+        ctx.arcTo(x, y + h, x, y, r);
+        ctx.arcTo(x, y, x + w, y, r);
+        ctx.closePath();
+    }
+
+    document.getElementById('sEntropy').addEventListener('input', function() {
+        draw();
+    });
+
+    /* Redraw on scroll */
+    var drawThrottle = null;
+    window.addEventListener('scroll', function() {
+        if (!drawThrottle) {
+            drawThrottle = setTimeout(function() {
+                drawThrottle = null;
+                draw();
+            }, 60);
+        }
+    });
+
+    /* Init */
+    draw();
+})();
+
+/* ================================================================
+   Section 3: Hallucination — The Mathematical View
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas3');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    /* Pre-defined sequences with token-by-token probabilities */
+    var correctPath = {
+        tokens:  ['Paris', 'is', 'the', 'capital', 'of', 'France', '.', 'It', 'has', 'the', 'Eiffel', 'Tower', '.'],
+        probs:   [0.15,    0.88, 0.92,  0.85,      0.94, 0.92,     0.80, 0.60, 0.55, 0.70, 0.75,     0.90,   0.85],
+        label:   'Correct path'
+    };
+
+    var hallucinationPath = {
+        tokens:  ['Paris', 'is', 'the', 'capital', 'of', 'Germany', '.', 'It', 'has', 'the', 'Brandenburg', 'Gate', '.'],
+        probs:   [0.15,    0.88, 0.92,  0.85,      0.94, 0.03,     0.78, 0.58, 0.52, 0.65, 0.40,          0.72,  0.80],
+        label:   'Hallucination path'
+    };
+
+    var state = 'idle'; /* idle, running_correct, running_hallucination, done */
+    var animStep = 0;
+    var animTimer = null;
+    var showCorrect = false;
+    var showHallucination = false;
+    var correctSteps = 0;
+    var hallucinationSteps = 0;
+
+    function reset() {
+        state = 'idle';
+        animStep = 0;
+        if (animTimer) { clearInterval(animTimer); animTimer = null; }
+        showCorrect = false;
+        showHallucination = false;
+        correctSteps = 0;
+        hallucinationSteps = 0;
+        document.getElementById('s3Results').innerHTML = '<span class="muted">Click a button to animate a generation path.</span>';
+        draw();
+    }
+
+    function draw() {
+        if (!isVisible(cvs)) return;
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var PAD = { left: 50, right: 30, top: 45, bottom: 40 };
+        var plotW = W - PAD.left - PAD.right;
+        var plotH = H - PAD.top - PAD.bottom;
+
+        /* Axes */
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(PAD.left, PAD.top);
+        ctx.lineTo(PAD.left, H - PAD.bottom);
+        ctx.lineTo(W - PAD.right, H - PAD.bottom);
+        ctx.stroke();
+
+        /* Y-axis label */
+        ctx.save();
+        ctx.translate(16, PAD.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.font = '11px Georgia';
+        ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center';
+        ctx.fillText('P(token | context)', 0, 0);
+        ctx.restore();
+
+        /* Y-axis ticks */
+        ctx.font = '10px Courier New';
+        ctx.fillStyle = '#606078';
+        ctx.textAlign = 'right';
+        for (var p = 0; p <= 1.0; p += 0.25) {
+            var y = H - PAD.bottom - p * plotH;
+            ctx.fillText(p.toFixed(2), PAD.left - 6, y + 3);
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+            ctx.beginPath();
+            ctx.moveTo(PAD.left, y);
+            ctx.lineTo(W - PAD.right, y);
+            ctx.stroke();
+        }
+
+        var nTokens = correctPath.tokens.length;
+        var stepW = plotW / (nTokens - 1);
+
+        /* Draw the divergence zone background */
+        if (showCorrect || showHallucination) {
+            var divX = PAD.left + 5 * stepW;
+            ctx.fillStyle = 'rgba(251, 191, 36, 0.03)';
+            ctx.fillRect(divX - stepW * 0.4, PAD.top, stepW * 0.8, plotH);
+
+            /* Divergence marker */
+            ctx.strokeStyle = 'rgba(251, 191, 36, 0.3)';
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(divX, PAD.top);
+            ctx.lineTo(divX, H - PAD.bottom);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.font = '10px Georgia';
+            ctx.fillStyle = '#fbbf24';
+            ctx.textAlign = 'center';
+            ctx.fillText('divergence', divX, PAD.top - 6);
+        }
+
+        /* X-axis token labels */
+        ctx.font = '10px Courier New';
+        ctx.textAlign = 'center';
+        for (var i = 0; i < nTokens; i++) {
+            var x = PAD.left + i * stepW;
+
+            /* Show correct token labels if correct path is showing */
+            if (showCorrect && i < correctSteps) {
+                ctx.fillStyle = i === 5 ? '#10b981' : '#808098';
+                ctx.fillText(correctPath.tokens[i], x, H - PAD.bottom + 16);
+            }
+            /* Show hallucination labels (offset if both showing) */
+            if (showHallucination && i < hallucinationSteps) {
+                var labelY = showCorrect ? H - PAD.bottom + 28 : H - PAD.bottom + 16;
+                ctx.fillStyle = i === 5 ? '#f472b6' : (i > 5 ? '#f472b6' : '#808098');
+                if (!showCorrect || i >= 5) {
+                    ctx.fillText(hallucinationPath.tokens[i], x, labelY);
+                }
+            }
+        }
+
+        /* Draw correct path */
+        if (showCorrect && correctSteps > 0) {
+            drawPath(correctPath, correctSteps, '#10b981', 2.5);
+        }
+
+        /* Draw hallucination path */
+        if (showHallucination && hallucinationSteps > 0) {
+            drawPath(hallucinationPath, hallucinationSteps, '#f472b6', 2.5);
+        }
+    }
+
+    function drawPath(path, steps, color, lineW) {
+        var PAD = { left: 50, right: 30, top: 45, bottom: 40 };
+        var plotW = W - PAD.left - PAD.right;
+        var plotH = H - PAD.top - PAD.bottom;
+        var nTokens = path.tokens.length;
+        var stepW = plotW / (nTokens - 1);
+
+        /* Line */
+        ctx.strokeStyle = color;
+        ctx.lineWidth = lineW;
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        for (var i = 0; i < steps && i < nTokens; i++) {
+            var x = PAD.left + i * stepW;
+            var y = H - PAD.bottom - path.probs[i] * plotH;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        /* Dots and probability labels */
+        for (var i = 0; i < steps && i < nTokens; i++) {
+            var x = PAD.left + i * stepW;
+            var y = H - PAD.bottom - path.probs[i] * plotH;
+
+            /* Dot */
+            ctx.beginPath();
+            ctx.arc(x, y, i === 5 ? 6 : 4, 0, Math.PI * 2);
+            if (i === 5 && color === '#f472b6') {
+                /* Highlight the error point */
+                ctx.fillStyle = '#fbbf24';
+            } else {
+                ctx.fillStyle = color;
+            }
+            ctx.fill();
+
+            /* Probability label */
+            ctx.font = '9px Courier New';
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            var labelY = y - 10;
+            if (labelY < PAD.top + 10) labelY = y + 16;
+            ctx.fillText(path.probs[i].toFixed(2), x, labelY);
+        }
+    }
+
+    function animateCorrect() {
+        if (animTimer) clearInterval(animTimer);
+        showCorrect = true;
+        correctSteps = 0;
+        state = 'running_correct';
+
+        animTimer = setInterval(function() {
+            correctSteps++;
+            if (correctSteps >= correctPath.tokens.length) {
+                clearInterval(animTimer);
+                animTimer = null;
+                state = 'done';
+                updateResults();
+            }
+            draw();
+        }, 300);
+    }
+
+    function animateHallucination() {
+        if (animTimer) clearInterval(animTimer);
+        showHallucination = true;
+        hallucinationSteps = 0;
+        state = 'running_hallucination';
+
+        animTimer = setInterval(function() {
+            hallucinationSteps++;
+            if (hallucinationSteps >= hallucinationPath.tokens.length) {
+                clearInterval(animTimer);
+                animTimer = null;
+                state = 'done';
+                updateResults();
+            }
+            draw();
+        }, 300);
+    }
+
+    function updateResults() {
+        var html = '';
+        if (showCorrect) {
+            var logProb = 0;
+            for (var i = 0; i < correctPath.probs.length; i++) logProb += Math.log2(correctPath.probs[i]);
+            html += '<span class="green">Correct path joint log-prob:</span> ' + logProb.toFixed(2) + ' bits';
+        }
+        if (showCorrect && showHallucination) html += ' &nbsp;&middot;&nbsp; ';
+        if (showHallucination) {
+            var logProb = 0;
+            for (var i = 0; i < hallucinationPath.probs.length; i++) logProb += Math.log2(hallucinationPath.probs[i]);
+            html += '<span class="pink">Hallucination joint log-prob:</span> ' + logProb.toFixed(2) + ' bits';
+        }
+        if (showCorrect && showHallucination) {
+            html += '<br><span class="muted">The correct path is exponentially more likely overall, but at position 6 the error was just one unlucky sample.</span>';
+        }
+        document.getElementById('s3Results').innerHTML = html;
+    }
+
+    /* Event listeners */
+    document.getElementById('btnCorrect').addEventListener('click', function() {
+        animateCorrect();
+    });
+
+    document.getElementById('btnHallucinate').addEventListener('click', function() {
+        animateHallucination();
+    });
+
+    document.getElementById('btnReset3').addEventListener('click', function() {
+        reset();
+    });
+
+    /* Redraw on scroll */
+    var drawThrottle = null;
+    window.addEventListener('scroll', function() {
+        if (!drawThrottle) {
+            drawThrottle = setTimeout(function() {
+                drawThrottle = null;
+                draw();
+            }, 60);
+        }
+    });
+
+    /* Init */
+    reset();
+})();
+</script>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>

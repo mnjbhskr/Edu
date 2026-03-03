@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backpropagation</title>
+    <meta name="description" content="Watch gradients flow backwards through a neural network. Visualise the chain rule in action, understand vanishing and exploding gradients, and see why backpropagation makes deep learning possible.">
+    <link rel="canonical" href="https://mathsedu.org/backpropagation.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Backpropagation",
+      "url": "https://mathsedu.org/backpropagation.html",
+      "description": "Watch gradients flow backwards through a neural network. Visualise the chain rule in action, understand vanishing and exploding gradients, and see why backpropagation makes deep learning possible.",
+      "educationalLevel": "Intermediate",
+      "teaches": "Backpropagation, chain rule, computational graphs, forward and backward passes, vanishing and exploding gradients",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "The Mathematics of Intelligence",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="Backpropagation">
+    <meta property="og:description" content="Watch gradients flow backwards through a neural network. Visualise the chain rule in action, understand vanishing and exploding gradients, and see why backpropagation makes deep learning possible.">
+    <meta property="og:url" content="https://mathsedu.org/backpropagation.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Backpropagation">
+    <meta name="twitter:description" content="Watch gradients flow backwards through a neural network. Visualise the chain rule in action, understand vanishing and exploding gradients, and see why backpropagation makes deep learning possible.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#a78bfa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:8px}
+        .intro-text{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(167,139,250,0.13);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .violet{color:#a78bfa}.math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#a78bfa;cursor:pointer}
+        .slider-val{color:#a78bfa;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .insight-box{background:rgba(167,139,250,0.04);border-left:3px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#a78bfa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .section-summary{color:#a78bfa;font-size:0.85em;font-style:italic;margin:6px 0 0;padding:6px 0;border-top:1px solid rgba(167,139,250,0.1)}
+        .micro-note{color:#808098;font-size:0.85em;font-style:italic;margin:8px 0 4px;line-height:1.6}
+        .checkbox-row{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+        .checkbox-row label{color:#a0a0b8;font-size:0.9em;cursor:pointer;display:flex;align-items:center;gap:6px}
+        .steepness-bar-bg{display:inline-block;width:80px;height:7px;background:rgba(255,255,255,0.06);border-radius:3px;vertical-align:middle;margin:0 6px;overflow:hidden}
+        .steepness-bar-fill{height:100%;border-radius:3px;transition:width 0.15s}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Backpropagation</h1>
+    <p class="subtitle">How blame flows backwards &mdash; the chain rule as the engine of learning</p>
+    <p class="intro-text">
+        A neural network makes a prediction, measures its error, then asks: which weight was most responsible? Backpropagation answers by sending the gradient of the loss backwards through the network &mdash; one layer at a time &mdash; using nothing more than the chain rule. It is the single algorithm that makes deep learning possible.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: The Computational Graph
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. The Computational Graph</h2>
+    <div class="panel">
+        <h3>Forward and backward passes through a 3-layer network</h3>
+        <canvas id="canvas1" width="700" height="400"></canvas>
+        <p class="micro-note">Click any node to see its local derivative and value. Watch values flow forward in <span style="color:#22d3ee">cyan</span>, then gradients flow backward in <span style="color:#f472b6">pink</span>.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Forward pass (values)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Backward pass (gradients)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Selected node</span></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnForward">&#9654; Forward pass</button>
+            <button class="btn" id="btnBackward">&#9664; Backward pass</button>
+            <button class="btn" id="btnStepMode" >Step by step</button>
+            <button class="btn" id="btnReset1">Reset</button>
+        </div>
+        <div class="result-box">
+            <div id="s1Results" class="math-line">Click <strong>Forward pass</strong> to begin.</div>
+        </div>
+        <div id="nodeInfo" class="result-box" style="display:none">
+            <div id="nodeInfoContent" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="muted">FORWARD:</span> <span class="cyan">x</span> &rarr; <span class="gold">z</span> = <span class="gold">W</span><span class="cyan">x</span>+<span class="gold">b</span> &rarr; <span class="green">a</span> = ReLU(<span class="gold">z</span>) &rarr; <span class="green">&ycirc;</span> &rarr; <span class="pink">L</span> = loss(<span class="green">&ycirc;</span>, y)</div>
+            <div class="math-line"><span class="muted">BACKWARD:</span> <span class="pink">&part;L/&part;&ycirc;</span> &rarr; <span class="pink">&part;L/&part;z</span> &rarr; <span class="pink">&part;L/&part;W</span></div>
+            <div class="math-line" style="margin-top:8px"><span class="muted">CHAIN RULE:</span> <span class="gold">&part;L/&part;w</span> = <span class="pink">&part;L/&part;a</span> &times; <span class="violet">&part;a/&part;z</span> &times; <span class="cyan">&part;z/&part;w</span></div>
+            <div class="math-line" style="font-size:0.88em;margin-top:4px"><span class="muted">Each factor is a local derivative. Backprop multiplies them together along the path from output to weight &mdash; this is the chain rule.</span></div>
+        </div>
+        <div class="insight-box">
+            Backprop is just the chain rule &mdash; applied systematically to a graph of computations. Rumelhart, Hinton and Williams published it in 1986. It took another 25 years for it to change the world.
+        </div>
+        <p class="micro-note">In matrix form, backprop computes vector&ndash;Jacobian products (v&#7488;J) efficiently, layer by layer. This is why backprop is O(n) in network depth rather than O(n&sup2;) &mdash; it never explicitly constructs the full Jacobian matrix. The computational cost of the backward pass is approximately equal to the forward pass.</p>
+        <p class="section-summary">Every gradient in a neural network is computed by the chain rule, flowing backwards from loss to input.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: Vanishing & Exploding Gradients
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. Vanishing &amp; Exploding Gradients</h2>
+    <div class="panel">
+        <h3>Gradient magnitude through layers</h3>
+        <canvas id="canvas2" width="700" height="300"></canvas>
+        <p class="micro-note">Watch how gradient magnitude changes as it passes through each layer. Sigmoid causes vanishing; unconstrained weights cause exploding.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Gradient magnitude</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:rgba(167,139,250,0.4)"></div><span style="color:#a78bfa">Ideal range</span></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnSigmoid">Sigmoid</button>
+            <button class="btn" id="btnReLU">ReLU</button>
+            <button class="btn" id="btnReLUBN">ReLU + BatchNorm</button>
+        </div>
+        <div class="slider-row">
+            <label>Number of layers:</label>
+            <input type="range" id="sLayers" min="5" max="20" step="1" value="10">
+            <span class="slider-val" id="vLayers">10</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnShowFlow">&#9654; Show gradient flow</button>
+        </div>
+        <div class="result-box">
+            <div id="s2Results" class="math-line">Select an activation function and click <strong>Show gradient flow</strong>.</div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="pink">Sigmoid:</span> &sigma;&prime;(x) = &sigma;(x)(1 &minus; &sigma;(x)) &le; 0.25 &rarr; <span class="muted">gradients shrink each layer</span></div>
+            <div class="math-line"><span class="green">ReLU:</span> f&prime;(x) = 1 if x &gt; 0, else 0 &rarr; <span class="muted">gradients pass through unchanged</span></div>
+            <div class="math-line"><span class="cyan">BatchNorm:</span> normalises activations &rarr; <span class="muted">stabilises gradient magnitudes</span></div>
+        </div>
+        <div class="insight-box">
+            Before ReLU and residual connections, training deep networks was nearly impossible &mdash; gradients would vanish before reaching early layers. The &ldquo;deep learning revolution&rdquo; required solving this exact problem.
+        </div>
+        <div class="insight-box">
+            Residual connections provide a direct gradient highway through the network. In a residual block, output = input + f(input), so &part;output/&part;input = 1 + &part;f/&part;input. Even if &part;f/&part;input vanishes, the gradient still flows through the identity path. This is why modern transformers with 100+ layers can train stably &mdash; and why the <a href="transformer_architecture.html" style="color:#a78bfa">Transformer Architecture</a> uses residual connections around every attention and FFN block.
+        </div>
+        <p class="section-summary">Sigmoid kills gradients. ReLU preserves them. Batch normalisation tames them. This is why depth became possible.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Closing Explain Section
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="explain">
+        <div class="explain-name">Why This Matters</div>
+        <p class="explain-text">
+            Every parameter in every neural network on Earth was tuned by backpropagation. When GPT-4 learns to reason, when AlphaFold predicts a protein&rsquo;s shape, when a self-driving car recognises a pedestrian &mdash; the chain rule, applied backwards through millions of operations, is the engine that made it happen.
+        </p>
+        <p class="explain-text" style="margin-top:10px">
+            Backpropagation reduces the cost of computing all gradients from O(n&sup2;) to O(n) &mdash; the same cost as a single forward pass. Without this efficiency, deep learning would be computationally impossible.
+        </p>
+        <p class="explain-text" style="margin-top:10px;color:#808098;font-size:0.85em">
+            <em>References:</em> Rumelhart, Hinton &amp; Williams (1986), &ldquo;Learning representations by back-propagating errors&rdquo; &middot; Hochreiter (1991), vanishing gradient problem &middot; He et al. (2015), deep residual learning.
+        </p>
+        <p class="explain-text" style="margin-top:10px;color:#808098;font-size:0.85em">
+            <em>See also:</em> <a href="derivatives.html" style="color:#a78bfa">Derivatives</a> &middot; <a href="fundamental_theorem_calculus.html" style="color:#a78bfa">Fundamental Theorem of Calculus</a> &middot; <a href="gradient_descent.html" style="color:#a78bfa">Gradient Descent</a>
+        </p>
+    </div>
+
+</div>
+
+<script>
+/* ================================================================
+   SHARED: Utilities
+   ================================================================ */
+function isVisible(el) {
+    var r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight;
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* ================================================================
+   Section 1: The Computational Graph
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas1');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    /* --- Network architecture: 2 -> 3 -> 2 -> 1 --- */
+    var LAYERS = [2, 3, 2, 1];
+    var LAYER_LABELS = ['Input', 'Hidden 1', 'Hidden 2', 'Output'];
+    var NODE_RADIUS = 18;
+
+    /* Compute node positions */
+    var nodes = []; /* {layer, idx, x, y, value, grad, localDeriv, label} */
+    var edges = []; /* {from, to, weight, grad} */
+    var lossNode = null;
+
+    var layerX = [];
+    var xPad = 80;
+    var xSpan = W - 2 * xPad;
+    /* 4 layers + loss node = 5 columns */
+    for (var l = 0; l < LAYERS.length; l++) {
+        layerX.push(xPad + (l / (LAYERS.length)) * xSpan);
+    }
+    var lossX = xPad + xSpan; /* loss node at far right */
+
+    function buildNetwork() {
+        nodes = [];
+        edges = [];
+        var nodeId = 0;
+
+        for (var l = 0; l < LAYERS.length; l++) {
+            var n = LAYERS[l];
+            var ySpan = H - 80;
+            var yStart = 40 + (ySpan - (n - 1) * 70) / 2;
+            for (var i = 0; i < n; i++) {
+                var ny = (n === 1) ? H / 2 : yStart + i * 70;
+                nodes.push({
+                    id: nodeId++,
+                    layer: l,
+                    idx: i,
+                    x: layerX[l],
+                    y: ny,
+                    value: 0,
+                    activation: 0,
+                    grad: 0,
+                    localDeriv: '',
+                    label: (l === 0 ? 'x' + (i + 1) : (l === LAYERS.length - 1 ? '\u0177' : 'h' + l + ',' + (i + 1)))
+                });
+            }
+        }
+
+        /* Loss node */
+        lossNode = {
+            id: nodeId++,
+            layer: LAYERS.length,
+            idx: 0,
+            x: lossX,
+            y: H / 2,
+            value: 0,
+            grad: 1.0,
+            localDeriv: '\u2202L/\u2202\u0177 = 2(\u0177 - y)',
+            label: 'L'
+        };
+
+        /* Edges between consecutive layers */
+        var offset = 0;
+        for (var l = 0; l < LAYERS.length - 1; l++) {
+            var startIdx = 0;
+            for (var ll = 0; ll < l; ll++) startIdx += LAYERS[ll];
+            var endIdx = startIdx + LAYERS[l];
+            var nextStart = endIdx;
+            var nextEnd = nextStart + LAYERS[l + 1];
+            for (var i = startIdx; i < endIdx; i++) {
+                for (var j = nextStart; j < nextEnd; j++) {
+                    edges.push({
+                        from: i,
+                        to: j,
+                        weight: (Math.random() * 2 - 1) * 0.8,
+                        grad: 0
+                    });
+                }
+            }
+        }
+
+        /* Edge from output node to loss */
+        /* (conceptual, drawn separately) */
+    }
+
+    /* --- State --- */
+    var animState = 'idle'; /* idle, forward, backward, done */
+    var animStep = 0; /* which layer we're animating */
+    var stepMode = false;
+    var stepWaiting = false;
+    var selectedNode = null;
+    var forwardDone = false;
+    var backwardDone = false;
+    var animTimer = null;
+    var particleSets = []; /* animated particles */
+
+    /* Fixed input values */
+    var inputVals = [0.6, 0.9];
+    var targetVal = 0.4;
+
+    function relu(x) { return Math.max(0, x); }
+    function reluDeriv(x) { return x > 0 ? 1.0 : 0.0; }
+
+    function forwardPass() {
+        /* Set input values */
+        nodes[0].value = inputVals[0];
+        nodes[0].activation = inputVals[0];
+        nodes[1].value = inputVals[1];
+        nodes[1].activation = inputVals[1];
+
+        var offset = 0;
+        for (var l = 0; l < LAYERS.length - 1; l++) {
+            var startIdx = 0;
+            for (var ll = 0; ll < l; ll++) startIdx += LAYERS[ll];
+            var nextStart = startIdx + LAYERS[l];
+
+            for (var j = 0; j < LAYERS[l + 1]; j++) {
+                var sum = 0.1; /* bias */
+                for (var i = 0; i < LAYERS[l]; i++) {
+                    var eIdx = findEdge(startIdx + i, nextStart + j);
+                    if (eIdx >= 0) {
+                        sum += nodes[startIdx + i].activation * edges[eIdx].weight;
+                    }
+                }
+                var nIdx = nextStart + j;
+                nodes[nIdx].value = sum;
+                /* Apply ReLU except output layer uses linear */
+                if (l < LAYERS.length - 2) {
+                    nodes[nIdx].activation = relu(sum);
+                } else {
+                    nodes[nIdx].activation = sum; /* linear output */
+                }
+            }
+        }
+
+        /* Compute loss (MSE) */
+        var outIdx = nodes.length - 1;
+        var yhat = nodes[outIdx].activation;
+        lossNode.value = (yhat - targetVal) * (yhat - targetVal);
+
+        /* Set local derivatives for display */
+        for (var i = 0; i < nodes.length; i++) {
+            var n = nodes[i];
+            if (n.layer === 0) {
+                n.localDeriv = 'input (no derivative)';
+            } else if (n.layer < LAYERS.length - 1) {
+                n.localDeriv = '\u2202a/\u2202z = ReLU\'(' + n.value.toFixed(3) + ') = ' + reluDeriv(n.value).toFixed(1);
+            } else {
+                n.localDeriv = '\u2202\u0177/\u2202z = 1 (linear output)';
+            }
+        }
+        lossNode.localDeriv = '\u2202L/\u2202\u0177 = 2(\u0177 - y) = ' + (2 * (yhat - targetVal)).toFixed(4);
+    }
+
+    function backwardPass() {
+        /* Loss gradient */
+        var outIdx = nodes.length - 1;
+        var yhat = nodes[outIdx].activation;
+        var dLdy = 2 * (yhat - targetVal);
+        lossNode.grad = 1.0;
+
+        /* Output node gradient */
+        nodes[outIdx].grad = dLdy * 1.0; /* linear activation */
+
+        /* Backpropagate through layers */
+        for (var l = LAYERS.length - 2; l >= 0; l--) {
+            var startIdx = 0;
+            for (var ll = 0; ll < l; ll++) startIdx += LAYERS[ll];
+            var nextStart = startIdx + LAYERS[l];
+
+            for (var i = 0; i < LAYERS[l]; i++) {
+                var nIdx = startIdx + i;
+                var gradSum = 0;
+                for (var j = 0; j < LAYERS[l + 1]; j++) {
+                    var eIdx = findEdge(nIdx, nextStart + j);
+                    if (eIdx >= 0) {
+                        var downstreamGrad = nodes[nextStart + j].grad;
+                        /* If downstream is hidden layer, multiply by ReLU derivative */
+                        var localD = 1.0;
+                        if (nodes[nextStart + j].layer < LAYERS.length - 1) {
+                            localD = reluDeriv(nodes[nextStart + j].value);
+                        }
+                        edges[eIdx].grad = downstreamGrad * localD * nodes[nIdx].activation;
+                        gradSum += downstreamGrad * localD * edges[eIdx].weight;
+                    }
+                }
+                if (l > 0) {
+                    /* Apply local derivative (ReLU) for this node */
+                    nodes[nIdx].grad = gradSum * reluDeriv(nodes[nIdx].value);
+                } else {
+                    nodes[nIdx].grad = gradSum;
+                }
+            }
+        }
+    }
+
+    function findEdge(fromId, toId) {
+        for (var i = 0; i < edges.length; i++) {
+            if (edges[i].from === fromId && edges[i].to === toId) return i;
+        }
+        return -1;
+    }
+
+    /* --- Particle animation --- */
+    function createParticles(fromNode, toNode, color, count) {
+        var particles = [];
+        for (var i = 0; i < count; i++) {
+            particles.push({
+                x: fromNode.x,
+                y: fromNode.y,
+                tx: toNode.x,
+                ty: toNode.y,
+                progress: -i * 0.15, /* stagger */
+                color: color,
+                size: 2.5 + Math.random() * 1.5
+            });
+        }
+        return particles;
+    }
+
+    /* --- Drawing --- */
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        /* Layer labels */
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center';
+        for (var l = 0; l < LAYERS.length; l++) {
+            ctx.fillStyle = '#606078';
+            ctx.fillText(LAYER_LABELS[l], layerX[l], 22);
+        }
+        ctx.fillStyle = '#606078';
+        ctx.fillText('Loss', lossX, 22);
+
+        /* Draw edges */
+        for (var i = 0; i < edges.length; i++) {
+            var e = edges[i];
+            var fn = nodes[e.from];
+            var tn = nodes[e.to];
+
+            /* Edge thickness based on weight magnitude */
+            var thickness = 0.5 + Math.abs(e.weight) * 2;
+            var alpha = 0.15 + Math.abs(e.weight) * 0.3;
+
+            if (backwardDone && Math.abs(e.grad) > 0.001) {
+                /* Color edges by gradient magnitude in backward mode */
+                var gradAlpha = clamp(Math.abs(e.grad) * 2, 0.15, 0.8);
+                ctx.strokeStyle = 'rgba(244,114,182,' + gradAlpha.toFixed(2) + ')';
+                thickness = 0.5 + Math.abs(e.grad) * 4;
+            } else if (forwardDone) {
+                ctx.strokeStyle = 'rgba(34,211,238,' + alpha.toFixed(2) + ')';
+            } else {
+                ctx.strokeStyle = 'rgba(255,255,255,' + (alpha * 0.4).toFixed(2) + ')';
+            }
+
+            ctx.lineWidth = clamp(thickness, 0.5, 4);
+            ctx.beginPath();
+            ctx.moveTo(fn.x + NODE_RADIUS, fn.y);
+            ctx.lineTo(tn.x - NODE_RADIUS, tn.y);
+            ctx.stroke();
+        }
+
+        /* Draw edge from output to loss node */
+        var outNode = nodes[nodes.length - 1];
+        ctx.strokeStyle = forwardDone ? 'rgba(34,211,238,0.3)' : 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(outNode.x + NODE_RADIUS, outNode.y);
+        ctx.lineTo(lossNode.x - NODE_RADIUS, lossNode.y);
+        ctx.stroke();
+
+        /* Draw nodes */
+        for (var i = 0; i < nodes.length; i++) {
+            drawNode(nodes[i]);
+        }
+        /* Draw loss node */
+        drawNode(lossNode);
+
+        /* Draw particles */
+        for (var s = 0; s < particleSets.length; s++) {
+            var pset = particleSets[s];
+            for (var p = 0; p < pset.length; p++) {
+                var pt = pset[p];
+                if (pt.progress >= 0 && pt.progress <= 1) {
+                    var px = pt.x + (pt.tx - pt.x) * pt.progress;
+                    var py = pt.y + (pt.ty - pt.y) * pt.progress;
+                    ctx.shadowColor = pt.color;
+                    ctx.shadowBlur = 8;
+                    ctx.fillStyle = pt.color;
+                    ctx.beginPath();
+                    ctx.arc(px, py, pt.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            }
+        }
+
+        /* Show values on nodes if forward pass done */
+        if (forwardDone || backwardDone) {
+            ctx.font = '10px Courier New, monospace';
+            ctx.textAlign = 'center';
+            for (var i = 0; i < nodes.length; i++) {
+                var n = nodes[i];
+                var dispVal = forwardDone ? n.activation.toFixed(2) : '';
+                if (backwardDone) {
+                    dispVal = '\u2207=' + n.grad.toFixed(3);
+                }
+                ctx.fillStyle = backwardDone ? '#f472b6' : '#22d3ee';
+                ctx.fillText(dispVal, n.x, n.y + NODE_RADIUS + 14);
+            }
+            /* Loss node value */
+            ctx.fillStyle = '#f472b6';
+            ctx.fillText(backwardDone ? '\u2207=1.000' : 'L=' + lossNode.value.toFixed(4), lossNode.x, lossNode.y + NODE_RADIUS + 14);
+        }
+    }
+
+    function drawNode(n) {
+        var isSelected = (selectedNode !== null && selectedNode.id === n.id);
+        var isLoss = (n === lossNode);
+        var gradMag = Math.abs(n.grad);
+
+        /* Node size: base + gradient magnitude */
+        var r = NODE_RADIUS;
+        if (backwardDone && gradMag > 0.01) {
+            r = NODE_RADIUS + clamp(gradMag * 3, 0, 8);
+        }
+
+        /* Node color */
+        var fillColor, strokeColor, glowColor;
+        if (isSelected) {
+            fillColor = 'rgba(251,191,36,0.2)';
+            strokeColor = '#fbbf24';
+            glowColor = '#fbbf24';
+        } else if (isLoss) {
+            fillColor = backwardDone ? 'rgba(244,114,182,0.2)' : 'rgba(244,114,182,0.1)';
+            strokeColor = '#f472b6';
+            glowColor = '#f472b6';
+        } else if (n.layer === 0) {
+            fillColor = 'rgba(34,211,238,0.1)';
+            strokeColor = forwardDone ? '#22d3ee' : 'rgba(34,211,238,0.4)';
+            glowColor = '#22d3ee';
+        } else if (n.layer === LAYERS.length - 1) {
+            fillColor = 'rgba(16,185,129,0.1)';
+            strokeColor = forwardDone ? '#10b981' : 'rgba(16,185,129,0.4)';
+            glowColor = '#10b981';
+        } else {
+            fillColor = 'rgba(167,139,250,0.08)';
+            strokeColor = forwardDone ? '#a78bfa' : 'rgba(167,139,250,0.3)';
+            glowColor = '#a78bfa';
+        }
+
+        /* Backward-mode override: glow by gradient magnitude */
+        if (backwardDone && !isSelected && !isLoss) {
+            var gradIntensity = clamp(gradMag * 2.5, 0.1, 1.0);
+            fillColor = 'rgba(244,114,182,' + (gradIntensity * 0.2).toFixed(2) + ')';
+            strokeColor = 'rgba(244,114,182,' + clamp(gradIntensity, 0.3, 1.0).toFixed(2) + ')';
+            glowColor = '#f472b6';
+        }
+
+        /* Glow */
+        if (isSelected || (backwardDone && gradMag > 0.05)) {
+            ctx.shadowColor = glowColor;
+            ctx.shadowBlur = isSelected ? 18 : clamp(gradMag * 15, 4, 18);
+        }
+
+        ctx.fillStyle = fillColor;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = isSelected ? 2.5 : 1.5;
+        ctx.stroke();
+
+        /* Node label */
+        ctx.fillStyle = isSelected ? '#fbbf24' : '#e0e0e0';
+        ctx.font = (isLoss ? 'bold ' : '') + '12px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(n.label, n.x, n.y);
+        ctx.textBaseline = 'alphabetic';
+    }
+
+    /* --- Animation --- */
+    function animateForward() {
+        if (animState === 'forward') return;
+        animState = 'forward';
+        forwardDone = false;
+        backwardDone = false;
+        selectedNode = null;
+        particleSets = [];
+
+        /* Reset gradients */
+        for (var i = 0; i < nodes.length; i++) nodes[i].grad = 0;
+        for (var i = 0; i < edges.length; i++) edges[i].grad = 0;
+        lossNode.grad = 0;
+
+        forwardPass();
+
+        /* Create particle animations layer by layer */
+        animStep = 0;
+        forwardAnimStep();
+    }
+
+    function forwardAnimStep() {
+        if (animStep >= LAYERS.length) {
+            /* Final: animate to loss node */
+            var outNode = nodes[nodes.length - 1];
+            particleSets.push(createParticles(outNode, lossNode, '#22d3ee', 4));
+            animateParticles(function() {
+                forwardDone = true;
+                animState = 'idle';
+                updateResults();
+                draw();
+            });
+            return;
+        }
+
+        if (animStep === 0) {
+            /* Just highlight inputs */
+            animStep++;
+            updateResults();
+            draw();
+            if (stepMode) {
+                stepWaiting = true;
+                document.getElementById('s1Results').innerHTML = '<span class="cyan">Forward step ' + animStep + '/' + LAYERS.length + '</span> &mdash; Input values set: x<sub>1</sub>=' + inputVals[0] + ', x<sub>2</sub>=' + inputVals[1] + '. Click <strong>Step by step</strong> to continue.';
+                return;
+            }
+            setTimeout(forwardAnimStep, 200);
+            return;
+        }
+
+        /* Animate particles from layer animStep-1 to layer animStep */
+        var startIdx = 0;
+        for (var ll = 0; ll < animStep - 1; ll++) startIdx += LAYERS[ll];
+        var fromEnd = startIdx + LAYERS[animStep - 1];
+        var toStart = fromEnd;
+        var toEnd = toStart + LAYERS[animStep];
+
+        particleSets = [];
+        for (var i = startIdx; i < fromEnd; i++) {
+            for (var j = toStart; j < toEnd; j++) {
+                particleSets.push(createParticles(nodes[i], nodes[j], '#22d3ee', 3));
+            }
+        }
+
+        animateParticles(function() {
+            animStep++;
+            updateResults();
+            draw();
+            if (stepMode) {
+                stepWaiting = true;
+                var layerName = animStep <= LAYERS.length ? LAYER_LABELS[Math.min(animStep - 1, LAYERS.length - 1)] : 'Loss';
+                document.getElementById('s1Results').innerHTML = '<span class="cyan">Forward step ' + animStep + '/' + (LAYERS.length + 1) + '</span> &mdash; ' + layerName + ' computed. Click <strong>Step by step</strong> to continue.';
+                return;
+            }
+            setTimeout(forwardAnimStep, 100);
+        });
+    }
+
+    function animateBackward() {
+        if (!forwardDone) {
+            /* Must do forward first */
+            document.getElementById('s1Results').innerHTML = '<span class="pink">Run the forward pass first.</span>';
+            return;
+        }
+        if (animState === 'backward') return;
+        animState = 'backward';
+        backwardDone = false;
+        particleSets = [];
+
+        backwardPass();
+
+        /* Animate backwards layer by layer */
+        animStep = LAYERS.length; /* start from loss -> output */
+        backwardAnimStep();
+    }
+
+    function backwardAnimStep() {
+        if (animStep <= 0) {
+            backwardDone = true;
+            animState = 'idle';
+            updateResults();
+            draw();
+            return;
+        }
+
+        if (animStep === LAYERS.length) {
+            /* Animate from loss to output */
+            var outNode = nodes[nodes.length - 1];
+            particleSets = [createParticles(lossNode, outNode, '#f472b6', 4)];
+            animateParticles(function() {
+                animStep--;
+                updateResults();
+                draw();
+                if (stepMode) {
+                    stepWaiting = true;
+                    document.getElementById('s1Results').innerHTML = '<span class="pink">Backward step ' + (LAYERS.length - animStep) + '/' + LAYERS.length + '</span> &mdash; Gradient at output: ' + nodes[nodes.length - 1].grad.toFixed(4) + '. Click <strong>Step by step</strong> to continue.';
+                    return;
+                }
+                setTimeout(backwardAnimStep, 100);
+            });
+            return;
+        }
+
+        /* Animate from layer animStep+1 to layer animStep */
+        var toStart = 0;
+        for (var ll = 0; ll < animStep; ll++) toStart += LAYERS[ll];
+        var toEnd = toStart + LAYERS[animStep];
+        var fromStart = toEnd;
+        var fromEnd = fromStart + LAYERS[animStep + 1];
+
+        particleSets = [];
+        for (var j = fromStart; j < fromEnd; j++) {
+            for (var i = toStart; i < toEnd; i++) {
+                particleSets.push(createParticles(nodes[j], nodes[i], '#f472b6', 3));
+            }
+        }
+
+        animateParticles(function() {
+            animStep--;
+            updateResults();
+            draw();
+            if (stepMode) {
+                stepWaiting = true;
+                var layerName = LAYER_LABELS[animStep];
+                document.getElementById('s1Results').innerHTML = '<span class="pink">Backward step ' + (LAYERS.length - animStep) + '/' + LAYERS.length + '</span> &mdash; Gradients at ' + layerName + ' computed. Click <strong>Step by step</strong> to continue.';
+                return;
+            }
+            setTimeout(backwardAnimStep, 100);
+        });
+    }
+
+    function animateParticles(cb) {
+        var speed = 0.025;
+        var raf;
+        function tick() {
+            var allDone = true;
+            for (var s = 0; s < particleSets.length; s++) {
+                for (var p = 0; p < particleSets[s].length; p++) {
+                    particleSets[s][p].progress += speed;
+                    if (particleSets[s][p].progress < 1.0) allDone = false;
+                }
+            }
+            draw();
+            if (allDone) {
+                particleSets = [];
+                if (cb) cb();
+            } else {
+                raf = requestAnimationFrame(tick);
+            }
+        }
+        raf = requestAnimationFrame(tick);
+    }
+
+    function updateResults() {
+        var el = document.getElementById('s1Results');
+        if (backwardDone) {
+            var outIdx = nodes.length - 1;
+            el.innerHTML =
+                '<span class="pink">Backward pass complete.</span> ' +
+                'Loss: <span class="pink">' + lossNode.value.toFixed(4) + '</span> &nbsp; ' +
+                '\u2202L/\u2202\u0177: <span class="pink">' + nodes[outIdx].grad.toFixed(4) + '</span> &nbsp; ' +
+                'Max |grad|: <span class="violet">' + maxGrad().toFixed(4) + '</span>';
+        } else if (forwardDone) {
+            var outIdx = nodes.length - 1;
+            el.innerHTML =
+                '<span class="cyan">Forward pass complete.</span> ' +
+                '\u0177 = <span class="green">' + nodes[outIdx].activation.toFixed(4) + '</span> &nbsp; ' +
+                'target = <span class="gold">' + targetVal + '</span> &nbsp; ' +
+                'Loss = <span class="pink">' + lossNode.value.toFixed(4) + '</span>';
+        }
+    }
+
+    function maxGrad() {
+        var m = 0;
+        for (var i = 0; i < nodes.length; i++) {
+            m = Math.max(m, Math.abs(nodes[i].grad));
+        }
+        return m;
+    }
+
+    function resetSection1() {
+        animState = 'idle';
+        forwardDone = false;
+        backwardDone = false;
+        selectedNode = null;
+        particleSets = [];
+        stepWaiting = false;
+        for (var i = 0; i < nodes.length; i++) {
+            nodes[i].value = 0;
+            nodes[i].activation = 0;
+            nodes[i].grad = 0;
+        }
+        for (var i = 0; i < edges.length; i++) {
+            edges[i].grad = 0;
+        }
+        lossNode.value = 0;
+        lossNode.grad = 0;
+        document.getElementById('s1Results').innerHTML = 'Click <strong>Forward pass</strong> to begin.';
+        document.getElementById('nodeInfo').style.display = 'none';
+        draw();
+    }
+
+    /* --- Node click detection --- */
+    function getNodeAt(mx, my) {
+        /* Check loss node first */
+        var dx = mx - lossNode.x, dy = my - lossNode.y;
+        if (dx * dx + dy * dy <= (NODE_RADIUS + 6) * (NODE_RADIUS + 6)) return lossNode;
+        for (var i = nodes.length - 1; i >= 0; i--) {
+            dx = mx - nodes[i].x;
+            dy = my - nodes[i].y;
+            if (dx * dx + dy * dy <= (NODE_RADIUS + 6) * (NODE_RADIUS + 6)) return nodes[i];
+        }
+        return null;
+    }
+
+    function handleClick(e) {
+        var rect = cvs.getBoundingClientRect();
+        var mx = (e.clientX - rect.left) * (W / rect.width);
+        var my = (e.clientY - rect.top) * (H / rect.height);
+        var node = getNodeAt(mx, my);
+        if (node) {
+            selectedNode = node;
+            showNodeInfo(node);
+            draw();
+        } else {
+            selectedNode = null;
+            document.getElementById('nodeInfo').style.display = 'none';
+            draw();
+        }
+    }
+
+    function handleTouch(e) {
+        if (e.touches.length !== 1) return;
+        e.preventDefault();
+        var t = e.touches[0];
+        var rect = cvs.getBoundingClientRect();
+        var mx = (t.clientX - rect.left) * (W / rect.width);
+        var my = (t.clientY - rect.top) * (H / rect.height);
+        var node = getNodeAt(mx, my);
+        if (node) {
+            selectedNode = node;
+            showNodeInfo(node);
+            draw();
+        }
+    }
+
+    function showNodeInfo(n) {
+        var el = document.getElementById('nodeInfo');
+        var content = document.getElementById('nodeInfoContent');
+        el.style.display = '';
+        var html = '<span class="gold">' + n.label + '</span>';
+        if (forwardDone || backwardDone) {
+            if (n === lossNode) {
+                html += ' &nbsp; Value: <span class="pink">' + n.value.toFixed(4) + '</span>';
+                html += ' &nbsp; Gradient: <span class="pink">' + n.grad.toFixed(4) + '</span>';
+            } else {
+                html += ' &nbsp; z = <span class="cyan">' + n.value.toFixed(4) + '</span>';
+                html += ' &nbsp; a = <span class="green">' + n.activation.toFixed(4) + '</span>';
+                if (backwardDone) {
+                    html += ' &nbsp; grad = <span class="pink">' + n.grad.toFixed(4) + '</span>';
+                }
+            }
+        }
+        html += '<br><span class="muted">Local derivative: ' + (n.localDeriv || 'n/a') + '</span>';
+        content.innerHTML = html;
+    }
+
+    /* --- Event listeners --- */
+    cvs.addEventListener('click', handleClick);
+    cvs.addEventListener('touchstart', handleTouch, { passive: false });
+
+    document.getElementById('btnForward').addEventListener('click', function() {
+        if (animState !== 'idle') return;
+        animateForward();
+    });
+
+    document.getElementById('btnBackward').addEventListener('click', function() {
+        if (animState !== 'idle' && !stepWaiting) return;
+        if (stepWaiting && animState === 'backward') {
+            /* Continue backward step */
+            stepWaiting = false;
+            backwardAnimStep();
+            return;
+        }
+        animateBackward();
+    });
+
+    document.getElementById('btnStepMode').addEventListener('click', function() {
+        if (stepWaiting) {
+            stepWaiting = false;
+            if (animState === 'forward') {
+                forwardAnimStep();
+            } else if (animState === 'backward') {
+                backwardAnimStep();
+            }
+            return;
+        }
+        stepMode = !stepMode;
+        this.classList.toggle('active', stepMode);
+        this.textContent = stepMode ? 'Step by step (on)' : 'Step by step';
+    });
+
+    document.getElementById('btnReset1').addEventListener('click', function() {
+        resetSection1();
+    });
+
+    /* --- Init --- */
+    buildNetwork();
+    draw();
+})();
+
+/* ================================================================
+   Section 2: Vanishing & Exploding Gradients
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas2');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var PAD = { left: 70, right: 30, top: 30, bottom: 45 };
+    var plotW = W - PAD.left - PAD.right;
+    var plotH = H - PAD.top - PAD.bottom;
+
+    var activationType = 'sigmoid'; /* sigmoid, relu, relubn */
+    var numLayers = 10;
+    var gradients = [];
+    var animFrame = 0;
+    var animTotal = 0;
+    var animState = 'idle';
+    var rafId = null;
+
+    function sigmoid(x) { return 1.0 / (1.0 + Math.exp(-x)); }
+    function sigmoidDeriv(x) { var s = sigmoid(x); return s * (1 - s); }
+
+    function computeGradients() {
+        gradients = [];
+        var grad = 1.0; /* start from loss */
+
+        if (activationType === 'sigmoid') {
+            for (var l = numLayers - 1; l >= 0; l--) {
+                /* Sigmoid derivative max is 0.25, typical around 0.1-0.2 */
+                var localDeriv = 0.18 + Math.random() * 0.07; /* simulated typical sigmoid derivative */
+                var weightScale = 0.8 + Math.random() * 0.4; /* weight magnitudes */
+                grad *= localDeriv * weightScale;
+                gradients.unshift(grad);
+            }
+        } else if (activationType === 'relu') {
+            for (var l = numLayers - 1; l >= 0; l--) {
+                /* ReLU derivative is 1 (when active) but weights can amplify */
+                var localDeriv = Math.random() > 0.15 ? 1.0 : 0.0; /* ~15% dead neurons */
+                var weightScale = 0.7 + Math.random() * 1.0; /* not normalised, can grow */
+                grad *= localDeriv * weightScale;
+                gradients.unshift(grad);
+            }
+        } else { /* relu + batchnorm */
+            for (var l = numLayers - 1; l >= 0; l--) {
+                var localDeriv = Math.random() > 0.1 ? 1.0 : 0.0;
+                /* BatchNorm keeps scale near 1.0 */
+                var weightScale = 0.9 + Math.random() * 0.2;
+                grad *= localDeriv * weightScale;
+                /* BatchNorm normalisation effect */
+                grad = grad * 0.95 + 0.05 * (0.8 + Math.random() * 0.4);
+                gradients.unshift(grad);
+            }
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var n = gradients.length;
+        if (n === 0) {
+            /* Draw empty axes */
+            drawAxes(1.0);
+            return;
+        }
+
+        /* Determine display count (animated) */
+        var displayCount = animState === 'animating' ? Math.min(animFrame, n) : n;
+
+        /* Y scale: log10 */
+        var logMin = -8;
+        var logMax = 4;
+
+        /* Draw ideal zone */
+        var idealLow = Math.log10(0.1);
+        var idealHigh = Math.log10(10);
+        var iy0 = PAD.top + plotH * (1 - (idealHigh - logMin) / (logMax - logMin));
+        var iy1 = PAD.top + plotH * (1 - (idealLow - logMin) / (logMax - logMin));
+        ctx.fillStyle = 'rgba(167,139,250,0.06)';
+        ctx.fillRect(PAD.left, iy0, plotW, iy1 - iy0);
+        ctx.strokeStyle = 'rgba(167,139,250,0.2)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(PAD.left, iy0);
+        ctx.lineTo(PAD.left + plotW, iy0);
+        ctx.moveTo(PAD.left, iy1);
+        ctx.lineTo(PAD.left + plotW, iy1);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        /* Label ideal zone */
+        ctx.fillStyle = '#a78bfa';
+        ctx.font = '10px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('ideal range', PAD.left + 4, iy0 + 12);
+
+        /* Draw bars */
+        var barW = Math.min(40, (plotW / n) * 0.7);
+        var gap = (plotW - barW * n) / (n + 1);
+
+        for (var i = 0; i < displayCount; i++) {
+            var g = gradients[i];
+            var logG = (g > 0) ? Math.log10(g) : logMin;
+            logG = clamp(logG, logMin, logMax);
+
+            /* Bar from baseline (log=0) */
+            var baseline = PAD.top + plotH * (1 - (0 - logMin) / (logMax - logMin));
+            var barTop = PAD.top + plotH * (1 - (logG - logMin) / (logMax - logMin));
+
+            var barX = PAD.left + gap + i * (barW + gap);
+            var barH = baseline - barTop;
+
+            /* Color by magnitude */
+            var color;
+            if (g < 0.01) {
+                color = 'rgba(244,114,182,0.3)'; /* vanishing - dim */
+            } else if (g > 10) {
+                color = '#f87171'; /* exploding - red */
+            } else {
+                color = '#f472b6'; /* healthy - pink */
+            }
+
+            /* Glow for extreme values */
+            if (g > 10 || g < 0.01) {
+                ctx.shadowColor = g > 10 ? '#f87171' : '#f472b6';
+                ctx.shadowBlur = 6;
+            }
+
+            ctx.fillStyle = color;
+            if (barH > 0) {
+                ctx.fillRect(barX, barTop, barW, barH);
+            } else {
+                /* Below baseline */
+                ctx.fillRect(barX, baseline, barW, -barH);
+            }
+            ctx.shadowBlur = 0;
+
+            /* Layer number label */
+            ctx.fillStyle = '#808098';
+            ctx.font = '10px Courier New, monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('L' + (i + 1), barX + barW / 2, H - PAD.bottom + 16);
+
+            /* Value label on bar */
+            if (animState !== 'animating' || i < displayCount) {
+                ctx.fillStyle = g < 0.001 ? '#808098' : '#e0e0e0';
+                ctx.font = '9px Courier New, monospace';
+                var valLabel = g.toExponential(1);
+                var labelY = barH > 0 ? barTop - 5 : baseline + Math.abs(barH) + 12;
+                ctx.fillText(valLabel, barX + barW / 2, labelY);
+            }
+        }
+
+        drawAxes(logMax);
+    }
+
+    function drawAxes(logMax) {
+        var logMin = -8;
+        var logMaxVal = 4;
+
+        /* Y axis */
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(PAD.left, PAD.top);
+        ctx.lineTo(PAD.left, H - PAD.bottom);
+        ctx.stroke();
+
+        /* X axis */
+        ctx.beginPath();
+        ctx.moveTo(PAD.left, H - PAD.bottom);
+        ctx.lineTo(W - PAD.right, H - PAD.bottom);
+        ctx.stroke();
+
+        /* Y tick marks and labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'right';
+        for (var p = -8; p <= 4; p += 2) {
+            var y = PAD.top + plotH * (1 - (p - logMin) / (logMaxVal - logMin));
+            ctx.fillText('10^' + p, PAD.left - 6, y + 4);
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+            ctx.beginPath();
+            ctx.moveTo(PAD.left, y);
+            ctx.lineTo(W - PAD.right, y);
+            ctx.stroke();
+        }
+
+        /* Axis labels */
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '12px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Layer (output \u2192 input)', PAD.left + plotW / 2, H - 5);
+
+        ctx.save();
+        ctx.translate(14, PAD.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('Gradient magnitude (log scale)', 0, 0);
+        ctx.restore();
+
+        /* Title showing activation type */
+        var titles = {
+            sigmoid: 'Sigmoid \u2014 Vanishing Gradients',
+            relu: 'ReLU \u2014 Unstable Gradients',
+            relubn: 'ReLU + BatchNorm \u2014 Stable Gradients'
+        };
+        var colors = {
+            sigmoid: '#f472b6',
+            relu: '#10b981',
+            relubn: '#22d3ee'
+        };
+        ctx.fillStyle = colors[activationType];
+        ctx.font = '13px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(titles[activationType], PAD.left + 8, PAD.top + 16);
+    }
+
+    function runAnimation() {
+        if (animState === 'animating') return;
+        computeGradients();
+        animFrame = 0;
+        animTotal = gradients.length;
+        animState = 'animating';
+
+        function tick() {
+            animFrame++;
+            draw();
+            updateS2Results();
+            if (animFrame <= animTotal) {
+                rafId = requestAnimationFrame(tick);
+            } else {
+                animState = 'done';
+            }
+        }
+        rafId = requestAnimationFrame(tick);
+    }
+
+    function updateS2Results() {
+        if (gradients.length === 0) return;
+        var el = document.getElementById('s2Results');
+        var first = gradients[0];
+        var last = gradients[gradients.length - 1];
+        var ratio = last > 0 ? (first / last) : Infinity;
+
+        var statusText = '';
+        if (activationType === 'sigmoid') {
+            statusText = '<span class="pink">Vanishing:</span> gradient at input layer is ' + first.toExponential(2) + ' &mdash; ' + (ratio < 1 ? 'amplified' : 'shrunk') + ' by ' + ratio.toExponential(1) + '&times;';
+        } else if (activationType === 'relu') {
+            var maxG = Math.max.apply(null, gradients);
+            var minG = Math.min.apply(null, gradients.filter(function(g) { return g > 0; }));
+            statusText = '<span class="green">ReLU:</span> max gradient = ' + maxG.toExponential(2) + ', min = ' + (minG || 0).toExponential(2) + ' &mdash; <span class="muted">can explode without normalisation</span>';
+        } else {
+            statusText = '<span class="cyan">BatchNorm + ReLU:</span> gradients stay in range [' + Math.min.apply(null, gradients).toExponential(1) + ', ' + Math.max.apply(null, gradients).toExponential(1) + '] &mdash; <span class="muted">stable training</span>';
+        }
+        el.innerHTML = statusText;
+    }
+
+    /* Event listeners */
+    document.getElementById('btnSigmoid').addEventListener('click', function() {
+        activationType = 'sigmoid';
+        setActiveBtn(this);
+        computeGradients();
+        animState = 'done';
+        draw();
+        updateS2Results();
+    });
+
+    document.getElementById('btnReLU').addEventListener('click', function() {
+        activationType = 'relu';
+        setActiveBtn(this);
+        computeGradients();
+        animState = 'done';
+        draw();
+        updateS2Results();
+    });
+
+    document.getElementById('btnReLUBN').addEventListener('click', function() {
+        activationType = 'relubn';
+        setActiveBtn(this);
+        computeGradients();
+        animState = 'done';
+        draw();
+        updateS2Results();
+    });
+
+    function setActiveBtn(btn) {
+        document.querySelectorAll('#btnSigmoid,#btnReLU,#btnReLUBN').forEach(function(b) {
+            b.classList.remove('active');
+        });
+        btn.classList.add('active');
+    }
+
+    document.getElementById('sLayers').addEventListener('input', function() {
+        numLayers = parseInt(this.value);
+        document.getElementById('vLayers').textContent = numLayers;
+        if (animState === 'done') {
+            computeGradients();
+            draw();
+            updateS2Results();
+        }
+    });
+
+    document.getElementById('btnShowFlow').addEventListener('click', function() {
+        numLayers = parseInt(document.getElementById('sLayers').value);
+        runAnimation();
+    });
+
+    /* Init */
+    computeGradients();
+    animState = 'done';
+    draw();
+    updateS2Results();
+})();
+</script>
+</body>
+</html>

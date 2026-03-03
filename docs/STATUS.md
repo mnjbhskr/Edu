@@ -12,8 +12,8 @@ All planned content is **live and deployed** at [mathsedu.org](https://mathsedu.
 
 | Metric | Value |
 |--------|-------|
-| Total visualisations | 80 |
-| Chapters | 12 |
+| Total visualisations | 96 |
+| Chapters | 13 |
 | Status | All live |
 | Hosting | GitHub Pages |
 | Custom domain | mathsedu.org |
@@ -36,6 +36,7 @@ All planned content is **live and deployed** at [mathsedu.org](https://mathsedu.
 | 10. Beautiful Results | 6 | Complete |
 | 11. Quantitative Finance | 10 | Complete |
 | 12. Physics | 10 | Complete |
+| 13. The Mathematics of Intelligence | 16 | Complete |
 
 ## Build History
 
@@ -73,14 +74,14 @@ The entire collection was built on 25 February 2026 in two phases:
 
 | Component | Status |
 |-----------|--------|
-| `sitemap.xml` (80 URLs) | Deployed, submitted to Google Search Console |
+| `sitemap.xml` (98 URLs) | Deployed, submitted to Google Search Console |
 | `robots.txt` | Deployed |
 | Google Search Console | Verified (URL prefix method) |
-| Meta descriptions | All 80 pages — unique, 140-160 char descriptions |
-| Schema.org JSON-LD | All 80 pages — `LearningResource` with educationalLevel, teaches, chapter |
-| Open Graph tags | All 80 pages — og:title, og:description, og:url, og:type, og:site_name, og:locale |
-| Twitter Card tags | All 80 pages — twitter:card, twitter:title, twitter:description |
-| Canonical URLs | All 80 pages — `<link rel="canonical">` |
+| Meta descriptions | All 96 pages — unique, 140-160 char descriptions |
+| Schema.org JSON-LD | All 96 pages — `LearningResource` with educationalLevel, teaches, chapter |
+| Open Graph tags | All 96 pages — og:title, og:description, og:url, og:type, og:site_name, og:locale |
+| Twitter Card tags | All 96 pages — twitter:card, twitter:title, twitter:description |
+| Canonical URLs | All 96 pages — `<link rel="canonical">` |
 
 **Education directory listings:**
 
@@ -107,6 +108,24 @@ The entire collection was built on 25 February 2026 in two phases:
 
 **Phase 8** — The Electromagnetic Spectrum (2 March 2026) — 1 new visualisation:
 - The Electromagnetic Spectrum (4 interactive sections: Full Spectrum Explorer with log-scale zoomable bar and wave animation, Wavelength & Physical Scale with ruler anchoring bands to objects, Photon Energy E=hf with log-log graph and photon cannon, The Spectrum Around Us with 7 illustrated application scenes)
+
+**Phase 9** — Chapter 13: The Mathematics of Intelligence (2 March 2026) — 16 new visualisations:
+- The Mathematics of Intelligence — A Map (chapter landing page with interactive concept map)
+- Vectors & Embeddings (word embedding space, vector arithmetic, high-dimensional intuition)
+- Probability & Softmax (logits to probabilities, temperature scaling, cross-entropy loss)
+- The Single Neuron (weighted sum diagram, activation functions, decision boundary)
+- Gradient Descent (already built — loss landscape, learning rate race, SGD)
+- Backpropagation (computational graph with forward/backward animation, vanishing/exploding gradients)
+- Overfitting & Generalisation (polynomial fitting, regularisation techniques)
+- The Attention Mechanism (sentence attention heatmap, QKV matrices, multi-head attention)
+- Positional Encoding (word order matters, sinusoidal encoding heatmap)
+- The Transformer Architecture (full interactive architecture diagram, GPT vs BERT masking)
+- Next-Token Prediction (prediction game with bigram model, entropy, hallucination)
+- Train Your Own Language Model (editable corpus, bigram table, text generation)
+- Scaling Laws (power law plots, Chinchilla scaling)
+- Chain-of-Thought Reasoning (direct vs CoT comparison, reasoning tree)
+- Retrieval-Augmented Generation (vector database, RAG pipeline animation)
+- Agentic AI Systems (observe-think-act loop, tool use & planning tree)
 
 ## Potential Next Steps
 

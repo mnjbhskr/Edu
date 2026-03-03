@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Single Neuron</title>
+    <meta name="description" content="Build a neuron from scratch. Explore weighted sums, activation functions (ReLU, Sigmoid, Tanh, GELU), and see why a single neuron draws a linear decision boundary.">
+    <link rel="canonical" href="https://mathsedu.org/neuron_and_activation.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "The Single Neuron",
+      "url": "https://mathsedu.org/neuron_and_activation.html",
+      "description": "Build a neuron from scratch. Explore weighted sums, activation functions (ReLU, Sigmoid, Tanh, GELU), and see why a single neuron draws a linear decision boundary.",
+      "educationalLevel": "Beginner",
+      "teaches": "Artificial neurons, weighted sums, bias, activation functions (ReLU, Sigmoid, Tanh, GELU), and linear decision boundaries",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "The Mathematics of Intelligence",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="The Single Neuron">
+    <meta property="og:description" content="Build a neuron from scratch. Explore weighted sums, activation functions (ReLU, Sigmoid, Tanh, GELU), and see why a single neuron draws a linear decision boundary.">
+    <meta property="og:url" content="https://mathsedu.org/neuron_and_activation.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="The Single Neuron">
+    <meta name="twitter:description" content="Build a neuron from scratch. Explore weighted sums, activation functions (ReLU, Sigmoid, Tanh, GELU), and see why a single neuron draws a linear decision boundary.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#a78bfa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:8px}
+        .intro-text{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(167,139,250,0.13);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .violet{color:#a78bfa}.math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#a78bfa;cursor:pointer}
+        .slider-val{color:#a78bfa;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .insight-box{background:rgba(167,139,250,0.04);border-left:3px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#a78bfa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .section-summary{color:#a78bfa;font-size:0.85em;font-style:italic;margin:6px 0 0;padding:6px 0;border-top:1px solid rgba(167,139,250,0.1)}
+        .micro-note{color:#808098;font-size:0.85em;font-style:italic;margin:8px 0 4px;line-height:1.6}
+        .checkbox-row{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+        .checkbox-row label{color:#a0a0b8;font-size:0.9em;cursor:pointer;display:flex;align-items:center;gap:6px}
+        .steepness-bar-bg{display:inline-block;width:80px;height:7px;background:rgba(255,255,255,0.06);border-radius:3px;vertical-align:middle;margin:0 6px;overflow:hidden}
+        .steepness-bar-fill{height:100%;border-radius:3px;transition:width 0.15s}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>The Single Neuron</h1>
+    <p class="subtitle">One weighted sum, one decision &mdash; the atom from which all intelligence is built</p>
+    <p class="intro-text">
+        Every neural network &mdash; from a simple spam filter to GPT-4 &mdash; is made of the same fundamental unit: the artificial neuron. It takes inputs, multiplies each by a learned weight, adds them up, applies a non-linear function, and produces an output. This page builds that unit from scratch.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: Building a Neuron
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. Building a Neuron</h2>
+    <div class="panel">
+        <h3>Interactive neuron diagram</h3>
+        <canvas id="canvas1" width="700" height="350"></canvas>
+        <p class="micro-note">Adjust weights, bias, and inputs below. Line thickness and colour show weight magnitude and sign.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Positive weight</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Negative weight</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Activation output</span></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnRelu">ReLU</button>
+            <button class="btn" id="btnSigmoid">Sigmoid</button>
+            <button class="btn" id="btnTanh">Tanh</button>
+            <button class="btn" id="btnStep">Step</button>
+        </div>
+        <div class="slider-row">
+            <label>w<sub>1</sub>:</label>
+            <input type="range" id="sW1" min="-200" max="200" step="1" value="100">
+            <span class="slider-val" id="vW1">1.00</span>
+        </div>
+        <div class="slider-row">
+            <label>w<sub>2</sub>:</label>
+            <input type="range" id="sW2" min="-200" max="200" step="1" value="50">
+            <span class="slider-val" id="vW2">0.50</span>
+        </div>
+        <div class="slider-row">
+            <label>w<sub>3</sub>:</label>
+            <input type="range" id="sW3" min="-200" max="200" step="1" value="-60">
+            <span class="slider-val" id="vW3">-0.60</span>
+        </div>
+        <div class="slider-row">
+            <label>bias b:</label>
+            <input type="range" id="sBias" min="-200" max="200" step="1" value="0">
+            <span class="slider-val" id="vBias">0.00</span>
+        </div>
+        <div class="slider-row">
+            <label>x<sub>1</sub>:</label>
+            <input type="range" id="sX1" min="-100" max="100" step="1" value="100">
+            <span class="slider-val" style="color:#22d3ee" id="vX1">1.00</span>
+        </div>
+        <div class="slider-row">
+            <label>x<sub>2</sub>:</label>
+            <input type="range" id="sX2" min="-100" max="100" step="1" value="50">
+            <span class="slider-val" style="color:#22d3ee" id="vX2">0.50</span>
+        </div>
+        <div class="slider-row">
+            <label>x<sub>3</sub>:</label>
+            <input type="range" id="sX3" min="-100" max="100" step="1" value="-30">
+            <span class="slider-val" style="color:#22d3ee" id="vX3">-0.30</span>
+        </div>
+        <div class="result-box">
+            <div id="s1Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="gold">z</span> = <span class="gold">w<sub>1</sub></span><span class="cyan">x<sub>1</sub></span> + <span class="gold">w<sub>2</sub></span><span class="cyan">x<sub>2</sub></span> + <span class="gold">w<sub>3</sub></span><span class="cyan">x<sub>3</sub></span> + <span class="gold">b</span></div>
+            <div class="math-line"><span class="green">&ycirc;</span> = <span class="violet">&sigma;</span>(<span class="gold">z</span>)</div>
+        </div>
+        <div class="insight-box">
+            One neuron is just a weighted sum followed by a threshold. The brain has 86 billion. GPT-4 has ~1.7 trillion parameters &mdash; all set by gradient descent.
+        </div>
+        <p class="section-summary">A neuron computes a weighted sum of its inputs, adds a bias, then passes the result through a non-linear activation function.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: Activation Functions
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. Activation Functions &mdash; Why Non-linearity Matters</h2>
+    <div class="panel">
+        <h3>Four activation functions compared</h3>
+        <canvas id="canvas2" width="700" height="350"></canvas>
+        <p class="micro-note">Click a function name to highlight it. The dashed line shows its derivative.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">ReLU</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Sigmoid</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Tanh</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">GELU</span></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnActRelu">ReLU</button>
+            <button class="btn" id="btnActSigmoid">Sigmoid</button>
+            <button class="btn" id="btnActTanh">Tanh</button>
+            <button class="btn" id="btnActGelu">GELU</button>
+            <button class="btn" id="btnActAll">Show all</button>
+        </div>
+        <div class="checkbox-row">
+            <label><input type="checkbox" id="chkDerivatives" style="accent-color:#a78bfa" checked> Show derivatives</label>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnLinearDemo">&#9654; Why non-linearity?</button>
+        </div>
+        <div class="result-box">
+            <div id="s2Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="cyan">ReLU(z)</span> = max(0, z) <span class="muted">&mdash; piecewise linear, most common</span></div>
+            <div class="math-line"><span class="green">Sigmoid(z)</span> = 1 / (1 + e<sup>&minus;z</sup>) <span class="muted">&mdash; squashes to (0, 1)</span></div>
+            <div class="math-line"><span class="gold">Tanh(z)</span> = (e<sup>z</sup> &minus; e<sup>&minus;z</sup>) / (e<sup>z</sup> + e<sup>&minus;z</sup>) <span class="muted">&mdash; squashes to (&minus;1, 1)</span></div>
+            <div class="math-line"><span class="violet">GELU(z)</span> &approx; 0.5z(1 + tanh[&radic;(2/&pi;)(z + 0.044715z&sup3;)]) <span class="muted">&mdash; used in GPT</span></div>
+        </div>
+        <div class="insight-box">
+            Without activation functions, a million-layer network collapses to a single matrix multiplication. Non-linearity allows neural networks to approximate <em>any</em> function &mdash; this is the Universal Approximation Theorem.
+        </div>
+        <p class="section-summary">Activation functions introduce non-linearity &mdash; the ingredient that gives depth its power.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 3: The Decision Boundary
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. The Decision Boundary</h2>
+    <div class="panel">
+        <h3>One neuron, one line</h3>
+        <canvas id="canvas3" width="700" height="350"></canvas>
+        <p class="micro-note">Drag the weight sliders to rotate and shift the decision boundary.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Class A</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Class B</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa;height:2px"></div><span style="color:#a78bfa">Decision boundary</span></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnLinear">Linear problem</button>
+            <button class="btn" id="btnXor">XOR problem</button>
+        </div>
+        <div class="slider-row">
+            <label>w<sub>1</sub> (boundary):</label>
+            <input type="range" id="sDB_W1" min="-200" max="200" step="1" value="100">
+            <span class="slider-val" id="vDB_W1">1.00</span>
+        </div>
+        <div class="slider-row">
+            <label>w<sub>2</sub> (boundary):</label>
+            <input type="range" id="sDB_W2" min="-200" max="200" step="1" value="100">
+            <span class="slider-val" id="vDB_W2">1.00</span>
+        </div>
+        <div class="slider-row">
+            <label>bias b:</label>
+            <input type="range" id="sDB_Bias" min="-300" max="300" step="1" value="0">
+            <span class="slider-val" id="vDB_Bias">0.00</span>
+        </div>
+        <div class="result-box">
+            <div id="s3Results" class="math-line"></div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="violet">boundary:</span> <span class="gold">w<sub>1</sub></span><span class="cyan">x<sub>1</sub></span> + <span class="gold">w<sub>2</sub></span><span class="cyan">x<sub>2</sub></span> + <span class="gold">b</span> = 0</div>
+            <div class="math-line"><span class="muted">classify:</span> if <span class="gold">z</span> &ge; 0 &rarr; <span class="cyan">Class A</span>, else &rarr; <span class="gold">Class B</span></div>
+        </div>
+        <div class="result-box">
+            <div class="math-line" style="margin-bottom:4px">The equation <span class="gold">w</span>&middot;<span class="cyan">x</span> + <span class="muted">b</span> = 0 defines a <strong style="color:#e0e0e0">hyperplane</strong> in input space.</div>
+            <div class="math-line">In 2D: &nbsp;<span class="gold">w<sub>1</sub></span><span class="cyan">x<sub>1</sub></span> + <span class="gold">w<sub>2</sub></span><span class="cyan">x<sub>2</sub></span> + <span class="muted">b</span> = 0 &nbsp;&rarr;&nbsp; a line</div>
+            <div class="math-line">In 3D: &nbsp;<span class="gold">w<sub>1</sub></span><span class="cyan">x<sub>1</sub></span> + <span class="gold">w<sub>2</sub></span><span class="cyan">x<sub>2</sub></span> + <span class="gold">w<sub>3</sub></span><span class="cyan">x<sub>3</sub></span> + <span class="muted">b</span> = 0 &nbsp;&rarr;&nbsp; a plane</div>
+            <div class="math-line">In nD: &nbsp;<span class="gold">w</span>&middot;<span class="cyan">x</span> + <span class="muted">b</span> = 0 &nbsp;&rarr;&nbsp; a hyperplane</div>
+            <div class="math-line" style="margin-top:6px">The weight vector <span class="gold">w</span> is perpendicular to this boundary.</div>
+            <div class="math-line">The bias <span class="muted">b</span> shifts it away from the origin.</div>
+        </div>
+        <p class="micro-note">A single neuron partitions its input space into two half-spaces separated by a hyperplane. The weight vector determines the orientation; the bias determines the position. This is why one neuron can only solve linearly separable problems.</p>
+        <div class="insight-box">
+            One neuron = one straight line. The XOR problem requires a curved boundary &mdash; that requires multiple layers. This is why deep networks exist. Minsky &amp; Papert (1969) proved this limitation, causing the first "AI winter."
+        </div>
+        <p class="section-summary">A single neuron can only separate classes with a straight line &mdash; more complex boundaries demand depth.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Why This Matters
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="explain">
+        <div class="explain-name">Why This Matters</div>
+        <p class="explain-text">
+            McCulloch &amp; Pitts (1943) showed that a simple threshold unit could compute logic. Rosenblatt (1958) built the Perceptron &mdash; the first trainable neuron. Glorot et al. (2011) showed that careful activation function choice (ReLU over sigmoid) was key to training deep networks. Every modern AI system &mdash; from image classifiers to large language models &mdash; is built by stacking and connecting billions of units identical to the one you just explored.
+        </p>
+        <p class="explain-text" style="margin-top:10px">
+            A single neuron draws a line. Two layers of neurons can approximate any continuous function. The depth of modern networks (hundreds of layers, trillions of parameters) is what transforms this simple unit into something that can write poetry, prove theorems, and fold proteins.
+        </p>
+        <p class="explain-text" style="margin-top:10px">
+            To make this neuron learn, we need to adjust its weights automatically. That is exactly what <a href="gradient_descent.html" style="color:#a78bfa">gradient descent</a> does &mdash; it computes how much the error changes with respect to each weight, then nudges each weight in the direction that reduces the error. A single neuron trained by gradient descent on labelled data is called a Perceptron &mdash; the original neural network (Rosenblatt, 1958).
+        </p>
+        <p class="explain-text" style="margin-top:10px;color:#808098;font-size:0.85em">
+            <em>Next:</em> <a href="gradient_descent.html" style="color:#a78bfa">Gradient Descent</a> &mdash; how every weight in a neural network is learned.
+        </p>
+        <p class="explain-text" style="margin-top:6px;color:#808098;font-size:0.8em">
+            <em>References:</em> McCulloch &amp; Pitts (1943), Rosenblatt (1958), Minsky &amp; Papert (1969), Glorot, Bordes &amp; Bengio (2011), Hendrycks &amp; Gimpel (2016).
+        </p>
+    </div>
+
+</div>
+
+<script>
+/* ================================================================
+   SHARED UTILITIES
+   ================================================================ */
+function isVisible(el) {
+    var r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight;
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* Activation functions */
+function relu(z) { return Math.max(0, z); }
+function sigmoid(z) { return 1 / (1 + Math.exp(-clamp(z, -500, 500))); }
+function tanhAct(z) { return Math.tanh(z); }
+function stepAct(z) { return z >= 0 ? 1 : 0; }
+function gelu(z) {
+    /* GELU approximation used in GPT: 0.5*z*(1 + tanh(sqrt(2/pi)*(z + 0.044715*z^3))) */
+    var k = Math.sqrt(2 / Math.PI);
+    return 0.5 * z * (1 + Math.tanh(k * (z + 0.044715 * z * z * z)));
+}
+
+/* Derivatives */
+function reluDeriv(z) { return z > 0 ? 1 : 0; }
+function sigmoidDeriv(z) { var s = sigmoid(z); return s * (1 - s); }
+function tanhDeriv(z) { var t = Math.tanh(z); return 1 - t * t; }
+function geluDeriv(z) {
+    var k = Math.sqrt(2 / Math.PI);
+    var inner = k * (z + 0.044715 * z * z * z);
+    var tanhVal = Math.tanh(inner);
+    var sech2 = 1 - tanhVal * tanhVal;
+    var dinnerDz = k * (1 + 3 * 0.044715 * z * z);
+    return 0.5 * (1 + tanhVal) + 0.5 * z * sech2 * dinnerDz;
+}
+
+/* ================================================================
+   Section 1: Building a Neuron
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas1');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    var activeAct = 'relu';
+    var actFns = { relu: relu, sigmoid: sigmoid, tanh: tanhAct, step: stepAct };
+
+    function getW(i) { return parseInt(document.getElementById('sW' + i).value) / 100; }
+    function getB() { return parseInt(document.getElementById('sBias').value) / 100; }
+    function getX(i) { return parseInt(document.getElementById('sX' + i).value) / 100; }
+
+    function updateDisplays() {
+        for (var i = 1; i <= 3; i++) {
+            document.getElementById('vW' + i).textContent = getW(i).toFixed(2);
+            document.getElementById('vX' + i).textContent = getX(i).toFixed(2);
+        }
+        document.getElementById('vBias').textContent = getB().toFixed(2);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var w = [getW(1), getW(2), getW(3)];
+        var x = [getX(1), getX(2), getX(3)];
+        var b = getB();
+
+        var z = w[0]*x[0] + w[1]*x[1] + w[2]*x[2] + b;
+        var yHat = actFns[activeAct](z);
+
+        /* Layout coordinates */
+        var inputX = 100;
+        var sumX = 340;
+        var actX = 490;
+        var outX = 630;
+        var midY = H / 2;
+        var inputYs = [midY - 100, midY, midY + 100];
+
+        /* Draw connecting lines from inputs to sum node */
+        for (var i = 0; i < 3; i++) {
+            var wVal = w[i];
+            var absW = Math.abs(wVal);
+            var lineWidth = 1 + absW * 3;
+            var lineColor = wVal >= 0 ? '#10b981' : '#f472b6';
+            var alpha = 0.3 + absW * 0.35;
+            alpha = clamp(alpha, 0.2, 1.0);
+
+            ctx.strokeStyle = lineColor;
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = lineWidth;
+            ctx.beginPath();
+            ctx.moveTo(inputX + 28, inputYs[i]);
+            ctx.lineTo(sumX - 28, midY);
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+
+            /* Weight label on line */
+            var labelX = (inputX + 28 + sumX - 28) / 2;
+            var labelY = (inputYs[i] + midY) / 2 - 10;
+            ctx.fillStyle = wVal >= 0 ? '#10b981' : '#f472b6';
+            ctx.font = 'bold 12px Courier New, monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('w' + (i + 1) + '=' + wVal.toFixed(2), labelX, labelY);
+        }
+
+        /* Sum to activation line */
+        ctx.strokeStyle = '#808098';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(sumX + 28, midY);
+        ctx.lineTo(actX - 28, midY);
+        ctx.stroke();
+
+        /* z label on line */
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '12px Courier New, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('z=' + z.toFixed(3), (sumX + actX) / 2, midY - 12);
+
+        /* Activation to output line */
+        var outAlpha = clamp(Math.abs(yHat) * 0.5 + 0.3, 0.3, 1.0);
+        ctx.strokeStyle = '#a78bfa';
+        ctx.globalAlpha = outAlpha;
+        ctx.lineWidth = 1.5 + Math.abs(yHat) * 2.5;
+        ctx.beginPath();
+        ctx.moveTo(actX + 28, midY);
+        ctx.lineTo(outX - 28, midY);
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+
+        /* Draw input nodes */
+        for (var i = 0; i < 3; i++) {
+            /* Node circle */
+            ctx.beginPath();
+            ctx.arc(inputX, inputYs[i], 26, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(34,211,238,0.08)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(34,211,238,0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            /* Label */
+            ctx.fillStyle = '#22d3ee';
+            ctx.font = '14px Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('x' + (i + 1), inputX, inputYs[i] - 6);
+            ctx.font = '11px Courier New, monospace';
+            ctx.fillText(x[i].toFixed(2), inputX, inputYs[i] + 10);
+        }
+
+        /* Sum node */
+        ctx.beginPath();
+        ctx.arc(sumX, midY, 26, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(251,191,36,0.08)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(251,191,36,0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '16px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('\u03A3', sumX, midY);
+
+        /* Bias arrow coming in from below */
+        ctx.strokeStyle = 'rgba(251,191,36,0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(sumX, midY + 60);
+        ctx.lineTo(sumX, midY + 28);
+        ctx.stroke();
+        /* Arrowhead */
+        ctx.fillStyle = 'rgba(251,191,36,0.5)';
+        ctx.beginPath();
+        ctx.moveTo(sumX, midY + 28);
+        ctx.lineTo(sumX - 4, midY + 36);
+        ctx.lineTo(sumX + 4, midY + 36);
+        ctx.fill();
+        /* Bias label */
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '12px Courier New, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('b=' + b.toFixed(2), sumX, midY + 74);
+
+        /* Activation node */
+        ctx.beginPath();
+        ctx.arc(actX, midY, 26, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(167,139,250,0.08)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(167,139,250,0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = '#a78bfa';
+        ctx.font = '14px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('\u03C3', actX, midY - 3);
+        ctx.font = '10px Courier New, monospace';
+        ctx.fillText(activeAct.toUpperCase(), actX, midY + 12);
+
+        /* Output node */
+        ctx.beginPath();
+        ctx.arc(outX, midY, 26, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(16,185,129,0.08)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(16,185,129,0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = '#10b981';
+        ctx.font = '14px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('\u0177', outX, midY - 6);
+        ctx.font = '12px Courier New, monospace';
+        ctx.fillText(yHat.toFixed(4), outX, midY + 10);
+
+        /* Output glow proportional to magnitude */
+        var glowRadius = 26 + Math.abs(yHat) * 10;
+        ctx.shadowColor = '#10b981';
+        ctx.shadowBlur = Math.abs(yHat) * 20;
+        ctx.beginPath();
+        ctx.arc(outX, midY, glowRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(16,185,129,' + (0.1 + Math.abs(yHat) * 0.2).toFixed(2) + ')';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        /* Flow labels along top */
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Inputs', inputX, 28);
+        ctx.fillText('Weighted Sum', sumX, 28);
+        ctx.fillText('Activation', actX, 28);
+        ctx.fillText('Output', outX, 28);
+
+        /* Arrows between labels */
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        var arrowSets = [[inputX + 35, sumX - 55], [sumX + 55, actX - 45], [actX + 45, outX - 35]];
+        for (var a = 0; a < arrowSets.length; a++) {
+            var ax1 = arrowSets[a][0], ax2 = arrowSets[a][1];
+            ctx.beginPath();
+            ctx.moveTo(ax1, 26);
+            ctx.lineTo(ax2, 26);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.beginPath();
+            ctx.moveTo(ax2, 26);
+            ctx.lineTo(ax2 - 5, 22);
+            ctx.lineTo(ax2 - 5, 30);
+            ctx.fill();
+        }
+
+        /* Update results */
+        document.getElementById('s1Results').innerHTML =
+            '<span class="gold">z</span> = ' +
+            '<span class="gold">' + w[0].toFixed(2) + '</span>&times;<span class="cyan">' + x[0].toFixed(2) + '</span> + ' +
+            '<span class="gold">' + w[1].toFixed(2) + '</span>&times;<span class="cyan">' + x[1].toFixed(2) + '</span> + ' +
+            '<span class="gold">' + w[2].toFixed(2) + '</span>&times;<span class="cyan">' + x[2].toFixed(2) + '</span> + ' +
+            '<span class="gold">' + b.toFixed(2) + '</span> = <span class="violet">' + z.toFixed(4) + '</span>' +
+            ' &nbsp;&nbsp; <span class="green">\u0177</span> = <span class="violet">' + activeAct + '</span>(' + z.toFixed(4) + ') = <span class="green">' + yHat.toFixed(4) + '</span>';
+    }
+
+    /* Activation function buttons */
+    var actBtns = ['btnRelu', 'btnSigmoid', 'btnTanh', 'btnStep'];
+    var actNames = ['relu', 'sigmoid', 'tanh', 'step'];
+    actBtns.forEach(function(id, idx) {
+        document.getElementById(id).addEventListener('click', function() {
+            actBtns.forEach(function(bid) { document.getElementById(bid).classList.remove('active'); });
+            this.classList.add('active');
+            activeAct = actNames[idx];
+            draw();
+        });
+    });
+
+    /* Slider listeners */
+    var allSliders = ['sW1', 'sW2', 'sW3', 'sBias', 'sX1', 'sX2', 'sX3'];
+    allSliders.forEach(function(id) {
+        document.getElementById(id).addEventListener('input', function() {
+            updateDisplays();
+            draw();
+        });
+    });
+
+    /* Touch support */
+    allSliders.forEach(function(id) {
+        var el = document.getElementById(id);
+        el.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+    });
+
+    /* Init */
+    updateDisplays();
+    draw();
+})();
+
+/* ================================================================
+   Section 2: Activation Functions
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas2');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var PAD = { left: 60, right: 30, top: 25, bottom: 40 };
+    var plotW = W - PAD.left - PAD.right;
+    var plotH = H - PAD.top - PAD.bottom;
+
+    var DOMAIN = [-5, 5];
+    var RANGE = [-1.5, 2.0];
+
+    var activeFns = { relu: true, sigmoid: false, tanh: false, gelu: false };
+    var showAll = false;
+    var showDerivatives = true;
+    var linearDemoActive = false;
+    var linearDemoFrame = 0;
+    var linearDemoRaf = null;
+
+    var FN_DEFS = [
+        { key: 'relu',    fn: relu,    deriv: reluDeriv,    color: '#22d3ee', label: 'ReLU' },
+        { key: 'sigmoid', fn: sigmoid, deriv: sigmoidDeriv, color: '#10b981', label: 'Sigmoid' },
+        { key: 'tanh',    fn: tanhAct, deriv: tanhDeriv,    color: '#fbbf24', label: 'Tanh' },
+        { key: 'gelu',    fn: gelu,    deriv: geluDeriv,    color: '#a78bfa', label: 'GELU' }
+    ];
+
+    function zToX(z) {
+        return PAD.left + ((z - DOMAIN[0]) / (DOMAIN[1] - DOMAIN[0])) * plotW;
+    }
+    function yToCanvas(y) {
+        return PAD.top + ((RANGE[1] - y) / (RANGE[1] - RANGE[0])) * plotH;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        /* Grid lines */
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 0.5;
+        for (var v = Math.ceil(DOMAIN[0]); v <= DOMAIN[1]; v++) {
+            var px = zToX(v);
+            ctx.beginPath(); ctx.moveTo(px, PAD.top); ctx.lineTo(px, PAD.top + plotH); ctx.stroke();
+        }
+        for (var v = Math.ceil(RANGE[0] * 2) / 2; v <= RANGE[1]; v += 0.5) {
+            var py = yToCanvas(v);
+            ctx.beginPath(); ctx.moveTo(PAD.left, py); ctx.lineTo(PAD.left + plotW, py); ctx.stroke();
+        }
+
+        /* Axes */
+        ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ctx.lineWidth = 1.5;
+        /* x-axis at y=0 */
+        var zeroY = yToCanvas(0);
+        ctx.beginPath(); ctx.moveTo(PAD.left, zeroY); ctx.lineTo(PAD.left + plotW, zeroY); ctx.stroke();
+        /* y-axis at z=0 */
+        var zeroX = zToX(0);
+        ctx.beginPath(); ctx.moveTo(zeroX, PAD.top); ctx.lineTo(zeroX, PAD.top + plotH); ctx.stroke();
+
+        /* Axis tick labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'center';
+        for (var v = Math.ceil(DOMAIN[0]); v <= DOMAIN[1]; v++) {
+            if (v === 0) continue;
+            ctx.fillText(v.toString(), zToX(v), PAD.top + plotH + 14);
+        }
+        ctx.textAlign = 'right';
+        for (var v = Math.ceil(RANGE[0] * 2) / 2; v <= RANGE[1]; v += 0.5) {
+            if (Math.abs(v) < 0.01) continue;
+            ctx.fillText(v.toFixed(1), PAD.left - 6, yToCanvas(v) + 3);
+        }
+
+        /* Axis labels */
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '12px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('z', PAD.left + plotW / 2, H - 8);
+        ctx.save();
+        ctx.translate(14, PAD.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('\u03C3(z)', 0, 0);
+        ctx.restore();
+
+        /* Linear demo overlay */
+        if (linearDemoActive) {
+            drawLinearDemo();
+            return;
+        }
+
+        /* Plot each activation function */
+        var step = (DOMAIN[1] - DOMAIN[0]) / 500;
+        for (var f = 0; f < FN_DEFS.length; f++) {
+            var def = FN_DEFS[f];
+            var isActive = showAll || activeFns[def.key];
+            var alpha = isActive ? 1.0 : 0.15;
+
+            /* Main function line */
+            ctx.strokeStyle = def.color;
+            ctx.globalAlpha = alpha;
+            ctx.lineWidth = isActive ? 2.5 : 1;
+            ctx.beginPath();
+            var first = true;
+            for (var z = DOMAIN[0]; z <= DOMAIN[1]; z += step) {
+                var px = zToX(z);
+                var py = yToCanvas(def.fn(z));
+                py = clamp(py, PAD.top, PAD.top + plotH);
+                if (first) { ctx.moveTo(px, py); first = false; }
+                else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+
+            /* Derivative (dashed) */
+            if (showDerivatives && isActive) {
+                ctx.setLineDash([5, 5]);
+                ctx.lineWidth = 1.5;
+                ctx.globalAlpha = alpha * 0.6;
+                ctx.beginPath();
+                first = true;
+                for (var z = DOMAIN[0]; z <= DOMAIN[1]; z += step) {
+                    var px = zToX(z);
+                    var py = yToCanvas(def.deriv(z));
+                    py = clamp(py, PAD.top, PAD.top + plotH);
+                    if (first) { ctx.moveTo(px, py); first = false; }
+                    else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            ctx.globalAlpha = 1.0;
+
+            /* Label at right edge */
+            if (isActive || showAll) {
+                var labelZ = DOMAIN[1] - 0.3;
+                var labelY = def.fn(labelZ);
+                ctx.fillStyle = def.color;
+                ctx.globalAlpha = alpha;
+                ctx.font = 'bold 11px Georgia, serif';
+                ctx.textAlign = 'right';
+                ctx.fillText(def.label, PAD.left + plotW - 6, yToCanvas(labelY) - 6);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        /* Results: show values at z=0 for the active function(s) */
+        var html = '';
+        for (var f = 0; f < FN_DEFS.length; f++) {
+            var def = FN_DEFS[f];
+            if (!showAll && !activeFns[def.key]) continue;
+            html += '<span style="color:' + def.color + '">' + def.label + '(0) = ' + def.fn(0).toFixed(4) +
+                    ' &nbsp; derivative at 0: ' + def.deriv(0).toFixed(4) + '</span><br>';
+        }
+        if (!html) html = '<span class="muted">Select an activation function to inspect.</span>';
+        document.getElementById('s2Results').innerHTML = html;
+    }
+
+    function drawLinearDemo() {
+        /* Animate: show that stacking linear layers without activation = still linear */
+        var progress = Math.min(linearDemoFrame / 120, 1.0);
+
+        /* First layer: y = 2z (gold) */
+        /* Second layer: y = 0.5z (cyan) */
+        /* Combined without activation: y = 1.0z (pink -- same as a single linear!) */
+        /* Combined with ReLU: y = ReLU(2z)*0.5 = z for z>0, 0 for z<0 (green) */
+
+        var step = (DOMAIN[1] - DOMAIN[0]) / 300;
+
+        /* Show the composition without activation fading in */
+        ctx.globalAlpha = 0.3;
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (var z = DOMAIN[0]; z <= DOMAIN[1]; z += step) {
+            var px = zToX(z);
+            var py = yToCanvas(2 * z);
+            py = clamp(py, PAD.top, PAD.top + plotH);
+            if (z === DOMAIN[0]) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        ctx.strokeStyle = '#22d3ee';
+        ctx.beginPath();
+        for (var z = DOMAIN[0]; z <= DOMAIN[1]; z += step) {
+            var px = zToX(z);
+            var py = yToCanvas(0.5 * z);
+            py = clamp(py, PAD.top, PAD.top + plotH);
+            if (z === DOMAIN[0]) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
+
+        /* Combined without activation: still just a line */
+        ctx.strokeStyle = '#f472b6';
+        ctx.lineWidth = 2.5;
+        ctx.globalAlpha = progress;
+        ctx.beginPath();
+        for (var z = DOMAIN[0]; z <= DOMAIN[1]; z += step) {
+            var px = zToX(z);
+            /* f2(f1(z)) = 0.5 * (2*z) = z */
+            var py = yToCanvas(z);
+            py = clamp(py, PAD.top, PAD.top + plotH);
+            if (z === DOMAIN[0]) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        /* Label */
+        ctx.fillStyle = '#f472b6';
+        ctx.font = 'bold 13px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Two linear layers = still linear!', PAD.left + 10, PAD.top + 22);
+        ctx.globalAlpha = 1.0;
+
+        /* Now show what happens WITH ReLU */
+        if (progress > 0.4) {
+            var phase2 = clamp((progress - 0.4) / 0.6, 0, 1);
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2.5;
+            ctx.globalAlpha = phase2;
+            ctx.beginPath();
+            for (var z = DOMAIN[0]; z <= DOMAIN[1]; z += step) {
+                var px = zToX(z);
+                /* f2(ReLU(f1(z))) = 0.5 * ReLU(2*z) */
+                var py = yToCanvas(0.5 * relu(2 * z));
+                py = clamp(py, PAD.top, PAD.top + plotH);
+                if (z === DOMAIN[0]) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 13px Georgia, serif';
+            ctx.fillText('With ReLU: non-linear!', PAD.left + 10, PAD.top + 42);
+            ctx.globalAlpha = 1.0;
+        }
+
+        /* Legend in demo */
+        ctx.globalAlpha = 0.7;
+        ctx.fillStyle = '#fbbf24';
+        ctx.font = '11px Courier New, monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText('Layer 1: y=2z', PAD.left + plotW - 6, PAD.top + plotH - 50);
+        ctx.fillStyle = '#22d3ee';
+        ctx.fillText('Layer 2: y=0.5z', PAD.left + plotW - 6, PAD.top + plotH - 36);
+        ctx.fillStyle = '#f472b6';
+        ctx.fillText('Combined (no activation): y=z', PAD.left + plotW - 6, PAD.top + plotH - 22);
+        ctx.fillStyle = '#10b981';
+        ctx.fillText('Combined (with ReLU): y=0.5*ReLU(2z)', PAD.left + plotW - 6, PAD.top + plotH - 8);
+        ctx.globalAlpha = 1.0;
+
+        document.getElementById('s2Results').innerHTML =
+            '<span class="pink">Without activation:</span> Layer2(Layer1(z)) = 0.5 &times; (2z) = z &larr; <span class="muted">still linear!</span><br>' +
+            '<span class="green">With ReLU:</span> Layer2(ReLU(Layer1(z))) = 0.5 &times; ReLU(2z) &larr; <span class="muted">non-linear!</span>';
+
+        linearDemoFrame++;
+        if (linearDemoFrame < 150) {
+            linearDemoRaf = requestAnimationFrame(function() { draw(); });
+        }
+    }
+
+    /* Buttons */
+    var btnIds = ['btnActRelu', 'btnActSigmoid', 'btnActTanh', 'btnActGelu'];
+    var fnKeys = ['relu', 'sigmoid', 'tanh', 'gelu'];
+    btnIds.forEach(function(id, idx) {
+        document.getElementById(id).addEventListener('click', function() {
+            linearDemoActive = false;
+            if (linearDemoRaf) { cancelAnimationFrame(linearDemoRaf); linearDemoRaf = null; }
+            showAll = false;
+            document.getElementById('btnActAll').classList.remove('active');
+            /* Toggle: if already sole active, keep it; otherwise set it as sole active */
+            for (var k in activeFns) activeFns[k] = false;
+            activeFns[fnKeys[idx]] = true;
+            btnIds.forEach(function(bid) { document.getElementById(bid).classList.remove('active'); });
+            this.classList.add('active');
+            draw();
+        });
+    });
+
+    document.getElementById('btnActAll').addEventListener('click', function() {
+        linearDemoActive = false;
+        if (linearDemoRaf) { cancelAnimationFrame(linearDemoRaf); linearDemoRaf = null; }
+        showAll = true;
+        btnIds.forEach(function(bid) { document.getElementById(bid).classList.remove('active'); });
+        this.classList.add('active');
+        draw();
+    });
+
+    document.getElementById('chkDerivatives').addEventListener('change', function() {
+        showDerivatives = this.checked;
+        draw();
+    });
+
+    document.getElementById('btnLinearDemo').addEventListener('click', function() {
+        linearDemoActive = true;
+        linearDemoFrame = 0;
+        showAll = false;
+        btnIds.forEach(function(bid) { document.getElementById(bid).classList.remove('active'); });
+        document.getElementById('btnActAll').classList.remove('active');
+        draw();
+    });
+
+    /* Mouse hover: show values at cursor z */
+    cvs.addEventListener('mousemove', function(e) {
+        if (linearDemoActive) return;
+        var rect = cvs.getBoundingClientRect();
+        var mx = (e.clientX - rect.left) * (W / rect.width);
+        if (mx < PAD.left || mx > PAD.left + plotW) return;
+        var z = DOMAIN[0] + ((mx - PAD.left) / plotW) * (DOMAIN[1] - DOMAIN[0]);
+
+        var html = '<span class="muted">z = ' + z.toFixed(2) + ':</span> &nbsp; ';
+        for (var f = 0; f < FN_DEFS.length; f++) {
+            var def = FN_DEFS[f];
+            if (!showAll && !activeFns[def.key]) continue;
+            html += '<span style="color:' + def.color + '">' + def.label + ' = ' + def.fn(z).toFixed(4) + '</span> &nbsp; ';
+        }
+        document.getElementById('s2Results').innerHTML = html;
+    });
+
+    cvs.addEventListener('mouseleave', function() {
+        if (!linearDemoActive) draw();
+    });
+
+    /* Init */
+    draw();
+})();
+
+/* ================================================================
+   Section 3: The Decision Boundary
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas3');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+    var PAD = { left: 50, right: 30, top: 25, bottom: 45 };
+    var plotW = W - PAD.left - PAD.right;
+    var plotH = H - PAD.top - PAD.bottom;
+
+    var DOMAIN = [-3, 3];
+    var isXOR = false;
+
+    /* Linear dataset: two clusters easily separated by a line */
+    var linearData = [];
+    /* XOR dataset: four clusters in XOR pattern */
+    var xorData = [];
+
+    function generateLinearData() {
+        linearData = [];
+        var rng = function() { return (Math.random() - 0.5) * 0.8; };
+        /* Class A: top-right region */
+        for (var i = 0; i < 30; i++) {
+            linearData.push({ x: 1.2 + rng(), y: 1.2 + rng(), cls: 0 });
+        }
+        /* Class B: bottom-left region */
+        for (var i = 0; i < 30; i++) {
+            linearData.push({ x: -1.2 + rng(), y: -1.2 + rng(), cls: 1 });
+        }
+    }
+
+    function generateXORData() {
+        xorData = [];
+        var rng = function() { return (Math.random() - 0.5) * 0.6; };
+        /* Class A: top-left and bottom-right (XOR = 1) */
+        for (var i = 0; i < 20; i++) {
+            xorData.push({ x: -1.3 + rng(), y: 1.3 + rng(), cls: 0 });
+        }
+        for (var i = 0; i < 20; i++) {
+            xorData.push({ x: 1.3 + rng(), y: -1.3 + rng(), cls: 0 });
+        }
+        /* Class B: top-right and bottom-left (XOR = 0) */
+        for (var i = 0; i < 20; i++) {
+            xorData.push({ x: 1.3 + rng(), y: 1.3 + rng(), cls: 1 });
+        }
+        for (var i = 0; i < 20; i++) {
+            xorData.push({ x: -1.3 + rng(), y: -1.3 + rng(), cls: 1 });
+        }
+    }
+
+    function getW1() { return parseInt(document.getElementById('sDB_W1').value) / 100; }
+    function getW2() { return parseInt(document.getElementById('sDB_W2').value) / 100; }
+    function getBias() { return parseInt(document.getElementById('sDB_Bias').value) / 100; }
+
+    function dataToCanvas(dx, dy) {
+        return {
+            x: PAD.left + ((dx - DOMAIN[0]) / (DOMAIN[1] - DOMAIN[0])) * plotW,
+            y: PAD.top + ((DOMAIN[1] - dy) / (DOMAIN[1] - DOMAIN[0])) * plotH
+        };
+    }
+
+    function computeAccuracy() {
+        var data = isXOR ? xorData : linearData;
+        var w1 = getW1(), w2 = getW2(), b = getBias();
+        var correct = 0;
+        for (var i = 0; i < data.length; i++) {
+            var z = w1 * data[i].x + w2 * data[i].y + b;
+            var predicted = z >= 0 ? 0 : 1;
+            if (predicted === data[i].cls) correct++;
+        }
+        return (correct / data.length * 100).toFixed(1);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var w1 = getW1(), w2 = getW2(), b = getBias();
+        var data = isXOR ? xorData : linearData;
+
+        /* Shaded decision regions */
+        var imgData = ctx.createImageData(W, H);
+        var pixels = imgData.data;
+        for (var py = PAD.top; py < PAD.top + plotH; py += 2) {
+            for (var px = PAD.left; px < PAD.left + plotW; px += 2) {
+                var dx = DOMAIN[0] + ((px - PAD.left) / plotW) * (DOMAIN[1] - DOMAIN[0]);
+                var dy = DOMAIN[1] - ((py - PAD.top) / plotH) * (DOMAIN[1] - DOMAIN[0]);
+                var z = w1 * dx + w2 * dy + b;
+                var r, g, bv, a;
+                if (z >= 0) {
+                    /* Class A region: cyan tint */
+                    r = 34; g = 211; bv = 238; a = 20;
+                } else {
+                    /* Class B region: gold tint */
+                    r = 251; g = 191; bv = 36; a = 20;
+                }
+                for (var oy = 0; oy < 2 && py + oy < PAD.top + plotH; oy++) {
+                    for (var ox = 0; ox < 2 && px + ox < PAD.left + plotW; ox++) {
+                        var idx = ((py + oy) * W + (px + ox)) * 4;
+                        pixels[idx] = r;
+                        pixels[idx + 1] = g;
+                        pixels[idx + 2] = bv;
+                        pixels[idx + 3] = a;
+                    }
+                }
+            }
+        }
+        ctx.putImageData(imgData, 0, 0);
+
+        /* Grid */
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 0.5;
+        for (var v = Math.ceil(DOMAIN[0]); v <= DOMAIN[1]; v++) {
+            var cp = dataToCanvas(v, DOMAIN[0]);
+            ctx.beginPath(); ctx.moveTo(cp.x, PAD.top); ctx.lineTo(cp.x, PAD.top + plotH); ctx.stroke();
+            cp = dataToCanvas(DOMAIN[0], v);
+            ctx.beginPath(); ctx.moveTo(PAD.left, cp.y); ctx.lineTo(PAD.left + plotW, cp.y); ctx.stroke();
+        }
+
+        /* Axes */
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
+        var originC = dataToCanvas(0, 0);
+        ctx.beginPath(); ctx.moveTo(PAD.left, originC.y); ctx.lineTo(PAD.left + plotW, originC.y); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(originC.x, PAD.top); ctx.lineTo(originC.x, PAD.top + plotH); ctx.stroke();
+
+        /* Axis tick labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'center';
+        for (var v = Math.ceil(DOMAIN[0]); v <= DOMAIN[1]; v++) {
+            if (v === 0) continue;
+            var cp = dataToCanvas(v, DOMAIN[0]);
+            ctx.fillText(v.toString(), cp.x, PAD.top + plotH + 14);
+        }
+        ctx.textAlign = 'right';
+        for (var v = Math.ceil(DOMAIN[0]); v <= DOMAIN[1]; v++) {
+            if (v === 0) continue;
+            var cp = dataToCanvas(DOMAIN[0], v);
+            ctx.fillText(v.toString(), PAD.left - 6, cp.y + 3);
+        }
+
+        /* Axis labels */
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '12px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('x\u2081', PAD.left + plotW / 2, H - 8);
+        ctx.save();
+        ctx.translate(14, PAD.top + plotH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('x\u2082', 0, 0);
+        ctx.restore();
+
+        /* Decision boundary line: w1*x1 + w2*x2 + b = 0 */
+        /* If w2 != 0: x2 = -(w1*x1 + b) / w2 */
+        /* If w2 == 0 and w1 != 0: x1 = -b / w1 */
+        ctx.strokeStyle = '#a78bfa';
+        ctx.lineWidth = 2.5;
+        ctx.shadowColor = '#a78bfa';
+        ctx.shadowBlur = 8;
+
+        if (Math.abs(w2) > 0.001) {
+            /* Compute boundary endpoints at domain edges */
+            var x1Left = DOMAIN[0];
+            var x2Left = -(w1 * x1Left + b) / w2;
+            var x1Right = DOMAIN[1];
+            var x2Right = -(w1 * x1Right + b) / w2;
+            var p1 = dataToCanvas(x1Left, x2Left);
+            var p2 = dataToCanvas(x1Right, x2Right);
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+        } else if (Math.abs(w1) > 0.001) {
+            var x1Val = -b / w1;
+            var p1 = dataToCanvas(x1Val, DOMAIN[0]);
+            var p2 = dataToCanvas(x1Val, DOMAIN[1]);
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+
+        /* Normal vector arrow from origin along (w1, w2) direction */
+        if (Math.abs(w1) > 0.001 || Math.abs(w2) > 0.001) {
+            var mag = Math.sqrt(w1 * w1 + w2 * w2);
+            var nw1 = w1 / mag;
+            var nw2 = w2 / mag;
+            var arrowLen = 0.8;
+            var aStart = dataToCanvas(0, 0);
+            var aEnd = dataToCanvas(nw1 * arrowLen, nw2 * arrowLen);
+            ctx.strokeStyle = 'rgba(167,139,250,0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(aStart.x, aStart.y);
+            ctx.lineTo(aEnd.x, aEnd.y);
+            ctx.stroke();
+            /* Arrowhead */
+            var angle = Math.atan2(aStart.y - aEnd.y, aEnd.x - aStart.x);
+            ctx.fillStyle = 'rgba(167,139,250,0.5)';
+            ctx.beginPath();
+            ctx.moveTo(aEnd.x, aEnd.y);
+            ctx.lineTo(aEnd.x - 7 * Math.cos(angle - 0.4), aEnd.y + 7 * Math.sin(angle - 0.4));
+            ctx.lineTo(aEnd.x - 7 * Math.cos(angle + 0.4), aEnd.y + 7 * Math.sin(angle + 0.4));
+            ctx.fill();
+        }
+
+        /* Data points */
+        for (var i = 0; i < data.length; i++) {
+            var d = data[i];
+            var cp = dataToCanvas(d.x, d.y);
+            var z = w1 * d.x + w2 * d.y + b;
+            var predicted = z >= 0 ? 0 : 1;
+            var isCorrect = predicted === d.cls;
+
+            ctx.beginPath();
+            ctx.arc(cp.x, cp.y, 5, 0, Math.PI * 2);
+
+            if (d.cls === 0) {
+                ctx.fillStyle = isCorrect ? '#22d3ee' : 'rgba(34,211,238,0.3)';
+                ctx.strokeStyle = '#22d3ee';
+            } else {
+                ctx.fillStyle = isCorrect ? '#fbbf24' : 'rgba(251,191,36,0.3)';
+                ctx.strokeStyle = '#fbbf24';
+            }
+            ctx.fill();
+            ctx.lineWidth = isCorrect ? 0.5 : 2;
+            ctx.stroke();
+
+            /* Cross mark on misclassified points */
+            if (!isCorrect) {
+                ctx.strokeStyle = '#f87171';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(cp.x - 4, cp.y - 4);
+                ctx.lineTo(cp.x + 4, cp.y + 4);
+                ctx.moveTo(cp.x + 4, cp.y - 4);
+                ctx.lineTo(cp.x - 4, cp.y + 4);
+                ctx.stroke();
+            }
+        }
+
+        /* XOR label if active */
+        if (isXOR) {
+            ctx.fillStyle = '#f87171';
+            ctx.font = 'bold 13px Georgia, serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('XOR: no single line can separate these classes', PAD.left + 6, PAD.top + 16);
+        }
+
+        /* Update displays */
+        document.getElementById('vDB_W1').textContent = w1.toFixed(2);
+        document.getElementById('vDB_W2').textContent = w2.toFixed(2);
+        document.getElementById('vDB_Bias').textContent = getBias().toFixed(2);
+
+        var accuracy = computeAccuracy();
+        var accColor = parseFloat(accuracy) >= 90 ? '#10b981' : (parseFloat(accuracy) >= 70 ? '#fbbf24' : '#f87171');
+        document.getElementById('s3Results').innerHTML =
+            '<span class="violet">Boundary:</span> <span class="gold">' + w1.toFixed(2) + '</span><span class="cyan">x<sub>1</sub></span> + <span class="gold">' + w2.toFixed(2) + '</span><span class="cyan">x<sub>2</sub></span> + <span class="gold">' + getBias().toFixed(2) + '</span> = 0' +
+            ' &nbsp;&nbsp; Accuracy: <span style="color:' + accColor + '">' + accuracy + '%</span>' +
+            (isXOR ? ' &nbsp; <span class="pink">(XOR is linearly inseparable)</span>' : '');
+    }
+
+    /* Dataset buttons */
+    document.getElementById('btnLinear').addEventListener('click', function() {
+        isXOR = false;
+        document.getElementById('btnLinear').classList.add('active');
+        document.getElementById('btnXor').classList.remove('active');
+        draw();
+    });
+    document.getElementById('btnXor').addEventListener('click', function() {
+        isXOR = true;
+        document.getElementById('btnXor').classList.add('active');
+        document.getElementById('btnLinear').classList.remove('active');
+        draw();
+    });
+
+    /* Slider listeners */
+    ['sDB_W1', 'sDB_W2', 'sDB_Bias'].forEach(function(id) {
+        document.getElementById(id).addEventListener('input', function() { draw(); });
+    });
+
+    /* Touch support */
+    ['sDB_W1', 'sDB_W2', 'sDB_Bias'].forEach(function(id) {
+        var el = document.getElementById(id);
+        el.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+    });
+
+    /* Init */
+    generateLinearData();
+    generateXORData();
+    draw();
+})();
+</script>
+</body>
+</html>

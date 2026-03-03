@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Attention Mechanism</title>
+    <meta name="description" content="Explore the attention mechanism interactively. Visualise attention heatmaps, understand queries, keys, and values, and see how multi-head attention enables Transformers to understand language.">
+    <link rel="canonical" href="https://mathsedu.org/attention_mechanism.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "The Attention Mechanism",
+      "url": "https://mathsedu.org/attention_mechanism.html",
+      "description": "Explore the attention mechanism interactively. Visualise attention heatmaps, understand queries, keys, and values, and see how multi-head attention enables Transformers to understand language.",
+      "educationalLevel": "Advanced",
+      "teaches": "Scaled dot-product attention, queries/keys/values, attention heatmaps, multi-head attention, and the Transformer's core mechanism",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "The Mathematics of Intelligence",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="The Attention Mechanism">
+    <meta property="og:description" content="Explore the attention mechanism interactively. Visualise attention heatmaps, understand queries, keys, and values, and see how multi-head attention enables Transformers to understand language.">
+    <meta property="og:url" content="https://mathsedu.org/attention_mechanism.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="The Attention Mechanism">
+    <meta name="twitter:description" content="Explore the attention mechanism interactively. Visualise attention heatmaps, understand queries, keys, and values, and see how multi-head attention enables Transformers to understand language.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#a78bfa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:8px}
+        .intro-text{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(167,139,250,0.13);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .violet{color:#a78bfa}.math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#a78bfa;cursor:pointer}
+        .slider-val{color:#a78bfa;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .insight-box{background:rgba(167,139,250,0.04);border-left:3px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#a78bfa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .section-summary{color:#a78bfa;font-size:0.85em;font-style:italic;margin:6px 0 0;padding:6px 0;border-top:1px solid rgba(167,139,250,0.1)}
+        .micro-note{color:#808098;font-size:0.85em;font-style:italic;margin:8px 0 4px;line-height:1.6}
+        .checkbox-row{display:flex;align-items:center;gap:8px;margin:8px 0 4px}
+        .checkbox-row label{color:#a0a0b8;font-size:0.9em;cursor:pointer;display:flex;align-items:center;gap:6px}
+        .steepness-bar-bg{display:inline-block;width:80px;height:7px;background:rgba(255,255,255,0.06);border-radius:3px;vertical-align:middle;margin:0 6px;overflow:hidden}
+        .steepness-bar-fill{height:100%;border-radius:3px;transition:width 0.15s}
+        select.sel{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 10px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em}
+        select.sel:focus{outline:none;border-color:rgba(167,139,250,0.4)}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>The Attention Mechanism</h1>
+    <p class="subtitle">Which words should pay attention to which &mdash; the question that transformed AI</p>
+    <p class="intro-text">
+        Before attention, neural networks processed text sequentially and forgot distant context. In 2017, Vaswani et al. asked a radical question: what if every token could directly attend to every other token? The result &mdash; the Transformer &mdash; now powers every major language model, from GPT-4 to Claude. At its core is a single elegant mechanism: scaled dot-product attention.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: The Intuition — Reading a Sentence
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. The Intuition &mdash; Reading a Sentence</h2>
+    <div class="panel">
+        <h3>Sentence attention heatmap</h3>
+        <canvas id="canvas1" width="700" height="380"></canvas>
+        <p class="micro-note">Click any word to see which other words it attends to. Toggle between heatmap and arrow views.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">High attention</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#1a1a3a"></div><span style="color:#808098">Low attention</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Selected word</span></div>
+        </div>
+        <div class="btn-row">
+            <select class="sel" id="selSentence">
+                <option value="0">The animal didn't cross the street because it was too tired</option>
+                <option value="1">The trophy doesn't fit in the suitcase because it is too big</option>
+                <option value="2">The lawyer asked the witness a question but she couldn't answer</option>
+                <option value="3">The cat sat on the mat and then it fell asleep</option>
+            </select>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnHeatmap">Heatmap</button>
+            <button class="btn" id="btnArrows">Arrows</button>
+        </div>
+        <div class="result-box">
+            <div id="s1Results" class="math-line">Click a word to see its attention pattern.</div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="violet">attention</span>(<span class="cyan">word<sub>i</sub></span>) = <span class="green">softmax</span>(<span class="cyan">score</span>(<span class="cyan">word<sub>i</sub></span>, <span class="gold">word<sub>j</sub></span>)) &nbsp; <span class="muted">for all j</span></div>
+            <div class="math-line"><span class="muted">Each word decides how much to &ldquo;look at&rdquo; every other word</span></div>
+        </div>
+        <div class="insight-box">
+            The classic example: &ldquo;The animal didn&rsquo;t cross the street because <strong style="color:#a78bfa">it</strong> was too tired.&rdquo; To understand &ldquo;it&rdquo;, you must attend to &ldquo;<strong style="color:#10b981">animal</strong>.&rdquo; The attention mechanism learns to do this automatically &mdash; no rules, no parsing, just learned weights.
+        </div>
+        <p class="section-summary">Attention lets every word look at every other word and decide what matters &mdash; context on demand.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: Queries, Keys, and Values
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. Queries, Keys, and Values</h2>
+    <div class="panel">
+        <h3>The QKV computation pipeline</h3>
+        <canvas id="canvas2" width="700" height="400"></canvas>
+        <p class="micro-note">Step through the animation to see each matrix operation in sequence.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Queries (Q) &mdash; what am I looking for?</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Keys (K) &mdash; what do I contain?</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Values (V) &mdash; what do I contribute?</span></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnStepQKV">Step &rarr;</button>
+            <button class="btn" id="btnResetQKV">Reset</button>
+            <button class="btn" id="btnAutoQKV">&#9654; Auto</button>
+        </div>
+        <div class="slider-row">
+            <label>Scale 1/&radic;d<sub>k</sub>:</label>
+            <input type="range" id="sScale" min="1" max="16" step="1" value="4">
+            <span class="slider-val" id="vScale">d=4</span>
+        </div>
+        <p class="micro-note">Without the 1/&radic;d<sub>k</sub> scaling factor, large embedding dimensions cause dot products to grow proportionally to d<sub>k</sub>. This pushes softmax inputs into regions where gradients vanish &mdash; the distribution becomes nearly one-hot, and the model stops learning. Scaling by 1/&radic;d<sub>k</sub> keeps the variance of the scores at approximately 1, regardless of dimension.</p>
+        <div class="result-box">
+            <div id="s2Results" class="math-line">Press <span class="violet">Step</span> to begin the attention computation.</div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="cyan">Q</span> = X &times; <span class="cyan">W<sup>Q</sup></span> &nbsp; <span class="muted">&ldquo;What am I looking for?&rdquo;</span></div>
+            <div class="math-line"><span class="gold">K</span> = X &times; <span class="gold">W<sup>K</sup></span> &nbsp; <span class="muted">&ldquo;What do I contain?&rdquo;</span></div>
+            <div class="math-line"><span class="green">V</span> = X &times; <span class="green">W<sup>V</sup></span> &nbsp; <span class="muted">&ldquo;What do I contribute?&rdquo;</span></div>
+            <div class="math-line"><span class="violet">Attention</span>(<span class="cyan">Q</span>, <span class="gold">K</span>, <span class="green">V</span>) = <span class="green">softmax</span>(<span class="cyan">Q</span><span class="gold">K</span><sup>T</sup> / <span class="pink">&radic;d<sub>k</sub></span>) &times; <span class="green">V</span></div>
+        </div>
+        <div class="insight-box">
+            Attention is literally a search operation. <strong style="color:#22d3ee">Q</strong> is the query (like a Google search). <strong style="color:#fbbf24">K</strong> is the index (page titles). <strong style="color:#10b981">V</strong> is the content returned (page body). The dot product Q&middot;K measures relevance; softmax converts scores to probabilities; the weighted sum of V is the answer.
+        </div>
+        <div class="result-box">
+            <strong style="color:#a78bfa">Geometric interpretation.</strong> The dot product q&middot;k measures similarity in embedding space &mdash; geometrically, it is proportional to the cosine of the angle between the query and key vectors. High dot product = small angle = similar meaning = high attention weight. Attention is, at its core, a learned similarity search.
+        </div>
+        <p class="section-summary">Q asks the question. K says &ldquo;I might be relevant.&rdquo; V says &ldquo;Here is what I know.&rdquo; Attention is information retrieval.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 3: Multi-Head Attention
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. Multi-Head Attention</h2>
+    <div class="panel">
+        <h3>Four attention heads on the same sentence</h3>
+        <canvas id="canvas3" width="700" height="300"></canvas>
+        <p class="micro-note">Click a head to expand it. Toggle heads on/off to compare patterns.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Head 1: Syntactic (subject&ndash;verb)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Head 2: Semantic (pronoun&ndash;antecedent)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Head 3: Positional (adjacent)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Head 4: Mixed</span></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnHead1">Head 1</button>
+            <button class="btn active" id="btnHead2">Head 2</button>
+            <button class="btn active" id="btnHead3">Head 3</button>
+            <button class="btn active" id="btnHead4">Head 4</button>
+        </div>
+        <div class="result-box">
+            <div id="s3Results" class="math-line">All 4 heads active. Click a head to expand.</div>
+        </div>
+        <div class="formula-block">
+            <div class="math-line"><span class="violet">MultiHead</span>(<span class="cyan">Q</span>, <span class="gold">K</span>, <span class="green">V</span>) = Concat(<span class="cyan">head</span><sub>1</sub>, &hellip;, <span class="cyan">head</span><sub>h</sub>) &times; <span class="gold">W<sup>O</sup></span></div>
+            <div class="math-line"><span class="muted">GPT-3: h = 96 heads &nbsp; | &nbsp; GPT-4: h &asymp; 128 heads</span></div>
+            <div class="math-line"><span class="muted">Each head learns a different type of relationship</span></div>
+        </div>
+        <div class="insight-box">
+            Multiple heads allow the model to attend to different types of relationships simultaneously. One head might track syntax (subject&ndash;verb agreement), another tracks coreference (what does &ldquo;it&rdquo; refer to?), another tracks adjacency. The final output concatenates all perspectives &mdash; richer than any single viewpoint.
+        </div>
+        <p class="section-summary">One head sees grammar. Another sees meaning. Together they see language.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Closing Explain Section
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="explain">
+        <div class="explain-name">Why This Matters</div>
+        <p class="explain-text">
+            The core equation of modern AI:
+        </p>
+        <p class="explain-text" style="margin-top:8px;font-family:'Courier New',monospace;font-size:1.05em;color:#a78bfa">
+            Attention(Q, K, V) = softmax(QK<sup>T</sup> / &radic;d<sub>k</sub>) &times; V
+        </p>
+        <p class="explain-text" style="margin-top:10px">
+            This single equation is the beating heart of every major language model. &ldquo;Attention Is All You Need&rdquo; (Vaswani et al., 2017) has over 130,000 citations and spawned every major LLM &mdash; GPT, Claude, Gemini, LLaMA. Before attention, sequence models struggled with long-range dependencies. Attention solved this by letting every token directly access every other token, at the cost of quadratic compute in sequence length.
+        </p>
+        <p class="micro-note" style="margin-top:10px">
+            Attention complexity is O(n&sup2;) in sequence length &mdash; every token attends to every other token. For a 128,000-token context window, that is 16 billion attention computations per layer. This quadratic cost is why long-context models are expensive, and why techniques like sparse attention, sliding window attention, and FlashAttention exist.
+        </p>
+        <p class="explain-text" style="margin-top:10px;color:#808098;font-size:0.85em">
+            <em>References:</em> Vaswani et al. (2017) &ldquo;Attention Is All You Need&rdquo; &middot; Bahdanau et al. (2015) &ldquo;Neural Machine Translation by Jointly Learning to Align and Translate&rdquo; &middot; Clark et al. (2019) &ldquo;What Does BERT Look At?&rdquo;
+        </p>
+        <p class="explain-text" style="margin-top:10px;color:#808098;font-size:0.85em">
+            <em>See also:</em> <a href="vectors_and_embeddings.html" style="color:#a78bfa">Vectors and Embeddings</a> &middot; <a href="probability_and_softmax.html" style="color:#a78bfa">Probability and Softmax</a>
+        </p>
+    </div>
+
+</div>
+
+<script>
+/* ================================================================
+   SHARED: Utilities
+   ================================================================ */
+function isVisible(el) {
+    var r = el.getBoundingClientRect();
+    return r.bottom > 0 && r.top < window.innerHeight;
+}
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+/* Softmax for an array of numbers */
+function softmax(arr) {
+    var maxVal = -Infinity;
+    for (var i = 0; i < arr.length; i++) { if (arr[i] > maxVal) maxVal = arr[i]; }
+    var exps = [];
+    var sum = 0;
+    for (var i = 0; i < arr.length; i++) {
+        exps[i] = Math.exp(arr[i] - maxVal);
+        sum += exps[i];
+    }
+    for (var i = 0; i < arr.length; i++) { exps[i] /= sum; }
+    return exps;
+}
+
+/* ================================================================
+   Section 1: The Intuition — Reading a Sentence
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas1');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    /* ---- Sentence data with pre-computed plausible attention weights ---- */
+    var SENTENCES = [
+        {
+            words: ['The','animal','didn\'t','cross','the','street','because','it','was','too','tired'],
+            /* attention[i][j] = how much word i attends to word j */
+            attention: [
+                /* The */     [0.15, 0.30, 0.05, 0.05, 0.10, 0.15, 0.02, 0.05, 0.05, 0.04, 0.04],
+                /* animal */  [0.20, 0.25, 0.05, 0.08, 0.05, 0.12, 0.03, 0.08, 0.06, 0.04, 0.04],
+                /* didn't */  [0.06, 0.15, 0.10, 0.30, 0.04, 0.10, 0.05, 0.05, 0.07, 0.04, 0.04],
+                /* cross */   [0.05, 0.18, 0.20, 0.10, 0.05, 0.25, 0.03, 0.04, 0.04, 0.03, 0.03],
+                /* the */     [0.10, 0.08, 0.03, 0.05, 0.12, 0.40, 0.03, 0.05, 0.05, 0.05, 0.04],
+                /* street */  [0.08, 0.10, 0.05, 0.20, 0.25, 0.12, 0.04, 0.05, 0.04, 0.04, 0.03],
+                /* because */ [0.04, 0.12, 0.08, 0.10, 0.04, 0.08, 0.10, 0.15, 0.12, 0.08, 0.09],
+                /* it */      [0.05, 0.52, 0.03, 0.03, 0.02, 0.05, 0.05, 0.08, 0.06, 0.05, 0.06],
+                /* was */     [0.04, 0.15, 0.04, 0.04, 0.03, 0.05, 0.05, 0.28, 0.12, 0.10, 0.10],
+                /* too */     [0.03, 0.08, 0.03, 0.03, 0.03, 0.04, 0.05, 0.10, 0.12, 0.20, 0.29],
+                /* tired */   [0.04, 0.30, 0.04, 0.04, 0.03, 0.05, 0.05, 0.18, 0.10, 0.08, 0.09]
+            ]
+        },
+        {
+            words: ['The','trophy','doesn\'t','fit','in','the','suitcase','because','it','is','too','big'],
+            attention: [
+                /* The */       [0.15, 0.35, 0.05, 0.05, 0.03, 0.10, 0.10, 0.02, 0.05, 0.03, 0.03, 0.04],
+                /* trophy */    [0.18, 0.20, 0.05, 0.08, 0.03, 0.06, 0.15, 0.03, 0.08, 0.04, 0.04, 0.06],
+                /* doesn't */   [0.05, 0.15, 0.10, 0.30, 0.05, 0.05, 0.10, 0.04, 0.05, 0.04, 0.03, 0.04],
+                /* fit */       [0.04, 0.18, 0.18, 0.10, 0.08, 0.05, 0.22, 0.03, 0.04, 0.03, 0.02, 0.03],
+                /* in */        [0.04, 0.08, 0.04, 0.15, 0.08, 0.12, 0.35, 0.03, 0.03, 0.03, 0.02, 0.03],
+                /* the */       [0.08, 0.06, 0.03, 0.05, 0.06, 0.12, 0.42, 0.03, 0.04, 0.04, 0.03, 0.04],
+                /* suitcase */  [0.05, 0.15, 0.05, 0.15, 0.10, 0.20, 0.12, 0.03, 0.05, 0.03, 0.03, 0.04],
+                /* because */   [0.03, 0.12, 0.06, 0.08, 0.04, 0.04, 0.10, 0.08, 0.18, 0.08, 0.08, 0.11],
+                /* it */        [0.04, 0.15, 0.03, 0.04, 0.03, 0.04, 0.42, 0.04, 0.06, 0.05, 0.04, 0.06],
+                /* is */        [0.03, 0.08, 0.04, 0.04, 0.03, 0.04, 0.18, 0.05, 0.25, 0.08, 0.08, 0.10],
+                /* too */       [0.03, 0.06, 0.03, 0.03, 0.03, 0.03, 0.10, 0.04, 0.10, 0.10, 0.18, 0.27],
+                /* big */       [0.03, 0.12, 0.04, 0.06, 0.04, 0.04, 0.30, 0.05, 0.12, 0.06, 0.06, 0.08]
+            ]
+        },
+        {
+            words: ['The','lawyer','asked','the','witness','a','question','but','she','couldn\'t','answer'],
+            attention: [
+                /* The */       [0.15, 0.38, 0.05, 0.10, 0.12, 0.03, 0.06, 0.02, 0.03, 0.03, 0.03],
+                /* lawyer */    [0.18, 0.18, 0.12, 0.05, 0.15, 0.03, 0.10, 0.03, 0.06, 0.05, 0.05],
+                /* asked */     [0.05, 0.30, 0.10, 0.05, 0.18, 0.04, 0.12, 0.03, 0.04, 0.04, 0.05],
+                /* the */       [0.08, 0.06, 0.04, 0.12, 0.45, 0.04, 0.06, 0.03, 0.04, 0.04, 0.04],
+                /* witness */   [0.06, 0.20, 0.12, 0.15, 0.15, 0.04, 0.12, 0.03, 0.05, 0.04, 0.04],
+                /* a */         [0.04, 0.06, 0.05, 0.04, 0.06, 0.08, 0.48, 0.04, 0.05, 0.05, 0.05],
+                /* question */  [0.04, 0.12, 0.18, 0.04, 0.12, 0.15, 0.12, 0.03, 0.05, 0.06, 0.09],
+                /* but */       [0.03, 0.10, 0.08, 0.03, 0.10, 0.03, 0.08, 0.08, 0.15, 0.15, 0.17],
+                /* she */       [0.04, 0.12, 0.05, 0.05, 0.45, 0.03, 0.05, 0.05, 0.06, 0.05, 0.05],
+                /* couldn't */  [0.03, 0.08, 0.10, 0.03, 0.12, 0.03, 0.08, 0.06, 0.22, 0.10, 0.15],
+                /* answer */    [0.03, 0.10, 0.10, 0.03, 0.15, 0.04, 0.25, 0.05, 0.08, 0.08, 0.09]
+            ]
+        },
+        {
+            words: ['The','cat','sat','on','the','mat','and','then','it','fell','asleep'],
+            attention: [
+                /* The */     [0.15, 0.40, 0.05, 0.05, 0.08, 0.10, 0.02, 0.03, 0.04, 0.04, 0.04],
+                /* cat */     [0.20, 0.18, 0.15, 0.05, 0.05, 0.12, 0.03, 0.04, 0.08, 0.06, 0.04],
+                /* sat */     [0.06, 0.30, 0.10, 0.12, 0.05, 0.15, 0.03, 0.04, 0.05, 0.05, 0.05],
+                /* on */      [0.05, 0.08, 0.18, 0.08, 0.10, 0.35, 0.03, 0.03, 0.03, 0.04, 0.03],
+                /* the */     [0.08, 0.06, 0.04, 0.06, 0.10, 0.48, 0.03, 0.03, 0.04, 0.04, 0.04],
+                /* mat */     [0.06, 0.12, 0.12, 0.15, 0.22, 0.12, 0.03, 0.04, 0.05, 0.05, 0.04],
+                /* and */     [0.04, 0.10, 0.08, 0.04, 0.04, 0.08, 0.08, 0.12, 0.12, 0.15, 0.15],
+                /* then */    [0.03, 0.08, 0.06, 0.03, 0.03, 0.06, 0.10, 0.10, 0.15, 0.18, 0.18],
+                /* it */      [0.04, 0.48, 0.05, 0.03, 0.03, 0.05, 0.04, 0.05, 0.06, 0.08, 0.09],
+                /* fell */    [0.03, 0.20, 0.08, 0.03, 0.03, 0.05, 0.04, 0.06, 0.22, 0.10, 0.16],
+                /* asleep */  [0.03, 0.25, 0.06, 0.03, 0.03, 0.05, 0.04, 0.06, 0.18, 0.15, 0.12]
+            ]
+        }
+    ];
+
+    var curSentIdx = 0;
+    var selectedWord = -1; /* index of clicked word, -1 = none */
+    var viewMode = 'heatmap'; /* 'heatmap' | 'arrows' */
+    var wordRects = []; /* bounding boxes for click detection */
+
+    function getSentence() { return SENTENCES[curSentIdx]; }
+
+    function draw() {
+        var sent = getSentence();
+        var words = sent.words;
+        var n = words.length;
+
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        if (viewMode === 'heatmap') {
+            drawHeatmap(sent, words, n);
+        } else {
+            drawArrows(sent, words, n);
+        }
+    }
+
+    function drawHeatmap(sent, words, n) {
+        /* Layout: grid of n x n cells, words along top and left */
+        var PAD_LEFT = 90;
+        var PAD_TOP = 60;
+        var PAD_RIGHT = 20;
+        var PAD_BOTTOM = 20;
+        var availW = W - PAD_LEFT - PAD_RIGHT;
+        var availH = H - PAD_TOP - PAD_BOTTOM;
+        var cellSize = Math.min(Math.floor(availW / n), Math.floor(availH / n), 32);
+        var gridW = cellSize * n;
+        var gridH = cellSize * n;
+        var startX = PAD_LEFT;
+        var startY = PAD_TOP;
+
+        wordRects = [];
+
+        /* Column labels (top) — the "attended to" words */
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center';
+        for (var j = 0; j < n; j++) {
+            var cx = startX + j * cellSize + cellSize / 2;
+            var isSelected = (j === selectedWord);
+            ctx.fillStyle = isSelected ? '#a78bfa' : '#808098';
+            ctx.save();
+            ctx.translate(cx, startY - 8);
+            ctx.rotate(-Math.PI / 4);
+            ctx.fillText(words[j], 0, 0);
+            ctx.restore();
+        }
+
+        /* Row labels (left) — the "attending" words */
+        ctx.textAlign = 'right';
+        for (var i = 0; i < n; i++) {
+            var cy = startY + i * cellSize + cellSize / 2 + 4;
+            var isSelected = (i === selectedWord);
+            ctx.fillStyle = isSelected ? '#a78bfa' : '#808098';
+            ctx.fillText(words[i], startX - 8, cy);
+            /* Store word rects for row labels */
+            wordRects.push({
+                x: 0, y: startY + i * cellSize,
+                w: startX - 2, h: cellSize,
+                idx: i
+            });
+        }
+
+        /* Also store rects for column header clicks */
+        for (var j = 0; j < n; j++) {
+            wordRects.push({
+                x: startX + j * cellSize, y: 0,
+                w: cellSize, h: startY - 2,
+                idx: j
+            });
+        }
+
+        /* Draw heatmap cells */
+        for (var i = 0; i < n; i++) {
+            for (var j = 0; j < n; j++) {
+                var weight = sent.attention[i][j];
+                var cx = startX + j * cellSize;
+                var cy = startY + i * cellSize;
+
+                /* Colour: dark bg to bright green */
+                var intensity = clamp(weight, 0, 1);
+                var r = Math.round(10 + intensity * (16 - 10));
+                var g = Math.round(10 + intensity * (185 - 10));
+                var b = Math.round(26 + intensity * (129 - 26));
+                var alpha = 0.15 + intensity * 0.85;
+
+                /* Dim cells not in selected row/column */
+                if (selectedWord >= 0 && i !== selectedWord && j !== selectedWord) {
+                    alpha *= 0.2;
+                }
+
+                ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + alpha.toFixed(2) + ')';
+                ctx.fillRect(cx + 1, cy + 1, cellSize - 2, cellSize - 2);
+
+                /* Show weight number in cells for the selected word's row */
+                if (selectedWord >= 0 && i === selectedWord && cellSize >= 22) {
+                    ctx.fillStyle = intensity > 0.4 ? '#fff' : '#808098';
+                    ctx.font = '9px Courier New, monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(weight.toFixed(2), cx + cellSize / 2, cy + cellSize / 2 + 3);
+                }
+            }
+        }
+
+        /* Highlight selected row and column */
+        if (selectedWord >= 0) {
+            ctx.strokeStyle = 'rgba(167,139,250,0.5)';
+            ctx.lineWidth = 2;
+            /* Row */
+            ctx.strokeRect(startX, startY + selectedWord * cellSize, gridW, cellSize);
+            /* Column */
+            ctx.strokeRect(startX + selectedWord * cellSize, startY, cellSize, gridH);
+        }
+
+        /* Arrow labels */
+        ctx.fillStyle = '#606078';
+        ctx.font = '10px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('attending word \u2192', startX + gridW / 2, startY - 42);
+        ctx.save();
+        ctx.translate(startX - 60, startY + gridH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('\u2190 query word', 0, 0);
+        ctx.restore();
+
+        /* Also make the grid cells clickable (row interpretation: click a row) */
+        for (var i = 0; i < n; i++) {
+            wordRects.push({
+                x: startX, y: startY + i * cellSize,
+                w: gridW, h: cellSize,
+                idx: i
+            });
+        }
+    }
+
+    function drawArrows(sent, words, n) {
+        /* Arc diagram: words along a horizontal line, arcs above */
+        var PAD_LEFT = 30;
+        var PAD_RIGHT = 30;
+        var BASELINE_Y = H - 60;
+        var availW = W - PAD_LEFT - PAD_RIGHT;
+        var spacing = availW / (n - 1 || 1);
+
+        wordRects = [];
+
+        /* Draw words */
+        ctx.font = '13px Georgia, serif';
+        ctx.textAlign = 'center';
+        for (var i = 0; i < n; i++) {
+            var wx = PAD_LEFT + i * spacing;
+            var isSelected = (i === selectedWord);
+            ctx.fillStyle = isSelected ? '#a78bfa' : '#c0c0d8';
+            if (isSelected) {
+                ctx.font = 'bold 13px Georgia, serif';
+            } else {
+                ctx.font = '13px Georgia, serif';
+            }
+            ctx.fillText(words[i], wx, BASELINE_Y + 18);
+
+            /* Click rect */
+            var tw = ctx.measureText(words[i]).width;
+            wordRects.push({
+                x: wx - tw / 2 - 4, y: BASELINE_Y - 4,
+                w: tw + 8, h: 30,
+                idx: i
+            });
+
+            /* Dot on baseline */
+            ctx.beginPath();
+            ctx.arc(wx, BASELINE_Y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = isSelected ? '#a78bfa' : '#606078';
+            ctx.fill();
+        }
+
+        /* Draw arcs for the selected word */
+        if (selectedWord >= 0) {
+            var srcX = PAD_LEFT + selectedWord * spacing;
+            for (var j = 0; j < n; j++) {
+                if (j === selectedWord) continue;
+                var weight = sent.attention[selectedWord][j];
+                if (weight < 0.02) continue;
+                var tgtX = PAD_LEFT + j * spacing;
+                var midX = (srcX + tgtX) / 2;
+                var dist = Math.abs(tgtX - srcX);
+                var arcH = dist * 0.4 + weight * 60;
+
+                var alpha = clamp(weight * 2.5, 0.1, 1.0);
+                var lineW = 1 + weight * 6;
+
+                /* Green intensity proportional to weight */
+                var gi = clamp(weight, 0, 1);
+                var cr = Math.round(16 * (1 - gi) + 16 * gi);
+                var cg = Math.round(100 * (1 - gi) + 185 * gi);
+                var cb = Math.round(80 * (1 - gi) + 129 * gi);
+
+                ctx.strokeStyle = 'rgba(' + cr + ',' + cg + ',' + cb + ',' + alpha.toFixed(2) + ')';
+                ctx.lineWidth = lineW;
+                ctx.beginPath();
+                ctx.moveTo(srcX, BASELINE_Y);
+                ctx.quadraticCurveTo(midX, BASELINE_Y - arcH, tgtX, BASELINE_Y);
+                ctx.stroke();
+
+                /* Weight label on arc */
+                if (weight >= 0.08) {
+                    ctx.fillStyle = 'rgba(' + cr + ',' + cg + ',' + cb + ',0.9)';
+                    ctx.font = '10px Courier New, monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(weight.toFixed(2), midX, BASELINE_Y - arcH - 4);
+                }
+            }
+        } else {
+            /* If nothing selected, show a prompt */
+            ctx.fillStyle = '#606078';
+            ctx.font = '12px Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Click a word to see its attention arcs', W / 2, 30);
+        }
+    }
+
+    function handleClick(mx, my) {
+        for (var i = 0; i < wordRects.length; i++) {
+            var r = wordRects[i];
+            if (mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h) {
+                if (selectedWord === r.idx) {
+                    selectedWord = -1; /* deselect */
+                } else {
+                    selectedWord = r.idx;
+                }
+                draw();
+                updateResults();
+                return;
+            }
+        }
+    }
+
+    function updateResults() {
+        var sent = getSentence();
+        var el = document.getElementById('s1Results');
+        if (selectedWord < 0) {
+            el.innerHTML = 'Click a word to see its attention pattern.';
+            return;
+        }
+        var w = sent.words[selectedWord];
+        var weights = sent.attention[selectedWord];
+        /* Find top 3 attended words */
+        var pairs = [];
+        for (var j = 0; j < weights.length; j++) {
+            if (j !== selectedWord) pairs.push({ word: sent.words[j], w: weights[j] });
+        }
+        pairs.sort(function(a, b) { return b.w - a.w; });
+        var top3 = pairs.slice(0, 3);
+        var html = 'When processing &ldquo;<span class="violet">' + w + '</span>&rdquo;, top attended: ';
+        for (var i = 0; i < top3.length; i++) {
+            html += '<span class="green">' + top3[i].word + '</span> (' + top3[i].w.toFixed(2) + ')';
+            if (i < top3.length - 1) html += ', ';
+        }
+        el.innerHTML = html;
+    }
+
+    /* Event: canvas click */
+    function getCanvasCoords(e) {
+        var rect = cvs.getBoundingClientRect();
+        var scaleX = W / rect.width;
+        var scaleY = H / rect.height;
+        if (e.touches) {
+            return {
+                x: (e.touches[0].clientX - rect.left) * scaleX,
+                y: (e.touches[0].clientY - rect.top) * scaleY
+            };
+        }
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    }
+
+    cvs.addEventListener('click', function(e) {
+        var c = getCanvasCoords(e);
+        handleClick(c.x, c.y);
+    });
+    cvs.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        var c = getCanvasCoords(e);
+        handleClick(c.x, c.y);
+    }, { passive: false });
+
+    /* Sentence selector */
+    document.getElementById('selSentence').addEventListener('change', function() {
+        curSentIdx = parseInt(this.value);
+        selectedWord = -1;
+        draw();
+        updateResults();
+    });
+
+    /* View mode buttons */
+    document.getElementById('btnHeatmap').addEventListener('click', function() {
+        viewMode = 'heatmap';
+        this.classList.add('active');
+        document.getElementById('btnArrows').classList.remove('active');
+        selectedWord = -1;
+        draw();
+        updateResults();
+    });
+    document.getElementById('btnArrows').addEventListener('click', function() {
+        viewMode = 'arrows';
+        this.classList.add('active');
+        document.getElementById('btnHeatmap').classList.remove('active');
+        selectedWord = -1;
+        draw();
+        updateResults();
+    });
+
+    /* Init */
+    selectedWord = 7; /* "it" */
+    draw();
+    updateResults();
+})();
+
+
+/* ================================================================
+   Section 2: Queries, Keys, and Values
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas2');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    /* Three tokens for demonstration */
+    var tokens = ['The', 'cat', 'sat'];
+    var n = tokens.length;
+
+    /* Embedding vectors (3 tokens, d_model=4) — small for visualisation */
+    var X = [
+        [0.8, 0.3, -0.5, 0.1],
+        [0.2, 0.9, 0.4, -0.3],
+        [-0.1, 0.4, 0.7, 0.6]
+    ];
+
+    /* Weight matrices (4x4) */
+    var Wq = [
+        [0.5, 0.1, -0.2, 0.3],
+        [0.2, 0.6, 0.1, -0.1],
+        [-0.3, 0.2, 0.7, 0.0],
+        [0.1, -0.1, 0.3, 0.5]
+    ];
+    var Wk = [
+        [0.4, -0.2, 0.3, 0.1],
+        [0.1, 0.5, -0.1, 0.2],
+        [0.2, 0.3, 0.6, -0.2],
+        [-0.1, 0.1, 0.2, 0.4]
+    ];
+    var Wv = [
+        [0.3, 0.2, 0.1, -0.1],
+        [-0.2, 0.4, 0.3, 0.2],
+        [0.1, -0.1, 0.5, 0.3],
+        [0.2, 0.1, -0.2, 0.6]
+    ];
+
+    /* Matrix multiply: A(m x k) * B(k x n) */
+    function matMul(A, B) {
+        var m = A.length, k = A[0].length, nn = B[0].length;
+        var C = [];
+        for (var i = 0; i < m; i++) {
+            C[i] = [];
+            for (var j = 0; j < nn; j++) {
+                var s = 0;
+                for (var p = 0; p < k; p++) s += A[i][p] * B[p][j];
+                C[i][j] = s;
+            }
+        }
+        return C;
+    }
+
+    /* Transpose */
+    function transpose(M) {
+        var rows = M.length, cols = M[0].length;
+        var T = [];
+        for (var j = 0; j < cols; j++) {
+            T[j] = [];
+            for (var i = 0; i < rows; i++) {
+                T[j][i] = M[i][j];
+            }
+        }
+        return T;
+    }
+
+    /* Compute all matrices */
+    var Q = matMul(X, Wq);
+    var K = matMul(X, Wk);
+    var V = matMul(X, Wv);
+    var Kt = transpose(K);
+    var scores = matMul(Q, Kt);
+
+    function getScaleFactor() {
+        return parseInt(document.getElementById('sScale').value);
+    }
+
+    function computeScaled(dk) {
+        var sqrtDk = Math.sqrt(dk);
+        var scaled = [];
+        for (var i = 0; i < n; i++) {
+            scaled[i] = [];
+            for (var j = 0; j < n; j++) {
+                scaled[i][j] = scores[i][j] / sqrtDk;
+            }
+        }
+        return scaled;
+    }
+
+    function computeWeights(scaled) {
+        var weights = [];
+        for (var i = 0; i < n; i++) {
+            weights[i] = softmax(scaled[i]);
+        }
+        return weights;
+    }
+
+    function computeOutput(weights) {
+        return matMul(weights, V);
+    }
+
+    /* Animation state */
+    var step = 0; /* 0=idle, 1=X shown, 2=Q, 3=K, 4=V, 5=Q*Kt, 6=scale, 7=softmax, 8=output */
+    var MAX_STEP = 8;
+    var autoRunning = false;
+    var autoTimer = null;
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var dk = getScaleFactor();
+
+        if (step === 0) {
+            drawPrompt();
+            return;
+        }
+
+        /* Layout: flow left to right */
+        /* Step 1: show X */
+        if (step >= 1) drawMatrix(X, 20, 30, 'X (Input)', '#c0c0d8', tokens);
+
+        /* Step 2: show Q */
+        if (step >= 2) {
+            drawArrowH(135, 80, 165, 80, '#22d3ee');
+            drawLabel(150, 68, 'x W^Q', '#22d3ee', '10px');
+            drawMatrix(Q, 175, 30, 'Q (Query)', '#22d3ee', tokens);
+        }
+
+        /* Step 3: show K */
+        if (step >= 3) {
+            drawArrowH(135, 170, 165, 170, '#fbbf24');
+            drawLabel(150, 158, 'x W^K', '#fbbf24', '10px');
+            drawMatrix(K, 175, 120, 'K (Key)', '#fbbf24', tokens);
+        }
+
+        /* Step 4: show V */
+        if (step >= 4) {
+            drawArrowH(135, 260, 165, 260, '#10b981');
+            drawLabel(150, 248, 'x W^V', '#10b981', '10px');
+            drawMatrix(V, 175, 210, 'V (Value)', '#10b981', tokens);
+        }
+
+        /* Step 5: Q * K^T scores */
+        if (step >= 5) {
+            drawArrowH(310, 55, 370, 110, '#a78bfa');
+            drawArrowH(310, 145, 370, 130, '#a78bfa');
+            drawLabel(345, 96, 'Q . K^T', '#a78bfa', '10px');
+            drawMatrix(scores, 380, 65, 'Scores (Q*K^T)', '#a78bfa', tokens, tokens);
+        }
+
+        /* Step 6: scale */
+        if (step >= 6) {
+            var scaled = computeScaled(dk);
+            drawArrowH(520, 115, 550, 185, '#f472b6');
+            drawLabel(538, 148, '/ sqrt(' + dk + ')', '#f472b6', '10px');
+            drawMatrix(scaled, 380, 165, 'Scaled (/sqrt d_k)', '#f472b6', tokens, tokens);
+        }
+
+        /* Step 7: softmax */
+        if (step >= 7) {
+            var scaled = computeScaled(dk);
+            var weights = computeWeights(scaled);
+            drawArrowH(520, 215, 550, 280, '#10b981');
+            drawLabel(540, 248, 'softmax', '#10b981', '10px');
+            drawMatrix(weights, 380, 260, 'Weights (softmax)', '#10b981', tokens, tokens);
+        }
+
+        /* Step 8: output */
+        if (step >= 8) {
+            var scaled = computeScaled(dk);
+            var weights = computeWeights(scaled);
+            var output = computeOutput(weights);
+            drawArrowH(520, 310, 560, 330, '#a78bfa');
+            drawLabel(542, 320, 'x V', '#a78bfa', '10px');
+            drawMatrix(output, 570, 260, 'Output', '#a78bfa', tokens);
+        }
+
+        /* Step label */
+        ctx.fillStyle = '#606078';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('Step ' + step + ' / ' + MAX_STEP, W - 15, H - 10);
+    }
+
+    function drawPrompt() {
+        ctx.fillStyle = '#606078';
+        ctx.font = '14px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Press "Step" to begin the attention computation pipeline', W / 2, H / 2 - 10);
+        ctx.fillStyle = '#808098';
+        ctx.font = '12px Georgia, serif';
+        ctx.fillText('Tokens: "The", "cat", "sat" with d_model = 4', W / 2, H / 2 + 20);
+    }
+
+    function drawMatrix(M, x, y, label, color, rowLabels, colLabels) {
+        var rows = M.length;
+        var cols = M[0].length;
+        var cellW = 28;
+        var cellH = 18;
+        var labelH = 14;
+
+        /* Label */
+        ctx.fillStyle = color;
+        ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(label, x, y);
+
+        var startY = y + labelH;
+        var rowLabelW = rowLabels ? 30 : 0;
+
+        /* Row labels */
+        if (rowLabels) {
+            ctx.font = '9px Georgia, serif';
+            ctx.fillStyle = '#808098';
+            ctx.textAlign = 'right';
+            for (var i = 0; i < rows; i++) {
+                if (i < rowLabels.length) {
+                    ctx.fillText(rowLabels[i], x + rowLabelW - 3, startY + i * cellH + cellH / 2 + 3);
+                }
+            }
+        }
+
+        /* Bracket left */
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + rowLabelW + 2, startY - 2);
+        ctx.lineTo(x + rowLabelW - 2, startY - 2);
+        ctx.lineTo(x + rowLabelW - 2, startY + rows * cellH + 2);
+        ctx.lineTo(x + rowLabelW + 2, startY + rows * cellH + 2);
+        ctx.stroke();
+
+        /* Bracket right */
+        var rightX = x + rowLabelW + cols * cellW;
+        ctx.beginPath();
+        ctx.moveTo(rightX - 2, startY - 2);
+        ctx.lineTo(rightX + 2, startY - 2);
+        ctx.lineTo(rightX + 2, startY + rows * cellH + 2);
+        ctx.lineTo(rightX - 2, startY + rows * cellH + 2);
+        ctx.stroke();
+
+        /* Cells */
+        for (var i = 0; i < rows; i++) {
+            for (var j = 0; j < cols; j++) {
+                var cx = x + rowLabelW + j * cellW;
+                var cy = startY + i * cellH;
+                var val = M[i][j];
+
+                /* Background with intensity */
+                var absVal = Math.abs(val);
+                var maxV = 2.0;
+                var intensity = clamp(absVal / maxV, 0, 0.6);
+                if (val >= 0) {
+                    ctx.fillStyle = 'rgba(16,185,129,' + (intensity * 0.3).toFixed(2) + ')';
+                } else {
+                    ctx.fillStyle = 'rgba(244,114,182,' + (intensity * 0.3).toFixed(2) + ')';
+                }
+                ctx.fillRect(cx + 1, cy + 1, cellW - 2, cellH - 2);
+
+                /* Value text */
+                ctx.fillStyle = '#c0c0d8';
+                ctx.font = '9px Courier New, monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(val.toFixed(2), cx + cellW / 2, cy + cellH / 2 + 3);
+            }
+        }
+    }
+
+    function drawArrowH(x1, y1, x2, y2, color) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+
+        /* Arrowhead */
+        var angle = Math.atan2(y2 - y1, x2 - x1);
+        var hl = 6;
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - hl * Math.cos(angle - 0.4), y2 - hl * Math.sin(angle - 0.4));
+        ctx.lineTo(x2 - hl * Math.cos(angle + 0.4), y2 - hl * Math.sin(angle + 0.4));
+        ctx.fill();
+    }
+
+    function drawLabel(x, y, text, color, fontSize) {
+        ctx.fillStyle = color;
+        ctx.font = (fontSize || '10px') + ' Courier New, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(text, x, y);
+    }
+
+    function updateResults() {
+        var el = document.getElementById('s2Results');
+        var dk = getScaleFactor();
+        var labels = [
+            'Press <span class="violet">Step</span> to begin the attention computation.',
+            '<span class="muted">Step 1:</span> Input embeddings X &mdash; each token is a vector of d<sub>model</sub> = 4 numbers.',
+            '<span class="muted">Step 2:</span> <span class="cyan">Q = X &times; W<sup>Q</sup></span> &mdash; each token asks &ldquo;what am I looking for?&rdquo;',
+            '<span class="muted">Step 3:</span> <span class="gold">K = X &times; W<sup>K</sup></span> &mdash; each token declares &ldquo;what do I contain?&rdquo;',
+            '<span class="muted">Step 4:</span> <span class="green">V = X &times; W<sup>V</sup></span> &mdash; each token prepares &ldquo;what do I contribute?&rdquo;',
+            '<span class="muted">Step 5:</span> <span class="violet">Scores = Q &times; K<sup>T</sup></span> &mdash; dot products measure query&ndash;key similarity.',
+            '<span class="muted">Step 6:</span> <span class="pink">Scale by 1/&radic;' + dk + '</span> &mdash; prevents dot products from growing too large for softmax.',
+            '<span class="muted">Step 7:</span> <span class="green">Softmax</span> normalises each row to sum to 1 &mdash; now they are attention weights.',
+            '<span class="muted">Step 8:</span> <span class="violet">Output = Weights &times; V</span> &mdash; weighted sum of value vectors. Done!'
+        ];
+        el.innerHTML = labels[step];
+    }
+
+    /* Button handlers */
+    document.getElementById('btnStepQKV').addEventListener('click', function() {
+        if (step < MAX_STEP) {
+            step++;
+        }
+        draw();
+        updateResults();
+    });
+
+    document.getElementById('btnResetQKV').addEventListener('click', function() {
+        step = 0;
+        autoRunning = false;
+        if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+        document.getElementById('btnAutoQKV').textContent = '\u25B6 Auto';
+        draw();
+        updateResults();
+    });
+
+    document.getElementById('btnAutoQKV').addEventListener('click', function() {
+        if (autoRunning) {
+            autoRunning = false;
+            if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+            this.textContent = '\u25B6 Auto';
+            return;
+        }
+        if (step >= MAX_STEP) step = 0;
+        autoRunning = true;
+        this.textContent = '\u23F8 Pause';
+        autoTimer = setInterval(function() {
+            if (step < MAX_STEP) {
+                step++;
+                draw();
+                updateResults();
+            } else {
+                autoRunning = false;
+                clearInterval(autoTimer);
+                autoTimer = null;
+                document.getElementById('btnAutoQKV').textContent = '\u25B6 Auto';
+            }
+        }, 1200);
+    });
+
+    document.getElementById('sScale').addEventListener('input', function() {
+        var dk = getScaleFactor();
+        document.getElementById('vScale').textContent = 'd=' + dk;
+        if (step >= 6) {
+            draw();
+            updateResults();
+        }
+    });
+
+    /* Init */
+    draw();
+    updateResults();
+})();
+
+
+/* ================================================================
+   Section 3: Multi-Head Attention
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvas3');
+    var ctx = cvs.getContext('2d');
+    var W = cvs.width, H = cvs.height;
+
+    var sentence = ['The','animal','didn\'t','cross','the','street','because','it','was','too','tired'];
+    var n = sentence.length;
+
+    /* Pre-computed attention weights for 4 heads (different patterns) */
+    var heads = [
+        {
+            name: 'Syntactic',
+            desc: 'Subject-verb relationships',
+            color: '#22d3ee',
+            /* "animal" -> "didn't"/"cross", "was" -> "it", etc. */
+            weights: [
+                [0.10,0.35,0.05,0.05,0.10,0.15,0.02,0.05,0.05,0.04,0.04],
+                [0.10,0.10,0.30,0.25,0.05,0.05,0.03,0.04,0.03,0.02,0.03],
+                [0.04,0.35,0.08,0.28,0.04,0.08,0.03,0.03,0.03,0.02,0.02],
+                [0.03,0.25,0.20,0.08,0.04,0.22,0.03,0.04,0.04,0.03,0.04],
+                [0.08,0.06,0.03,0.05,0.08,0.50,0.03,0.04,0.05,0.04,0.04],
+                [0.05,0.08,0.05,0.30,0.20,0.08,0.04,0.05,0.05,0.05,0.05],
+                [0.03,0.08,0.06,0.06,0.03,0.06,0.06,0.18,0.18,0.13,0.13],
+                [0.04,0.10,0.05,0.05,0.04,0.05,0.05,0.06,0.35,0.10,0.11],
+                [0.03,0.06,0.04,0.04,0.03,0.04,0.04,0.35,0.08,0.15,0.14],
+                [0.03,0.05,0.03,0.03,0.03,0.04,0.04,0.05,0.15,0.10,0.45],
+                [0.03,0.08,0.04,0.04,0.03,0.04,0.04,0.10,0.28,0.18,0.14]
+            ]
+        },
+        {
+            name: 'Semantic',
+            desc: 'Pronoun-antecedent coreference',
+            color: '#fbbf24',
+            /* "it" strongly attends to "animal", "tired" -> "animal"/"it" */
+            weights: [
+                [0.12,0.35,0.05,0.05,0.08,0.12,0.02,0.06,0.05,0.05,0.05],
+                [0.18,0.15,0.06,0.08,0.05,0.10,0.03,0.12,0.08,0.06,0.09],
+                [0.05,0.12,0.10,0.25,0.04,0.10,0.05,0.08,0.08,0.06,0.07],
+                [0.04,0.12,0.15,0.08,0.04,0.35,0.03,0.05,0.05,0.04,0.05],
+                [0.10,0.06,0.03,0.04,0.10,0.45,0.03,0.04,0.05,0.05,0.05],
+                [0.06,0.10,0.04,0.20,0.18,0.10,0.04,0.06,0.06,0.06,0.10],
+                [0.04,0.15,0.06,0.08,0.04,0.08,0.06,0.18,0.10,0.08,0.13],
+                [0.03,0.60,0.03,0.03,0.02,0.04,0.03,0.05,0.06,0.05,0.06],
+                [0.03,0.18,0.03,0.03,0.02,0.04,0.04,0.30,0.08,0.10,0.15],
+                [0.03,0.08,0.03,0.03,0.03,0.04,0.04,0.10,0.15,0.12,0.35],
+                [0.03,0.35,0.03,0.04,0.02,0.05,0.04,0.22,0.08,0.06,0.08]
+            ]
+        },
+        {
+            name: 'Positional',
+            desc: 'Adjacent word patterns',
+            color: '#10b981',
+            /* Each word attends mostly to its neighbors */
+            weights: [
+                [0.25,0.45,0.10,0.05,0.04,0.03,0.02,0.02,0.01,0.01,0.02],
+                [0.30,0.15,0.30,0.10,0.04,0.03,0.02,0.02,0.01,0.01,0.02],
+                [0.08,0.30,0.12,0.30,0.06,0.04,0.02,0.02,0.02,0.02,0.02],
+                [0.04,0.08,0.28,0.10,0.28,0.10,0.04,0.02,0.02,0.02,0.02],
+                [0.03,0.04,0.06,0.28,0.10,0.30,0.08,0.04,0.03,0.02,0.02],
+                [0.02,0.03,0.04,0.08,0.30,0.10,0.28,0.06,0.04,0.03,0.02],
+                [0.02,0.02,0.03,0.04,0.08,0.28,0.10,0.28,0.06,0.04,0.05],
+                [0.02,0.02,0.02,0.03,0.04,0.06,0.30,0.10,0.28,0.06,0.07],
+                [0.01,0.02,0.02,0.02,0.03,0.04,0.06,0.30,0.10,0.28,0.12],
+                [0.01,0.01,0.02,0.02,0.02,0.03,0.04,0.06,0.28,0.12,0.39],
+                [0.01,0.01,0.02,0.02,0.02,0.03,0.04,0.06,0.10,0.35,0.34]
+            ]
+        },
+        {
+            name: 'Mixed',
+            desc: 'Long-range dependencies',
+            color: '#f472b6',
+            /* Attends to content words across distance */
+            weights: [
+                [0.10,0.20,0.05,0.10,0.08,0.15,0.04,0.08,0.05,0.05,0.10],
+                [0.12,0.10,0.06,0.12,0.05,0.15,0.04,0.10,0.06,0.06,0.14],
+                [0.06,0.15,0.08,0.15,0.05,0.12,0.05,0.10,0.08,0.06,0.10],
+                [0.05,0.15,0.10,0.08,0.05,0.18,0.05,0.10,0.06,0.06,0.12],
+                [0.06,0.10,0.04,0.08,0.08,0.20,0.05,0.12,0.08,0.08,0.11],
+                [0.05,0.15,0.06,0.15,0.10,0.08,0.05,0.10,0.08,0.06,0.12],
+                [0.04,0.12,0.06,0.08,0.04,0.10,0.06,0.15,0.10,0.10,0.15],
+                [0.05,0.25,0.04,0.08,0.04,0.10,0.06,0.06,0.10,0.08,0.14],
+                [0.04,0.18,0.05,0.06,0.04,0.08,0.06,0.15,0.06,0.12,0.16],
+                [0.04,0.12,0.04,0.06,0.04,0.08,0.06,0.12,0.12,0.08,0.24],
+                [0.04,0.22,0.04,0.08,0.04,0.10,0.06,0.15,0.08,0.08,0.11]
+            ]
+        }
+    ];
+
+    var activeHeads = [true, true, true, true];
+    var expandedHead = -1; /* -1 = none expanded, show all 4 */
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        if (expandedHead >= 0 && activeHeads[expandedHead]) {
+            drawExpandedHead(expandedHead);
+        } else {
+            drawAllHeads();
+        }
+    }
+
+    function drawAllHeads() {
+        var headW = Math.floor((W - 50) / 4);
+        var headH = H - 60;
+
+        for (var h = 0; h < 4; h++) {
+            if (!activeHeads[h]) continue;
+            var hx = 15 + h * (headW + 8);
+            drawMiniHead(h, hx, 10, headW - 4, headH);
+        }
+    }
+
+    function drawMiniHead(h, x, y, w, hh) {
+        var head = heads[h];
+        var cellW = Math.floor(w / n);
+        var cellH = Math.floor((hh - 40) / n);
+        var isExpanded = (expandedHead === h);
+
+        /* Title */
+        ctx.fillStyle = head.color;
+        ctx.font = (isExpanded ? '12px' : '10px') + ' Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Head ' + (h + 1) + ': ' + head.name, x, y + 12);
+
+        ctx.fillStyle = '#606078';
+        ctx.font = '9px Georgia, serif';
+        ctx.fillText(head.desc, x, y + 24);
+
+        var startY = y + 32;
+
+        /* Draw heatmap */
+        for (var i = 0; i < n; i++) {
+            for (var j = 0; j < n; j++) {
+                var weight = head.weights[i][j];
+                var intensity = clamp(weight, 0, 1);
+
+                /* Parse head color to create intensity gradient */
+                var alpha = 0.08 + intensity * 0.92;
+                var r, g, b;
+                if (h === 0) { r = 34; g = 211; b = 238; }      /* cyan */
+                else if (h === 1) { r = 251; g = 191; b = 36; }  /* gold */
+                else if (h === 2) { r = 16; g = 185; b = 129; }  /* green */
+                else { r = 244; g = 114; b = 182; }              /* pink */
+
+                ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha * 0.6).toFixed(2) + ')';
+                ctx.fillRect(x + j * cellW, startY + i * cellH, cellW - 1, cellH - 1);
+            }
+        }
+
+        /* Word labels at bottom if there is room */
+        if (cellW >= 10) {
+            ctx.fillStyle = '#606078';
+            ctx.font = '7px Courier New, monospace';
+            ctx.textAlign = 'center';
+            for (var j = 0; j < n; j++) {
+                var tx = x + j * cellW + cellW / 2;
+                if (j % 2 === 0 || cellW >= 14) {
+                    ctx.save();
+                    ctx.translate(tx, startY + n * cellH + 4);
+                    ctx.rotate(-Math.PI / 3);
+                    ctx.fillText(sentence[j], 0, 0);
+                    ctx.restore();
+                }
+            }
+        }
+
+        /* Border if expanded */
+        if (isExpanded) {
+            ctx.strokeStyle = head.color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x - 2, y - 2, w + 4, hh + 4);
+        }
+    }
+
+    function drawExpandedHead(h) {
+        var head = heads[h];
+        var PAD_LEFT = 80;
+        var PAD_TOP = 45;
+        var PAD_RIGHT = 20;
+        var PAD_BOTTOM = 40;
+        var availW = W - PAD_LEFT - PAD_RIGHT;
+        var availH = H - PAD_TOP - PAD_BOTTOM;
+        var cellW = Math.min(Math.floor(availW / n), 32);
+        var cellH = Math.min(Math.floor(availH / n), 20);
+
+        /* Title */
+        ctx.fillStyle = head.color;
+        ctx.font = '13px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('Head ' + (h + 1) + ': ' + head.name + ' \u2014 ' + head.desc, PAD_LEFT, 16);
+        ctx.fillStyle = '#606078';
+        ctx.font = '10px Georgia, serif';
+        ctx.fillText('(click head button again to show all)', PAD_LEFT, 30);
+
+        /* Column headers */
+        ctx.font = '10px Georgia, serif';
+        ctx.textAlign = 'center';
+        for (var j = 0; j < n; j++) {
+            ctx.fillStyle = '#808098';
+            var cx = PAD_LEFT + j * cellW + cellW / 2;
+            ctx.save();
+            ctx.translate(cx, PAD_TOP - 6);
+            ctx.rotate(-Math.PI / 4);
+            ctx.fillText(sentence[j], 0, 0);
+            ctx.restore();
+        }
+
+        /* Row labels */
+        ctx.textAlign = 'right';
+        for (var i = 0; i < n; i++) {
+            ctx.fillStyle = '#808098';
+            ctx.font = '10px Georgia, serif';
+            ctx.fillText(sentence[i], PAD_LEFT - 6, PAD_TOP + i * cellH + cellH / 2 + 3);
+        }
+
+        /* Heatmap cells */
+        var r, g, b;
+        if (h === 0) { r = 34; g = 211; b = 238; }
+        else if (h === 1) { r = 251; g = 191; b = 36; }
+        else if (h === 2) { r = 16; g = 185; b = 129; }
+        else { r = 244; g = 114; b = 182; }
+
+        for (var i = 0; i < n; i++) {
+            for (var j = 0; j < n; j++) {
+                var weight = head.weights[i][j];
+                var intensity = clamp(weight, 0, 1);
+                var alpha = 0.08 + intensity * 0.92;
+
+                ctx.fillStyle = 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha * 0.7).toFixed(2) + ')';
+                ctx.fillRect(PAD_LEFT + j * cellW + 1, PAD_TOP + i * cellH + 1, cellW - 2, cellH - 2);
+
+                /* Value text */
+                if (cellW >= 22) {
+                    ctx.fillStyle = intensity > 0.25 ? '#fff' : '#606078';
+                    ctx.font = '8px Courier New, monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(weight.toFixed(2), PAD_LEFT + j * cellW + cellW / 2, PAD_TOP + i * cellH + cellH / 2 + 3);
+                }
+            }
+        }
+    }
+
+    function updateResults() {
+        var el = document.getElementById('s3Results');
+        var count = activeHeads.filter(function(a) { return a; }).length;
+        if (expandedHead >= 0 && activeHeads[expandedHead]) {
+            var head = heads[expandedHead];
+            el.innerHTML = '<span style="color:' + head.color + '">Head ' + (expandedHead + 1) + ': ' + head.name + '</span> &mdash; ' + head.desc + '. Click again to return to all heads.';
+        } else {
+            el.innerHTML = count + ' of 4 heads active. Click a head button to expand it.';
+        }
+    }
+
+    /* Head toggle buttons */
+    for (var h = 0; h < 4; h++) {
+        (function(idx) {
+            document.getElementById('btnHead' + (idx + 1)).addEventListener('click', function() {
+                if (expandedHead === idx) {
+                    /* Collapse back to all */
+                    expandedHead = -1;
+                } else if (expandedHead >= 0) {
+                    /* Switch expanded head */
+                    expandedHead = idx;
+                    if (!activeHeads[idx]) {
+                        activeHeads[idx] = true;
+                        this.classList.add('active');
+                    }
+                } else {
+                    /* Toggle or expand */
+                    if (activeHeads[idx]) {
+                        /* Check if this is the only active one - if so just expand */
+                        var otherActive = activeHeads.some(function(a, i) { return a && i !== idx; });
+                        if (otherActive) {
+                            expandedHead = idx;
+                        } else {
+                            /* Only one active, clicking again deactivates or expands */
+                            expandedHead = idx;
+                        }
+                    } else {
+                        activeHeads[idx] = true;
+                        this.classList.add('active');
+                    }
+                }
+                draw();
+                updateResults();
+            });
+        })(h);
+    }
+
+    /* Init */
+    draw();
+    updateResults();
+})();
+</script>
+</body>
+</html>
