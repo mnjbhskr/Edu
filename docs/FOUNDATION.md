@@ -210,24 +210,24 @@ All topic files sit at the repository root — a flat structure that maps direct
 
 | # | Topic | File | Difficulty |
 |---|-------|------|------------|
-| 0 | Quantum Physics — A Conceptual Map | `quantum_physics_map.html` | 1 |
+| 0 | Physics — A Conceptual Map | `quantum_physics_map.html` | 1 |
 | 1 | Projectile Motion | `projectile_motion.html` | 1 |
-| 2 | Simple Harmonic Motion | `simple_harmonic_motion.html` | 1 |
-| 3 | Orbital Mechanics & Kepler's Laws | `orbital_mechanics.html` | 2 |
-| 4 | Wave Interference | `wave_interference.html` | 2 |
-| 5 | Electric Field Lines | `electric_field_lines.html` | 2 |
-| 6 | Special Relativity | `special_relativity.html` | 3 |
-| 7 | Atomic Energy Levels | `atomic_energy_levels.html` | 2 |
-| 8 | Mathematics of Thermodynamics | `thermodynamics.html` | 2 |
-| 9 | Physics of Light | `physics_of_light.html` | 2 |
-| 10 | The Electromagnetic Spectrum | `electromagnetic_spectrum.html` | 2 |
-| 11 | Newton's Laws of Motion | `newtons_laws.html` | 2 |
-| 12 | Conservation of Momentum | `conservation_momentum.html` | 2 |
-| 13 | Conservation of Energy | `conservation_energy.html` | 2 |
-| 14 | The Wave Equation | `wave_equation.html` | 2 |
-| 15 | Magnetic Fields | `magnetic_fields.html` | 2 |
-| 16 | Maxwell's Equations | `maxwells_equations.html` | 3 |
-| 17 | Wave-Particle Duality | `wave_particle_duality.html` | 2 |
+| 2 | Newton's Laws of Motion | `newtons_laws.html` | 2 |
+| 3 | Conservation of Momentum | `conservation_momentum.html` | 2 |
+| 4 | Conservation of Energy | `conservation_energy.html` | 2 |
+| 5 | Simple Harmonic Motion | `simple_harmonic_motion.html` | 1 |
+| 6 | Orbital Mechanics & Kepler's Laws | `orbital_mechanics.html` | 2 |
+| 7 | Wave Interference | `wave_interference.html` | 2 |
+| 8 | The Wave Equation | `wave_equation.html` | 2 |
+| 9 | Mathematics of Thermodynamics | `thermodynamics.html` | 2 |
+| 10 | Electric Field Lines | `electric_field_lines.html` | 2 |
+| 11 | Magnetic Fields | `magnetic_fields.html` | 2 |
+| 12 | Maxwell's Equations | `maxwells_equations.html` | 3 |
+| 13 | Physics of Light | `physics_of_light.html` | 2 |
+| 14 | The Electromagnetic Spectrum | `electromagnetic_spectrum.html` | 2 |
+| 15 | Special Relativity | `special_relativity.html` | 3 |
+| 16 | Wave-Particle Duality | `wave_particle_duality.html` | 2 |
+| 17 | Atomic Energy Levels | `atomic_energy_levels.html` | 2 |
 | 18 | The Schrödinger Equation | `schrodinger_equation.html` | 3 |
 | 19 | Entropy and Information Theory | `entropy_information.html` | 2 |
 
