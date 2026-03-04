@@ -210,6 +210,7 @@ All topic files sit at the repository root — a flat structure that maps direct
 
 | # | Topic | File | Difficulty |
 |---|-------|------|------------|
+| 0 | Quantum Physics — A Conceptual Map | `quantum_physics_map.html` | 1 |
 | 1 | Projectile Motion | `projectile_motion.html` | 1 |
 | 2 | Simple Harmonic Motion | `simple_harmonic_motion.html` | 1 |
 | 3 | Orbital Mechanics & Kepler's Laws | `orbital_mechanics.html` | 2 |
@@ -220,6 +221,15 @@ All topic files sit at the repository root — a flat structure that maps direct
 | 8 | Mathematics of Thermodynamics | `thermodynamics.html` | 2 |
 | 9 | Physics of Light | `physics_of_light.html` | 2 |
 | 10 | The Electromagnetic Spectrum | `electromagnetic_spectrum.html` | 2 |
+| 11 | Newton's Laws of Motion | `newtons_laws.html` | 2 |
+| 12 | Conservation of Momentum | `conservation_momentum.html` | 2 |
+| 13 | Conservation of Energy | `conservation_energy.html` | 2 |
+| 14 | The Wave Equation | `wave_equation.html` | 2 |
+| 15 | Magnetic Fields | `magnetic_fields.html` | 2 |
+| 16 | Maxwell's Equations | `maxwells_equations.html` | 3 |
+| 17 | Wave-Particle Duality | `wave_particle_duality.html` | 2 |
+| 18 | The Schrödinger Equation | `schrodinger_equation.html` | 3 |
+| 19 | Entropy and Information Theory | `entropy_information.html` | 2 |
 
 ### Chapter 13 — The Mathematics of Intelligence
 *How neural networks and language models actually work*
@@ -243,7 +253,7 @@ All topic files sit at the repository root — a flat structure that maps direct
 | 14 | Retrieval-Augmented Generation | `retrieval_augmented_generation.html` | 2 |
 | 15 | Agentic AI Systems | `agentic_systems.html` | 2 |
 
-**Total: 96 interactive visualisations across 13 chapters**
+**Total: 106 interactive visualisations across 13 chapters**
 
 ## Credits
 

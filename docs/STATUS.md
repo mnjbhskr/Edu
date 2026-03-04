@@ -2,7 +2,7 @@
 
 **A Visual Discovery of Mathematics**
 
-*Last updated: 2 March 2026*
+*Last updated: 4 March 2026*
 
 ---
 
@@ -12,7 +12,7 @@ All planned content is **live and deployed** at [mathsedu.org](https://mathsedu.
 
 | Metric | Value |
 |--------|-------|
-| Total visualisations | 96 |
+| Total visualisations | 106 |
 | Chapters | 13 |
 | Status | All live |
 | Hosting | GitHub Pages |
@@ -35,7 +35,7 @@ All planned content is **live and deployed** at [mathsedu.org](https://mathsedu.
 | 9. Analysis & Topology | 6 | Complete |
 | 10. Beautiful Results | 6 | Complete |
 | 11. Quantitative Finance | 10 | Complete |
-| 12. Physics | 10 | Complete |
+| 12. Physics | 20 | Complete |
 | 13. The Mathematics of Intelligence | 16 | Complete |
 
 ## Build History
@@ -77,11 +77,11 @@ The entire collection was built on 25 February 2026 in two phases:
 | `sitemap.xml` (98 URLs) | Deployed, submitted to Google Search Console |
 | `robots.txt` | Deployed |
 | Google Search Console | Verified (URL prefix method) |
-| Meta descriptions | All 96 pages — unique, 140-160 char descriptions |
-| Schema.org JSON-LD | All 96 pages — `LearningResource` with educationalLevel, teaches, chapter |
-| Open Graph tags | All 96 pages — og:title, og:description, og:url, og:type, og:site_name, og:locale |
-| Twitter Card tags | All 96 pages — twitter:card, twitter:title, twitter:description |
-| Canonical URLs | All 96 pages — `<link rel="canonical">` |
+| Meta descriptions | All 105 pages — unique, 140-160 char descriptions |
+| Schema.org JSON-LD | All 105 pages — `LearningResource` with educationalLevel, teaches, chapter |
+| Open Graph tags | All 105 pages — og:title, og:description, og:url, og:type, og:site_name, og:locale |
+| Twitter Card tags | All 105 pages — twitter:card, twitter:title, twitter:description |
+| Canonical URLs | All 105 pages — `<link rel="canonical">` |
 
 **Education directory listings:**
 
@@ -126,6 +126,23 @@ The entire collection was built on 25 February 2026 in two phases:
 - Chain-of-Thought Reasoning (direct vs CoT comparison, reasoning tree)
 - Retrieval-Augmented Generation (vector database, RAG pipeline animation)
 - Agentic AI Systems (observe-think-act loop, tool use & planning tree)
+
+**Phase 10** — Physics Chapter Expansion (4 March 2026) — 9 new visualisations:
+- Newton's Laws of Motion (F=ma block + v-t graph, action-reaction collision, inclined plane free-body diagrams)
+- Conservation of Momentum (elastic collisions with momentum bars, inelastic with restitution, Tsiolkovsky rocket equation)
+- Conservation of Energy (roller coaster with draggable track, work-energy theorem, pendulum energy exchange)
+- The Wave Equation (travelling waves, PDE curvature colour map, standing wave modes)
+- Magnetic Fields (wire B-field with compass placement, Lorentz cyclotron motion, solenoid cross-section)
+- Maxwell's Equations (four-equation tabs, Faraday induction, birth of light EM wave)
+- Wave-Particle Duality (de Broglie wavelength scale, double-slit particle accumulation, Heisenberg wavepacket)
+- The Schrödinger Equation (particle in a box, quantum tunnelling, quantum harmonic oscillator)
+- Entropy and Information Theory (Boltzmann diffusion, Shannon entropy, Boltzmann-Shannon bridge)
+
+**Phase 11** — Quantum Physics Map + SME Feedback (4 March 2026):
+- Quantum Physics — A Conceptual Map (interactive concept map linking 9 quantum-related pages across 4 levels: Classical Waves → Light & EM → Quantum Mechanics → Quantum World)
+- SME feedback applied to Schrödinger Equation (concept bridge, quantum wells, classical vs quantum tunnelling, correspondence principle, ladder operators)
+- SME feedback applied to Wave-Particle Duality (molecular interferometry, Jönsson 1961 historical milestone, classical expectation note)
+- SME feedback applied to 6 other physics pages (Maxwell's Equations, Entropy & Information, Magnetic Fields, Conservation of Momentum, Conservation of Energy, Wave Equation)
 
 ## Potential Next Steps
 
