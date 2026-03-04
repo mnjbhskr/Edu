@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Walks &amp; Diffusion</title>
+    <meta name="description" content="Interactive visualisation of random walks, diffusion equations, and chemotaxis. See how randomness drives biological transport from pollen grains to bacteria.">
+    <link rel="canonical" href="https://mathsedu.org/random_walks_diffusion.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Random Walks & Diffusion",
+      "url": "https://mathsedu.org/random_walks_diffusion.html",
+      "description": "Interactive visualisation of random walks, diffusion equations, and chemotaxis. See how randomness drives biological transport from pollen grains to bacteria.",
+      "educationalLevel": "Intermediate",
+      "teaches": "Random walks, diffusion equation, chemotaxis, and biological transport",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "Biology & Life Sciences",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="Random Walks & Diffusion">
+    <meta property="og:description" content="Interactive visualisation of random walks, diffusion equations, and chemotaxis. See how randomness drives biological transport from pollen grains to bacteria.">
+    <meta property="og:url" content="https://mathsedu.org/random_walks_diffusion.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Random Walks & Diffusion">
+    <meta name="twitter:description" content="Interactive visualisation of random walks, diffusion equations, and chemotaxis. See how randomness drives biological transport from pollen grains to bacteria.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#22c55e}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:6px}
+        .chapter-tag{font-size:0.78em;color:#22c55e;margin-bottom:24px;display:block}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:32px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);max-width:100%}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(34,197,94,0.13);border-color:rgba(34,197,94,0.4);color:#22c55e}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#22c55e}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .gray{color:#808098}
+        .math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:140px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#22c55e;cursor:pointer}
+        .slider-val{color:#22c55e;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .result-big{font-size:1.5em;color:#22c55e;font-family:'Courier New',monospace;font-weight:bold}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#22c55e;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        .insight-box{background:rgba(34,197,94,0.04);border-left:3px solid rgba(34,197,94,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .curiosity-box{background:rgba(251,191,36,0.04);border-left:3px solid rgba(251,191,36,0.35);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .stats-row{display:flex;gap:20px;flex-wrap:wrap;margin:10px 0}
+        .stat-box{text-align:center}
+        .stat-label{font-size:0.75em;color:#808098;text-transform:uppercase;letter-spacing:0.5px}
+        .stat-val{font-family:'Courier New',monospace;font-size:1.05em;color:#e0e0e0}
+        .canvas-row{display:flex;gap:14px;flex-wrap:wrap}
+        .canvas-row canvas{flex:1;min-width:280px}
+        .scenario-cards{display:flex;gap:14px;flex-wrap:wrap;margin:14px 0}
+        .scenario-card{flex:1;min-width:200px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all 0.2s}
+        .scenario-card:hover,.scenario-card.active{border-color:rgba(34,197,94,0.4);background:rgba(34,197,94,0.06)}
+        .scenario-card h4{color:#22c55e;font-weight:400;font-size:0.95em;margin-bottom:4px}
+        .scenario-card p{color:#808098;font-size:0.8em;line-height:1.5}
+        .scenario-card .d-val{font-family:'Courier New',monospace;color:#fbbf24;font-size:0.85em}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+            .stats-row{gap:12px}
+            .canvas-row{flex-direction:column}
+            .scenario-cards{flex-direction:column}
+            .container{padding:16px 14px 36px}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Random Walks &amp; Diffusion</h1>
+    <p class="subtitle">From pollen grains to bacteria &mdash; how randomness creates order</p>
+    <span class="chapter-tag">Chapter 15 &mdash; Biology &amp; Life Sciences &middot; Topic 6 &middot; Difficulty 2</span>
+
+    <div style="background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.15);border-radius:10px;padding:14px 20px;margin-bottom:24px;font-size:0.88em;color:#a0a0b8;line-height:1.75">
+        <strong style="color:#22c55e">Conceptual arc:</strong> This page connects <strong style="color:#e0e0e0">random microscopic steps</strong> to <strong style="color:#e0e0e0">macroscopic diffusion laws</strong> in four stages.
+        &nbsp;<strong style="color:#22c55e">1.</strong> 2D Random Walk &mdash; watch particles wander and discover the &radic;t law.
+        &nbsp;<strong style="color:#22c55e">2.</strong> The Diffusion Equation &mdash; from particles to smooth concentration profiles.
+        &nbsp;<strong style="color:#22c55e">3.</strong> Chemotaxis &mdash; how bacteria bias their random walks to find food.
+        &nbsp;<strong style="color:#22c55e">4.</strong> Diffusion in Biology &mdash; why cells are small and why we need blood.
+    </div>
+
+    <div class="insight-box">
+        <strong style="color:#22c55e">A simple question:</strong> If a drunk person walks randomly left or right, how far do they end up after 100 steps? Answer: distance &asymp; &radic;n &asymp; 10 steps &mdash; one of the most surprising results in mathematics. Not 100, not 50, but just 10. Random steps cancel each other out, so you drift far more slowly than you walk.
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: 2D Random Walk
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. 2D Random Walk &mdash; The Drunkard&rsquo;s Stroll</h2>
+    <div class="panel">
+        <h3>Mean Squared Displacement &amp; the Square-Root Law</h3>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">&langle;r&sup2;&rangle;</span> = <span class="gold">2nDt</span> &nbsp;&nbsp;&rArr;&nbsp;&nbsp; <span class="green">r<sub>rms</sub></span> = &radic;(<span class="gold">2nDt</span>)</div>
+            <div class="math-line muted">n = dimensions (2) &nbsp;|&nbsp; D = diffusion coeff &nbsp;|&nbsp; t = number of steps</div>
+        </div>
+        <div class="canvas-row">
+            <canvas id="rwCanvas" width="500" height="500"></canvas>
+            <canvas id="rmsCanvas" width="340" height="500"></canvas>
+        </div>
+        <div class="stats-row" style="margin-top:12px">
+            <div class="stat-box"><div class="stat-label">Steps</div><div class="stat-val" id="rwSteps">0</div></div>
+            <div class="stat-box"><div class="stat-label">Mean Displacement</div><div class="stat-val" id="rwMeanR">0.00</div></div>
+            <div class="stat-box"><div class="stat-label">RMS Displacement</div><div class="stat-val" id="rwRMS">0.00</div></div>
+            <div class="stat-box"><div class="stat-label">&radic;(4Dt)</div><div class="stat-val" id="rwTheory">0.00</div></div>
+        </div>
+        <div class="slider-row">
+            <label>Walkers</label>
+            <input type="range" id="sRWCount" min="1" max="100" value="30">
+            <span class="slider-val" id="vRWCount">30</span>
+        </div>
+        <div class="slider-row">
+            <label>Max steps</label>
+            <input type="range" id="sRWSteps" min="50" max="1000" value="300" step="10">
+            <span class="slider-val" id="vRWSteps">300</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnRWReset">Reset</button>
+            <button class="btn" id="btnRWStep">Step &times;10</button>
+            <button class="btn" id="btnRWAuto">Auto</button>
+        </div>
+    </div>
+    <div class="insight-box">
+        <strong style="color:#22c55e">Key insight:</strong> Each walker goes in a random direction every step, yet the <em>average distance</em> from origin grows as &radic;t, not t. After 100 steps you are only ~10 step-lengths away. This is why diffusion is slow over large distances.
+    </div>
+
+    <div class="insight-box">
+        <strong style="color:#22c55e">From random walks to the diffusion equation:</strong>
+        <div class="formula-block">
+            <div class="math-line">Random walk &nbsp;&rarr;&nbsp; <span class="green">&part;P/&part;t</span> = <span class="gold">D</span><span class="cyan">&nabla;&sup2;P</span></div>
+        </div>
+        When you zoom out from millions of random-walking particles, their collective behaviour obeys the diffusion equation exactly. The random motion of individual particles produces smooth, predictable diffusion at large scales &mdash; disorder at the micro level creates order at the macro level.
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: The Diffusion Equation
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. The Diffusion Equation &mdash; From Particles to Concentrations</h2>
+    <div class="panel">
+        <h3>Solving &part;C/&part;t = D&nabla;&sup2;C</h3>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">&part;C/&part;t</span> = <span class="gold">D</span> &middot; <span class="cyan">&part;&sup2;C/&part;x&sup2;</span></div>
+            <div class="math-line muted">Gaussian solution: C(x,t) = (1/&radic;(4&pi;Dt)) &middot; exp(&minus;x&sup2; / 4Dt)</div>
+        </div>
+        <canvas id="diffCanvas" width="900" height="420"></canvas>
+        <div class="stats-row" style="margin-top:12px">
+            <div class="stat-box"><div class="stat-label">Time</div><div class="stat-val" id="diffTime">0.0</div></div>
+            <div class="stat-box"><div class="stat-label">Spread (&sigma;)</div><div class="stat-val" id="diffSigma">0.0</div></div>
+        </div>
+        <div class="slider-row">
+            <label>Diffusion coeff D</label>
+            <input type="range" id="sDiffD" min="1" max="50" value="10">
+            <span class="slider-val" id="vDiffD">10</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnDiffReset">Reset</button>
+            <button class="btn" id="btnDiffAuto">Run</button>
+        </div>
+    </div>
+    <div class="insight-box">
+        <strong style="color:#22c55e">Theory meets simulation:</strong> The green dots are individual random-walking particles. The gold curve is the analytical Gaussian solution C(x,t) = (1/&radic;4&pi;Dt) exp(&minus;x&sup2;/4Dt). Watch them match perfectly &mdash; the macroscopic equation emerges from microscopic randomness.
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 3: Chemotaxis
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. Chemotaxis &mdash; Bacterial Navigation</h2>
+    <div class="panel">
+        <h3>Run-and-Tumble: Biased Random Walks</h3>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">Run</span>: move straight (longer when heading up-gradient)</div>
+            <div class="math-line"><span class="gold">Tumble</span>: pick a new random direction (more frequent when heading down-gradient)</div>
+            <div class="math-line muted">Drift-diffusion: J = &minus;D&nabla;C + <span class="green">&chi;</span>C&nabla;S &nbsp;&nbsp;(&chi; = chemotactic sensitivity, S = signal)</div>
+        </div>
+        <canvas id="chemoCanvas" width="900" height="450"></canvas>
+        <div class="stats-row" style="margin-top:12px">
+            <div class="stat-box"><div class="stat-label">Mean X position</div><div class="stat-val" id="chemoMeanX">0</div></div>
+            <div class="stat-box"><div class="stat-label">Time</div><div class="stat-val" id="chemoTime">0</div></div>
+        </div>
+        <div class="slider-row">
+            <label>Gradient strength</label>
+            <input type="range" id="sChemoGrad" min="0" max="100" value="50">
+            <span class="slider-val" id="vChemoGrad">50</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnChemoReset">Reset</button>
+            <button class="btn" id="btnChemoAuto">Run</button>
+        </div>
+    </div>
+    <div class="insight-box">
+        <strong style="color:#22c55e">How E. coli finds food:</strong> Bacteria cannot steer. Instead they alternate between straight &ldquo;runs&rdquo; and random &ldquo;tumbles.&rdquo; The trick: when swimming up a nutrient gradient, they suppress tumbling. This simple bias turns a random walk into directed navigation. The background colour gradient shows chemical concentration &mdash; watch the population drift rightward towards higher concentration.
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 4: Diffusion in Biology
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>4. Diffusion in Biology &mdash; Why Cells Are Small</h2>
+    <div class="panel">
+        <h3>Diffusion Time: t &asymp; x&sup2; / 2D</h3>
+        <div class="formula-block">
+            <div class="math-line"><span class="green">t</span> = <span class="cyan">x&sup2;</span> / (2 &middot; <span class="gold">D</span>)</div>
+            <div class="math-line muted">Einstein relation: D = k<sub>B</sub>T / 6&pi;&eta;r &nbsp;&nbsp;(thermal energy vs viscous drag)</div>
+        </div>
+        <div class="scenario-cards" id="scenarioCards">
+            <div class="scenario-card active" data-d="2e-5" data-label="Oxygen in water">
+                <h4>Oxygen in Water</h4>
+                <p class="d-val">D = 2 &times; 10&sup5; cm&sup2;/s</p>
+                <p>Small molecule, fast diffusion. Crosses a cell in ~5 ms.</p>
+            </div>
+            <div class="scenario-card" data-d="1e-7" data-label="Protein in cell">
+                <h4>Protein in Cell</h4>
+                <p class="d-val">D = 10&sup7; cm&sup2;/s</p>
+                <p>Large molecule, slow in crowded cytoplasm.</p>
+            </div>
+            <div class="scenario-card" data-d="1e-10" data-label="Through membrane">
+                <h4>Through Membrane</h4>
+                <p class="d-val">D = 10<sup>&minus;10</sup> cm&sup2;/s</p>
+                <p>Lipid bilayer is a major barrier. Very slow.</p>
+            </div>
+        </div>
+        <canvas id="bioCanvas" width="900" height="300"></canvas>
+        <div style="margin-top:16px">
+            <div class="slider-row">
+                <label>Distance (&mu;m)</label>
+                <input type="range" id="sBioDist" min="1" max="1000" value="10">
+                <span class="slider-val" id="vBioDist">10</span>
+            </div>
+        </div>
+        <div class="result-box" id="bioResult">
+            <div style="font-size:0.85em;color:#a0a0b8;margin-bottom:6px">Estimated diffusion time (t &asymp; x&sup2; / 2D)</div>
+            <div id="bioTimes" style="font-family:'Courier New',monospace;font-size:0.95em;line-height:2"></div>
+        </div>
+    </div>
+    <div class="insight-box">
+        <strong style="color:#22c55e">The scaling problem:</strong> Diffusion time scales as x&sup2;. Oxygen crosses a 10 &mu;m cell in ~0.25 ms &mdash; plenty fast. But a 1 cm tissue? That takes ~14 hours. A 1 m organism? ~160 years. This is precisely why multicellular life invented <strong style="color:#e0e0e0">circulatory systems</strong> &mdash; convection beats diffusion at every scale above a few hundred microns.
+    </div>
+
+    <div class="insight-box">
+        <strong style="color:#22c55e">Applications of random walks:</strong> The mathematics on this page appears across science and beyond.
+        <br>&bull; <strong style="color:#e0e0e0">Brownian motion</strong> &mdash; pollen grains jittering in water, first observed by Robert Brown in 1827.
+        <br>&bull; <strong style="color:#e0e0e0">Stock prices</strong> &mdash; financial models treat price changes as a random walk (the basis of the Black&ndash;Scholes equation).
+        <br>&bull; <strong style="color:#e0e0e0">Animal foraging</strong> &mdash; organisms from albatrosses to bacteria use random-walk strategies (L&eacute;vy flights) to search for patchy food.
+        <br>&bull; <strong style="color:#e0e0e0">Molecular diffusion</strong> &mdash; oxygen, nutrients, and signalling molecules all reach their targets by diffusion through cells and tissues.
+    </div>
+
+    <div class="curiosity-box">
+        <strong style="color:#fbbf24">Did you know?</strong> Einstein&rsquo;s 1905 paper on Brownian motion explained the random jittering of pollen grains in water using the mathematics of random walks. By predicting the exact relationship between particle displacement and time, he provided the first definitive evidence that atoms exist &mdash; a fact still debated by some scientists at the time.
+    </div>
+
+    <!-- Why it matters -->
+    <div class="explain" style="margin-top:28px">
+        <div class="explain-name">Why It Matters</div>
+        <div class="explain-text">
+            <strong style="color:#e0e0e0">Einstein&rsquo;s 1905 paper</strong> on Brownian motion proved atoms exist by showing that random molecular collisions explain the jittery movement of pollen grains in water. The same diffusion equation &part;C/&part;t = D&nabla;&sup2;C governs <strong style="color:#e0e0e0">heat flow</strong> in physics, <strong style="color:#e0e0e0">drug delivery</strong> in pharmacology, <strong style="color:#e0e0e0">cellular signalling</strong> in biology, <strong style="color:#e0e0e0">trait frequency evolution</strong> in population genetics, and even <strong style="color:#e0e0e0">option pricing</strong> (Black&ndash;Scholes) in finance.
+            <br><br>
+            <strong style="color:#808098">Connects to:</strong>
+            <a href="brownian_motion.html" style="color:#22c55e;text-decoration:none">Brownian Motion (Ch 11)</a> &middot;
+            <a href="sir_model.html" style="color:#22c55e;text-decoration:none">SIR Model (B2)</a> &middot;
+            <a href="turing_patterns.html" style="color:#22c55e;text-decoration:none">Turing Patterns (B4)</a> &middot;
+            <a href="monte_carlo.html" style="color:#22c55e;text-decoration:none">Monte Carlo (Ch 11)</a>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   Utility
+   ══════════════════════════════════════════════════════════════ */
+var ACCENT = '#22c55e';
+var COLORS = ['#22c55e','#22d3ee','#fbbf24','#f87171','#a78bfa','#fb923c','#f472b6','#34d399','#60a5fa','#e879f9'];
+
+function randAngle(){ return Math.random() * Math.PI * 2; }
+function clamp(v,lo,hi){ return v < lo ? lo : v > hi ? hi : v; }
+function dpr(){ return window.devicePixelRatio || 1; }
+
+function setupCanvas(c, w, h){
+    var r = dpr();
+    c.width = w * r; c.height = h * r;
+    c.style.width = w + 'px'; c.style.height = h + 'px';
+    var ctx = c.getContext('2d');
+    ctx.setTransform(r, 0, 0, r, 0, 0);
+    return ctx;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Section 1: 2D Random Walk
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    var cvs = document.getElementById('rwCanvas');
+    var rmsC = document.getElementById('rmsCanvas');
+    var ctx, rctx;
+    var W = 500, H = 500, RW = 340, RH = 500;
+    var walkers = [], stepCount = 0, autoId = null;
+    var STEP_SIZE = 4;
+    var rmsHistory = []; // {t, rms, theory}
+
+    function getN(){ return parseInt(document.getElementById('sRWCount').value); }
+    function getMaxSteps(){ return parseInt(document.getElementById('sRWSteps').value); }
+
+    function init(){
+        ctx = setupCanvas(cvs, W, H);
+        rctx = setupCanvas(rmsC, RW, RH);
+        reset();
+    }
+
+    function reset(){
+        if(autoId){ clearInterval(autoId); autoId = null; document.getElementById('btnRWAuto').classList.remove('active'); }
+        var n = getN();
+        walkers = [];
+        for(var i = 0; i < n; i++){
+            walkers.push({ x: W/2, y: H/2, trail: [{x: W/2, y: H/2}], color: COLORS[i % COLORS.length] });
+        }
+        stepCount = 0;
+        rmsHistory = [{t:0, rms:0, theory:0}];
+        updateStats();
+        draw();
+        drawRMS();
+    }
+
+    function step(times){
+        var maxS = getMaxSteps();
+        for(var s = 0; s < times && stepCount < maxS; s++){
+            stepCount++;
+            for(var i = 0; i < walkers.length; i++){
+                var a = randAngle();
+                walkers[i].x += Math.cos(a) * STEP_SIZE;
+                walkers[i].y += Math.sin(a) * STEP_SIZE;
+                walkers[i].trail.push({x: walkers[i].x, y: walkers[i].y});
+            }
+            // record RMS every 5 steps
+            if(stepCount % 5 === 0 || stepCount === 1){
+                var sumR2 = 0;
+                for(var i = 0; i < walkers.length; i++){
+                    var dx = walkers[i].x - W/2, dy = walkers[i].y - H/2;
+                    sumR2 += dx*dx + dy*dy;
+                }
+                var rms = Math.sqrt(sumR2 / walkers.length);
+                // theory: rms = step_size * sqrt(steps) for 2D (since <r^2> = n * step^2 for unit step, 2D)
+                var theory = STEP_SIZE * Math.sqrt(stepCount);
+                rmsHistory.push({t: stepCount, rms: rms, theory: theory});
+            }
+        }
+        updateStats();
+        draw();
+        drawRMS();
+    }
+
+    function updateStats(){
+        document.getElementById('rwSteps').textContent = stepCount;
+        if(walkers.length === 0) return;
+        var sumR = 0, sumR2 = 0;
+        for(var i = 0; i < walkers.length; i++){
+            var dx = walkers[i].x - W/2, dy = walkers[i].y - H/2;
+            var r = Math.sqrt(dx*dx + dy*dy);
+            sumR += r; sumR2 += r*r;
+        }
+        var meanR = sumR / walkers.length;
+        var rms = Math.sqrt(sumR2 / walkers.length);
+        var theory = STEP_SIZE * Math.sqrt(stepCount);
+        document.getElementById('rwMeanR').textContent = meanR.toFixed(1);
+        document.getElementById('rwRMS').textContent = rms.toFixed(1);
+        document.getElementById('rwTheory').textContent = theory.toFixed(1);
+    }
+
+    function draw(){
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+        // grid
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)'; ctx.lineWidth = 1;
+        for(var g = 0; g <= W; g += 50){ ctx.beginPath(); ctx.moveTo(g,0); ctx.lineTo(g,H); ctx.stroke(); }
+        for(var g = 0; g <= H; g += 50){ ctx.beginPath(); ctx.moveTo(0,g); ctx.lineTo(W,g); ctx.stroke(); }
+        // origin cross
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(W/2-12, H/2); ctx.lineTo(W/2+12, H/2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(W/2, H/2-12); ctx.lineTo(W/2, H/2+12); ctx.stroke();
+
+        // trails
+        for(var i = 0; i < walkers.length; i++){
+            var w = walkers[i], tr = w.trail;
+            if(tr.length < 2) continue;
+            var len = tr.length;
+            for(var j = 1; j < len; j++){
+                var alpha = 0.05 + 0.35 * (j / len);
+                ctx.strokeStyle = w.color;
+                ctx.globalAlpha = alpha;
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(tr[j-1].x, tr[j-1].y); ctx.lineTo(tr[j].x, tr[j].y); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+            // current position
+            ctx.fillStyle = w.color;
+            ctx.beginPath(); ctx.arc(w.x, w.y, 3, 0, Math.PI*2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    function drawRMS(){
+        rctx.clearRect(0, 0, RW, RH);
+        rctx.fillStyle = '#0a0a1a'; rctx.fillRect(0, 0, RW, RH);
+        var P = {top:30, bottom:40, left:50, right:20};
+        var maxS = getMaxSteps();
+        var maxRMS = STEP_SIZE * Math.sqrt(maxS) * 1.3;
+        function tx(t){ return P.left + (t/maxS) * (RW - P.left - P.right); }
+        function ty(v){ return RH - P.bottom - (v/maxRMS) * (RH - P.top - P.bottom); }
+        // axes
+        rctx.strokeStyle = 'rgba(255,255,255,0.15)'; rctx.lineWidth = 1;
+        rctx.beginPath(); rctx.moveTo(P.left, P.top); rctx.lineTo(P.left, RH - P.bottom); rctx.lineTo(RW - P.right, RH - P.bottom); rctx.stroke();
+        // labels
+        rctx.fillStyle = '#808098'; rctx.font = '11px Georgia'; rctx.textAlign = 'center';
+        rctx.fillText('Steps', (P.left + RW - P.right)/2, RH - 8);
+        rctx.save(); rctx.translate(12, (P.top + RH - P.bottom)/2); rctx.rotate(-Math.PI/2); rctx.fillText('Distance', 0, 0); rctx.restore();
+        rctx.fillStyle = '#606078'; rctx.font = '10px Georgia';
+        // title
+        rctx.fillStyle = '#a0a0b8'; rctx.font = '12px Georgia'; rctx.textAlign = 'center';
+        rctx.fillText('RMS vs \u221At law', RW/2, 16);
+
+        // theory curve (sqrt)
+        rctx.strokeStyle = 'rgba(251,191,36,0.5)'; rctx.lineWidth = 2; rctx.setLineDash([5,3]);
+        rctx.beginPath();
+        for(var t = 0; t <= maxS; t += 2){
+            var v = STEP_SIZE * Math.sqrt(t);
+            var px = tx(t), py = ty(v);
+            if(t === 0) rctx.moveTo(px, py); else rctx.lineTo(px, py);
+        }
+        rctx.stroke(); rctx.setLineDash([]);
+
+        // measured RMS
+        if(rmsHistory.length > 1){
+            rctx.strokeStyle = ACCENT; rctx.lineWidth = 2;
+            rctx.beginPath();
+            for(var i = 0; i < rmsHistory.length; i++){
+                var px = tx(rmsHistory[i].t), py = ty(rmsHistory[i].rms);
+                if(i === 0) rctx.moveTo(px, py); else rctx.lineTo(px, py);
+            }
+            rctx.stroke();
+        }
+        // legend
+        rctx.fillStyle = ACCENT; rctx.font = '10px Georgia'; rctx.textAlign = 'left';
+        rctx.fillRect(P.left + 10, P.top + 8, 14, 2);
+        rctx.fillText('Measured RMS', P.left + 30, P.top + 13);
+        rctx.fillStyle = '#fbbf24';
+        rctx.setLineDash([4,2]); rctx.strokeStyle = '#fbbf24'; rctx.lineWidth = 1.5;
+        rctx.beginPath(); rctx.moveTo(P.left + 10, P.top + 26); rctx.lineTo(P.left + 24, P.top + 26); rctx.stroke(); rctx.setLineDash([]);
+        rctx.fillText('Theory (\u221At)', P.left + 30, P.top + 30);
+    }
+
+    document.getElementById('sRWCount').addEventListener('input', function(){ document.getElementById('vRWCount').textContent = this.value; });
+    document.getElementById('sRWSteps').addEventListener('input', function(){ document.getElementById('vRWSteps').textContent = this.value; });
+    document.getElementById('btnRWReset').addEventListener('click', reset);
+    document.getElementById('btnRWStep').addEventListener('click', function(){ step(10); });
+    document.getElementById('btnRWAuto').addEventListener('click', function(){
+        if(autoId){ clearInterval(autoId); autoId = null; this.classList.remove('active'); }
+        else { autoId = setInterval(function(){ step(3); if(stepCount >= getMaxSteps()){ clearInterval(autoId); autoId = null; document.getElementById('btnRWAuto').classList.remove('active'); }}, 40); this.classList.add('active'); }
+    });
+
+    init();
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   Section 2: The Diffusion Equation
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    var cvs = document.getElementById('diffCanvas');
+    var ctx;
+    var W = 900, H = 420;
+    var autoId = null;
+    var particles = [];
+    var NPART = 600;
+    var time = 0, dt = 0.15;
+
+    function getD(){ return parseInt(document.getElementById('sDiffD').value); }
+
+    function init(){
+        ctx = setupCanvas(cvs, W, H);
+        reset();
+    }
+
+    function reset(){
+        if(autoId){ clearInterval(autoId); autoId = null; document.getElementById('btnDiffAuto').classList.remove('active'); document.getElementById('btnDiffAuto').textContent = 'Run'; }
+        time = 0;
+        particles = [];
+        // all particles start on the left (step function IC: concentrated at x=0 as a narrow Gaussian)
+        for(var i = 0; i < NPART; i++){
+            particles.push({
+                x: (Math.random() - 0.5) * 20, // narrow cluster near x=0
+                y: (Math.random() - 0.5) * (H - 80)
+            });
+        }
+        updateStats();
+        draw();
+    }
+
+    function step(){
+        var D = getD();
+        var sigma = Math.sqrt(2 * D * dt);
+        time += dt;
+        for(var i = 0; i < particles.length; i++){
+            // random walk step (1D diffusion in x, random in y for display)
+            particles[i].x += sigma * (Math.random() + Math.random() + Math.random() + Math.random() + Math.random() + Math.random() - 3) / 1.73;
+            particles[i].y += (Math.random() - 0.5) * 4; // small y jitter for visual
+            particles[i].y = clamp(particles[i].y, -(H-80)/2, (H-80)/2);
+        }
+        updateStats();
+        draw();
+    }
+
+    function updateStats(){
+        document.getElementById('diffTime').textContent = time.toFixed(1);
+        var D = getD();
+        var sig = Math.sqrt(2 * D * time);
+        document.getElementById('diffSigma').textContent = sig.toFixed(1);
+    }
+
+    function draw(){
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+        var cx = W/2, cy = H/2;
+        var scale = 2.0; // pixels per unit x
+
+        // axes
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(cx, 30); ctx.lineTo(cx, H - 60); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(40, H - 60); ctx.lineTo(W - 40, H - 60); ctx.stroke();
+        ctx.fillStyle = '#505068'; ctx.font = '10px Georgia'; ctx.textAlign = 'center';
+        ctx.fillText('x', W - 30, H - 55);
+        ctx.fillText('0', cx, H - 45);
+
+        // particles (scatter)
+        for(var i = 0; i < particles.length; i++){
+            var px = cx + particles[i].x * scale;
+            var py = cy + particles[i].y * 0.8;
+            if(px < 10 || px > W - 10) continue;
+            ctx.fillStyle = 'rgba(34,197,94,0.5)';
+            ctx.beginPath(); ctx.arc(px, py - 20, 2.2, 0, Math.PI*2); ctx.fill();
+        }
+
+        // histogram of particle x-positions (bottom)
+        var D = getD();
+        var histH = 100;
+        var histY = H - 60 - histH;
+        var nBins = 60;
+        var binW = (W - 80) / nBins;
+        var xMin = -200, xMax = 200;
+        var bins = new Array(nBins).fill(0);
+        for(var i = 0; i < particles.length; i++){
+            var bIdx = Math.floor((particles[i].x - xMin) / (xMax - xMin) * nBins);
+            if(bIdx >= 0 && bIdx < nBins) bins[bIdx]++;
+        }
+        var maxBin = 1;
+        for(var b = 0; b < nBins; b++) if(bins[b] > maxBin) maxBin = bins[b];
+
+        // draw histogram
+        for(var b = 0; b < nBins; b++){
+            var bh = (bins[b] / maxBin) * histH * 0.8;
+            var bx = 40 + b * binW;
+            ctx.fillStyle = 'rgba(34,197,94,0.2)';
+            ctx.fillRect(bx, H - 60 - bh, binW - 1, bh);
+        }
+
+        // analytical Gaussian overlay
+        if(time > 0.1){
+            var sig2 = 2 * D * time;
+            var sig = Math.sqrt(sig2);
+            ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            for(var b = 0; b <= nBins; b++){
+                var xVal = xMin + (b / nBins) * (xMax - xMin);
+                var cVal = (1.0 / Math.sqrt(2 * Math.PI * sig2)) * Math.exp(-xVal * xVal / (2 * sig2));
+                // scale: total particles * bin_width_in_x_units
+                var binWx = (xMax - xMin) / nBins;
+                var expected = cVal * NPART * binWx;
+                var barH = (expected / maxBin) * histH * 0.8;
+                var px = 40 + b * binW;
+                var py = H - 60 - barH;
+                if(b === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+        }
+
+        // labels
+        ctx.fillStyle = '#22c55e'; ctx.font = '11px Georgia'; ctx.textAlign = 'left';
+        ctx.fillRect(50, 14, 8, 8); ctx.fillStyle = '#a0a0b8'; ctx.fillText('Particles', 64, 22);
+        ctx.fillStyle = '#fbbf24'; ctx.fillRect(140, 14, 14, 2); ctx.fillStyle = '#a0a0b8'; ctx.fillText('Gaussian theory', 160, 22);
+    }
+
+    document.getElementById('sDiffD').addEventListener('input', function(){ document.getElementById('vDiffD').textContent = this.value; });
+    document.getElementById('btnDiffReset').addEventListener('click', reset);
+    document.getElementById('btnDiffAuto').addEventListener('click', function(){
+        if(autoId){ clearInterval(autoId); autoId = null; this.classList.remove('active'); this.textContent = 'Run'; }
+        else { autoId = setInterval(step, 50); this.classList.add('active'); this.textContent = 'Pause'; }
+    });
+
+    init();
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   Section 3: Chemotaxis
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    var cvs = document.getElementById('chemoCanvas');
+    var ctx;
+    var W = 900, H = 450;
+    var autoId = null, time = 0;
+    var bacteria = [];
+    var NBACT = 80;
+    var SPEED = 2.5;
+
+    function getGrad(){ return parseInt(document.getElementById('sChemoGrad').value) / 100; }
+
+    function init(){
+        ctx = setupCanvas(cvs, W, H);
+        reset();
+    }
+
+    function reset(){
+        if(autoId){ clearInterval(autoId); autoId = null; document.getElementById('btnChemoAuto').classList.remove('active'); document.getElementById('btnChemoAuto').textContent = 'Run'; }
+        time = 0;
+        bacteria = [];
+        for(var i = 0; i < NBACT; i++){
+            var ang = randAngle();
+            bacteria.push({
+                x: W * 0.25 + (Math.random() - 0.5) * 80,
+                y: H * 0.5 + (Math.random() - 0.5) * (H * 0.6),
+                angle: ang,
+                runTimer: Math.random() * 30 + 10,
+                trail: []
+            });
+        }
+        updateStats();
+        draw();
+    }
+
+    function step(){
+        var grad = getGrad();
+        time++;
+        for(var i = 0; i < bacteria.length; i++){
+            var b = bacteria[i];
+            // is bacterium moving up gradient? (rightward = higher concentration)
+            var movingUp = Math.cos(b.angle) > 0;
+
+            // decrement run timer
+            b.runTimer--;
+
+            // tumble check
+            if(b.runTimer <= 0){
+                // tumble: pick new random direction
+                b.angle = randAngle();
+                // set new run length - biased by gradient
+                var baseRun = 15 + Math.random() * 20;
+                // if now moving up gradient, longer runs
+                var newMovingUp = Math.cos(b.angle) > 0;
+                if(newMovingUp && grad > 0){
+                    b.runTimer = baseRun * (1 + grad * 2);
+                } else {
+                    b.runTimer = baseRun * (1 - grad * 0.5);
+                }
+                b.runTimer = Math.max(3, b.runTimer);
+            }
+
+            // move
+            b.x += Math.cos(b.angle) * SPEED;
+            b.y += Math.sin(b.angle) * SPEED;
+
+            // wrap y, reflect x
+            if(b.y < 10) b.y = 10 + Math.random() * 5;
+            if(b.y > H - 10) b.y = H - 10 - Math.random() * 5;
+            if(b.x < 10){ b.x = 10; b.angle = Math.PI - b.angle + (Math.random()-0.5)*0.5; b.runTimer = 1; }
+            if(b.x > W - 10){ b.x = W - 10; b.angle = Math.PI - b.angle + (Math.random()-0.5)*0.5; b.runTimer = 1; }
+
+            // trail (keep last 40 positions)
+            b.trail.push({x: b.x, y: b.y});
+            if(b.trail.length > 40) b.trail.shift();
+        }
+        updateStats();
+        draw();
+    }
+
+    function updateStats(){
+        document.getElementById('chemoTime').textContent = time;
+        if(bacteria.length === 0) return;
+        var sumX = 0;
+        for(var i = 0; i < bacteria.length; i++) sumX += bacteria[i].x;
+        document.getElementById('chemoMeanX').textContent = (sumX / bacteria.length).toFixed(0);
+    }
+
+    function draw(){
+        ctx.clearRect(0, 0, W, H);
+        // gradient background
+        var grd = ctx.createLinearGradient(0, 0, W, 0);
+        grd.addColorStop(0, 'rgba(10,10,26,1)');
+        grd.addColorStop(1, 'rgba(34,197,94,0.12)');
+        ctx.fillStyle = grd; ctx.fillRect(0, 0, W, H);
+
+        // gradient label
+        ctx.fillStyle = '#505068'; ctx.font = '11px Georgia'; ctx.textAlign = 'left';
+        ctx.fillText('Low [nutrient]', 14, 20);
+        ctx.textAlign = 'right';
+        ctx.fillText('High [nutrient]', W - 14, 20);
+
+        // bacteria
+        for(var i = 0; i < bacteria.length; i++){
+            var b = bacteria[i];
+            // trail
+            for(var j = 1; j < b.trail.length; j++){
+                var alpha = 0.05 + 0.25 * (j / b.trail.length);
+                ctx.strokeStyle = 'rgba(34,197,94,' + alpha + ')';
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(b.trail[j-1].x, b.trail[j-1].y); ctx.lineTo(b.trail[j].x, b.trail[j].y); ctx.stroke();
+            }
+            // body
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath(); ctx.arc(b.x, b.y, 3.5, 0, Math.PI*2); ctx.fill();
+            // direction indicator
+            ctx.strokeStyle = 'rgba(34,197,94,0.5)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(b.x + Math.cos(b.angle)*8, b.y + Math.sin(b.angle)*8); ctx.stroke();
+        }
+    }
+
+    document.getElementById('sChemoGrad').addEventListener('input', function(){ document.getElementById('vChemoGrad').textContent = this.value; });
+    document.getElementById('btnChemoReset').addEventListener('click', reset);
+    document.getElementById('btnChemoAuto').addEventListener('click', function(){
+        if(autoId){ clearInterval(autoId); autoId = null; this.classList.remove('active'); this.textContent = 'Run'; }
+        else { autoId = setInterval(step, 40); this.classList.add('active'); this.textContent = 'Pause'; }
+    });
+
+    init();
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   Section 4: Diffusion in Biology
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+    var cvs = document.getElementById('bioCanvas');
+    var ctx;
+    var W = 900, H = 300;
+
+    var scenarios = [
+        { label: 'Oxygen in water', D: 2e-5, color: '#22c55e', unit: 'cm\u00B2/s' },
+        { label: 'Protein in cell', D: 1e-7, color: '#22d3ee', unit: 'cm\u00B2/s' },
+        { label: 'Through membrane', D: 1e-10, color: '#fbbf24', unit: 'cm\u00B2/s' }
+    ];
+
+    function init(){
+        ctx = setupCanvas(cvs, W, H);
+        draw();
+        updateTimes();
+        setupCards();
+    }
+
+    function setupCards(){
+        var cards = document.querySelectorAll('.scenario-card');
+        cards.forEach(function(c){ c.addEventListener('click', function(){ cards.forEach(function(cc){ cc.classList.remove('active'); }); c.classList.add('active'); draw(); updateTimes(); }); });
+    }
+
+    function getDist(){ return parseFloat(document.getElementById('sBioDist').value); }
+
+    function formatTime(t){
+        if(t < 1e-6) return (t * 1e9).toFixed(1) + ' ns';
+        if(t < 1e-3) return (t * 1e6).toFixed(1) + ' \u00B5s';
+        if(t < 1) return (t * 1e3).toFixed(1) + ' ms';
+        if(t < 60) return t.toFixed(2) + ' s';
+        if(t < 3600) return (t / 60).toFixed(1) + ' min';
+        if(t < 86400) return (t / 3600).toFixed(1) + ' hrs';
+        if(t < 86400 * 365) return (t / 86400).toFixed(1) + ' days';
+        return (t / (86400 * 365)).toFixed(1) + ' years';
+    }
+
+    function updateTimes(){
+        var dist_um = getDist();
+        var dist_cm = dist_um * 1e-4; // convert um to cm
+        var html = '';
+        for(var i = 0; i < scenarios.length; i++){
+            var s = scenarios[i];
+            var t = (dist_cm * dist_cm) / (2 * s.D);
+            html += '<div style="color:' + s.color + '">' + s.label + ': <strong>' + formatTime(t) + '</strong> (D = ' + s.D.toExponential(0) + ' ' + s.unit + ')</div>';
+        }
+        document.getElementById('bioTimes').innerHTML = html;
+    }
+
+    function draw(){
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0, 0, W, H);
+
+        var P = {top: 30, bottom: 40, left: 60, right: 30};
+        var pw = W - P.left - P.right;
+        var ph = H - P.top - P.bottom;
+        var colW = pw / 3;
+
+        // For each scenario, show a concentration profile at a snapshot in time
+        var dist_um = getDist();
+        var dist_cm = dist_um * 1e-4;
+        // pick time such that oxygen has spread roughly dist_cm
+        var tSnap = (dist_cm * dist_cm) / (2 * scenarios[0].D);
+
+        for(var s = 0; s < 3; s++){
+            var sc = scenarios[s];
+            var ox = P.left + s * colW;
+            var sig2 = 2 * sc.D * tSnap;
+            var sig = Math.sqrt(sig2);
+
+            // x range: -3*sig_max to 3*sig_max for oxygen
+            var sigMax = Math.sqrt(2 * scenarios[0].D * tSnap);
+            var xRange = sigMax * 4;
+            if(xRange < 1e-10) xRange = 1e-4;
+
+            // draw profile
+            ctx.strokeStyle = sc.color; ctx.lineWidth = 2;
+            ctx.beginPath();
+            var nPts = 80;
+            var maxC = 0;
+            // first pass: find max
+            for(var p = 0; p <= nPts; p++){
+                var xVal = -xRange + (2 * xRange * p / nPts);
+                var cVal = (1.0 / Math.sqrt(2 * Math.PI * sig2)) * Math.exp(-xVal * xVal / (2 * sig2));
+                if(cVal > maxC) maxC = cVal;
+            }
+            if(maxC < 1e-30) maxC = 1;
+            for(var p = 0; p <= nPts; p++){
+                var xVal = -xRange + (2 * xRange * p / nPts);
+                var cVal = (1.0 / Math.sqrt(2 * Math.PI * sig2)) * Math.exp(-xVal * xVal / (2 * sig2));
+                var px = ox + (p / nPts) * (colW - 10);
+                var py = P.top + ph - (cVal / maxC) * ph * 0.85;
+                if(p === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+
+            // fill under
+            ctx.lineTo(ox + colW - 10, P.top + ph);
+            ctx.lineTo(ox, P.top + ph);
+            ctx.closePath();
+            ctx.fillStyle = sc.color.replace(')', ',0.08)').replace('rgb', 'rgba');
+            // manual alpha fill
+            ctx.globalAlpha = 0.12;
+            ctx.fillStyle = sc.color;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // label
+            ctx.fillStyle = sc.color; ctx.font = '12px Georgia'; ctx.textAlign = 'center';
+            ctx.fillText(sc.label, ox + (colW - 10)/2, P.top + ph + 20);
+
+            // spread indicator
+            var spreadPx = (sig / xRange) * (colW - 10) / 2;
+            ctx.strokeStyle = sc.color; ctx.lineWidth = 1; ctx.globalAlpha = 0.4;
+            var midX = ox + (colW - 10)/2;
+            var baseY = P.top + ph - 2;
+            ctx.beginPath(); ctx.moveTo(midX - spreadPx, baseY + 8); ctx.lineTo(midX + spreadPx, baseY + 8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(midX - spreadPx, baseY + 5); ctx.lineTo(midX - spreadPx, baseY + 11); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(midX + spreadPx, baseY + 5); ctx.lineTo(midX + spreadPx, baseY + 11); ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            // divider
+            if(s < 2){
+                ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(ox + colW - 5, P.top); ctx.lineTo(ox + colW - 5, P.top + ph); ctx.stroke();
+            }
+        }
+
+        // title
+        ctx.fillStyle = '#a0a0b8'; ctx.font = '12px Georgia'; ctx.textAlign = 'center';
+        ctx.fillText('Concentration profiles at same time (t = time for O\u2082 to diffuse ' + dist_um + ' \u00B5m)', W/2, 16);
+    }
+
+    document.getElementById('sBioDist').addEventListener('input', function(){
+        document.getElementById('vBioDist').textContent = this.value;
+        draw();
+        updateTimes();
+    });
+
+    init();
+})();
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+</footer>
+</body>
+</html>
