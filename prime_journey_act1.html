@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#07071a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>The Prime Journey</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap');
+
+        :root {
+            --bg:        #07071a;
+            --bg2:       #0e0e28;
+            --bg3:       #13132f;
+            --gold:      #fbbf24;
+            --gold-dim:  rgba(251,191,36,0.15);
+            --green:     #10b981;
+            --green-dim: rgba(16,185,129,0.15);
+            --cyan:      #22d3ee;
+            --pink:      #f472b6;
+            --text:      #e2e2f0;
+            --muted:     #7070a0;
+            --panel:     rgba(255,255,255,0.03);
+            --border:    rgba(255,255,255,0.07);
+            --radius:    18px;
+            --tile-size: clamp(42px, 10vw, 60px);
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Nunito', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ── Starfield ── */
+        #stars {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background: radial-gradient(ellipse at 20% 30%, rgba(16,185,129,0.04) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 70%, rgba(34,211,238,0.03) 0%, transparent 60%),
+                        var(--bg);
+        }
+
+        /* ── App Shell ── */
+        #app {
+            position: relative; z-index: 1;
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+        }
+
+        /* ── Header ── */
+        .app-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(7,7,26,0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            position: sticky; top: 0; z-index: 10;
+        }
+        .header-logo {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.1em; font-style: italic; color: var(--muted);
+            letter-spacing: 0.5px;
+        }
+        .header-logo span { color: var(--gold); font-style: normal; }
+        .progress-dots {
+            display: flex; gap: 6px; align-items: center;
+        }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--border); transition: all 0.4s ease;
+        }
+        .dot.active { background: var(--gold); box-shadow: 0 0 8px var(--gold); }
+        .dot.done { background: var(--green); }
+
+        /* ── Screens ── */
+        .screen {
+            display: none; flex-direction: column;
+            flex: 1; padding: 24px 20px 100px;
+            animation: fadeUp 0.5s ease both;
+        }
+        .screen.active { display: flex; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Narrator Box ── */
+        .narrator {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--gold);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        .narrator::before {
+            content: '✦';
+            position: absolute; top: -10px; left: 18px;
+            background: var(--bg2); padding: 0 6px;
+            color: var(--gold); font-size: 0.8em;
+        }
+        .narrator p {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.15em; line-height: 1.75;
+            color: #c8c8e8;
+        }
+        .narrator p em { color: var(--gold); font-style: italic; }
+        .narrator p strong { color: #fff; font-weight: 400; }
+        .narrator.green-accent { border-left-color: var(--green); }
+        .narrator.green-accent::before { color: var(--green); background: var(--bg2); }
+        .narrator.cyan-accent { border-left-color: var(--cyan); }
+
+        /* ── Number to test ── */
+        .number-display {
+            text-align: center; margin: 8px 0 20px;
+        }
+        .number-display .label {
+            font-size: 0.75em; text-transform: uppercase;
+            letter-spacing: 2px; color: var(--muted); margin-bottom: 6px;
+        }
+        .big-number {
+            font-size: clamp(3em, 15vw, 5.5em);
+            font-weight: 800; color: var(--gold);
+            line-height: 1;
+            text-shadow: 0 0 40px rgba(251,191,36,0.3);
+            transition: all 0.3s ease;
+        }
+        .big-number.success { color: var(--green); text-shadow: 0 0 40px rgba(16,185,129,0.4); }
+        .big-number.fail { color: var(--pink); text-shadow: 0 0 40px rgba(244,114,182,0.4); }
+
+        /* ── Tile Grid ── */
+        .tile-area {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            min-height: 200px;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 10px;
+        }
+        .tile-grid {
+            display: flex; flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+        }
+        .tile {
+            width: var(--tile-size);
+            height: var(--tile-size);
+            border-radius: 8px;
+            background: rgba(251,191,36,0.12);
+            border: 1.5px solid rgba(251,191,36,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7em; color: rgba(251,191,36,0.5);
+            transition: all 0.25s ease;
+            animation: tileIn 0.3s ease both;
+        }
+        @keyframes tileIn {
+            from { opacity: 0; transform: scale(0.5); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        .tile.lit {
+            background: var(--gold-dim);
+            border-color: var(--gold);
+            box-shadow: 0 0 10px rgba(251,191,36,0.2);
+        }
+        .tile.green-tile {
+            background: var(--green-dim);
+            border-color: var(--green);
+            box-shadow: 0 0 10px rgba(16,185,129,0.2);
+        }
+
+        /* Rectangle rows */
+        .rect-display {
+            width: 100%;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 8px;
+        }
+        .rect-row {
+            display: flex; gap: 5px; align-items: center;
+        }
+        .rect-label {
+            font-size: 0.72em; color: var(--muted);
+            font-family: 'Crimson Pro', serif; font-style: italic;
+            margin-left: 8px;
+        }
+
+        /* ── Controls ── */
+        .tile-controls {
+            display: flex; gap: 10px; justify-content: center;
+            flex-wrap: wrap; margin-bottom: 16px;
+        }
+        .arrange-btn {
+            background: var(--bg3);
+            border: 1.5px solid var(--border);
+            border-radius: 40px;
+            padding: 10px 20px;
+            color: var(--muted);
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.88em; font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            touch-action: manipulation;
+        }
+        .arrange-btn:hover, .arrange-btn:active {
+            border-color: var(--gold);
+            color: var(--gold);
+            background: var(--gold-dim);
+        }
+        .arrange-btn.selected {
+            background: var(--gold-dim);
+            border-color: var(--gold);
+            color: var(--gold);
+            box-shadow: 0 0 16px rgba(251,191,36,0.15);
+        }
+        .arrange-btn.impossible {
+            background: rgba(244,114,182,0.08);
+            border-color: rgba(244,114,182,0.3);
+            color: rgba(244,114,182,0.6);
+            text-decoration: line-through;
+        }
+
+        /* ── Feedback box ── */
+        .feedback {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            min-height: 60px;
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.05em; line-height: 1.7;
+            color: #b0b0d0;
+            opacity: 0; transition: opacity 0.4s ease;
+        }
+        .feedback.show { opacity: 1; }
+        .feedback .gold { color: var(--gold); }
+        .feedback .green { color: var(--green); }
+        .feedback .pink { color: var(--pink); }
+
+        /* ── Results strip ── */
+        .results-strip {
+            display: flex; gap: 8px; flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .result-chip {
+            padding: 6px 14px; border-radius: 20px;
+            font-size: 0.8em; font-weight: 700;
+            border: 1.5px solid;
+            animation: chipIn 0.3s ease both;
+        }
+        @keyframes chipIn {
+            from { opacity:0; transform: scale(0.7); }
+            to   { opacity:1; transform: scale(1); }
+        }
+        .chip-prime {
+            background: var(--gold-dim);
+            border-color: rgba(251,191,36,0.5);
+            color: var(--gold);
+        }
+        .chip-composite {
+            background: rgba(112,112,160,0.1);
+            border-color: rgba(112,112,160,0.3);
+            color: var(--muted);
+        }
+
+        /* ── CTA Button ── */
+        .cta-btn {
+            width: 100%; max-width: 400px;
+            margin: 0 auto;
+            display: block;
+            background: linear-gradient(135deg, var(--gold), #f59e0b);
+            border: none; border-radius: 50px;
+            padding: 16px 32px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.05em; font-weight: 800;
+            color: #07071a;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            touch-action: manipulation;
+            box-shadow: 0 4px 24px rgba(251,191,36,0.25);
+        }
+        .cta-btn:hover, .cta-btn:active {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(251,191,36,0.35);
+        }
+        .cta-btn:disabled {
+            opacity: 0.35; transform: none;
+            box-shadow: none; cursor: default;
+        }
+        .cta-btn.green-btn {
+            background: linear-gradient(135deg, var(--green), #059669);
+            box-shadow: 0 4px 24px rgba(16,185,129,0.25);
+            color: #fff;
+        }
+
+        /* ── Number selector ── */
+        .number-selector {
+            display: flex; gap: 10px;
+            flex-wrap: wrap; justify-content: center;
+            margin-bottom: 24px;
+        }
+        .num-btn {
+            width: 52px; height: 52px;
+            border-radius: 12px;
+            background: var(--bg3);
+            border: 1.5px solid var(--border);
+            color: var(--muted);
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.1em; font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .num-btn:hover, .num-btn:active {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+        .num-btn.current {
+            background: var(--gold-dim);
+            border-color: var(--gold);
+            color: var(--gold);
+            box-shadow: 0 0 16px rgba(251,191,36,0.2);
+        }
+        .num-btn.revealed-prime {
+            background: var(--gold-dim);
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+        .num-btn.revealed-composite {
+            background: rgba(112,112,160,0.08);
+            border-color: rgba(112,112,160,0.2);
+            color: rgba(112,112,160,0.5);
+        }
+
+        /* ── Act title ── */
+        .act-title {
+            text-align: center; margin-bottom: 20px;
+        }
+        .act-label {
+            font-size: 0.7em; text-transform: uppercase;
+            letter-spacing: 3px; color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .act-name {
+            font-family: 'Crimson Pro', serif;
+            font-size: clamp(1.6em, 6vw, 2.2em);
+            font-weight: 300; color: #fff;
+            letter-spacing: 0.5px;
+        }
+        .act-name em { color: var(--gold); font-style: italic; }
+
+        /* ── Discovery moment ── */
+        .discovery-flash {
+            position: fixed; inset: 0; z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(7,7,26,0.92);
+            backdrop-filter: blur(8px);
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.3s ease;
+            flex-direction: column; gap: 16px; padding: 40px;
+            text-align: center;
+        }
+        .discovery-flash.show {
+            opacity: 1; pointer-events: all;
+        }
+        .discovery-number {
+            font-size: clamp(4em, 20vw, 7em);
+            font-weight: 800; color: var(--gold);
+            text-shadow: 0 0 60px rgba(251,191,36,0.5);
+            animation: pulse-glow 1s ease infinite alternate;
+        }
+        @keyframes pulse-glow {
+            from { text-shadow: 0 0 30px rgba(251,191,36,0.3); }
+            to   { text-shadow: 0 0 80px rgba(251,191,36,0.7); }
+        }
+        .discovery-label {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.4em; color: #c8c8e8; line-height: 1.6;
+        }
+        .discovery-label strong { color: var(--gold); }
+        .discovery-sub {
+            font-size: 0.9em; color: var(--muted); max-width: 320px;
+        }
+
+        /* ── Conclusion screen ── */
+        .prime-wall {
+            display: flex; flex-wrap: wrap; gap: 8px;
+            justify-content: center; margin: 20px 0;
+        }
+        .prime-badge {
+            background: var(--gold-dim);
+            border: 1.5px solid rgba(251,191,36,0.4);
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 1.1em; font-weight: 700; color: var(--gold);
+            animation: badgeIn 0.4s ease both;
+        }
+        @keyframes badgeIn {
+            from { opacity:0; transform: scale(0) rotate(-10deg); }
+            to   { opacity:1; transform: scale(1) rotate(0deg); }
+        }
+
+        .insight-card {
+            background: var(--bg2);
+            border: 1px solid rgba(16,185,129,0.2);
+            border-left: 3px solid var(--green);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            margin-bottom: 16px;
+        }
+        .insight-card .insight-label {
+            font-size: 0.7em; text-transform: uppercase;
+            letter-spacing: 2px; color: var(--green);
+            margin-bottom: 8px;
+        }
+        .insight-card p {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.05em; line-height: 1.7; color: #c0c0e0;
+        }
+        .insight-card p em { color: var(--cyan); font-style: normal; }
+
+        /* ── Scroll hint ── */
+        .bottom-pad { height: 20px; }
+
+        /* ── Confetti canvas ── */
+        #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+
+        /* ── Number nav ── */
+        .num-nav {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px; gap: 10px;
+        }
+        .nav-arrow {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: var(--bg3); border: 1.5px solid var(--border);
+            color: var(--muted); font-size: 1.3em;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            touch-action: manipulation; transition: all 0.2s ease;
+        }
+        .nav-arrow:hover { border-color: var(--gold); color: var(--gold); }
+        .nav-arrow:disabled { opacity: 0.3; cursor: default; }
+        .nav-label {
+            font-size: 0.75em; color: var(--muted);
+            text-align: center; flex: 1;
+            font-family: 'Crimson Pro', serif; font-style: italic;
+        }
+
+    </style>
+</head>
+<body>
+
+<canvas id="confetti"></canvas>
+<div id="stars"></div>
+
+<div id="app">
+    <header class="app-header">
+        <div class="header-logo">mathsedu<span>.org</span></div>
+        <div class="progress-dots">
+            <div class="dot active" id="dot0"></div>
+            <div class="dot" id="dot1"></div>
+            <div class="dot" id="dot2"></div>
+            <div class="dot" id="dot3"></div>
+            <div class="dot" id="dot4"></div>
+        </div>
+    </header>
+
+    <!-- ══ SCREEN 0: OPENING ══ -->
+    <section class="screen active" id="screen-0">
+        <div class="act-title">
+            <div class="act-label">Act I · The Prime Journey</div>
+            <div class="act-name">The <em>Lonely</em> Numbers</div>
+        </div>
+
+        <div class="narrator">
+            <p>Some numbers have <em>no friends.</em></p>
+            <p style="margin-top:10px">We're going to find them together.</p>
+            <p style="margin-top:10px">Your mission: try to arrange tiles into <em>neat rectangles.</em> Some numbers will surprise you...</p>
+        </div>
+
+        <div style="text-align:center; margin: 32px 0 24px;">
+            <div style="font-size:4em; margin-bottom:12px; animation: float 3s ease-in-out infinite;">🔢</div>
+            <div style="font-family:'Crimson Pro',serif; font-size:1.1em; color:var(--muted); font-style:italic;">
+                No equations. No rules to memorise.<br>Just tiles, patterns, and your curiosity.
+            </div>
+        </div>
+
+        <style>@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }</style>
+
+        <button class="cta-btn" onclick="goToScreen(1)">Begin the Journey →</button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 1: TILE EXPLORER ══ -->
+    <section class="screen" id="screen-1">
+        <div class="narrator">
+            <p>You have <em id="narrator-n">12</em> tiles. Try to arrange them into a perfect rectangle — <em>no gaps, no leftovers.</em></p>
+            <p style="margin-top:8px; font-size:0.92em; color:var(--muted);">Tap a shape below to try it.</p>
+        </div>
+
+        <div class="num-nav">
+            <button class="nav-arrow" id="prevBtn" onclick="changeNumber(-1)">←</button>
+            <div class="nav-label">Choose a number to explore</div>
+            <button class="nav-arrow" id="nextBtn" onclick="changeNumber(1)">→</button>
+        </div>
+
+        <div class="number-selector" id="numSelector"></div>
+
+        <div class="number-display">
+            <div class="label">tiles to arrange</div>
+            <div class="big-number" id="bigNum">12</div>
+        </div>
+
+        <div class="tile-controls" id="tileControls"></div>
+
+        <div class="tile-area" id="tileArea">
+            <div class="tile-grid" id="tileGrid"></div>
+        </div>
+
+        <div class="feedback" id="feedback">
+            Tap an arrangement above to see if it works.
+        </div>
+
+        <div class="results-strip" id="resultsStrip"></div>
+
+        <button class="cta-btn" id="nextActBtn" onclick="goToScreen(2)" disabled>
+            I've found something interesting →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 2: PATTERN RECOGNITION ══ -->
+    <section class="screen" id="screen-2">
+        <div class="act-title">
+            <div class="act-label">A pattern emerges</div>
+            <div class="act-name">Do you <em>see</em> it?</div>
+        </div>
+
+        <div class="narrator">
+            <p>You've tested some numbers. Here's what you found:</p>
+        </div>
+
+        <div id="patternResults" style="margin-bottom: 20px;"></div>
+
+        <div class="narrator cyan-accent" style="margin-bottom:20px;">
+            <p>Some numbers can only stand in a single row. <em>They refuse every other arrangement.</em></p>
+            <p style="margin-top:8px">These are the <strong>lonely numbers</strong> — and they're more interesting than you might think.</p>
+            <p style="margin-top:8px; font-size:0.92em; color:var(--muted);">Mathematicians call them <em style="color:var(--gold)">prime numbers.</em></p>
+        </div>
+
+        <div class="insight-card">
+            <div class="insight-label">💡 Key Insight</div>
+            <p>A number is <em>prime</em> if it cannot be arranged into any rectangle except a single row. It has no factor pairs — only <em>1 × itself.</em></p>
+        </div>
+
+        <button class="cta-btn" onclick="goToScreen(3)">Meet the primes up to 20 →</button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 3: SIEVE PREVIEW ══ -->
+    <section class="screen" id="screen-3">
+        <div class="act-title">
+            <div class="act-label">Discovery</div>
+            <div class="act-name">The <em>first primes</em></div>
+        </div>
+
+        <div class="narrator green-accent">
+            <p>Let's check every number from 2 to 20. Which ones can only form a single row?</p>
+            <p style="margin-top:8px; font-size:0.92em; color:var(--muted)">Tap each number to test it. Watch the pattern that appears.</p>
+        </div>
+
+        <div class="number-selector" id="sieveSelector" style="margin-bottom:20px;"></div>
+
+        <div class="tile-area" id="sieveTileArea" style="min-height:120px; margin-bottom:16px;">
+            <div style="color:var(--muted); font-family:'Crimson Pro',serif; font-style:italic;" id="sievePrompt">
+                Tap a number to see its rectangles
+            </div>
+            <div class="rect-display" id="sieveRects" style="display:none;"></div>
+        </div>
+
+        <div class="feedback show" id="sieveFeedback" style="opacity:0.7;">
+            Tap numbers above to test them.
+        </div>
+
+        <div style="margin-bottom:20px;">
+            <div style="font-size:0.72em; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:10px;">Primes found so far</div>
+            <div class="prime-wall" id="primeWall"></div>
+        </div>
+
+        <button class="cta-btn green-btn" id="sieveNextBtn" onclick="goToScreen(4)" disabled>
+            I've found them all →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 4: REVELATION ══ -->
+    <section class="screen" id="screen-4">
+        <div class="act-title">
+            <div class="act-label">The revelation</div>
+            <div class="act-name">They never <em>end</em></div>
+        </div>
+
+        <div class="narrator">
+            <p>You found <em>8 primes</em> between 2 and 20.</p>
+            <p style="margin-top:10px">But here's what will keep you up at night:</p>
+        </div>
+
+        <div style="text-align:center; padding: 28px 20px; background: var(--bg2); border-radius: var(--radius); margin-bottom: 20px; border: 1px solid var(--border);">
+            <div style="font-family:'Crimson Pro',serif; font-size:1.2em; color:var(--muted); margin-bottom:12px; font-style:italic;">no matter how far you go...</div>
+            <div style="font-size: clamp(1.1em, 4vw, 1.4em); font-family:'Crimson Pro',serif; color: #fff; line-height:1.7;">
+                2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53...
+            </div>
+            <div style="font-family:'Crimson Pro',serif; font-size:1.2em; color:var(--gold); margin-top:12px; font-style:italic;">...there is always another one lurking.</div>
+        </div>
+
+        <div class="insight-card" style="margin-bottom:16px;">
+            <div class="insight-label">💡 Euclid's Gift — 300 BCE</div>
+            <p>Over 2,300 years ago, a Greek mathematician named Euclid <em>proved</em> that primes never run out. His proof is one of the most beautiful arguments in all of mathematics — and you'll explore it in Act II.</p>
+        </div>
+
+        <div class="insight-card" style="border-left-color: var(--cyan);">
+            <div class="insight-label" style="color:var(--cyan)">🔐 And here's the extraordinary part</div>
+            <p>Every time you buy something online, <em>prime numbers</em> are protecting your data. The internet's security depends on a simple fact you've just discovered: some numbers are irreducibly lonely.</p>
+        </div>
+
+        <div style="text-align:center; padding: 20px; margin-bottom: 20px;">
+            <div style="font-size:0.75em; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:8px;">Your primes from 2–20</div>
+            <div class="prime-wall" id="finalPrimeWall">
+                <div class="prime-badge" style="animation-delay:0.0s">2</div>
+                <div class="prime-badge" style="animation-delay:0.1s">3</div>
+                <div class="prime-badge" style="animation-delay:0.2s">5</div>
+                <div class="prime-badge" style="animation-delay:0.3s">7</div>
+                <div class="prime-badge" style="animation-delay:0.4s">11</div>
+                <div class="prime-badge" style="animation-delay:0.5s">13</div>
+                <div class="prime-badge" style="animation-delay:0.6s">17</div>
+                <div class="prime-badge" style="animation-delay:0.7s">19</div>
+            </div>
+        </div>
+
+        <button class="cta-btn green-btn" onclick="celebrateAndContinue()">
+            ✦ Act I Complete — What's Next?
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+</div><!-- /app -->
+
+<!-- Discovery flash overlay -->
+<div id="discoveryFlash" class="discovery-flash">
+    <div class="discovery-number" id="flashNumber">7</div>
+    <div class="discovery-label" id="flashLabel"><strong>7 is prime!</strong></div>
+    <div class="discovery-sub" id="flashSub">It refuses every rectangle. Only 1 × 7 works.</div>
+    <button class="cta-btn" style="max-width:260px; margin-top:8px;" onclick="closeFlash()">Got it ✓</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+const state = {
+    currentScreen: 0,
+    currentNumber: 7,
+    exploredNumbers: {},   // n -> {isPrime, tried:[arrangements]}
+    sieveExplored: new Set(),
+    discoveredPrimes: [],
+    screenHistory: [0],
+};
+
+const NUMBERS_TO_EXPLORE = [4, 6, 7, 9, 11, 12, 13, 15];
+const SIEVE_NUMBERS = [2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20];
+const PRIMES_TO_20 = new Set([2,3,5,7,11,13,17,19]);
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function goToScreen(n) {
+    document.getElementById(`screen-${state.currentScreen}`).classList.remove('active');
+    state.currentScreen = n;
+    document.getElementById(`screen-${n}`).classList.add('active');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+
+    // Update dots
+    for (let i = 0; i < 5; i++) {
+        const d = document.getElementById(`dot${i}`);
+        d.className = 'dot';
+        if (i < n) d.classList.add('done');
+        else if (i === n) d.classList.add('active');
+    }
+
+    // Init screens
+    if (n === 1) initExplorer();
+    if (n === 2) buildPatternScreen();
+    if (n === 3) initSieve();
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 1: TILE EXPLORER
+// ══════════════════════════════════════════════
+function initExplorer() {
+    state.currentNumber = 7;
+    renderNumberSelector();
+    renderForNumber(7);
+}
+
+function renderNumberSelector() {
+    const sel = document.getElementById('numSelector');
+    sel.innerHTML = '';
+    NUMBERS_TO_EXPLORE.forEach(n => {
+        const btn = document.createElement('button');
+        btn.className = 'num-btn';
+        btn.id = `numBtn-${n}`;
+        btn.textContent = n;
+        btn.onclick = () => { state.currentNumber = n; renderForNumber(n); };
+        if (state.exploredNumbers[n]) {
+            btn.classList.add(PRIMES_TO_20.has(n) ? 'revealed-prime' : 'revealed-composite');
+        }
+        sel.appendChild(btn);
+    });
+    updateCurrentBtn();
+}
+
+function updateCurrentBtn() {
+    NUMBERS_TO_EXPLORE.forEach(n => {
+        const btn = document.getElementById(`numBtn-${n}`);
+        if (!btn) return;
+        if (n === state.currentNumber) btn.classList.add('current');
+        else btn.classList.remove('current');
+    });
+}
+
+function changeNumber(dir) {
+    const idx = NUMBERS_TO_EXPLORE.indexOf(state.currentNumber);
+    const newIdx = Math.max(0, Math.min(NUMBERS_TO_EXPLORE.length - 1, idx + dir));
+    state.currentNumber = NUMBERS_TO_EXPLORE[newIdx];
+    renderForNumber(state.currentNumber);
+
+    document.getElementById('prevBtn').disabled = newIdx === 0;
+    document.getElementById('nextBtn').disabled = newIdx === NUMBERS_TO_EXPLORE.length - 1;
+}
+
+function getFactors(n) {
+    const factors = [];
+    for (let i = 1; i <= n; i++) {
+        if (n % i === 0) factors.push([i, n / i]);
+    }
+    // Only return unique rectangles (avoid a×b and b×a duplicates, but keep 1×n)
+    const seen = new Set();
+    return factors.filter(([a, b]) => {
+        const key = [Math.min(a,b), Math.max(a,b)].join('x');
+        if (seen.has(key)) return false;
+        seen.add(key); return true;
+    });
+}
+
+function renderForNumber(n) {
+    document.getElementById('bigNum').textContent = n;
+    document.getElementById('bigNum').className = 'big-number';
+    document.getElementById('narrator-n').textContent = n;
+    updateCurrentBtn();
+
+    const factors = getFactors(n);
+    const controls = document.getElementById('tileControls');
+    controls.innerHTML = '';
+
+    // Mark already tried
+    const tried = state.exploredNumbers[n]?.tried || [];
+
+    factors.forEach(([a, b]) => {
+        const btn = document.createElement('button');
+        const label = a === b ? `${a} × ${a} square` :
+                      a === 1 ? `1 × ${b} (single row)` :
+                      `${a} × ${b} rectangle`;
+        btn.className = 'arrange-btn';
+        btn.textContent = label;
+        btn.onclick = () => tryArrangement(n, a, b, btn);
+        controls.appendChild(btn);
+    });
+
+    // Add some impossible ones for composite numbers
+    if (!PRIMES_TO_20.has(n) && n > 4) {
+        const impossibleBtn = document.createElement('button');
+        const fake = Math.floor(n / 3);
+        impossibleBtn.className = 'arrange-btn';
+        impossibleBtn.textContent = `${fake} × ${n/fake % 1 !== 0 ? '?' : n/fake} ???`;
+        impossibleBtn.onclick = () => showImpossible(impossibleBtn);
+        controls.appendChild(impossibleBtn);
+    }
+
+    // Render tiles
+    renderTiles(n, null, null);
+
+    // Feedback
+    const fb = document.getElementById('feedback');
+    fb.innerHTML = 'Tap an arrangement above to see what happens.';
+    fb.className = 'feedback show';
+    fb.style.opacity = '0.5';
+}
+
+function showImpossible(btn) {
+    btn.classList.add('impossible');
+    const fb = document.getElementById('feedback');
+    fb.innerHTML = `<span class="pink">That doesn't divide evenly.</span> You'd have leftover tiles — a prime sign that it won't work.`;
+    fb.style.opacity = '1';
+}
+
+function renderTiles(n, rows, cols) {
+    const grid = document.getElementById('tileGrid');
+    grid.innerHTML = '';
+    grid.style.flexDirection = 'row';
+
+    if (rows === null) {
+        // Show all tiles in a pile
+        for (let i = 0; i < Math.min(n, 25); i++) {
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.style.animationDelay = `${i * 0.03}s`;
+            grid.appendChild(tile);
+        }
+        if (n > 25) {
+            const more = document.createElement('div');
+            more.style.cssText = 'color:var(--muted);font-size:0.85em;padding:8px;align-self:center;';
+            more.textContent = `+${n-25} more`;
+            grid.appendChild(more);
+        }
+        return;
+    }
+
+    // Render rectangle
+    grid.style.flexDirection = 'column';
+    grid.style.alignItems = 'center';
+    grid.style.gap = '4px';
+
+    for (let r = 0; r < rows; r++) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:4px;';
+        for (let c = 0; c < cols; c++) {
+            const tile = document.createElement('div');
+            tile.className = 'tile green-tile';
+            tile.style.animationDelay = `${(r * cols + c) * 0.02}s`;
+            row.appendChild(tile);
+        }
+        grid.appendChild(row);
+    }
+}
+
+function tryArrangement(n, rows, cols, btn) {
+    // Mark as tried
+    if (!state.exploredNumbers[n]) {
+        state.exploredNumbers[n] = { tried: [] };
+    }
+    state.exploredNumbers[n].tried.push(`${rows}x${cols}`);
+
+    // Visual feedback
+    document.querySelectorAll('.arrange-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+
+    renderTiles(n, rows, cols);
+
+    const fb = document.getElementById('feedback');
+    const isPrime = PRIMES_TO_20.has(n);
+
+    if (rows === 1) {
+        if (isPrime) {
+            fb.innerHTML = `<span class="gold">Only 1 × ${n} works.</span> No matter what you try, ${n} refuses to form a proper rectangle. There's something special about it...`;
+            // Show discovery flash for first prime discovery
+            if (!state.discoveredPrimes.includes(n)) {
+                setTimeout(() => showDiscovery(n), 800);
+            }
+        } else {
+            fb.innerHTML = `<span class="gold">1 × ${n} works</span> — but so do other shapes. Try another arrangement for ${n}.`;
+        }
+    } else {
+        fb.innerHTML = `<span class="green">${rows} × ${cols} = ${n} ✓</span> — a perfect rectangle! ${
+            isPrime ? `But wait — is this really the <em>only</em> way? Try the 1 × ${n} row too.` :
+            `${n} can form ${rows === cols ? 'a square and' : 'rectangles and'} more shapes.`
+        }`;
+    }
+    fb.style.opacity = '1';
+
+    // Update number button
+    const numBtn = document.getElementById(`numBtn-${n}`);
+    if (numBtn) {
+        numBtn.classList.remove('current');
+        numBtn.classList.add(isPrime ? 'revealed-prime' : 'revealed-composite');
+    }
+
+    // Check if enough explored to continue
+    checkExplorationProgress();
+}
+
+function showDiscovery(n) {
+    if (state.discoveredPrimes.includes(n)) return;
+    state.discoveredPrimes.push(n);
+
+    document.getElementById('flashNumber').textContent = n;
+    document.getElementById('flashLabel').innerHTML = `<strong>${n} is prime!</strong>`;
+    document.getElementById('flashSub').textContent =
+        `It refuses every rectangle except 1 × ${n}. Only itself and 1 divide it perfectly.`;
+    document.getElementById('discoveryFlash').classList.add('show');
+    launchConfetti();
+}
+
+function closeFlash() {
+    document.getElementById('discoveryFlash').classList.remove('show');
+}
+
+function checkExplorationProgress() {
+    const explored = Object.keys(state.exploredNumbers).length;
+    if (explored >= 4) {
+        document.getElementById('nextActBtn').disabled = false;
+    }
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 2: PATTERN
+// ══════════════════════════════════════════════
+function buildPatternScreen() {
+    const container = document.getElementById('patternResults');
+    container.innerHTML = '';
+
+    // Show a summary table
+    const explored = Object.keys(state.exploredNumbers).map(Number);
+    if (explored.length === 0) {
+        // Show all numbers anyway
+        NUMBERS_TO_EXPLORE.forEach(n => showPatternRow(container, n));
+    } else {
+        explored.forEach(n => showPatternRow(container, n));
+    }
+}
+
+function showPatternRow(container, n) {
+    const isPrime = PRIMES_TO_20.has(n);
+    const row = document.createElement('div');
+    row.style.cssText = `
+        display:flex; align-items:center; gap:12px;
+        padding:12px 16px; margin-bottom:8px;
+        border-radius:12px;
+        background:${isPrime ? 'rgba(251,191,36,0.06)' : 'rgba(255,255,255,0.02)'};
+        border:1px solid ${isPrime ? 'rgba(251,191,36,0.2)' : 'var(--border)'};
+    `;
+    const factors = getFactors(n);
+    const factorStr = factors.map(([a,b]) => `${a}×${b}`).join(', ');
+
+    row.innerHTML = `
+        <div style="font-size:1.4em;font-weight:800;color:${isPrime ? 'var(--gold)' : 'var(--muted)'};min-width:32px;">${n}</div>
+        <div style="flex:1;">
+            <div style="font-size:0.85em;color:${isPrime ? 'var(--gold)' : 'var(--text)'};">
+                ${isPrime ? '⭐ Prime — only 1 × ' + n : 'Composite — ' + factorStr}
+            </div>
+        </div>
+        <div style="font-size:1.4em;">${isPrime ? '🟡' : '⬜'}</div>
+    `;
+    container.appendChild(row);
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 3: SIEVE
+// ══════════════════════════════════════════════
+function initSieve() {
+    state.sieveExplored.clear();
+    document.getElementById('primeWall').innerHTML = '';
+
+    const sel = document.getElementById('sieveSelector');
+    sel.innerHTML = '';
+    SIEVE_NUMBERS.forEach(n => {
+        const btn = document.createElement('button');
+        btn.className = 'num-btn';
+        btn.id = `sieve-${n}`;
+        btn.textContent = n;
+        btn.onclick = () => exploreSieve(n, btn);
+        sel.appendChild(btn);
+    });
+}
+
+function exploreSieve(n, btn) {
+    state.sieveExplored.add(n);
+    const isPrime = PRIMES_TO_20.has(n);
+    const factors = getFactors(n);
+
+    // Update button
+    btn.classList.add(isPrime ? 'revealed-prime' : 'revealed-composite');
+
+    // Show rects
+    document.getElementById('sievePrompt').style.display = 'none';
+    const rectsDiv = document.getElementById('sieveRects');
+    rectsDiv.style.display = 'flex';
+    rectsDiv.innerHTML = '';
+
+    factors.slice(0, 4).forEach(([rows, cols]) => {
+        const row = document.createElement('div');
+        row.className = 'rect-row';
+        for (let c = 0; c < Math.min(cols, 12); c++) {
+            const tile = document.createElement('div');
+            tile.className = `tile ${isPrime ? '' : 'green-tile'}`;
+            tile.style.cssText = `width:20px;height:20px;border-radius:4px;animation-delay:${c*0.02}s;`;
+            row.appendChild(tile);
+        }
+        const lbl = document.createElement('span');
+        lbl.className = 'rect-label';
+        lbl.textContent = rows === 1 ? `1 × ${cols}` : `${rows} × ${cols}`;
+        row.appendChild(lbl);
+        rectsDiv.appendChild(row);
+    });
+
+    // Feedback
+    const fb = document.getElementById('sieveFeedback');
+    if (isPrime) {
+        fb.innerHTML = `<span style="color:var(--gold)">⭐ ${n} is prime!</span> Only the single row works — ${n} is lonely.`;
+        // Add to prime wall if not already there
+        const wall = document.getElementById('primeWall');
+        if (!wall.querySelector(`[data-n="${n}"]`)) {
+            const badge = document.createElement('div');
+            badge.className = 'prime-badge';
+            badge.setAttribute('data-n', n);
+            badge.textContent = n;
+            badge.style.animationDelay = '0s';
+            wall.appendChild(badge);
+            launchMiniConfetti();
+        }
+    } else {
+        fb.innerHTML = `<span style="color:var(--muted)">${n} is composite.</span> It can form ${factors.length - 1} rectangle${factors.length > 2 ? 's' : ''} beyond the single row.`;
+    }
+    fb.style.opacity = '1';
+
+    // Check if all explored
+    if (state.sieveExplored.size >= SIEVE_NUMBERS.length) {
+        document.getElementById('sieveNextBtn').disabled = false;
+        document.getElementById('sieveNextBtn').textContent = '✦ All found! Continue →';
+    } else if (state.sieveExplored.size >= 10) {
+        document.getElementById('sieveNextBtn').disabled = false;
+    }
+}
+
+// ══════════════════════════════════════════════
+//  CONFETTI
+// ══════════════════════════════════════════════
+const confCanvas = document.getElementById('confetti');
+const confCtx = confCanvas.getContext('2d');
+let particles = [];
+let animFrame = null;
+
+function launchConfetti() {
+    confCanvas.width = window.innerWidth;
+    confCanvas.height = window.innerHeight;
+    particles = [];
+    for (let i = 0; i < 80; i++) {
+        particles.push({
+            x: Math.random() * confCanvas.width,
+            y: -10 - Math.random() * 100,
+            vx: (Math.random() - 0.5) * 4,
+            vy: 2 + Math.random() * 4,
+            color: ['#fbbf24','#10b981','#22d3ee','#f472b6','#fff'][Math.floor(Math.random()*5)],
+            size: 6 + Math.random() * 8,
+            rotation: Math.random() * Math.PI * 2,
+            vr: (Math.random() - 0.5) * 0.2,
+            life: 1,
+        });
+    }
+    if (animFrame) cancelAnimationFrame(animFrame);
+    animateConfetti();
+    setTimeout(() => { particles = []; }, 3000);
+}
+
+function launchMiniConfetti() {
+    confCanvas.width = window.innerWidth;
+    confCanvas.height = window.innerHeight;
+    for (let i = 0; i < 25; i++) {
+        particles.push({
+            x: Math.random() * confCanvas.width,
+            y: confCanvas.height * 0.6,
+            vx: (Math.random() - 0.5) * 6,
+            vy: -(3 + Math.random() * 5),
+            color: ['#fbbf24','#10b981'][Math.floor(Math.random()*2)],
+            size: 4 + Math.random() * 5,
+            rotation: Math.random() * Math.PI * 2,
+            vr: (Math.random() - 0.5) * 0.3,
+            life: 1,
+        });
+    }
+    if (!animFrame) animateConfetti();
+}
+
+function animateConfetti() {
+    confCtx.clearRect(0, 0, confCanvas.width, confCanvas.height);
+    particles = particles.filter(p => p.life > 0.01);
+    particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.1;
+        p.rotation += p.vr;
+        p.life -= 0.012;
+        confCtx.save();
+        confCtx.globalAlpha = p.life;
+        confCtx.translate(p.x, p.y);
+        confCtx.rotate(p.rotation);
+        confCtx.fillStyle = p.color;
+        confCtx.fillRect(-p.size/2, -p.size/2, p.size, p.size * 0.6);
+        confCtx.restore();
+    });
+    if (particles.length > 0) {
+        animFrame = requestAnimationFrame(animateConfetti);
+    } else {
+        animFrame = null;
+    }
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 4: CELEBRATION
+// ══════════════════════════════════════════════
+function celebrateAndContinue() {
+    launchConfetti();
+    setTimeout(() => {
+        alert("Act II coming soon: The Ancient Sieve — how Eratosthenes mapped all primes 2,300 years ago.");
+    }, 600);
+}
+
+// ══════════════════════════════════════════════
+//  STAR BACKGROUND
+// ══════════════════════════════════════════════
+(function() {
+    const canvas = document.createElement('canvas');
+    const starsEl = document.getElementById('stars');
+    canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;';
+    starsEl.appendChild(canvas);
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        draw();
+    }
+    function draw() {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < 120; i++) {
+            const x = Math.random() * canvas.width;
+            const y = Math.random() * canvas.height;
+            const r = Math.random() * 1.2;
+            const alpha = 0.1 + Math.random() * 0.3;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+            ctx.fill();
+        }
+    }
+    window.addEventListener('resize', resize);
+    resize();
+})();
+</script>
+
+</body>
+</html>
