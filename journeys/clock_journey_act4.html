@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0d0a06">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Clock That Never Stops — Act IV</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+        :root {
+            --bg:#0d0a06; --bg2:#14100a; --bg3:#1c160e;
+            --amber:#f59e0b; --amber-dim:rgba(245,158,11,0.12);
+            --teal:#14b8a6; --teal-dim:rgba(20,184,166,0.12);
+            --rose:#fb7185; --rose-dim:rgba(251,113,133,0.12);
+            --violet:#a78bfa; --violet-dim:rgba(167,139,250,0.12);
+            --cream:#fef3c7; --text:#e8dcc8; --muted:#7a6a52;
+            --border:rgba(167,139,250,0.12); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #warmth{position:fixed;inset:0;z-index:0;pointer-events:none;
+            background:radial-gradient(ellipse at 30% 70%,rgba(167,139,250,0.07) 0%,transparent 50%),
+                        radial-gradient(ellipse at 70% 30%,rgba(245,158,11,0.04) 0%,transparent 50%),var(--bg);}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(13,10,6,0.9);
+            backdrop-filter:blur(12px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--violet);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--teal);} .dot.active{background:var(--violet);box-shadow:0 0 8px var(--violet);}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--violet);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--violet);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.82;color:#d4c4a8;}
+        .narrator p em{color:var(--violet);font-style:italic;}
+        .narrator p strong{color:var(--cream);font-weight:600;}
+        .narrator.amber{border-left-color:var(--amber);} .narrator.amber::before{color:var(--amber);}
+        .narrator.rose{border-left-color:var(--rose);} .narrator.rose::before{color:var(--rose);}
+        .narrator.teal{border-left-color:var(--teal);} .narrator.teal::before{color:var(--teal);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--violet);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--violet),#7c3aed);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#fff;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 20px rgba(167,139,250,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(167,139,250,0.4);}
+        .cta-btn:disabled{opacity:0.35;transform:none;box-shadow:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(167,139,250,0.15);border-left:3px solid var(--violet);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--violet);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#b8a888;}
+        .insight p em{color:var(--violet);font-style:normal;font-weight:600;}
+        .insight.amber{border-left-color:var(--amber);border-color:rgba(245,158,11,0.15);}
+        .insight.amber .lbl{color:var(--amber);}
+        .insight.rose{border-left-color:var(--rose);border-color:rgba(251,113,133,0.15);}
+        .insight.rose .lbl{color:var(--rose);}
+
+        /* ── Cipher wheel ── */
+        .wheel-wrap{display:flex;justify-content:center;margin-bottom:12px;}
+        #wheelCanvas{touch-action:none;}
+
+        /* ── Shift slider ── */
+        .shift-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+        .shift-label{font-size:0.82em;color:var(--muted);min-width:60px;}
+        .shift-slider{flex:1;accent-color:var(--violet);height:4px;cursor:pointer;}
+        .shift-val{font-family:'DM Sans',monospace;font-size:1.4em;font-weight:700;
+            color:var(--violet);min-width:36px;text-align:center;}
+
+        /* ── Letter grid ── */
+        .letter-grid{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;}
+        .letter-pair{display:flex;flex-direction:column;align-items:center;gap:2px;}
+        .letter-plain{width:28px;height:28px;border-radius:6px;
+            background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
+            display:flex;align-items:center;justify-content:center;
+            font-family:'Share Tech Mono',monospace;font-size:0.8em;color:var(--muted);}
+        .letter-cipher{width:28px;height:28px;border-radius:6px;
+            background:var(--violet-dim);border:1px solid rgba(167,139,250,0.3);
+            display:flex;align-items:center;justify-content:center;
+            font-family:'Share Tech Mono',monospace;font-size:0.8em;font-weight:700;color:var(--violet);
+            transition:all 0.2s;}
+        .letter-arrow{font-size:0.55em;color:var(--muted);}
+
+        /* ── Message boxes ── */
+        .msg-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px;margin-bottom:12px;}
+        .msg-label{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:8px;}
+        .msg-input{width:100%;background:transparent;border:none;outline:none;
+            font-family:'Share Tech Mono',monospace;font-size:clamp(0.85em,3.5vw,1em);
+            color:var(--cream);line-height:1.7;resize:none;min-height:52px;}
+        .msg-input::placeholder{color:#4a3a28;}
+        .msg-output{font-family:'Share Tech Mono',monospace;font-size:clamp(0.85em,3.5vw,1em);
+            color:var(--violet);line-height:1.9;letter-spacing:1px;word-break:break-all;min-height:32px;}
+
+        /* ── Frequency bar chart ── */
+        .freq-chart{display:flex;align-items:flex-end;gap:2px;height:80px;
+            background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:8px 10px 4px;margin-bottom:8px;overflow-x:auto;}
+        .freq-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;}
+        .freq-bar{width:14px;border-radius:3px 3px 0 0;transition:height 0.3s ease,background 0.3s;}
+        .freq-letter{font-family:'Share Tech Mono',monospace;font-size:0.6em;color:var(--muted);}
+        .freq-bar.top1{background:var(--violet);}
+        .freq-bar.top2{background:var(--amber);}
+        .freq-bar.top3{background:var(--teal);}
+        .freq-bar.normal{background:rgba(255,255,255,0.12);}
+
+        /* ── Crack interface ── */
+        .ciphertext-display{font-family:'Share Tech Mono',monospace;
+            font-size:clamp(0.82em,3vw,1em);color:var(--violet);
+            line-height:2;letter-spacing:2px;word-break:break-all;
+            background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px;margin-bottom:12px;}
+        .crack-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;justify-content:center;}
+        .shift-try-btn{padding:8px 14px;border-radius:10px;
+            background:var(--bg3);border:1.5px solid var(--border);
+            color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.85em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;}
+        .shift-try-btn:hover{border-color:var(--violet);color:var(--violet);background:var(--violet-dim);}
+        .shift-try-btn.active{background:var(--violet-dim);border-color:var(--violet);color:var(--violet);}
+        .shift-try-btn.correct{background:rgba(20,184,166,0.15);border-color:var(--teal);color:var(--teal);}
+        .decoded-output{font-family:'Share Tech Mono',monospace;font-size:clamp(0.82em,3vw,1em);
+            color:var(--cream);line-height:2;letter-spacing:1px;word-break:break-all;
+            background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:14px;margin-bottom:12px;min-height:52px;transition:color 0.3s;}
+        .decoded-output.found{color:var(--teal);border-color:rgba(20,184,166,0.3);}
+
+        /* ── Speed comparison ── */
+        .speed-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:18px;margin-bottom:14px;}
+        .speed-row{display:flex;justify-content:space-between;align-items:center;
+            padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+        .speed-row:last-child{border-bottom:none;}
+        .speed-method{font-family:'Lora',serif;font-size:0.9em;color:var(--muted);}
+        .speed-time{font-family:'DM Sans',monospace;font-size:0.95em;font-weight:700;}
+
+        .complete-badge{background:linear-gradient(135deg,rgba(167,139,250,0.1),rgba(245,158,11,0.06));
+            border:1px solid rgba(167,139,250,0.2);border-radius:var(--radius);
+            padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--violet);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--amber);}
+        .learn-box.notice .learn-title{color:var(--teal);}
+        .learn-box.why .learn-title{color:var(--rose,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--violet);color:var(--violet);}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div id="warmth"></div>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act IV of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div>
+        <div class="dot active"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: OPENING -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Clock That Never Stops · Act IV</div>
+      <div class="act-name">The <em>Code</em></div>
+    </div>
+    <div style="text-align:center;margin:8px 0 20px;">
+      <div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">🔐</div>
+    </div>
+    <div class="narrator">
+      <p>Around 50 BCE, Julius Caesar needed to send military orders across the Roman empire without enemies reading them.</p>
+      <p style="margin-top:10px">His solution: shift every letter by 3. A becomes D. B becomes E. Z wraps around to C.</p>
+      <p style="margin-top:10px">It's modular arithmetic. On an alphabet of 26 letters — <em>mod 26.</em></p>
+    </div>
+    <div class="insight amber">
+      <div class="lbl">What you'll do in this act</div>
+      <p>You'll encrypt a real message using Caesar's method. Then you'll be given someone else's ciphertext and shown how to crack it — quickly, using only letter frequencies. Then we'll see why Caesar's cipher fails completely against modern needs.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Encrypt a message →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: ENCRYPT -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Caesar's method</div>
+      <div class="act-name"><em>Encrypt</em> your message</div>
+    </div>
+    <div class="narrator">
+      <p>Choose a shift — your secret key. Then type a message. Watch each letter move around the alphabet clock.</p>
+      <p style="margin-top:8px"><em>(letter position + shift) mod 26</em> gives the encrypted letter.</p>
+    </div>
+
+    <!-- Shift control -->
+    <div class="msg-box">
+      <div class="msg-label">Your secret shift key</div>
+      <div class="shift-row">
+        <span class="shift-label">Shift:</span>
+        <input type="range" class="shift-slider" id="shiftSlider" min="1" max="25" value="3" oninput="onShiftChange()">
+        <div class="shift-val" id="shiftVal">3</div>
+      </div>
+      <div style="font-family:'Lora',serif;font-size:0.88em;color:var(--muted);font-style:italic;" id="shiftEg">
+        A → D, B → E, Z → C
+      </div>
+    </div>
+
+    <!-- Alphabet mapping -->
+    <div class="msg-box">
+      <div class="msg-label">The substitution table (plain → cipher)</div>
+      <div class="letter-grid" id="letterGrid"></div>
+    </div>
+
+    <!-- Message input / output -->
+    <div class="msg-box">
+      <div class="msg-label">Your message (plain text)</div>
+      <textarea class="msg-input" id="plainInput" rows="2"
+        placeholder="Type anything here..." oninput="encryptMsg()">Meet at dawn</textarea>
+    </div>
+    <div class="msg-box" style="border-color:rgba(167,139,250,0.2);">
+      <div class="msg-label" style="color:var(--violet);">Encrypted (cipher text)</div>
+      <div class="msg-output" id="cipherOutput"></div>
+    </div>
+
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Set the shift to 3 (Caesar's original key) and type a short message. Then change the shift to 13 and watch every letter change. Try typing the alphabet itself to see the full mapping.</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>Each letter shifts by the same amount. A shift of 13 (ROT13) is special: applying it twice returns the original message, because 13 + 13 = 26, and 26 mod 26 = 0. Encryption and decryption use the same key.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>Caesar's cipher is modular arithmetic on the alphabet — mod 26. It shows how encryption works at its simplest: a reversible mathematical operation. But with only 25 possible keys, it is trivially breakable. Real cryptography needs astronomically larger key spaces.</p>
+    </div>
+
+    <div style="text-align:center;">
+      <button class="reset-btn" onclick="initEncrypt()">Reset cipher</button>
+    </div>
+
+    <div class="insight" id="encInsight" style="display:none;">
+      <div class="lbl">The mod 26 arithmetic</div>
+      <p id="encInsightText"></p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next">Now try to crack one →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: CRACK IT -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">The other side</div>
+      <div class="act-name">Can you <em>crack</em> it?</div>
+    </div>
+    <div class="narrator rose">
+      <p>You've intercepted this message. The shift is unknown. Can you find it?</p>
+      <p style="margin-top:8px">Hint: <em>E</em> is the most common letter in English. Find the most common letter in the cipher — that's probably the encrypted E.</p>
+    </div>
+
+    <!-- The ciphertext -->
+    <div class="ciphertext-display" id="crackCipher"></div>
+
+    <!-- Frequency chart -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;">
+      <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:8px;">Letter frequencies in the ciphertext</div>
+      <div class="freq-chart" id="freqChart"></div>
+      <div style="font-family:'Lora',serif;font-size:0.85em;color:var(--muted);font-style:italic;" id="freqHint"></div>
+    </div>
+
+    <!-- Try shifts -->
+    <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:8px;">Try a shift to decode</div>
+    <div class="crack-controls" id="crackControls"></div>
+    <div class="decoded-output" id="decodedOutput">← tap a shift above to try decoding</div>
+    <div style="font-family:'Lora',serif;font-size:0.88em;color:var(--muted);margin-bottom:14px;min-height:20px;" id="crackFeedback"></div>
+
+    <div class="insight" id="crackInsight" style="display:none;">
+      <div class="lbl">💡 You broke it</div>
+      <p>You found the key just by looking at letter frequencies — no brute force needed. With only 25 possible shifts, even trying every one takes a fraction of a second for a computer.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(3)" id="s2Next" disabled>Why this cipher fails →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: WHY IT FAILS -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">The weakness</div>
+      <div class="act-name">Only <em>25</em> keys</div>
+    </div>
+    <div class="narrator teal">
+      <p>The Caesar cipher has exactly 25 possible shifts. A computer can try all 25 in less than a millisecond.</p>
+      <p style="margin-top:10px">Real encryption needs a key space so vast that trying every possibility would take longer than the age of the universe — even for the fastest computer ever built.</p>
+      <p style="margin-top:10px">That's where <em>prime numbers</em> come back.</p>
+    </div>
+
+    <!-- Speed comparison -->
+    <div class="speed-card">
+      <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;">Time to crack by trying every key</div>
+      <div class="speed-row">
+        <div class="speed-method">Caesar cipher (25 keys)</div>
+        <div class="speed-time" style="color:var(--rose);">~0.001 ms</div>
+      </div>
+      <div class="speed-row">
+        <div class="speed-method">Vigenère (26⁶ keys)</div>
+        <div class="speed-time" style="color:var(--amber);">~300 ms</div>
+      </div>
+      <div class="speed-row">
+        <div class="speed-method">AES-128 (2¹²⁸ keys)</div>
+        <div class="speed-time" style="color:var(--teal);">longer than universe age</div>
+      </div>
+      <div class="speed-row">
+        <div class="speed-method">RSA-2048 (factor a prime product)</div>
+        <div class="speed-time" style="color:var(--violet);">longer than universe age × 10⁶</div>
+      </div>
+    </div>
+
+    <!-- The prime connection -->
+    <div style="background:var(--bg2);border:1px solid rgba(167,139,250,0.15);border-radius:var(--radius);padding:18px;margin-bottom:16px;">
+      <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--violet);margin-bottom:10px;">Why primes make RSA secure</div>
+      <div style="font-family:'Lora',serif;font-size:1em;line-height:1.8;color:#c0b090;">
+        RSA uses <em style="color:var(--violet)">two enormous prime numbers</em> — each hundreds of digits long. Their product N is your public key. To crack RSA, an attacker must factor N back into those two primes.<br><br>
+        In Act III, you saw that prime-modulus clocks have complete multiplication cycles — every operation is perfectly reversible. That reversibility is exactly what makes RSA encryption and decryption work cleanly.<br><br>
+        And because factoring enormous numbers is computationally impossible, the private key stays private.
+      </div>
+    </div>
+
+    <!-- Interactive: feel the key space grow -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;">
+      <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;">Feel the key space grow</div>
+      <div id="keySpaceVis"></div>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(4)">✦ Act IV Complete →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 4: COMPLETE -->
+  <section class="screen" id="screen-4">
+    <div class="act-title">
+      <div class="act-label">Act IV complete</div>
+      <div class="act-name">The code <em>revealed</em></div>
+    </div>
+    <div class="complete-badge">
+      <span class="badge-icon">🔐</span>
+      <div class="badge-title">You encrypted and broke a cipher</div>
+      <div class="badge-sub">Caesar's 25 keys — trivial to crack.<br>RSA's prime-based keys — computationally impossible.</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">💡 The thread from Act I to Act IV</div>
+      <p>Clock wrapping (Act I) → Calendar mod 7 (Act II) → Multiplication tables mod prime (Act III) → Caesar cipher mod 26 (Act IV). Each act is the same idea, applied deeper. The alphabet is just another clock.</p>
+    </div>
+    <div class="insight amber" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act V — The Group</div>
+      <p>Everything we've done — clock addition, multiplication, Caesar shifts — shares a hidden mathematical structure. It's called a <em>group</em>. Four simple rules that unify clocks, codes, symmetry and more. Act V reveals the shape underneath everything.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="cta-btn" onclick="celebrate()">✦ On to Act V →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='clock_journey_act3.html'">← Revisit Act III</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+const ALPHA='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+let currentShift=3;
+const SECRET_SHIFT=13; // ROT13 — classic
+const SECRET_PLAIN='THE PRIMES ARE INFINITE AND BEAUTIFUL';
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n; document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1)initEncrypt();
+  if(n===2)initCrack();
+  if(n===3)initWhyFails();
+}
+
+// ── Screen 1: Encrypt ──
+function initEncrypt(){
+  currentShift=3;
+  document.getElementById('shiftSlider').value=3;
+  onShiftChange();
+  encryptMsg();
+}
+
+function onShiftChange(){
+  currentShift=parseInt(document.getElementById('shiftSlider').value);
+  document.getElementById('shiftVal').textContent=currentShift;
+  // Example
+  const a=String.fromCharCode(65+currentShift%26);
+  const b=String.fromCharCode(65+(1+currentShift)%26);
+  const z=String.fromCharCode(65+(25+currentShift)%26);
+  document.getElementById('shiftEg').textContent=`A → ${a}, B → ${b}, Z → ${z}`;
+  buildLetterGrid();
+  encryptMsg();
+}
+
+function buildLetterGrid(){
+  const grid=document.getElementById('letterGrid');
+  grid.innerHTML='';
+  ALPHA.split('').forEach((ch,i)=>{
+    const enc=ALPHA[(i+currentShift)%26];
+    const wrap=document.createElement('div');
+    wrap.className='letter-pair';
+    wrap.innerHTML=`
+      <div class="letter-plain">${ch}</div>
+      <div class="letter-arrow">↓</div>
+      <div class="letter-cipher">${enc}</div>`;
+    grid.appendChild(wrap);
+  });
+}
+
+function caesar(text,shift){
+  return text.toUpperCase().split('').map(c=>{
+    const i=ALPHA.indexOf(c);
+    return i>=0?ALPHA[(i+shift+26)%26]:c;
+  }).join('');
+}
+
+function encryptMsg(){
+  const plain=document.getElementById('plainInput').value;
+  const cipher=caesar(plain,currentShift);
+  document.getElementById('cipherOutput').textContent=cipher||'...';
+
+  // Insight
+  const ins=document.getElementById('encInsight');
+  if(plain.trim().length>3){
+    ins.style.display='block';
+    const ex=plain.toUpperCase().replace(/[^A-Z]/g,'')[0];
+    if(ex){
+      const idx=ALPHA.indexOf(ex);
+      const encIdx=(idx+currentShift)%26;
+      document.getElementById('encInsightText').innerHTML=
+        `Take the letter <em>${ex}</em>: it's position ${idx+1} in the alphabet (index ${idx}). Add the shift ${currentShift}: ${idx}+${currentShift}=${idx+currentShift}. Mod 26 = <em>${encIdx}</em> → <em>${ALPHA[encIdx]}</em>.`;
+    }
+  }
+}
+
+// ── Screen 2: Crack ──
+function initCrack(){
+  const cipher=caesar(SECRET_PLAIN,SECRET_SHIFT);
+  document.getElementById('crackCipher').textContent=cipher;
+  buildFreqChart(cipher);
+  buildCrackButtons();
+  document.getElementById('decodedOutput').textContent='← tap a shift above to try decoding';
+  document.getElementById('decodedOutput').classList.remove('found');
+  document.getElementById('crackFeedback').textContent='';
+  document.getElementById('crackInsight').style.display='none';
+  document.getElementById('s2Next').disabled=true;
+}
+
+function buildFreqChart(cipher){
+  const freq={};
+  ALPHA.split('').forEach(c=>freq[c]=0);
+  cipher.split('').forEach(c=>{if(ALPHA.includes(c))freq[c]++;});
+  const max=Math.max(...Object.values(freq));
+  const sorted=Object.entries(freq).sort((a,b)=>b[1]-a[1]);
+  const top3=sorted.slice(0,3).map(x=>x[0]);
+
+  const chart=document.getElementById('freqChart');
+  chart.innerHTML='';
+  ALPHA.split('').forEach(letter=>{
+    const count=freq[letter];
+    const h=max>0?Math.round((count/max)*60):0;
+    const rank=top3.indexOf(letter);
+    const cls=rank===0?'top1':rank===1?'top2':rank===2?'top3':'normal';
+    const wrap=document.createElement('div');
+    wrap.className='freq-bar-wrap';
+    wrap.innerHTML=`<div class="freq-bar ${cls}" style="height:${h}px;"></div>
+                    <div class="freq-letter">${letter}</div>`;
+    chart.appendChild(wrap);
+  });
+
+  const topLetter=sorted[0][0];
+  const guessedShift=(ALPHA.indexOf(topLetter)-ALPHA.indexOf('E')+26)%26;
+  document.getElementById('freqHint').textContent=
+    `Most common letter: ${topLetter}. In English, E is most common. If ${topLetter}=E, the shift might be ${guessedShift}.`;
+}
+
+function buildCrackButtons(){
+  const ctrl=document.getElementById('crackControls');
+  ctrl.innerHTML='';
+  for(let s=1;s<=25;s++){
+    const btn=document.createElement('button');
+    btn.className='shift-try-btn'; btn.textContent=`shift ${s}`;
+    btn.onclick=()=>tryShift(s,btn);
+    ctrl.appendChild(btn);
+  }
+}
+
+function tryShift(shift,btn){
+  document.querySelectorAll('.shift-try-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const cipher=caesar(SECRET_PLAIN,SECRET_SHIFT);
+  const decoded=caesar(cipher,-shift);
+  const out=document.getElementById('decodedOutput');
+  out.textContent=decoded;
+
+  if(shift===SECRET_SHIFT){
+    out.classList.add('found');
+    btn.classList.remove('active'); btn.classList.add('correct');
+    document.getElementById('crackFeedback').innerHTML=
+      `<span style="color:var(--teal)">✓ Shift ${shift} — you cracked it!</span> The message reads: <em style="color:var(--cream)">${SECRET_PLAIN}</em>`;
+    document.getElementById('crackInsight').style.display='block';
+    document.getElementById('s2Next').disabled=false;
+    launchMiniConfetti();
+  } else {
+    out.classList.remove('found');
+    document.getElementById('crackFeedback').textContent=`Shift ${shift} — not quite readable yet. Try another.`;
+  }
+}
+
+// ── Screen 3: Why it fails ──
+function initWhyFails(){
+  const vis=document.getElementById('keySpaceVis');
+  const entries=[
+    {label:'Caesar (mod 26)',keys:'25',bits:'~5 bits',time:'< 1 ms',bar:1,col:'var(--rose)'},
+    {label:'Substitution cipher',keys:'~400 000 000 000 000 000 000 000 000',bits:'88 bits',time:'billions of years',bar:35,col:'var(--amber)'},
+    {label:'AES-128',keys:'340 undecillion',bits:'128 bits',time:'universe age × 10²⁰',bar:60,col:'var(--teal)'},
+    {label:'RSA-2048',keys:'factor from 617-digit N',bits:'2048 bits',time:'universe age × 10³⁰',bar:100,col:'var(--violet)'},
+  ];
+  vis.innerHTML='';
+  entries.forEach((e,i)=>{
+    const div=document.createElement('div');
+    div.style.cssText=`padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);animation:fadeUp 0.4s ease ${i*0.12}s both;`;
+    div.innerHTML=`
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:0.82em;color:var(--muted);font-family:'Lora',serif;">${e.label}</span>
+        <span style="font-family:'DM Sans',monospace;font-size:0.78em;color:${e.col};">${e.bits}</span>
+      </div>
+      <div style="height:6px;background:rgba(255,255,255,0.04);border-radius:3px;">
+        <div style="height:100%;width:${e.bar}%;background:${e.col};border-radius:3px;transition:width 0.8s ease ${i*0.15}s;"></div>
+      </div>
+      <div style="font-family:'Lora',serif;font-size:0.78em;color:#5a4a32;margin-top:4px;font-style:italic;">${e.time}</div>
+    `;
+    if(i===entries.length-1)div.style.borderBottom='none';
+    vis.appendChild(div);
+  });
+}
+
+function celebrate(){
+  launchConfetti();
+  setTimeout(()=>window.location.href='clock_journey_act5.html',900);
+}
+
+// Confetti
+const cc=document.getElementById('confetti'),cx=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<80;i++) parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*5,vy:2+Math.random()*4,
+    c:['#a78bfa','#f59e0b','#14b8a6','#fb7185'][Math.floor(Math.random()*4)],
+    s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},3000);
+}
+function launchMiniConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;
+  for(let i=0;i<25;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.4,
+    vx:(Math.random()-.5)*8,vy:-(3+Math.random()*6),
+    c:['#a78bfa','#14b8a6'][Math.floor(Math.random()*2)],
+    s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!afr)animC();
+}
+function animC(){
+  cx.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.013;
+    cx.save();cx.globalAlpha=p.l;cx.translate(p.x,p.y);cx.rotate(p.r);
+    cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cx.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;
+}
+
+// Init first screen
+buildLetterGrid(); encryptMsg();
+</script>
+</body>
+</html>

@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attention Mechanism | mathsedu.org</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+:root{--bg:#050814;--bg2:#0a0f1e;--bg3:#0f1628;--vio:#8b5cf6;--vio-d:rgba(139,92,246,0.12);--cyan:#22d3ee;--amber:#f59e0b;--emerald:#10b981;--coral:#f43f5e;--silver:#e2e8f0;--text:#94a3b8;--text2:#cbd5e1;--muted:#334155;--border:rgba(139,92,246,0.15);--radius:14px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;}
+canvas#bgc{position:fixed;inset:0;z-index:0;opacity:.4;}
+.page{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:0 24px 80px;}
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0 16px;border-bottom:1px solid var(--border);margin-bottom:48px;}
+.nav-logo{font-family:'Lora',serif;font-size:1.1em;color:var(--muted);}.nav-logo span{color:var(--vio);font-style:italic;}
+.nav-ch{font-size:.72em;text-transform:uppercase;letter-spacing:2px;color:var(--emerald);}
+.hero{margin-bottom:56px;}
+.ch-tag{display:inline-block;font-size:.68em;text-transform:uppercase;letter-spacing:3px;color:var(--emerald);border:1px solid rgba(16,185,129,.3);border-radius:20px;padding:4px 14px;margin-bottom:18px;}
+h1{font-family:'Lora',serif;font-size:clamp(2.2em,5vw,3.2em);font-weight:400;color:var(--silver);line-height:1.2;margin-bottom:16px;}
+h1 em{color:var(--emerald);font-style:italic;}
+.hero-sub{font-family:'Lora',serif;font-size:1.15em;color:#4a6080;line-height:1.9;max-width:680px;}
+h2{font-family:'Lora',serif;font-size:1.55em;font-weight:400;color:var(--silver);margin:48px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+h3{font-family:'Lora',serif;font-size:1.1em;font-weight:600;color:var(--text2);margin:28px 0 10px;}
+p{line-height:1.85;color:var(--text);margin-bottom:16px;font-size:.97em;}
+p strong{color:var(--text2);}p em{color:var(--emerald);font-style:italic;}
+.callout{border-left:3px solid var(--emerald);background:rgba(16,185,129,.08);border-radius:0 var(--radius) var(--radius) 0;padding:16px 20px;margin:24px 0;}
+.callout.vio{border-left-color:var(--vio);background:var(--vio-d);}
+.callout.amber{border-left-color:var(--amber);background:rgba(245,158,11,.08);}
+.callout.coral{border-left-color:var(--coral);background:rgba(244,63,94,.08);}
+.callout-lbl{font-size:.66em;text-transform:uppercase;letter-spacing:2px;color:var(--emerald);margin-bottom:6px;}
+.callout.vio .callout-lbl{color:var(--vio);}.callout.amber .callout-lbl{color:var(--amber);}.callout.coral .callout-lbl{color:var(--coral);}
+.callout p{margin:0;font-family:'Lora',serif;font-size:.96em;color:#2a4060;line-height:1.75;}
+.callout p strong{color:var(--silver);}
+.math-block{font-family:'JetBrains Mono',monospace;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin:16px 0;font-size:.88em;color:var(--cyan);line-height:1.8;white-space:pre;}
+.ibox{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin:32px 0;}
+.ibox-lbl{font-size:.68em;text-transform:uppercase;letter-spacing:2px;color:var(--emerald);margin-bottom:14px;}
+canvas.vis{display:block;border-radius:8px;background:var(--bg3);width:100%;}
+button{border:none;border-radius:8px;padding:8px 18px;font-family:'Inter',sans-serif;font-size:.82em;font-weight:500;cursor:pointer;transition:all .2s;}
+.bp{background:linear-gradient(135deg,var(--emerald),#065f46);color:#fff;}
+.bp:hover{transform:translateY(-1px);}
+.bs{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.ctrl{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center;}
+.token-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.token{background:var(--bg3);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:.88em;color:var(--silver);transition:all .2s;}
+.token:hover{border-color:rgba(16,185,129,.5);}
+.token.sel{border-color:var(--emerald);background:rgba(16,185,129,.1);color:#10b981;}
+.attn-display{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:12px;}
+.attn-row{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(139,92,246,.1);}
+.attn-row:last-child{border-bottom:none;}
+.attn-word{font-family:'JetBrains Mono',monospace;font-size:.82em;color:var(--text2);min-width:100px;}
+.attn-bar-w{flex:1;height:8px;background:rgba(16,185,129,.1);border-radius:4px;}
+.attn-bar{height:100%;border-radius:4px;background:var(--emerald);transition:width .4s;}
+.attn-score{font-family:'JetBrains Mono',monospace;font-size:.78em;color:var(--amber);min-width:50px;text-align:right;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:20px 0;}
+@media(max-width:600px){.three-col{grid-template-columns:1fr;}}
+.qkv-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;}
+.qkv-letter{font-size:2.4em;font-weight:700;margin-bottom:6px;}
+.qkv-name{font-size:.78em;font-weight:600;color:var(--silver);margin-bottom:6px;}
+.qkv-desc{font-size:.76em;color:var(--muted);line-height:1.55;}
+.conn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin:20px 0;}
+.conn-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-decoration:none;transition:all .2s;display:block;}
+.conn-card:hover{border-color:rgba(16,185,129,.4);transform:translateY(-2px);}
+.cc-tag{font-size:.6em;text-transform:uppercase;letter-spacing:2px;color:var(--emerald);margin-bottom:5px;}
+.cc-title{font-size:.88em;font-weight:600;color:var(--silver);margin-bottom:3px;}
+.cc-desc{font-size:.74em;color:var(--muted);line-height:1.5;}
+.learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin:24px 0;}
+.learn-box .learn-title{font-size:.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+.learn-box .learn-title.try{color:var(--cyan);}
+.learn-box .learn-title.notice{color:var(--amber);}
+.learn-box .learn-title.why{color:var(--emerald);}
+.learn-box ul{margin:0;padding-left:18px;font-size:.88em;line-height:1.8;color:var(--text2);}
+.learn-box ul li{margin-bottom:4px;}
+.pronoun-sentence{font-family:'Lora',serif;font-size:1.1em;color:var(--silver);line-height:2;margin:14px 0;}
+.pronoun-sentence .highlight{padding:2px 6px;border-radius:4px;cursor:pointer;transition:all .2s;}
+.pronoun-sentence .highlight.pronoun{background:rgba(244,63,94,.15);border:1px solid rgba(244,63,94,.4);color:var(--coral);}
+.pronoun-sentence .highlight.answer{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:var(--emerald);}
+.pronoun-sentence .highlight.other{background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);color:var(--text2);}
+</style>
+</head>
+<body>
+<canvas id="bgc"></canvas>
+<div class="page">
+<nav>
+  <div class="nav-logo">mathsedu<span>.org</span></div>
+  <div class="nav-ch">Chapter 11 · Mathematics of Intelligence</div>
+</nav>
+<div class="hero">
+  <div class="ch-tag">Ch. 11 · Architecture · Page 5 of 15</div>
+  <h1>The <em>Attention</em> Mechanism</h1>
+  <p class="hero-sub">How a model learns which parts of its input to focus on — the mathematical operation that made transformers possible.</p>
+</div>
+
+<h2>The Sequence Problem</h2>
+<p>Before attention, neural networks processed sequences word by word, passing a fixed-size "memory" (hidden state) from one word to the next. By the time the network reached the end of a long sentence, early words had been compressed and distorted by all subsequent processing. <strong>Long-range dependencies were lost.</strong></p>
+<p>The attention mechanism solves this by allowing every position in a sequence to <em>directly attend</em> to every other position — in a single operation. The cost of relating position 1 to position 500 is the same as relating position 1 to position 2. Distance no longer degrades information.</p>
+
+<div class="callout">
+  <div class="callout-lbl">Vaswani et al., "Attention Is All You Need" — 2017</div>
+  <p>The paper that introduced the transformer architecture replaced recurrence entirely with attention. Its title was deliberately provocative — and correct. The transformer's 65,000 citations make it one of the most influential papers in the history of machine learning. Every large language model — GPT, Claude, Gemini, LLaMA — is built on this idea.</p>
+</div>
+
+<h2>Pronoun Resolution: Why Attention Matters</h2>
+<p>Consider this sentence:</p>
+
+<div class="pronoun-sentence" id="pronounSentence">
+  "<span class="highlight other" id="pw0">The</span> <span class="highlight answer" id="pw1">animal</span> <span class="highlight other" id="pw2">didn't</span> <span class="highlight other" id="pw3">cross</span> <span class="highlight other" id="pw4">the</span> <span class="highlight other" id="pw5">street</span> <span class="highlight other" id="pw6">because</span> <span class="highlight pronoun" id="pw7">it</span> <span class="highlight other" id="pw8">was</span> <span class="highlight other" id="pw9">too</span> <span class="highlight other" id="pw10">tired</span>."
+</div>
+
+<p>Which word does <strong>"it"</strong> refer to? A human reader instantly knows: "it" refers to "the animal" — the animal was too tired to cross. But how does a model figure this out?</p>
+
+<p>The attention mechanism lets the model, when processing the word "it", look back at every other word in the sentence and compute a relevance score. It learns to assign high attention weight to "animal" because the semantic context ("tired" is a property of animals, not streets) makes that connection strong.</p>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — Pronoun Resolution via Attention</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">Click on any word in the sentence to see which other words it attends to most strongly. Notice how "it" attends strongly to "animal" — this is how the model resolves the pronoun.</p>
+  <div class="token-row" id="pronounTokenRow"></div>
+  <div class="attn-display" id="pronounAttnDisplay">
+    <div style="color:var(--muted);font-size:.82em;">Click a word above to see its attention pattern.</div>
+  </div>
+  <div class="ctrl">
+    <button class="bs" onclick="pronounSel=null;buildPronounTokens();document.getElementById('pronounAttnDisplay').innerHTML='<div style=\'color:var(--muted);font-size:.82em;\'>Click a word above to see its attention pattern.</div>';">Reset</button>
+  </div>
+</div>
+
+<div class="learn-box">
+  <div class="learn-title try">Try This</div>
+  <ul>
+    <li>Click "it" — notice it attends most strongly to "animal." The model resolves the pronoun.</li>
+    <li>Click "tired" — it also attends to "animal" (the thing that is tired).</li>
+    <li>Click "street" — it attends to "cross" (what relates to a street).</li>
+    <li>Now imagine replacing "tired" with "wide" — "it" would refer to "street" instead. Attention patterns shift with meaning.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title notice">What To Notice</div>
+  <ul>
+    <li>Attention weights sum to 1 (softmax normalised) — the model distributes a fixed "budget" of attention.</li>
+    <li>The model can attend to distant words just as easily as nearby ones — this is the key advantage over older recurrent networks.</li>
+    <li>Different attention heads (in multi-head attention) can resolve different types of relationships simultaneously.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title why">Why It Matters</div>
+  <ul>
+    <li>Pronoun resolution is one of the hardest problems in NLP. Attention solves it elegantly.</li>
+    <li>This same mechanism handles all long-range dependencies: subject-verb agreement, coreference, logical reasoning.</li>
+    <li>Without attention, models would need to compress all context into a fixed-size vector — losing information.</li>
+  </ul>
+</div>
+
+<h2>Query, Key, Value</h2>
+<p>Attention is modelled on a database lookup — but a soft, differentiable one. Every token in the sequence plays three roles simultaneously:</p>
+
+<div class="three-col">
+  <div class="qkv-card">
+    <div class="qkv-letter" style="color:var(--coral);">Q</div>
+    <div class="qkv-name">Query</div>
+    <div class="qkv-desc">"What am I looking for?" A vector representing what this position wants to find in other positions.</div>
+  </div>
+  <div class="qkv-card">
+    <div class="qkv-letter" style="color:var(--amber);">K</div>
+    <div class="qkv-name">Key</div>
+    <div class="qkv-desc">"What do I contain?" A vector representing what information this position has to offer.</div>
+  </div>
+  <div class="qkv-card">
+    <div class="qkv-letter" style="color:var(--emerald);">V</div>
+    <div class="qkv-name">Value</div>
+    <div class="qkv-desc">"What do I actually send?" A vector containing the information to be passed if this position is attended to.</div>
+  </div>
+</div>
+
+<p>The attention weight between position i and position j is computed by matching query i against key j: a high dot product means "position i finds position j relevant." The weights are then normalised with softmax and used to take a weighted average of all values.</p>
+
+<div class="math-block">Scaled dot-product attention:
+
+  Attention(Q, K, V) = softmax( Q*K^T / sqrt(d_k) ) * V
+
+  Q in R^(n x d_k)   -- n queries, each d_k-dimensional
+  K in R^(n x d_k)   -- n keys
+  V in R^(n x d_v)   -- n values
+
+  Q*K^T in R^(n x n)   -- attention score matrix (all pairs)
+  /sqrt(d_k)            -- scale to prevent softmax saturation
+  softmax(.)            -- normalise each row to sum to 1
+  * V                   -- weighted sum of values
+
+Output at position i = Sum_j softmax(Q_i*K_j/sqrt(d_k)) * V_j
+                     = weighted average of all values,
+                       where weights reflect query-key similarity</div>
+
+<h3>Why divide by sqrt(d_k)?</h3>
+<p>Without the scaling factor, dot products between d_k-dimensional vectors grow proportionally to d_k. With typical values of d_k = 64, raw dot products can reach magnitudes of +/-8, which push the softmax into saturation regions where gradients vanish. Dividing by sqrt(64) = 8 keeps the inputs to softmax in a well-behaved range.</p>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — Attention Weights Visualiser</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">Select a word from the sentence below. See how much attention it pays to each other word — based on simplified pre-computed attention scores.</p>
+  <p style="font-family:'JetBrains Mono',monospace;font-size:.9em;color:var(--text2);margin-bottom:10px;">"The bank by the river was steep"</p>
+  <div class="token-row" id="tokenRow"></div>
+  <div class="attn-display" id="attnDisplay">
+    <div style="color:var(--muted);font-size:.82em;">Select a word above to see its attention pattern.</div>
+  </div>
+  <div class="ctrl">
+    <button class="bs" onclick="selToken=null;buildTokens();document.getElementById('attnDisplay').innerHTML='<div style=\'color:var(--muted);font-size:.82em;\'>Select a word above to see its attention pattern.</div>';">Reset</button>
+  </div>
+</div>
+
+<div class="learn-box">
+  <div class="learn-title try">Try This</div>
+  <ul>
+    <li>Click "bank" — notice it attends strongly to "river" and "steep." This disambiguates "bank" (river bank, not financial bank).</li>
+    <li>Click "river" — it attends back to "bank." The attention is bidirectional.</li>
+    <li>Click "The" — it spreads attention more evenly; function words are less semantically specific.</li>
+  </ul>
+</div>
+
+<h2>Attention Heatmap</h2>
+<p>The full attention matrix shows every word's attention to every other word simultaneously. Each row sums to 1 (softmax normalised). Brighter cells indicate stronger attention.</p>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — Attention Heatmap</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">The full n x n attention matrix. Each cell (i,j) shows how much token i attends to token j. Brighter = more attention. Each row sums to 1. Select a sentence to see different attention patterns.</p>
+  <div class="ctrl" style="margin-bottom:12px;">
+    <button class="bp" onclick="setHeatmapSentence(0)">The bank by the river...</button>
+    <button class="bp" style="background:linear-gradient(135deg,var(--vio),#6d28d9);" onclick="setHeatmapSentence(1)">The animal didn't cross...</button>
+    <button class="bs" onclick="setHeatmapSentence(0)">Reset</button>
+  </div>
+  <canvas id="hmCanvas" class="vis" height="340"></canvas>
+</div>
+
+<div class="learn-box">
+  <div class="learn-title try">Try This</div>
+  <ul>
+    <li>Look at the "bank" row (second row) — the brightest cell is at "river" and "steep." Context disambiguates meaning.</li>
+    <li>Switch to the "animal" sentence — look at the "it" row. The brightest cell is at "animal."</li>
+    <li>Notice the diagonal is often bright — words attend to themselves. This is expected: a word's own context is always relevant.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title notice">What To Notice</div>
+  <ul>
+    <li>The heatmap is NOT symmetric. "bank" attending to "river" has a different weight than "river" attending to "bank."</li>
+    <li>Each row sums to 1 but columns do not — some words receive more total attention than others.</li>
+    <li>Function words (the, by, was) tend to have more uniform (spread out) attention patterns.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title why">Why It Matters</div>
+  <ul>
+    <li>The attention matrix is the model's "reasoning trace" — it shows what the model considers relevant.</li>
+    <li>Interpretability researchers study attention patterns to understand what models have learned.</li>
+    <li>The O(n^2) cost of this matrix is the fundamental bottleneck of transformer models for long sequences.</li>
+  </ul>
+</div>
+
+<h2>Multi-Head Attention</h2>
+<p>A single attention head can only capture one type of relationship at a time. Multi-head attention runs h parallel attention heads, each with different learned projections for Q, K, V. The outputs are concatenated and projected again. This allows the model to simultaneously attend to different types of relationships — syntactic structure, semantic similarity, coreference — from different representation subspaces.</p>
+
+<div class="math-block">Multi-head attention:
+
+  MultiHead(Q, K, V) = Concat(head_1, ..., head_h) * W^O
+  where head_i = Attention(Q*W_i^Q, K*W_i^K, V*W_i^V)
+
+  Each head has its own learned projections: W_i^Q, W_i^K, W_i^V
+  h = 8 to 96 heads depending on model size
+  d_k = d_model / h   (head dimension shrinks to keep total cost constant)
+
+GPT-3:  96 attention heads per layer  x 96 layers = 9,216 total heads
+        Each head models a different kind of relationship in the sequence</div>
+
+<div class="callout amber">
+  <div class="callout-lbl">What do attention heads learn?</div>
+  <p>Interpretability researchers have found that individual attention heads specialise. Some learn to track coreference (matching pronouns to nouns). Some learn syntactic subject-verb agreement. Some track positional patterns. Some seem to detect named entities. The model discovers these structured relationships <strong>without being told to look for them</strong> — they emerge from the task of next-token prediction.</p>
+</div>
+
+<h2>Computational Complexity</h2>
+<p>The attention matrix Q*K^T has n^2 entries, where n is the sequence length. This means attention scales as <strong>O(n^2)</strong> in both time and memory — a significant limitation for very long sequences. For n = 4,096 tokens, the attention matrix has 16 million entries per head per layer.</p>
+<p>This quadratic scaling has motivated a large research effort into sparse and linear attention approximations (Longformer, Flash Attention, Ring Attention), which reduce complexity to O(n log n) or O(n) while preserving most of the expressiveness.</p>
+
+<div class="callout coral">
+  <div class="callout-lbl">Flash Attention — making the quadratic tractable</div>
+  <p>Flash Attention (Dao et al., 2022) does not change the mathematical result of attention — it computes exactly the same thing. Instead, it reorganises the computation to be memory-aware, processing attention in tiles that fit in fast GPU SRAM rather than slow HBM memory. The result: 2-4x speedup and 10-20x memory reduction. <strong>Most modern training now uses Flash Attention.</strong></p>
+</div>
+
+<h2>Connected Mathematics</h2>
+<div class="conn-grid">
+  <a href="vectors_embeddings.html" class="conn-card">
+    <div class="cc-tag">Ch. 11 · AI · Page 1</div>
+    <div class="cc-title">Vectors & Embeddings</div>
+    <div class="cc-desc">The Q, K, V matrices operate on embedding vectors. Attention is geometry in embedding space.</div>
+  </a>
+  <a href="linear_algebra.html" class="conn-card">
+    <div class="cc-tag">Ch. 7 · Linear Algebra</div>
+    <div class="cc-title">Linear Algebra</div>
+    <div class="cc-desc">Matrix multiplication, dot products, projections — the entire mechanism is linear algebra.</div>
+  </a>
+  <a href="probability_distributions.html" class="conn-card">
+    <div class="cc-tag">Ch. 8 · Probability</div>
+    <div class="cc-title">Probability Distributions</div>
+    <div class="cc-desc">Softmax converts raw scores to a probability distribution. Attention weights are probabilities.</div>
+  </a>
+  <a href="transformer_architecture.html" class="conn-card">
+    <div class="cc-tag">Ch. 11 · AI · Page 6</div>
+    <div class="cc-title">Transformer Architecture</div>
+    <div class="cc-desc">How multi-head attention is assembled into layers, with residuals and normalisation.</div>
+  </a>
+  <a href="backpropagation.html" class="conn-card">
+    <div class="cc-tag">Ch. 11 · AI · Page 4</div>
+    <div class="cc-title">Backpropagation</div>
+    <div class="cc-desc">Training attention requires differentiating through softmax — a key step in backprop.</div>
+  </a>
+  <a href="fourier_transform.html" class="conn-card">
+    <div class="cc-tag">Ch. 5 · Waves</div>
+    <div class="cc-title">Fourier Transform</div>
+    <div class="cc-desc">Positional encodings use sinusoidal functions — Fourier frequencies injected into the sequence.</div>
+  </a>
+</div>
+</div>
+
+<script>
+const bgc=document.getElementById('bgc'),bx=bgc.getContext('2d');
+bgc.width=innerWidth;bgc.height=innerHeight;
+const pts=Array.from({length:55},()=>({x:Math.random()*bgc.width,y:Math.random()*bgc.height,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25}));
+function animBg(){bx.clearRect(0,0,bgc.width,bgc.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=bgc.width;if(p.x>bgc.width)p.x=0;if(p.y<0)p.y=bgc.height;if(p.y>bgc.height)p.y=0;bx.beginPath();bx.arc(p.x,p.y,1.2,0,Math.PI*2);bx.fillStyle='rgba(16,185,129,.5)';bx.fill();});requestAnimationFrame(animBg);}
+animBg();
+
+// ============ PRONOUN RESOLUTION ============
+const PRONOUN_SENT=['The','animal','didn\'t','cross','the','street','because','it','was','too','tired'];
+const PRONOUN_ATTN={
+  'The':     [0.10,0.15,0.05,0.05,0.20,0.10,0.05,0.10,0.05,0.05,0.10],
+  'animal':  [0.08,0.10,0.08,0.10,0.04,0.12,0.06,0.12,0.08,0.06,0.16],
+  'didn\'t': [0.05,0.18,0.05,0.25,0.03,0.15,0.05,0.08,0.06,0.04,0.06],
+  'cross':   [0.04,0.10,0.10,0.05,0.06,0.35,0.05,0.05,0.08,0.04,0.08],
+  'the':     [0.15,0.08,0.03,0.05,0.05,0.25,0.04,0.10,0.08,0.06,0.11],
+  'street':  [0.05,0.08,0.05,0.30,0.08,0.05,0.05,0.08,0.10,0.06,0.10],
+  'because': [0.06,0.10,0.12,0.08,0.04,0.08,0.04,0.15,0.10,0.08,0.15],
+  'it':      [0.05,0.35,0.04,0.05,0.03,0.08,0.08,0.04,0.08,0.06,0.14],// "it" attends strongly to "animal"
+  'was':     [0.04,0.15,0.06,0.05,0.03,0.06,0.06,0.20,0.05,0.10,0.20],
+  'too':     [0.03,0.08,0.04,0.04,0.03,0.05,0.05,0.10,0.15,0.05,0.38],
+  'tired':   [0.04,0.30,0.05,0.04,0.03,0.06,0.06,0.15,0.10,0.07,0.10],
+};
+let pronounSel=null;
+function softmax(arr){const m=Math.max(...arr);const e=arr.map(v=>Math.exp(v-m));const s=e.reduce((a,b)=>a+b,0);return e.map(v=>v/s);}
+function buildPronounTokens(){
+  const r=document.getElementById('pronounTokenRow');r.innerHTML='';
+  PRONOUN_SENT.forEach(w=>{
+    const d=document.createElement('div');d.className='token'+(w===pronounSel?' sel':'');
+    d.textContent=w;d.onclick=()=>{pronounSel=w;buildPronounTokens();showPronounAttn();};r.appendChild(d);
+  });
+}
+function showPronounAttn(){
+  if(!pronounSel)return;
+  const raw=PRONOUN_ATTN[pronounSel];
+  const sm=softmax(raw.map(v=>Math.log(v+1e-9)));
+  const total=sm.reduce((a,b)=>a+b,0);const norm=sm.map(v=>v/total);
+  document.getElementById('pronounAttnDisplay').innerHTML=
+    '<div style="color:var(--emerald);margin-bottom:10px;font-size:.78em;">Attention from: <strong style="color:var(--silver)">'+pronounSel+'</strong> (weights sum to 1.000)</div>'+
+    PRONOUN_SENT.map((w,i)=>{
+      const isHigh=norm[i]>0.12;
+      return '<div class="attn-row"><span class="attn-word" style="'+(isHigh?'color:var(--emerald);font-weight:600':'')+'">'+w+'</span><div class="attn-bar-w"><div class="attn-bar" style="width:'+norm[i]*100+'%"></div></div><span class="attn-score">'+norm[i].toFixed(3)+'</span></div>';
+    }).join('');
+}
+buildPronounTokens();
+
+// ============ ORIGINAL ATTENTION VISUALISER ============
+const SENT=['The','bank','by','the','river','was','steep'];
+const ATTN={
+  'The':    [0.05,0.15,0.05,0.30,0.10,0.20,0.15],
+  'bank':   [0.08,0.05,0.12,0.05,0.35,0.15,0.20],
+  'by':     [0.10,0.15,0.05,0.10,0.30,0.15,0.15],
+  'the':    [0.15,0.10,0.05,0.05,0.20,0.15,0.30],
+  'river':  [0.05,0.40,0.15,0.05,0.05,0.10,0.20],
+  'was':    [0.10,0.10,0.05,0.10,0.15,0.05,0.45],
+  'steep':  [0.05,0.25,0.10,0.05,0.20,0.15,0.20],
+};
+let selToken=null;
+function buildTokens(){
+  const r=document.getElementById('tokenRow');r.innerHTML='';
+  SENT.forEach(w=>{const d=document.createElement('div');d.className='token'+(w===selToken?' sel':'');
+    d.textContent=w;d.onclick=()=>{selToken=w;buildTokens();showAttn();};r.appendChild(d);});}
+function showAttn(){
+  if(!selToken)return;
+  const raw=ATTN[selToken];const sm=softmax(raw.map(v=>Math.log(v)));
+  const total=sm.reduce((a,b)=>a+b,0);const norm=sm.map(v=>v/total);
+  document.getElementById('attnDisplay').innerHTML=
+    '<div style="color:var(--emerald);margin-bottom:10px;font-size:.78em;">Attention from: <strong style="color:var(--silver)">'+selToken+'</strong> (weights sum to 1.000)</div>'+
+    SENT.map((w,i)=>'<div class="attn-row"><span class="attn-word">'+w+'</span><div class="attn-bar-w"><div class="attn-bar" style="width:'+norm[i]*100+'%"></div></div><span class="attn-score">'+norm[i].toFixed(3)+'</span></div>').join('');
+}
+buildTokens();
+
+// ============ HEATMAP ============
+const hmc=document.getElementById('hmCanvas'),hmx=hmc.getContext('2d');
+
+const HEATMAP_SENTENCES=[
+  {words:SENT, attn:ATTN},
+  {words:PRONOUN_SENT, attn:PRONOUN_ATTN}
+];
+let currentHeatmap=0;
+
+function setHeatmapSentence(idx){currentHeatmap=idx;drawHeatmap();}
+
+function drawHeatmap(){
+  const W=hmc.offsetWidth||700;hmc.width=W;const H=hmc.offsetHeight||340;hmc.height=H;
+  hmx.fillStyle='#0a0f1e';hmx.fillRect(0,0,W,H);
+  const data=HEATMAP_SENTENCES[currentHeatmap];
+  const words=data.words;const attnData=data.attn;
+  const N=words.length;
+  const padL=70,padT=50,padR=20,padB=20;
+  const cw=(W-padL-padR)/N,ch=(H-padT-padB)/N;
+  // Compute normalised attention matrix
+  const mat=words.map(w=>{const raw=attnData[w];const s=raw.reduce((a,b)=>a+b,0);return raw.map(v=>v/s);});
+  // Draw cells
+  mat.forEach((row,i)=>row.forEach((v,j)=>{
+    const x=padL+j*cw,y=padT+i*ch;
+    const intensity=Math.pow(v,0.5);
+    hmx.fillStyle=`rgba(16,185,129,${0.05+intensity*0.95})`;
+    hmx.fillRect(x,y,cw-1,ch-1);
+    if(v>0.12){
+      hmx.fillStyle='rgba(255,255,255,.85)';hmx.font=Math.min(11,cw/3.5)+'px JetBrains Mono';hmx.textAlign='center';
+      hmx.fillText(v.toFixed(2),x+cw/2,y+ch/2+4);
+    }
+  }));
+  // Row labels (query/from)
+  hmx.fillStyle='rgba(255,255,255,.5)';hmx.font=Math.min(11,ch*0.7)+'px Inter';
+  words.forEach((w,i)=>{
+    hmx.textAlign='right';hmx.fillText(w,padL-6,padT+i*ch+ch/2+4);
+  });
+  // Column labels (key/to)
+  words.forEach((w,i)=>{
+    hmx.save();hmx.translate(padL+i*cw+cw/2,padT-6);hmx.rotate(-Math.PI/4);
+    hmx.textAlign='right';hmx.fillText(w,0,0);hmx.restore();
+  });
+  // Axis labels
+  hmx.fillStyle='rgba(16,185,129,.4)';hmx.font='10px Inter';hmx.textAlign='center';
+  hmx.fillText('Key (attended to) -->',W/2,H-4);
+  hmx.save();hmx.translate(8,H/2);hmx.rotate(-Math.PI/2);hmx.fillText('Query (from) -->',0,0);hmx.restore();
+}
+window.addEventListener('resize',drawHeatmap);drawHeatmap();
+</script>
+</body>
+</html>

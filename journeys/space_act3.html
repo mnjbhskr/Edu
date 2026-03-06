@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#04020f">
+    <title>The Shape of Space — Act III</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#04020f;--bg2:#080418;--bg3:#0d0625;
+            --indigo:#6366f1;--rose:#ec4899;--lavender:#c4b5fd;
+            --gold:#fbbf24;--gold-dim:rgba(251,191,36,0.1);
+            --cyan:#67e8f9;--cyan-dim:rgba(103,232,249,0.1);
+            --teal:#2dd4bf;--teal-dim:rgba(45,212,191,0.1);
+            --cream:#f8fafc;--text:#b4a8d8;--muted:#2e2050;
+            --border:rgba(99,102,241,0.14);--radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:1px solid var(--border);background:rgba(4,2,15,0.93);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--teal);font-style:normal;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--indigo);}
+        .dot.active{background:var(--teal);box-shadow:0 0 10px var(--teal);animation:p 2s ease infinite;}
+        @keyframes p{0%,100%{box-shadow:0 0 6px var(--teal)}50%{box-shadow:0 0 18px var(--teal)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--teal);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);padding:0 6px;color:var(--teal);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#b4a0d0;}
+        .narrator p em{color:var(--teal);font-style:italic;}
+        .narrator p strong{color:var(--cream);}
+        .narrator.gold{border-left-color:var(--gold);} .narrator.gold::before{color:var(--gold);}
+        .narrator.rose{border-left-color:var(--rose);} .narrator.rose::before{color:var(--rose);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--teal);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;background:linear-gradient(135deg,var(--teal),#0d9488);border:none;border-radius:50px;padding:15px 30px;font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;color:#04020f;cursor:pointer;transition:all 0.25s;touch-action:manipulation;box-shadow:0 4px 24px rgba(45,212,191,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);}
+        .cta-btn:disabled{opacity:0.35;transform:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(45,212,191,0.15);border-left:3px solid var(--teal);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--teal);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#6858a0;}
+        .insight p em{color:var(--teal);font-style:normal;font-weight:600;}
+        .insight.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);} .insight.gold .lbl{color:var(--gold);}
+        .insight.rose{border-left-color:var(--rose);border-color:rgba(236,72,153,0.15);} .insight.rose .lbl{color:var(--rose);}
+        .insight.indigo{border-left-color:var(--indigo);border-color:rgba(99,102,241,0.15);} .insight.indigo .lbl{color:var(--indigo);}
+
+        .cv-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:4px;margin-bottom:14px;overflow:hidden;}
+        canvas{display:block;width:100%;}
+
+        .route-btn{flex:1;padding:11px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg3);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.85em;font-weight:600;cursor:pointer;transition:all 0.2s;}
+        .route-btn.active{background:rgba(45,212,191,0.1);border-color:rgba(45,212,191,0.35);color:var(--teal);}
+
+        .city-pair{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+        .cp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+        .cp-title{font-family:'Lora',serif;font-size:0.95em;font-weight:600;color:var(--cream);}
+        .dist-row{display:flex;gap:8px;}
+        .dist-box{flex:1;padding:10px;border-radius:10px;border:1.5px solid;text-align:center;}
+        .dist-num{font-family:'DM Sans',monospace;font-size:1.2em;font-weight:700;display:block;margin-bottom:2px;}
+        .dist-lbl{font-size:0.65em;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+
+        /* Reset button */
+        .reset-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:10px;border:1px solid var(--border);
+            background:var(--bg3);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.75em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;margin-bottom:14px;}
+        .reset-btn:hover{border-color:rgba(45,212,191,0.35);color:var(--teal);}
+
+        /* Learning box */
+        .learning-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:0;margin-bottom:16px;overflow:hidden;}
+        .learning-box .lb-section{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.04);}
+        .learning-box .lb-section:last-child{border-bottom:none;}
+        .lb-header{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;font-weight:700;}
+        .lb-header.try{color:var(--indigo);}
+        .lb-header.notice{color:var(--gold);}
+        .lb-header.matters{color:var(--teal);}
+        .lb-body{font-family:'Lora',serif;font-size:0.92em;line-height:1.72;color:#6858a0;}
+        .lb-body em{color:var(--lavender);font-style:normal;font-weight:600;}
+
+        .complete-badge{background:linear-gradient(135deg,rgba(45,212,191,0.1),rgba(99,102,241,0.06));border:1px solid rgba(45,212,191,0.2);border-radius:var(--radius);padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--teal);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--amber,var(--gold,#f59e0b));}
+        .learn-box.notice .learn-title{color:var(--teal,var(--em,#10b981));}
+        .learn-box.why .learn-title{color:var(--rose,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--amber,var(--gold));color:var(--amber,var(--gold));}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div style="font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Act III of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot active"></div>
+        <div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0 -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Shape of Space · Act III</div>
+      <div class="act-name">The <em>Geodesic</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;"><div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">✈️</div></div>
+    <div class="narrator">
+      <p>On a flat surface, the shortest path between two points is a straight line. Simple.</p>
+      <p style="margin-top:10px">But on a curved surface — a sphere, a saddle, a warped spacetime — what does "straight" even mean?</p>
+      <p style="margin-top:10px">The answer is the <em>geodesic</em>: the path that locally looks straight, even if globally it curves. The path that minimises distance. The path that light follows.</p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">Why flights arc over Greenland</div>
+      <p>A map of the London-New York flight looks curved — arcing far north over Greenland. But on a sphere, that arc IS the straight line. It's a great circle — a geodesic. The flat map distorts the surface, making straight paths look bent.</p>
+    </div>
+
+    <div class="insight rose">
+      <div class="lbl">Real-world connection — General Relativity</div>
+      <p>Einstein's key insight was that gravity is not a force — it is the curvature of spacetime. A planet orbiting the Sun, a photon bending around a galaxy, a falling apple — all follow geodesics through curved spacetime. <em>The geometry of space dictates the motion of everything in it.</em></p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(1)">See the routes →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: GREAT CIRCLES -->
+  <section class="screen" id="screen-1">
+    <div class="act-title"><div class="act-label">Great circles</div><div class="act-name">Straight on a <em>sphere</em></div></div>
+    <div class="narrator"><p>Select a city pair. Compare the <em style="color:var(--rose);">flat map route</em> (constant latitude) against the <em style="color:var(--teal);">geodesic</em> (great circle arc). The geodesic always wins on a sphere.</p></div>
+
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;" id="cityBtns">
+      <button class="route-btn active" id="rb0" onclick="setCityPair(0)">London → New York</button>
+      <button class="route-btn" id="rb1" onclick="setCityPair(1)">London → Tokyo</button>
+      <button class="route-btn" id="rb2" onclick="setCityPair(2)">Sydney → LA</button>
+    </div>
+
+    <div class="cv-wrap"><canvas id="globeCanvas" height="280"></canvas></div>
+
+    <div class="city-pair" id="cityInfo"></div>
+
+    <button class="reset-btn" onclick="setCityPair(0);">↺ Reset to London → New York</button>
+
+    <div class="insight rose" id="geodInsight" style="display:none;">
+      <div class="lbl">Geodesics in spacetime</div>
+      <p>On a sphere, free particles follow great circles. In curved spacetime, free particles follow geodesics too — the straightest possible path through warped space and time. A falling apple, a planet orbiting the sun, a beam of light bending around a star — <em>all are following geodesics.</em> This is Einstein's insight: gravity is not a force. It is the curvature of spacetime itself.</p>
+    </div>
+
+    <!-- Learning box -->
+    <div class="learning-box" id="learningBox3" style="display:none;">
+      <div class="lb-section">
+        <div class="lb-header try">Try This</div>
+        <div class="lb-body">Compare all three city pairs. Notice how the geodesic (green line) always arcs away from a straight line on the flat map. For the Sydney-LA route, the arc goes south toward Antarctica.</div>
+      </div>
+      <div class="lb-section">
+        <div class="lb-header notice">What To Notice</div>
+        <div class="lb-body">The further apart the cities, the more dramatic the difference between the flat-map route and the geodesic. The savings can be <em>thousands of kilometres</em>. The flat map projection (Mercator) distorts distances — it makes the geodesic look curved when it is actually the straightest path.</div>
+      </div>
+      <div class="lb-section">
+        <div class="lb-header matters">Why It Matters</div>
+        <div class="lb-body">Geodesics are not just for planes. Light follows geodesics through spacetime. GPS signals follow geodesics. Even the orbits of planets are geodesics in the curved spacetime around the Sun. <em>Understanding geodesics is understanding how everything moves through the universe.</em></div>
+      </div>
+    </div>
+
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Trace a path along the centre of the Möbius strip. How far do you travel before returning to your starting point? Do you end up on the 'same side' you started on?</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>The Möbius strip has only ONE side. If you start drawing a line, you traverse the entire surface before returning — proving it's non-orientable. The Klein bottle takes this further: it's a closed surface with no inside or outside.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>Orientability is a fundamental topological property. Non-orientable surfaces appear in physics (electron spin), materials science (conveyor belt designs), and abstract algebra (fibre bundles).</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>Act III Complete →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: COMPLETE -->
+  <section class="screen" id="screen-2">
+    <div class="act-title"><div class="act-label">Act III complete</div><div class="act-name">Straight paths in <em>curved space</em></div></div>
+    <div class="complete-badge">
+      <span class="badge-icon">✈️</span>
+      <div class="badge-title">Geodesics — locally straight, globally curved</div>
+      <div class="badge-sub">The shortest path on any surface.<br>What light follows. What planets follow. What falling objects follow.</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">What you learned</div>
+      <p>A geodesic is the shortest path between two points on a curved surface. On a sphere, geodesics are great circles. Flights arc over Greenland because that IS the shortest path. In curved spacetime, all free objects — including light — follow geodesics. <em>Gravity is not a force pulling things. It is the shape of space telling them where to go.</em></p>
+    </div>
+    <div class="insight gold" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act IV — Einstein's Insight</div>
+      <p>Newton said masses attract each other through a mysterious "force at a distance." Einstein replaced this entirely: a massive object curves the spacetime around it, and other objects simply follow the geodesics in that curved spacetime. No force. Pure geometry. And it makes predictions that have been confirmed to extraordinary precision.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="cta-btn" onclick="celebrate3()">On to Act IV →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='space_act2.html'">← Revisit Act II</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+let gcv,gctx,gW=300,gH=280;
+let pairsSeen=new Set();
+
+function initCosmos(){
+  const c=document.getElementById('cosmos'),ctx=c.getContext('2d');
+  c.width=innerWidth;c.height=innerHeight;
+  for(let i=0;i<200;i++){const x=Math.random()*c.width,y=Math.random()*c.height,r=Math.random()*1.5;
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${180+Math.floor(Math.random()*75)},${160+Math.floor(Math.random()*75)},255,${0.15+Math.random()*0.55})`;ctx.fill();}
+}
+initCosmos();
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n;document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1){initGlobe();setCityPair(0);}
+}
+
+function initGlobe(){
+  gcv=document.getElementById('globeCanvas');
+  gW=gcv.parentElement.clientWidth-8;gcv.width=gW;gcv.height=gH;
+  gctx=gcv.getContext('2d');
+}
+
+// City pairs [lat, lon] in degrees
+const cityPairs=[
+  {name:'London → New York', a:{name:'London',lat:51.5,lon:-0.1}, b:{name:'New York',lat:40.7,lon:-74},
+   gcDist:5570, flatDist:6740,
+   note:'The great circle arc over Greenland saves ~1,170 km vs flying along the latitude line. Every transatlantic flight uses this route.'},
+  {name:'London → Tokyo', a:{name:'London',lat:51.5,lon:-0.1}, b:{name:'Tokyo',lat:35.7,lon:139.7},
+   gcDist:9560, flatDist:12300,
+   note:'The great circle route from London to Tokyo passes over Siberia — dramatically shorter than following latitude lines east. Savings: ~2,740 km.'},
+  {name:'Sydney → Los Angeles', a:{name:'Sydney',lat:-33.9,lon:151.2}, b:{name:'Los Angeles',lat:34.1,lon:-118.2},
+   gcDist:12083, flatDist:13100,
+   note:'In the southern hemisphere, geodesics curve south — away from the equator. The route dips toward Antarctica before curving up to LA.'},
+];
+
+function setCityPair(i){
+  const pair=cityPairs[i];
+  document.querySelectorAll('#cityBtns .route-btn').forEach((b,j)=>b.className=`route-btn${j===i?' active':''}`);
+  drawGlobe(pair);
+  document.getElementById('cityInfo').innerHTML=`
+    <div class="cp-header"><div class="cp-title">${pair.name}</div></div>
+    <div class="dist-row">
+      <div class="dist-box" style="border-color:rgba(236,72,153,0.3);">
+        <span class="dist-num" style="color:var(--rose)">${pair.flatDist.toLocaleString()} km</span>
+        <div class="dist-lbl">flat map route</div>
+      </div>
+      <div class="dist-box" style="border-color:rgba(45,212,191,0.3);">
+        <span class="dist-num" style="color:var(--teal)">${pair.gcDist.toLocaleString()} km</span>
+        <div class="dist-lbl">geodesic (great circle)</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;font-family:'Lora',serif;font-size:0.85em;color:var(--muted);font-style:italic;line-height:1.55;">${pair.note}</div>`;
+  pairsSeen.add(i);launchMiniConfetti();
+  if(pairsSeen.size>=2){
+    document.getElementById('geodInsight').style.display='block';
+    document.getElementById('learningBox3').style.display='block';
+    document.getElementById('s1Next').disabled=false;
+  }
+}
+
+function toRad(d){return d*Math.PI/180;}
+
+// Equirectangular projection
+function projMap(lat,lon,W,H){
+  const x=(lon+180)/360*W;
+  const y=(90-lat)/180*H;
+  return{x,y};
+}
+
+function drawGlobe(pair){
+  if(!gctx)return;
+  gctx.clearRect(0,0,gW,gH);
+  // Map background
+  gctx.fillStyle='rgba(99,102,241,0.05)';gctx.fillRect(0,0,gW,gH);
+  // Grid lines
+  gctx.strokeStyle='rgba(255,255,255,0.05)';gctx.lineWidth=1;
+  for(let lon=-180;lon<=180;lon+=30){
+    const x=projMap(0,lon,gW,gH).x;
+    gctx.beginPath();gctx.moveTo(x,0);gctx.lineTo(x,gH);gctx.stroke();
+  }
+  for(let lat=-90;lat<=90;lat+=30){
+    const y=projMap(lat,0,gW,gH).y;
+    gctx.beginPath();gctx.moveTo(0,y);gctx.lineTo(gW,y);gctx.stroke();
+  }
+  // Equator emphasis
+  gctx.strokeStyle='rgba(255,255,255,0.12)';gctx.lineWidth=1.5;
+  const yeq=projMap(0,0,gW,gH).y;
+  gctx.beginPath();gctx.moveTo(0,yeq);gctx.lineTo(gW,yeq);gctx.stroke();
+
+  const{a,b}=pair;
+
+  // Flat route (constant latitude average)
+  gctx.strokeStyle='rgba(236,72,153,0.65)';gctx.lineWidth=2;gctx.setLineDash([6,4]);
+  gctx.beginPath();
+  const pa=projMap(a.lat,a.lon,gW,gH);
+  const pb=projMap(b.lat,b.lon,gW,gH);
+  gctx.moveTo(pa.x,pa.y);gctx.lineTo(pb.x,pb.y);
+  gctx.stroke();gctx.setLineDash([]);
+
+  // Great circle (geodesic) — interpolate via slerp
+  gctx.strokeStyle='rgba(45,212,191,0.9)';gctx.lineWidth=2.5;
+  gctx.beginPath();
+  const steps=120;
+  let prevLon=null;
+  for(let t=0;t<=steps;t++){
+    const frac=t/steps;
+    const{lat,lon}=greatCirclePoint(a.lat,a.lon,b.lat,b.lon,frac);
+    const pt=projMap(lat,lon,gW,gH);
+    if(prevLon!==null && Math.abs(lon-prevLon)>180){
+      gctx.stroke();gctx.beginPath();
+    }
+    t===0?gctx.moveTo(pt.x,pt.y):gctx.lineTo(pt.x,pt.y);
+    prevLon=lon;
+  }
+  gctx.stroke();
+
+  // City dots
+  [{city:a,col:'#c4b5fd'},{city:b,col:'#fbbf24'}].forEach(({city,col})=>{
+    const p=projMap(city.lat,city.lon,gW,gH);
+    gctx.fillStyle=col;gctx.beginPath();gctx.arc(p.x,p.y,5,0,Math.PI*2);gctx.fill();
+    gctx.fillStyle=col;gctx.font='bold 11px DM Sans';
+    const tx=p.x>gW*0.7?p.x-city.name.length*5.5:p.x+8;
+    gctx.fillText(city.name,tx,p.y-7);
+  });
+
+  // Legend
+  gctx.font='10px DM Sans';
+  gctx.fillStyle='rgba(236,72,153,0.8)';gctx.fillText('-- flat map route',12,gH-28);
+  gctx.fillStyle='rgba(45,212,191,0.9)';gctx.fillText('-- geodesic (great circle)',12,gH-14);
+}
+
+function greatCirclePoint(lat1,lon1,lat2,lon2,t){
+  const r1=[Math.cos(toRad(lat1))*Math.cos(toRad(lon1)),
+            Math.cos(toRad(lat1))*Math.sin(toRad(lon1)),
+            Math.sin(toRad(lat1))];
+  const r2=[Math.cos(toRad(lat2))*Math.cos(toRad(lon2)),
+            Math.cos(toRad(lat2))*Math.sin(toRad(lon2)),
+            Math.sin(toRad(lat2))];
+  const dot=r1[0]*r2[0]+r1[1]*r2[1]+r1[2]*r2[2];
+  const omega=Math.acos(Math.max(-1,Math.min(1,dot)));
+  let v;
+  if(Math.abs(omega)<0.0001){v=[...r1];}
+  else{
+    const s=Math.sin(omega);
+    v=r1.map((x,i)=>x*Math.sin((1-t)*omega)/s+r2[i]*Math.sin(t*omega)/s);
+  }
+  const lat=Math.asin(Math.max(-1,Math.min(1,v[2])))*180/Math.PI;
+  const lon=Math.atan2(v[1],v[0])*180/Math.PI;
+  return{lat,lon};
+}
+
+function celebrate3(){launchConfetti();setTimeout(()=>window.location.href='space_act4.html',900);}
+const cc=document.getElementById('confetti'),cxcf=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<90;i++)parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*5,vy:2+Math.random()*4,c:['#2dd4bf','#6366f1','#fbbf24','#ec4899'][Math.floor(Math.random()*4)],s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},3500);}
+function launchMiniConfetti(){cc.width=innerWidth;cc.height=innerHeight;
+  for(let i=0;i<15;i++)parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.4,vx:(Math.random()-.5)*7,vy:-(3+Math.random()*5),c:['#2dd4bf','#c4b5fd'][Math.floor(Math.random()*2)],s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!afr)animC();}
+function animC(){cxcf.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;cxcf.save();cxcf.globalAlpha=p.l;cxcf.translate(p.x,p.y);cxcf.rotate(p.r);cxcf.fillStyle=p.c;cxcf.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cxcf.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;}
+</script>
+</body>
+</html>

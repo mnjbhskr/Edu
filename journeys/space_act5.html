@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#04020f">
+    <title>The Shape of Space — Act V</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#04020f;--bg2:#080418;--bg3:#0d0625;
+            --indigo:#6366f1;--rose:#ec4899;--lavender:#c4b5fd;
+            --gold:#fbbf24;--gold-dim:rgba(251,191,36,0.12);
+            --cyan:#67e8f9;--teal:#2dd4bf;
+            --cream:#f8fafc;--text:#b4a8d8;--muted:#2e2050;
+            --border:rgba(99,102,241,0.14);--radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:1px solid var(--border);background:rgba(4,2,15,0.93);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--lavender);font-style:normal;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--indigo);}
+        .dot.active{background:var(--lavender);box-shadow:0 0 12px var(--lavender);animation:p 2s ease infinite;}
+        @keyframes p{0%,100%{box-shadow:0 0 6px var(--lavender)}50%{box-shadow:0 0 22px var(--lavender)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.55s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--lavender);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);padding:0 6px;color:var(--lavender);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#b4a0d0;}
+        .narrator p em{color:var(--lavender);font-style:italic;}
+        .narrator p strong{color:var(--cream);}
+        .narrator.gold{border-left-color:var(--gold);} .narrator.gold::before{color:var(--gold);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--lavender);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;background:linear-gradient(135deg,var(--lavender),#7c3aed);border:none;border-radius:50px;padding:15px 30px;font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;color:#fff;cursor:pointer;transition:all 0.25s;touch-action:manipulation;box-shadow:0 4px 28px rgba(196,181,253,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(196,181,253,0.45);}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(196,181,253,0.15);border-left:3px solid var(--lavender);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--lavender);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#6858a0;}
+        .insight p em{color:var(--lavender);font-style:normal;font-weight:600;}
+        .insight.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);} .insight.gold .lbl{color:var(--gold);}
+        .insight.rose{border-left-color:var(--rose);border-color:rgba(236,72,153,0.15);} .insight.rose .lbl{color:var(--rose);}
+        .insight.cyan{border-left-color:var(--cyan);border-color:rgba(103,232,249,0.15);} .insight.cyan .lbl{color:var(--cyan);}
+
+        /* Canvas wrap */
+        .cv-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:4px;margin-bottom:14px;overflow:hidden;}
+        canvas.demo-canvas{display:block;width:100%;border-radius:10px;background:var(--bg3);}
+
+        /* Dimension cards */
+        .dim-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;justify-content:center;}
+        .dim-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;
+            text-align:center;cursor:pointer;transition:all 0.2s;min-width:55px;}
+        .dim-card:hover{border-color:rgba(196,181,253,0.3);}
+        .dim-card.active{border-color:rgba(196,181,253,0.5);background:rgba(196,181,253,0.06);}
+        .dim-num{font-family:'DM Sans',monospace;font-size:1.2em;font-weight:700;color:var(--lavender);}
+        .dim-name{font-size:0.65em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+
+        /* Reset button */
+        .reset-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:10px;border:1px solid var(--border);
+            background:var(--bg3);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.75em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;margin-bottom:14px;}
+        .reset-btn:hover{border-color:rgba(196,181,253,0.35);color:var(--lavender);}
+
+        /* Learning box */
+        .learning-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:0;margin-bottom:16px;overflow:hidden;}
+        .learning-box .lb-section{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.04);}
+        .learning-box .lb-section:last-child{border-bottom:none;}
+        .lb-header{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;font-weight:700;}
+        .lb-header.try{color:var(--indigo);}
+        .lb-header.notice{color:var(--gold);}
+        .lb-header.matters{color:var(--lavender);}
+        .lb-body{font-family:'Lora',serif;font-size:0.92em;line-height:1.72;color:#6858a0;}
+        .lb-body em{color:var(--lavender);font-style:normal;font-weight:600;}
+
+        /* Universe shapes */
+        .shape-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;cursor:pointer;transition:all 0.25s;}
+        .shape-card:hover{border-color:rgba(196,181,253,0.3);}
+        .shape-card.open{border-color:rgba(196,181,253,0.45);background:rgba(196,181,253,0.04);}
+        .shape-header{display:flex;gap:12px;align-items:center;}
+        .shape-icon{font-size:1.8em;flex-shrink:0;}
+        .shape-name{font-family:'Lora',serif;font-size:0.98em;font-weight:600;margin-bottom:2px;}
+        .shape-formula{font-family:'DM Sans',monospace;font-size:0.78em;margin-bottom:2px;}
+        .shape-body{font-family:'Lora',serif;font-size:0.88em;color:#6858a0;line-height:1.65;margin-top:10px;display:none;}
+        .shape-card.open .shape-body{display:block;}
+
+        /* Journey recap */
+        .act-recap{background:var(--bg2);border:1px solid var(--border);border-left:3px solid;border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;animation:fadeUp 0.4s ease both;}
+        .ar-lbl{font-size:0.62em;text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;}
+        .ar-title{font-family:'Lora',serif;font-size:0.95em;font-weight:600;color:var(--cream);margin-bottom:3px;}
+        .ar-body{font-size:0.82em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.5;}
+
+        /* Final screen */
+        .final-wrap{text-align:center;padding:28px 16px;
+            background:radial-gradient(ellipse at 50% 40%, rgba(99,102,241,0.12) 0%, rgba(196,181,253,0.05) 40%, transparent 70%), var(--bg2);
+            border:1px solid rgba(196,181,253,0.2);border-radius:var(--radius);margin-bottom:20px;}
+        .final-star{font-size:5em;display:block;margin-bottom:12px;}
+        .final-title{font-family:'Lora',serif;font-size:1.5em;color:var(--lavender);margin-bottom:14px;font-weight:600;}
+        .final-body{font-family:'Lora',serif;font-size:1em;color:#5060a0;line-height:2;font-style:italic;}
+        .final-body em{color:var(--cream);font-style:normal;}
+
+        .next-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;display:flex;gap:14px;align-items:center;transition:border-color 0.2s;}
+        .next-card.avail{cursor:pointer;}
+        .next-card.avail:hover{border-color:rgba(196,181,253,0.3);}
+        .next-tag{font-size:0.65em;background:rgba(196,181,253,0.08);border:1px solid rgba(196,181,253,0.2);color:var(--lavender);border-radius:20px;padding:2px 8px;margin-left:auto;white-space:nowrap;flex-shrink:0;}
+        .next-tag.av{background:rgba(45,212,191,0.08);border-color:rgba(45,212,191,0.25);color:var(--teal);}
+
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        @keyframes twinkle{0%,100%{opacity:0.4}50%{opacity:1}}
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--amber,var(--gold,#f59e0b));}
+        .learn-box.notice .learn-title{color:var(--teal,var(--em,#10b981));}
+        .learn-box.why .learn-title{color:var(--rose,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--amber,var(--gold));color:var(--amber,var(--gold));}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div style="font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Act V of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div>
+        <div class="dot done"></div><div class="dot active"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0 -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Shape of Space · Act V</div>
+      <div class="act-name">The <em>Universe</em> Has Shape</div>
+    </div>
+    <div style="text-align:center;margin:4px 0 14px;"><div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">🔭</div></div>
+    <div class="narrator">
+      <p>You have seen three geometries. Flat, spherical, hyperbolic.</p>
+      <p style="margin-top:10px">You have seen that curvature is measurable from within. You have seen that mass warps spacetime, and that gravity is simply the shape of that warping.</p>
+      <p style="margin-top:10px">Now the biggest question of all: <em>What is the global shape of the universe itself?</em></p>
+      <p style="margin-top:10px">Not a philosophical question. An empirical one. We can measure it.</p>
+    </div>
+
+    <!-- Dimension visualization -->
+    <div class="narrator gold">
+      <p>But first — what do we even mean by "shape" in higher dimensions? Let's build our intuition, one dimension at a time.</p>
+    </div>
+
+    <div class="dim-row" id="dimRow">
+      <div class="dim-card active" onclick="setDim(0)"><div class="dim-num">0D</div><div class="dim-name">Point</div></div>
+      <div class="dim-card" onclick="setDim(1)"><div class="dim-num">1D</div><div class="dim-name">Line</div></div>
+      <div class="dim-card" onclick="setDim(2)"><div class="dim-num">2D</div><div class="dim-name">Square</div></div>
+      <div class="dim-card" onclick="setDim(3)"><div class="dim-num">3D</div><div class="dim-name">Cube</div></div>
+      <div class="dim-card" onclick="setDim(4)"><div class="dim-num">4D</div><div class="dim-name">Tesseract</div></div>
+    </div>
+
+    <div class="cv-wrap"><canvas id="dimCanvas" class="demo-canvas" height="240"></canvas></div>
+
+    <div id="dimDesc" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;font-family:'Lora',serif;font-size:0.95em;line-height:1.7;color:var(--text);min-height:44px;"></div>
+
+    <button class="reset-btn" onclick="setDim(0);">↺ Reset to 0D</button>
+
+    <!-- Learning box for dimensions -->
+    <div class="learning-box">
+      <div class="lb-section">
+        <div class="lb-header try">Try This</div>
+        <div class="lb-body">Click through each dimension from 0D to 4D. Watch the shape build up: each new dimension is created by extruding the previous shape in a new perpendicular direction. At 4D, watch the tesseract rotate — it is a projection of a 4D cube onto your 2D screen.</div>
+      </div>
+      <div class="lb-section">
+        <div class="lb-header notice">What To Notice</div>
+        <div class="lb-body">Each dimension doubles the number of vertices: a point has 1, a line has 2, a square has 4, a cube has 8, and a <em>tesseract has 16 vertices</em>. The rotation you see at 4D is a shadow — just as a 3D cube casts a 2D shadow on paper, a 4D hypercube casts a 3D shadow in our space.</div>
+      </div>
+      <div class="lb-section">
+        <div class="lb-header matters">Why It Matters</div>
+        <div class="lb-body">Our universe has at least 4 dimensions (3 of space + 1 of time). String theory proposes 10 or 11. Understanding higher dimensions is not abstract — it is essential for <em>cosmology</em>, for understanding <em>general relativity</em>, and potentially for a theory of everything.</div>
+      </div>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(1)">The three possibilities →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: THREE SHAPES -->
+  <section class="screen" id="screen-1">
+    <div class="act-title"><div class="act-label">Cosmology</div><div class="act-name">Three possible <em>universes</em></div></div>
+    <div class="narrator"><p>The global shape of the universe depends on its total energy density. Cosmologists call this the <em>density parameter Omega</em>. Tap each to explore what it means.</p></div>
+    <div id="shapeCards"></div>
+
+    <button class="reset-btn" onclick="buildShapes();">↺ Reset cards</button>
+
+    <div class="insight" id="shapeInsight" style="display:none;">
+      <div class="lbl">What the evidence says</div>
+      <p>Observations of the cosmic microwave background — the afterglow of the Big Bang — show the universe is flat to within 0.4% precision (Omega = 1.000 +/- 0.004, Planck 2018). <em>We appear to live in a flat universe.</em> Parallel lines really do stay parallel forever — at least as far as we can tell. The question remains open at the very largest scales.</p>
+    </div>
+
+    <div class="insight cyan">
+      <div class="lbl">Real-world connection — Cosmology</div>
+      <p>The Planck satellite measured the cosmic microwave background (CMB) — light from 380,000 years after the Big Bang. By measuring the angular size of temperature fluctuations in the CMB, cosmologists determined the curvature of the universe. <em>The same principle Gauss used with mountain triangles, applied to the largest triangle possible — spanning the observable universe.</em></p>
+    </div>
+
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Imagine you're an ant living on a surface. You walk in a big loop and bring the loop back to a point. If every possible loop can shrink to a point, what does that tell you about your surface?</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>If every loop on a surface can be continuously shrunk to a point, the surface must be a sphere (in the appropriate dimension). This is the Poincaré Conjecture, proved by Perelman in 2003 after a century of attempts.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>The Poincaré Conjecture was one of the seven Millennium Prize Problems. Its proof used Ricci flow — a technique from differential geometry that 'smooths out' shapes. Topology continues to drive some of the deepest mathematics of our time.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>The journey map →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: JOURNEY MAP -->
+  <section class="screen" id="screen-2">
+    <div class="act-title"><div class="act-label">The full journey</div><div class="act-name">From postulate to <em>cosmos</em></div></div>
+    <div class="narrator gold"><p>Every act was one layer of the same idea. Space has shape. That shape can be measured. That shape is gravity. That shape is the universe.</p></div>
+    <div id="recapCards"></div>
+    <div class="insight cyan" style="margin-top:4px;">
+      <div class="lbl">The thread</div>
+      <p>Euclid's 5th postulate was an assumption about the shape of space. Remove it, and space can be curved. Gauss showed curvature is intrinsic. Riemann generalised to any dimension. Einstein identified curvature with gravity. The universe turned out to be the largest geometry problem ever posed. <em>It began with a postulate that troubled mathematicians for 2000 years.</em></p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(3)">Complete the journey →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: GRAND FINALE -->
+  <section class="screen" id="screen-3">
+    <div class="act-title"><div class="act-label">Complete</div><div class="act-name">The Shape of <em>Space</em></div></div>
+
+    <div class="final-wrap">
+      <span class="final-star">✦</span>
+      <div class="final-title">The Shape of Space — Complete</div>
+      <div class="final-body">
+        Euclid drew a line and made an assumption.<br>
+        Two thousand years later, it turned out to be wrong.<br>
+        Or rather — only locally right.<br><br>
+        <em>Space can curve. The angles of triangles betray it.</em><br>
+        <em>Great circles are straight lines in disguise.</em><br>
+        <em>Mass bends the fabric. Light follows the bend.</em><br><br>
+        GPS knows this. Eddington confirmed it.<br>
+        LIGO heard it. The Event Horizon Telescope saw it.<br><br>
+        And the universe itself — as best we can measure —<br>
+        is flat. Parallel lines stay parallel. Forever.<br><br>
+        <em>A postulate that troubled mathematicians for two millennia<br>
+        turned out to be the key to understanding gravity itself.</em>
+      </div>
+    </div>
+
+    <div style="font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;text-align:center;">Continue your journey</div>
+    <div id="nextCards"></div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+      <button class="cta-btn" onclick="grandFinale()">Celebrate this journey</button>
+      <button class="cta-btn ghost" onclick="window.location.href='space_act1.html'">← Start from the beginning</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+let curDim=0;
+let dimCv,dimCtx,dimW=300,dimH=240;
+let tesseractAngle=0, tesseractAnim=null;
+
+function initCosmos(){
+  const c=document.getElementById('cosmos'),ctx=c.getContext('2d');
+  c.width=innerWidth;c.height=innerHeight;
+  // Denser star field for finale
+  for(let i=0;i<350;i++){
+    const x=Math.random()*c.width,y=Math.random()*c.height,r=Math.random()*2;
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+    const bright=180+Math.floor(Math.random()*75);
+    ctx.fillStyle=`rgba(${bright},${bright-20},255,${0.1+Math.random()*0.7})`;ctx.fill();
+  }
+}
+initCosmos();
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n;document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1)buildShapes();
+  if(n===2)buildRecap();
+  if(n===3)buildNext();
+}
+
+// ---- Dimension visualization ----
+function initDimCanvas(){
+  dimCv=document.getElementById('dimCanvas');
+  dimW=dimCv.parentElement.clientWidth-8;
+  dimCv.width=dimW;dimCv.height=dimH;
+  dimCtx=dimCv.getContext('2d');
+}
+
+const dimDescs=[
+  '0D — A point. No length, no width, no depth. Zero degrees of freedom. The simplest possible geometric object.',
+  '1D — A line segment. One degree of freedom: you can move left or right. Connect two points and you have a 1-dimensional object.',
+  '2D — A square. Two degrees of freedom: left-right and up-down. Extrude a line segment perpendicular to itself and you get a square. 4 vertices, 4 edges.',
+  '3D — A cube. Three degrees of freedom. Extrude a square perpendicular to its plane. 8 vertices, 12 edges, 6 faces. This is the space we perceive around us.',
+  '4D — A tesseract (hypercube). Extrude a cube in a fourth perpendicular direction. 16 vertices, 32 edges, 24 faces, 8 cubic cells. What you see is a rotating projection of this 4D object onto your 2D screen — a shadow of a shadow.',
+];
+
+function setDim(d){
+  curDim=d;
+  if(!dimCtx) initDimCanvas();
+  // Update active card
+  document.querySelectorAll('.dim-card').forEach((c,i)=>{
+    c.className='dim-card'+(i===d?' active':'');
+  });
+  document.getElementById('dimDesc').textContent=dimDescs[d];
+  if(tesseractAnim){cancelAnimationFrame(tesseractAnim);tesseractAnim=null;}
+  if(d===4){
+    tesseractAngle=0;
+    animTesseract();
+  } else {
+    drawDimStatic(d);
+  }
+}
+
+function drawDimStatic(d){
+  const ctx=dimCtx;
+  ctx.clearRect(0,0,dimW,dimH);
+  ctx.fillStyle='rgba(99,102,241,0.04)';ctx.fillRect(0,0,dimW,dimH);
+  const cx=dimW/2, cy=dimH/2;
+
+  if(d===0){
+    // Point
+    ctx.fillStyle='rgba(196,181,253,0.9)';
+    ctx.beginPath();ctx.arc(cx,cy,6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(196,181,253,0.4)';ctx.font='11px DM Sans';
+    ctx.fillText('point (0 dimensions)',cx-52,cy+25);
+  } else if(d===1){
+    // Line
+    ctx.strokeStyle='rgba(196,181,253,0.9)';ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(cx-60,cy);ctx.lineTo(cx+60,cy);ctx.stroke();
+    for(const x of [cx-60,cx+60]){
+      ctx.fillStyle='rgba(196,181,253,0.9)';ctx.beginPath();ctx.arc(x,cy,4,0,Math.PI*2);ctx.fill();
+    }
+    ctx.fillStyle='rgba(196,181,253,0.4)';ctx.font='11px DM Sans';
+    ctx.fillText('line (1 dimension)',cx-48,cy+28);
+  } else if(d===2){
+    // Square
+    const s=70;
+    ctx.strokeStyle='rgba(196,181,253,0.9)';ctx.lineWidth=2.5;
+    ctx.fillStyle='rgba(196,181,253,0.06)';
+    ctx.fillRect(cx-s,cy-s,s*2,s*2);
+    ctx.strokeRect(cx-s,cy-s,s*2,s*2);
+    for(const p of [[cx-s,cy-s],[cx+s,cy-s],[cx-s,cy+s],[cx+s,cy+s]]){
+      ctx.fillStyle='rgba(196,181,253,0.9)';ctx.beginPath();ctx.arc(p[0],p[1],4,0,Math.PI*2);ctx.fill();
+    }
+    ctx.fillStyle='rgba(196,181,253,0.4)';ctx.font='11px DM Sans';
+    ctx.fillText('square (2 dimensions) — 4 vertices',cx-80,cy+s+22);
+  } else if(d===3){
+    // Cube (isometric)
+    const s=50, ox=20, oy=20;
+    const verts=[
+      [cx-s,cy-s],[cx+s,cy-s],[cx+s,cy+s],[cx-s,cy+s], // front
+      [cx-s+ox,cy-s-oy],[cx+s+ox,cy-s-oy],[cx+s+ox,cy+s-oy],[cx-s+ox,cy+s-oy], // back
+    ];
+    ctx.fillStyle='rgba(196,181,253,0.04)';
+    // Front face
+    ctx.beginPath();ctx.moveTo(...verts[0]);verts.slice(1,4).forEach(v=>ctx.lineTo(...v));ctx.closePath();ctx.fill();
+    // Draw edges
+    ctx.strokeStyle='rgba(196,181,253,0.5)';ctx.lineWidth=1.5;
+    // Back edges
+    ctx.setLineDash([3,3]);
+    [[4,5],[5,6],[6,7],[7,4]].forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(...verts[a]);ctx.lineTo(...verts[b]);ctx.stroke();});
+    ctx.setLineDash([]);
+    // Front edges
+    ctx.strokeStyle='rgba(196,181,253,0.9)';ctx.lineWidth=2.5;
+    [[0,1],[1,2],[2,3],[3,0]].forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(...verts[a]);ctx.lineTo(...verts[b]);ctx.stroke();});
+    // Connecting edges
+    ctx.strokeStyle='rgba(196,181,253,0.6)';ctx.lineWidth=1.5;
+    [[0,4],[1,5],[2,6],[3,7]].forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(...verts[a]);ctx.lineTo(...verts[b]);ctx.stroke();});
+    // Vertices
+    verts.forEach(v=>{ctx.fillStyle='rgba(196,181,253,0.8)';ctx.beginPath();ctx.arc(v[0],v[1],3,0,Math.PI*2);ctx.fill();});
+    ctx.fillStyle='rgba(196,181,253,0.4)';ctx.font='11px DM Sans';
+    ctx.fillText('cube (3 dimensions) — 8 vertices, 12 edges',cx-100,cy+s+35);
+  }
+}
+
+// Tesseract (4D hypercube) rotating wireframe
+function getTesseractVertices(){
+  const verts=[];
+  for(let i=0;i<16;i++){
+    verts.push([
+      (i&1)?1:-1,
+      (i&2)?1:-1,
+      (i&4)?1:-1,
+      (i&8)?1:-1
+    ]);
+  }
+  return verts;
+}
+
+function getTesseractEdges(){
+  const edges=[];
+  for(let i=0;i<16;i++){
+    for(let j=i+1;j<16;j++){
+      let diff=0;
+      for(let k=0;k<4;k++) if(((i>>k)&1)!==((j>>k)&1)) diff++;
+      if(diff===1) edges.push([i,j]);
+    }
+  }
+  return edges;
+}
+
+function rotate4D(v,angle){
+  // Rotate in XW plane
+  const c=Math.cos(angle),s=Math.sin(angle);
+  const x=v[0]*c-v[3]*s;
+  const w=v[0]*s+v[3]*c;
+  // Also rotate in YZ plane at different speed
+  const c2=Math.cos(angle*0.6),s2=Math.sin(angle*0.6);
+  const y=v[1]*c2-v[2]*s2;
+  const z=v[1]*s2+v[2]*c2;
+  return [x,y,z,w];
+}
+
+function project4Dto2D(v,cx,cy,scale){
+  // Perspective projection: 4D→3D then 3D→2D
+  const d4=3; // distance for 4D projection
+  const d3=4; // distance for 3D projection
+  const w=d4/(d4-v[3]);
+  const x3=v[0]*w;
+  const y3=v[1]*w;
+  const z3=v[2]*w;
+  const w2=d3/(d3-z3);
+  return {
+    x: cx+x3*w2*scale,
+    y: cy+y3*w2*scale,
+    depth: v[3]+z3 // for coloring
+  };
+}
+
+function animTesseract(){
+  if(!dimCtx)return;
+  const ctx=dimCtx;
+  ctx.clearRect(0,0,dimW,dimH);
+  ctx.fillStyle='rgba(4,2,15,0.95)';ctx.fillRect(0,0,dimW,dimH);
+  const cx=dimW/2, cy=dimH/2;
+  const scale=Math.min(dimW,dimH)*0.22;
+
+  const verts=getTesseractVertices();
+  const edges=getTesseractEdges();
+
+  // Rotate and project
+  const projected=verts.map(v=>{
+    const rv=rotate4D(v,tesseractAngle);
+    return project4Dto2D(rv,cx,cy,scale);
+  });
+
+  // Draw edges
+  edges.forEach(([i,j])=>{
+    const pi=projected[i], pj=projected[j];
+    const avgDepth=(pi.depth+pj.depth)/2;
+    const alpha=0.3+0.4*((avgDepth+4)/8);
+    ctx.strokeStyle=`rgba(196,181,253,${Math.max(0.1,Math.min(0.9,alpha))})`;
+    ctx.lineWidth=1+alpha;
+    ctx.beginPath();ctx.moveTo(pi.x,pi.y);ctx.lineTo(pj.x,pj.y);ctx.stroke();
+  });
+
+  // Draw vertices
+  projected.forEach(p=>{
+    const alpha=0.4+0.5*((p.depth+4)/8);
+    const r=2+alpha*2;
+    ctx.fillStyle=`rgba(196,181,253,${Math.max(0.2,Math.min(1,alpha))})`;
+    ctx.beginPath();ctx.arc(p.x,p.y,r,0,Math.PI*2);ctx.fill();
+  });
+
+  // Label
+  ctx.fillStyle='rgba(196,181,253,0.4)';ctx.font='11px DM Sans';
+  ctx.fillText('tesseract (4D) — 16 vertices, 32 edges — rotating projection',dimW*0.05,dimH-10);
+
+  tesseractAngle+=0.012;
+  tesseractAnim=requestAnimationFrame(animTesseract);
+}
+
+// Init dimension on load
+window.addEventListener('load',()=>{
+  initDimCanvas();
+  setDim(0);
+});
+
+// ---- Three universe shapes ----
+const shapes=[
+  {icon:'📐', name:'Flat Universe', formula:'Omega = 1  (zero curvature)',col:'#c4b5fd',
+   body:'Parallel lines remain parallel forever. The universe extends infinitely in all directions. Triangles sum to exactly 180°. <br><br>Evidence: The cosmic microwave background (CMB) shows temperature fluctuations on scales consistent with a flat geometry. Planck satellite (2018): Omega = 1.000 +/- 0.004. The universe is flat to within measurement precision. <br><br>Fate: Continues expanding forever, thinning toward a cold, dark equilibrium — the "heat death."'},
+  {icon:'🌍', name:'Spherical Universe', formula:'Omega > 1  (positive curvature)', col:'#ec4899',
+   body:'Space curves back on itself, like the surface of a sphere but in three dimensions. Travel far enough in any direction and you return to where you started. Parallel lines eventually converge. Triangles sum to more than 180°.<br><br>Fate: Gravity eventually overcomes expansion. The universe re-collapses — the "Big Crunch." <br><br>Current evidence: Strongly disfavoured. Omega would need to be significantly greater than 1, and CMB data shows it is very close to 1.'},
+  {icon:'🏔️', name:'Hyperbolic Universe', formula:'Omega < 1  (negative curvature)', col:'#67e8f9',
+   body:'Space curves like an infinite saddle. Parallel lines diverge. Triangles sum to less than 180°. The universe expands faster and faster, accelerating forever.<br><br>Fate: Eternal accelerating expansion — the "Big Freeze" or potentially a "Big Rip." <br><br>Current evidence: Also disfavoured by CMB data, though the presence of dark energy (which drives accelerating expansion) has some characteristics of a hyperbolic universe at late times.'},
+];
+let shapesOpened=0;
+
+function buildShapes(){
+  shapesOpened=0;
+  const c=document.getElementById('shapeCards');c.innerHTML='';
+  shapes.forEach((s,i)=>{
+    const d=document.createElement('div');d.className='shape-card';
+    d.innerHTML=`<div class="shape-header">
+      <div class="shape-icon">${s.icon}</div>
+      <div><div class="shape-name" style="color:${s.col}">${s.name}</div>
+      <div class="shape-formula" style="color:${s.col}88">${s.formula}</div></div>
+    </div>
+    <div class="shape-body">${s.body}</div>`;
+    d.onclick=()=>{
+      const isOpen=d.classList.contains('open');
+      document.querySelectorAll('.shape-card').forEach(e=>e.classList.remove('open'));
+      if(!isOpen){d.classList.add('open');shapesOpened++;launchMiniConfetti();
+        if(shapesOpened>=2){document.getElementById('shapeInsight').style.display='block';document.getElementById('s1Next').disabled=false;}}
+    };
+    c.appendChild(d);
+  });
+  document.getElementById('shapeInsight').style.display='none';
+  document.getElementById('s1Next').disabled=true;
+}
+
+const recaps=[
+  {col:'#6366f1',lbl:'Act I — The Fifth Postulate',
+   title:'Three geometries: flat, spherical, hyperbolic',
+   body:'Euclid\'s parallel postulate is an assumption, not a necessity. Change it and you get a different but consistent geometry.'},
+  {col:'#ec4899',lbl:'Act II — Measuring Curvature',
+   title:'Angle sum of a triangle reveals curvature',
+   body:'Gauss\'s Theorema Egregium: curvature is intrinsic — measurable from within a surface without external reference.'},
+  {col:'#2dd4bf',lbl:'Act III — Geodesics',
+   title:'Shortest paths on curved surfaces',
+   body:'Great circles on a sphere. London to New York arcs over Greenland. In curved spacetime, all free objects follow geodesics.'},
+  {col:'#fbbf24',lbl:'Act IV — Einstein\'s Insight',
+   title:'Gravity is the curvature of spacetime',
+   body:'Mass tells spacetime how to curve. Spacetime tells matter how to move. Confirmed by eclipse, GPS, gravitational waves, black holes.'},
+];
+
+function buildRecap(){
+  const c=document.getElementById('recapCards');c.innerHTML='';
+  recaps.forEach((r,i)=>{
+    const d=document.createElement('div');d.className='act-recap';
+    d.style.cssText=`border-left-color:${r.col};animation-delay:${i*0.08}s;`;
+    d.innerHTML=`<div class="ar-lbl" style="color:${r.col}">${r.lbl}</div>
+      <div class="ar-title">${r.title}</div><div class="ar-body">${r.body}</div>`;
+    c.appendChild(d);
+  });
+}
+
+const nexts=[
+  {icon:'🔢',title:'The Shape of Change',sub:'Derivatives, integrals, the Fundamental Theorem of Calculus.',tag:'av',href:'calculus_act1.html'},
+  {icon:'🎲',title:'The Art of Uncertainty',sub:'Monty Hall. Bayes\' theorem. The prosecutor\'s fallacy.',tag:'av',href:'uncertainty_act1.html'},
+  {icon:'🏨',title:'The Infinite Hotel',sub:'Hilbert\'s Hotel. Cantor\'s diagonal. Infinities of different sizes.',tag:'av',href:'infinite_hotel_act1.html'},
+  {icon:'🔢',title:'The Prime Journey',sub:'Why some numbers refuse division. The Riemann Hypothesis.',tag:'av',href:'prime_journey_act1.html'},
+  {icon:'🌀',title:'The Language of Symmetry',sub:'Group theory. Rotations. Why snowflakes have six sides.',tag:'soon',href:''},
+];
+
+function buildNext(){
+  const c=document.getElementById('nextCards');c.innerHTML='';
+  nexts.forEach(n=>{
+    const isAv=n.tag==='av';
+    const d=document.createElement('div');d.className=`next-card${isAv?' avail':''}`;
+    if(isAv&&n.href) d.onclick=()=>window.location.href=n.href;
+    d.innerHTML=`<div style="font-size:1.8em;flex-shrink:0;">${n.icon}</div>
+      <div style="flex:1;"><div style="font-family:'Lora',serif;font-size:0.95em;font-weight:600;color:var(--cream);margin-bottom:2px;">${n.title}</div>
+      <div style="font-size:0.78em;color:var(--muted);font-family:'Lora',serif;font-style:italic;">${n.sub}</div></div>
+      <div class="next-tag ${isAv?'av':''}">${isAv?'Available':'Coming soon'}</div>`;
+    c.appendChild(d);
+  });
+}
+
+function grandFinale(){launchConfetti();}
+
+const cc=document.getElementById('confetti'),cxcf=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<160;i++)parts.push({
+    x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*7,vy:2+Math.random()*5,
+    c:['#c4b5fd','#6366f1','#ec4899','#fbbf24','#67e8f9','#2dd4bf','#f8fafc'][Math.floor(Math.random()*7)],
+    s:4+Math.random()*9,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.25,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},5000);
+}
+function launchMiniConfetti(){cc.width=innerWidth;cc.height=innerHeight;
+  for(let i=0;i<15;i++)parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.4,vx:(Math.random()-.5)*7,vy:-(3+Math.random()*5),c:['#c4b5fd','#fbbf24'][Math.floor(Math.random()*2)],s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!afr)animC();}
+function animC(){cxcf.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.01;cxcf.save();cxcf.globalAlpha=p.l;cxcf.translate(p.x,p.y);cxcf.rotate(p.r);cxcf.fillStyle=p.c;cxcf.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cxcf.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;}
+</script>
+</body>
+</html>

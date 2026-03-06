@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#030f07">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Art of Uncertainty — Act I</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#030f07; --bg2:#061a0c; --bg3:#0a2410;
+            --em:#10b981; --em-dim:rgba(16,185,129,0.12);
+            --amber:#f59e0b; --amber-dim:rgba(245,158,11,0.12);
+            --rose:#fb7185; --rose-dim:rgba(251,113,133,0.1);
+            --sky:#38bdf8; --sky-dim:rgba(56,189,248,0.1);
+            --cream:#f0fdf4; --text:#c8e8d0; --muted:#3a6048;
+            --border:rgba(16,185,129,0.12); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #felt{position:fixed;inset:0;z-index:0;pointer-events:none;
+            background:radial-gradient(ellipse at 40% 60%,rgba(16,185,129,0.06) 0%,transparent 60%),
+                        radial-gradient(ellipse at 75% 25%,rgba(245,158,11,0.04) 0%,transparent 50%),var(--bg);}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(3,15,7,0.92);
+            backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--em);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--em);} .dot.active{background:var(--em);box-shadow:0 0 10px var(--em);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 6px var(--em)}50%{box-shadow:0 0 18px var(--em)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--em);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--em);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#b8d8c0;}
+        .narrator p em{color:var(--em);font-style:italic;}
+        .narrator p strong{color:var(--cream);font-weight:600;}
+        .narrator.amber{border-left-color:var(--amber);} .narrator.amber::before{color:var(--amber);}
+        .narrator.rose{border-left-color:var(--rose);} .narrator.rose::before{color:var(--rose);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--em);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--em),#059669);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#fff;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 24px rgba(16,185,129,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(16,185,129,0.45);}
+        .cta-btn:disabled{opacity:0.35;transform:none;box-shadow:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(16,185,129,0.15);border-left:3px solid var(--em);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--em);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#7aa888;}
+        .insight p em{color:var(--em);font-style:normal;font-weight:600;}
+        .insight.amber{border-left-color:var(--amber);border-color:rgba(245,158,11,0.15);}
+        .insight.amber .lbl{color:var(--amber);}
+        .insight.rose{border-left-color:var(--rose);border-color:rgba(251,113,133,0.15);}
+        .insight.rose .lbl{color:var(--rose);}
+
+        /* ── DOORS ── */
+        .doors-wrap{display:flex;gap:12px;justify-content:center;margin-bottom:20px;}
+        .door{flex:1;max-width:120px;aspect-ratio:0.6;border-radius:14px;
+            background:var(--bg2);border:2px solid var(--border);
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            cursor:pointer;transition:all 0.3s;touch-action:manipulation;position:relative;
+            overflow:hidden;}
+        .door:hover{border-color:var(--em);background:var(--em-dim);}
+        .door.selected{border-color:var(--em);background:var(--em-dim);box-shadow:0 0 18px rgba(16,185,129,0.25);}
+        .door.opened-goat{border-color:rgba(245,158,11,0.4);background:var(--amber-dim);cursor:default;}
+        .door.opened-car{border-color:rgba(16,185,129,0.6);background:rgba(16,185,129,0.15);cursor:default;}
+        .door.disabled{cursor:default;opacity:0.5;}
+        .door-icon{font-size:2.8em;transition:all 0.3s;}
+        .door-label{font-size:0.72em;color:var(--muted);margin-top:6px;text-transform:uppercase;letter-spacing:1px;}
+        .door-num{font-family:'DM Sans',monospace;font-size:1.1em;font-weight:700;color:var(--muted);margin-bottom:4px;}
+        .door.selected .door-num,.door.selected .door-label{color:var(--em);}
+
+        /* ── Phase strip ── */
+        .phase-strip{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:14px 16px;margin-bottom:16px;min-height:52px;
+            font-family:'Lora',serif;font-size:1em;line-height:1.7;color:#7aa888;}
+        .phase-strip .hi{color:var(--cream);}
+        .phase-strip .em{color:var(--em);}
+        .phase-strip .amb{color:var(--amber);}
+        .phase-strip .ros{color:var(--rose);}
+
+        /* ── Switch / Stay buttons ── */
+        .choice-row{display:flex;gap:10px;justify-content:center;margin-bottom:16px;}
+        .choice-btn{flex:1;max-width:170px;padding:14px 10px;border-radius:14px;
+            border:1.5px solid;font-family:'DM Sans',sans-serif;font-size:0.95em;font-weight:700;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;text-align:center;}
+        .choice-btn.switch-btn{background:var(--amber-dim);border-color:rgba(245,158,11,0.4);color:var(--amber);}
+        .choice-btn.stay-btn{background:var(--sky-dim);border-color:rgba(56,189,248,0.3);color:var(--sky);}
+        .choice-btn:hover{transform:scale(1.04);}
+        .choice-btn:disabled{opacity:0.3;transform:none;cursor:default;}
+
+        /* ── Result popup ── */
+        .result-popup{text-align:center;padding:18px;background:var(--bg2);
+            border:1px solid var(--border);border-radius:var(--radius);margin-bottom:14px;
+            animation:fadeUp 0.3s ease both;}
+        .result-icon{font-size:3.5em;display:block;margin-bottom:6px;}
+        .result-text{font-family:'Lora',serif;font-size:1.1em;color:var(--cream);}
+        .result-sub{font-size:0.85em;color:var(--muted);margin-top:4px;font-style:italic;}
+
+        /* ── Simulation bar ── */
+        .sim-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+        .sim-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+        .sim-stat{text-align:center;}
+        .sim-num{font-family:'DM Sans',monospace;font-size:2em;font-weight:700;}
+        .sim-pct{font-family:'DM Sans',monospace;font-size:0.82em;font-weight:600;margin-top:2px;}
+        .sim-label{font-size:0.68em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+        .bar-track{height:12px;background:rgba(255,255,255,0.05);border-radius:6px;overflow:hidden;margin-bottom:8px;}
+        .bar-fill{height:100%;border-radius:6px;transition:width 0.5s ease;}
+        .sim-dots{display:flex;flex-wrap:wrap;gap:3px;max-height:80px;overflow:hidden;}
+        .sim-dot{width:10px;height:10px;border-radius:2px;transition:all 0.2s;}
+
+        /* ── Tree diagram ── */
+        .tree-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:18px;margin-bottom:14px;overflow-x:auto;}
+        .tree-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;}
+        .tree-node{padding:8px 14px;border-radius:10px;border:1.5px solid;
+            font-family:'DM Sans',monospace;font-size:0.8em;font-weight:700;text-align:center;}
+        .tree-arrow{color:var(--muted);font-size:1.2em;flex-shrink:0;}
+        .tree-prob{font-size:0.68em;color:var(--muted);text-align:center;margin-top:3px;}
+
+        /* Complete */
+        .complete-badge{background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(245,158,11,0.06));
+            border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);
+            padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--em);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div id="felt"></div>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act I of V</div>
+      <div class="progress-dots">
+        <div class="dot active"></div>
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: OPENING -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Art of Uncertainty · Act I</div>
+      <div class="act-name">The <em>Door</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;">
+      <div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">🚪</div>
+    </div>
+    <div class="narrator">
+      <p>You're on a game show. Three doors. Behind one: a car. Behind the others: goats.</p>
+      <p style="margin-top:10px">You pick a door. The host — who knows what's behind every door — opens one of the other two, always revealing a goat.</p>
+      <p style="margin-top:10px">Now he offers you a choice: <em>stick with your door, or switch to the other unopened one.</em></p>
+      <p style="margin-top:10px">What do you do?</p>
+    </div>
+    <div class="insight amber">
+      <div class="lbl">Before you continue</div>
+      <p>What does your gut say? Does it matter whether you switch? Most people feel it's 50/50 — the car is behind one of two remaining doors. Hold that thought. You're about to find out if your gut is right.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Pick a door →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: PLAY THE GAME -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">The game</div>
+      <div class="act-name">Pick a <em>door</em></div>
+    </div>
+
+    <div class="doors-wrap" id="doorsWrap">
+      <div class="door" id="door0" onclick="pickDoor(0)">
+        <div class="door-num">1</div>
+        <div class="door-icon">🚪</div>
+        <div class="door-label">Door 1</div>
+      </div>
+      <div class="door" id="door1" onclick="pickDoor(1)">
+        <div class="door-num">2</div>
+        <div class="door-icon">🚪</div>
+        <div class="door-label">Door 2</div>
+      </div>
+      <div class="door" id="door2" onclick="pickDoor(2)">
+        <div class="door-num">3</div>
+        <div class="door-icon">🚪</div>
+        <div class="door-label">Door 3</div>
+      </div>
+    </div>
+
+    <div class="phase-strip" id="phaseStrip">Tap a door to make your first pick.</div>
+
+    <div class="choice-row" id="choiceRow" style="display:none;">
+      <button class="choice-btn switch-btn" onclick="makeChoice('switch')" id="btnSwitch">🔄 Switch</button>
+      <button class="choice-btn stay-btn" onclick="makeChoice('stay')" id="btnStay">🛑 Stay</button>
+    </div>
+
+    <div id="resultBox" style="display:none;"></div>
+
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;" id="gameControls">
+      <button style="padding:10px 18px;border-radius:12px;background:var(--bg3);border:1.5px solid var(--border);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.88em;font-weight:600;cursor:pointer;" onclick="resetGame()" id="btnReset">Play again</button>
+    </div>
+
+    <div class="insight rose" id="gutInsight" style="display:none;">
+      <div class="lbl">Wait — is it really just 50/50?</div>
+      <p>You've played a few times. The result feels random. But what if we ran it a hundred times — switching every single time? Or staying every single time? The pattern might surprise you.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>Run 100 trials →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: SIMULATION -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">The simulation</div>
+      <div class="act-name">100 games, <em>revealed</em></div>
+    </div>
+    <div class="narrator">
+      <p>Now we run the same game 100 times — always switching, then always staying. Watch the results accumulate in real time.</p>
+    </div>
+
+    <div class="sim-wrap">
+      <div style="font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;">Strategy: Always Switch</div>
+      <div class="sim-row">
+        <div class="sim-stat"><div class="sim-num" id="switchWins" style="color:var(--em);">0</div><div class="sim-pct" style="color:var(--em);" id="switchPct">0%</div><div class="sim-label">Wins</div></div>
+        <div style="flex:1;padding:0 14px;">
+          <div class="bar-track"><div class="bar-fill" id="switchBar" style="width:0%;background:var(--em);"></div></div>
+        </div>
+        <div class="sim-stat"><div class="sim-num" id="switchLoss" style="color:var(--rose);">0</div><div class="sim-pct" style="color:var(--rose);" id="switchLPct">0%</div><div class="sim-label">Losses</div></div>
+      </div>
+      <div class="sim-dots" id="switchDots"></div>
+    </div>
+
+    <div class="sim-wrap">
+      <div style="font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;">Strategy: Always Stay</div>
+      <div class="sim-row">
+        <div class="sim-stat"><div class="sim-num" id="stayWins" style="color:var(--em);">0</div><div class="sim-pct" style="color:var(--em);" id="stayPct">0%</div><div class="sim-label">Wins</div></div>
+        <div style="flex:1;padding:0 14px;">
+          <div class="bar-track"><div class="bar-fill" id="stayBar" style="width:0%;background:var(--em);"></div></div>
+        </div>
+        <div class="sim-stat"><div class="sim-num" id="stayLoss" style="color:var(--rose);">0</div><div class="sim-pct" style="color:var(--rose);" id="stayLPct">0%</div><div class="sim-label">Losses</div></div>
+      </div>
+      <div class="sim-dots" id="stayDots"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;">
+      <button style="padding:11px 22px;border-radius:12px;background:var(--em-dim);border:1.5px solid rgba(16,185,129,0.3);color:var(--em);font-family:'DM Sans',sans-serif;font-size:0.9em;font-weight:600;cursor:pointer;" onclick="runSimulation()" id="btnSim">▶ Run simulation</button>
+    </div>
+
+    <div class="insight" id="simInsight" style="display:none;">
+      <div class="lbl">💡 The pattern appears</div>
+      <p id="simInsightText"></p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)" id="s2Next" disabled>Why does switching win? →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: THE EXPLANATION -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">The reason</div>
+      <div class="act-name">It was never <em>50/50</em></div>
+    </div>
+    <div class="narrator amber">
+      <p>Your gut said 50/50. The simulation says 2/3 vs 1/3. Here's exactly why.</p>
+      <p style="margin-top:10px">When you first picked, your door had a <em>1/3 chance</em> of being the car. The <strong>other two doors together</strong> had a 2/3 chance.</p>
+      <p style="margin-top:10px">Then the host — who knows where the car is — removed a losing door. <em>That 2/3 chance didn't disappear.</em> It all landed on the one remaining door.</p>
+    </div>
+
+    <!-- Tree diagram -->
+    <div class="tree-wrap">
+      <div style="font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:14px;">All possible outcomes — suppose the car is behind door 1</div>
+      <div id="treeContent"></div>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);padding:18px;margin-bottom:14px;text-align:center;">
+      <div style="font-family:'DM Sans',monospace;font-size:clamp(1em,4.5vw,1.4em);font-weight:700;color:var(--cream);line-height:2;">
+        Switch: wins <span style="color:var(--em)">2 out of 3</span> times<br>
+        Stay: wins <span style="color:var(--rose)">1 out of 3</span> times
+      </div>
+      <div style="font-family:'Lora',serif;font-size:0.88em;color:var(--muted);margin-top:8px;font-style:italic;">
+        The host's action was not random — it carried information.<br>It shifted probability. Your gut missed that entirely.
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">💡 The key insight</div>
+      <p>When the host opens a goat door, he is <em>not giving you a 50/50 choice</em>. He is giving you the choice between your original 1/3 chance — and the combined 2/3 chance of everything else. <strong>Always switch.</strong> The simulation confirms what the logic demands.</p>
+    </div>
+
+    <div class="insight" style="margin-top:14px;">
+      <div class="lbl">Try This</div>
+      <p>Play the game 5 more times. Try always switching, then always staying. Keep a mental tally of wins for each strategy.</p>
+    </div>
+    <div class="insight amber">
+      <div class="lbl" style="color:var(--amber);">What To Notice</div>
+      <p>Switching wins roughly twice as often as staying. The 100-trial simulation made this precise: ~67% vs ~33%. Your gut said 50/50 — the data disagrees.</p>
+    </div>
+    <div class="insight rose">
+      <div class="lbl" style="color:var(--rose);">Why It Matters</div>
+      <p>Probability is about <em>information</em>, not counting options. The host's action carried information that shifted the odds. This principle — that new evidence changes what you should believe — is the foundation of all statistical reasoning.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(4)">✦ Act I Complete →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 4: COMPLETE -->
+  <section class="screen" id="screen-4">
+    <div class="act-title">
+      <div class="act-label">Act I complete</div>
+      <div class="act-name">The door that <em>teaches</em></div>
+    </div>
+    <div class="complete-badge">
+      <span class="badge-icon">🚪</span>
+      <div class="badge-title">Your gut was wrong. Mathematics was right.</div>
+      <div class="badge-sub">The Monty Hall problem. Unsettling since 1975.<br>Always switch.</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">💡 What you learned</div>
+      <p>Probability is not about counting options — it's about <em>information.</em> The host's action carried information that changed the probabilities. Intuition ignored it. This is the core lesson of the whole journey: new evidence changes what you should believe. The question is how.</p>
+    </div>
+    <div class="insight amber" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act II — The Test</div>
+      <p>You test positive for a rare disease. The test is 99% accurate. What are the chances you actually have it? Most people say 99%. The real answer will change how you read medical news for the rest of your life.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="cta-btn" onclick="celebrate()">✦ On to Act II →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='infinite_hotel_act1.html'">← The Infinite Hotel</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+let gameState={phase:0,carDoor:-1,picked:-1,opened:-1,gamesPlayed:0,switchWins:0,stayWins:0};
+let simTimer=null;
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n; document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1)resetGame();
+  if(n===2)initSim();
+  if(n===3)buildTree();
+}
+
+// ── Screen 1: Game ──
+function resetGame(){
+  gameState.phase=0;
+  gameState.carDoor=Math.floor(Math.random()*3);
+  gameState.picked=-1; gameState.opened=-1;
+  for(let i=0;i<3;i++){
+    const d=document.getElementById(`door${i}`);
+    d.className='door';
+    d.querySelector('.door-icon').textContent='🚪';
+    d.querySelector('.door-num').textContent=i+1;
+    d.onclick=()=>pickDoor(i);
+  }
+  document.getElementById('choiceRow').style.display='none';
+  document.getElementById('resultBox').style.display='none';
+  document.getElementById('phaseStrip').innerHTML='Tap a door to make your first pick.';
+  document.getElementById('gutInsight').style.display='none';
+  if(gameState.gamesPlayed===0) document.getElementById('s1Next').disabled=true;
+}
+
+function pickDoor(i){
+  if(gameState.phase!==0)return;
+  gameState.phase=1; gameState.picked=i;
+  document.getElementById(`door${i}`).className='door selected';
+  document.getElementById(`door${i}`).querySelector('.door-num').textContent=i+1;
+  for(let j=0;j<3;j++) document.getElementById(`door${j}`).onclick=null;
+  setTimeout(hostOpens,600);
+}
+
+function hostOpens(){
+  // Host opens a goat door that isn't picked or car
+  let candidates=[];
+  for(let j=0;j<3;j++){
+    if(j!==gameState.picked && j!==gameState.carDoor) candidates.push(j);
+  }
+  gameState.opened=candidates[Math.floor(Math.random()*candidates.length)];
+  const od=document.getElementById(`door${gameState.opened}`);
+  od.className='door opened-goat';
+  od.querySelector('.door-icon').textContent='🐐';
+  document.getElementById('phaseStrip').innerHTML=
+    `The host opens <span class="hi">Door ${gameState.opened+1}</span> — a goat! <span class="amb">Switch or stay?</span>`;
+  document.getElementById('choiceRow').style.display='flex';
+}
+
+function makeChoice(choice){
+  document.getElementById('choiceRow').style.display='none';
+  gameState.phase=2;
+  let finalDoor;
+  if(choice==='switch'){
+    for(let j=0;j<3;j++){
+      if(j!==gameState.picked && j!==gameState.opened){finalDoor=j;break;}
+    }
+  } else {
+    finalDoor=gameState.picked;
+  }
+  const won=finalDoor===gameState.carDoor;
+  // Reveal all doors
+  for(let j=0;j<3;j++){
+    const d=document.getElementById(`door${j}`);
+    if(j===gameState.carDoor){
+      d.querySelector('.door-icon').textContent='🚗';
+      if(j===finalDoor) d.className='door opened-car';
+    } else if(j!==gameState.opened){
+      d.querySelector('.door-icon').textContent='🐐';
+      if(j!==finalDoor) d.className='door disabled';
+    }
+  }
+  document.getElementById(`door${finalDoor}`).className=won?'door opened-car':'door opened-goat';
+
+  const resultBox=document.getElementById('resultBox');
+  resultBox.style.display='block';
+  resultBox.innerHTML=`
+    <div class="result-popup">
+      <span class="result-icon">${won?'🚗':'🐐'}</span>
+      <div class="result-text" style="color:${won?'var(--em)':'var(--rose)'}">
+        ${won?'You won the car!':'Goat. Better luck next time.'}
+      </div>
+      <div class="result-sub">You chose to <strong>${choice}</strong>. The car was behind door ${gameState.carDoor+1}.</div>
+    </div>`;
+
+  gameState.gamesPlayed++;
+  if(gameState.gamesPlayed>=3){
+    document.getElementById('gutInsight').style.display='block';
+    document.getElementById('s1Next').disabled=false;
+  }
+  document.getElementById('phaseStrip').innerHTML=
+    `Game ${gameState.gamesPlayed} complete. <span class="em">Play again</span> to build intuition.`;
+}
+
+// ── Screen 2: Simulation ──
+let swWins=0,swLoss=0,stWins=0,stLoss=0;
+
+function initSim(){
+  swWins=0;swLoss=0;stWins=0;stLoss=0;
+  updateSimDisplay();
+  document.getElementById('switchDots').innerHTML='';
+  document.getElementById('stayDots').innerHTML='';
+  document.getElementById('simInsight').style.display='none';
+  document.getElementById('s2Next').disabled=true;
+}
+
+function montyTrialSwitch(){
+  const car=Math.floor(Math.random()*3);
+  const pick=Math.floor(Math.random()*3);
+  // Host opens a goat that isn't pick or car
+  let goat=-1;
+  for(let j=0;j<3;j++) if(j!==pick&&j!==car){goat=j;break;}
+  // Switch
+  let final=-1;
+  for(let j=0;j<3;j++) if(j!==pick&&j!==goat){final=j;break;}
+  return final===car;
+}
+
+function montyTrialStay(){
+  const car=Math.floor(Math.random()*3);
+  const pick=Math.floor(Math.random()*3);
+  return pick===car;
+}
+
+function runSimulation(){
+  if(simTimer) clearInterval(simTimer);
+  initSim();
+  let count=0;
+  const TOTAL=100;
+  document.getElementById('btnSim').disabled=true;
+  simTimer=setInterval(()=>{
+    for(let i=0;i<3&&count<TOTAL;i++,count++){
+      const sw=montyTrialSwitch();
+      sw?swWins++:swLoss++;
+      const st=montyTrialStay();
+      st?stWins++:stLoss++;
+      addDot('switchDots',sw);
+      addDot('stayDots',st);
+    }
+    updateSimDisplay();
+    if(count>=TOTAL){
+      clearInterval(simTimer); simTimer=null;
+      document.getElementById('btnSim').disabled=false;
+      showSimInsight();
+    }
+  },40);
+}
+
+function addDot(id,win){
+  const container=document.getElementById(id);
+  if(container.children.length>=100)return;
+  const d=document.createElement('div');
+  d.className='sim-dot';
+  d.style.background=win?'var(--em)':'var(--rose-dim)';
+  d.style.border=`1px solid ${win?'rgba(16,185,129,0.6)':'rgba(251,113,133,0.3)'}`;
+  container.appendChild(d);
+}
+
+function updateSimDisplay(){
+  const swTotal=swWins+swLoss, stTotal=stWins+stLoss;
+  document.getElementById('switchWins').textContent=swWins;
+  document.getElementById('switchLoss').textContent=swLoss;
+  document.getElementById('switchPct').textContent=swTotal?Math.round(swWins/swTotal*100)+'%':'0%';
+  document.getElementById('switchBar').style.width=swTotal?swWins/swTotal*100+'%':'0%';
+  document.getElementById('switchLPct').textContent=swTotal?Math.round(swLoss/swTotal*100)+'%':'0%';
+  document.getElementById('stayWins').textContent=stWins;
+  document.getElementById('stayLoss').textContent=stLoss;
+  document.getElementById('stayPct').textContent=stTotal?Math.round(stWins/stTotal*100)+'%':'0%';
+  document.getElementById('stayBar').style.width=stTotal?stWins/stTotal*100+'%':'0%';
+  document.getElementById('stayLPct').textContent=stTotal?Math.round(stLoss/stTotal*100)+'%':'0%';
+}
+
+function showSimInsight(){
+  const ins=document.getElementById('simInsight');
+  ins.style.display='block';
+  const swPct=Math.round(swWins/100*100);
+  document.getElementById('simInsightText').innerHTML=
+    `Switching won about <em>${swPct}%</em> of 100 games. Staying won about <em>${Math.round(stWins)}%</em>. The theoretical prediction is 67% vs 33%. Your simulation likely landed close to that. It was never 50/50 — and now you've seen it with your own eyes.`;
+  document.getElementById('s2Next').disabled=false;
+  launchMiniConfetti();
+}
+
+// ── Screen 3: Tree ──
+function buildTree(){
+  const tc=document.getElementById('treeContent');
+  tc.innerHTML='';
+  const scenarios=[
+    {pick:'Door 1 (car)',open:'Host opens 2 or 3',sw:'Switch → 🐐 LOSE',st:'Stay → 🚗 WIN',swWin:false,col:'var(--rose)'},
+    {pick:'Door 2 (goat)',open:'Host opens Door 3',sw:'Switch to 1 → 🚗 WIN',st:'Stay → 🐐 LOSE',swWin:true,col:'var(--em)'},
+    {pick:'Door 3 (goat)',open:'Host opens Door 2',sw:'Switch to 1 → 🚗 WIN',st:'Stay → 🐐 LOSE',swWin:true,col:'var(--em)'},
+  ];
+  scenarios.forEach((s,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText=`padding:12px;background:rgba(255,255,255,0.02);border-radius:12px;margin-bottom:8px;border:1px solid rgba(255,255,255,0.04);animation:fadeUp 0.4s ease ${i*0.1}s both;`;
+    row.innerHTML=`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+        <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:1px;color:var(--muted);">Case ${i+1} — P = 1/3</div>
+        <div style="font-family:'DM Sans',monospace;font-size:0.85em;background:rgba(255,255,255,0.04);padding:4px 10px;border-radius:8px;color:var(--text);">You pick: ${s.pick}</div>
+        <div style="font-size:0.85em;color:var(--muted);">${s.open}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:140px;padding:8px 12px;border-radius:10px;background:${s.swWin?'rgba(16,185,129,0.1)':'rgba(251,113,133,0.08)'};border:1px solid ${s.swWin?'rgba(16,185,129,0.3)':'rgba(251,113,133,0.2)'};font-family:'Lora',serif;font-size:0.88em;color:${s.swWin?'var(--em)':'var(--rose)'};">${s.sw}</div>
+        <div style="flex:1;min-width:140px;padding:8px 12px;border-radius:10px;background:${!s.swWin?'rgba(16,185,129,0.1)':'rgba(251,113,133,0.08)'};border:1px solid ${!s.swWin?'rgba(16,185,129,0.3)':'rgba(251,113,133,0.2)'};font-family:'Lora',serif;font-size:0.88em;color:${!s.swWin?'var(--em)':'var(--rose)'};">${s.st}</div>
+      </div>`;
+    tc.appendChild(row);
+  });
+  const summary=document.createElement('div');
+  summary.style.cssText='display:flex;gap:10px;margin-top:4px;flex-wrap:wrap;';
+  summary.innerHTML=`
+    <div style="flex:1;padding:10px;border-radius:10px;background:var(--em-dim);border:1px solid rgba(16,185,129,0.2);text-align:center;">
+      <div style="font-family:'DM Sans',monospace;font-size:1.2em;font-weight:700;color:var(--em);">2/3</div>
+      <div style="font-size:0.72em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Switch wins</div>
+    </div>
+    <div style="flex:1;padding:10px;border-radius:10px;background:var(--rose-dim);border:1px solid rgba(251,113,133,0.2);text-align:center;">
+      <div style="font-family:'DM Sans',monospace;font-size:1.2em;font-weight:700;color:var(--rose);">1/3</div>
+      <div style="font-size:0.72em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Stay wins</div>
+    </div>`;
+  tc.appendChild(summary);
+}
+
+function celebrate(){
+  launchConfetti();
+  setTimeout(()=>window.location.href='uncertainty_act2.html',900);
+}
+
+const cc=document.getElementById('confetti'),cx=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<90;i++) parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*5,vy:2+Math.random()*4,
+    c:['#10b981','#f59e0b','#38bdf8','#fb7185','#f0fdf4'][Math.floor(Math.random()*5)],
+    s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},3500);
+}
+function launchMiniConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;
+  for(let i=0;i<22;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.4,
+    vx:(Math.random()-.5)*7,vy:-(3+Math.random()*5),
+    c:['#10b981','#f59e0b'][Math.floor(Math.random()*2)],s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!afr)animC();
+}
+function animC(){
+  cx.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;
+    cx.save();cx.globalAlpha=p.l;cx.translate(p.x,p.y);cx.rotate(p.r);
+    cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cx.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;
+}
+</script>
+</body>
+</html>

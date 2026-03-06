@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#030f07">
+    <title>The Art of Uncertainty — Act II</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#030f07;--bg2:#061a0c;--bg3:#0a2410;
+            --em:#10b981;--em-dim:rgba(16,185,129,0.12);
+            --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.12);
+            --rose:#fb7185;--rose-dim:rgba(251,113,133,0.1);
+            --sky:#38bdf8;--sky-dim:rgba(56,189,248,0.1);
+            --cream:#f0fdf4;--text:#c8e8d0;--muted:#3a6048;
+            --border:rgba(16,185,129,0.12);--radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #felt{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 40% 60%,rgba(16,185,129,0.05) 0%,transparent 60%),var(--bg);}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:1px solid var(--border);background:rgba(3,15,7,0.92);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--amber);font-style:normal;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--em);} .dot.active{background:var(--amber);box-shadow:0 0 10px var(--amber);animation:p 2s ease infinite;}
+        @keyframes p{0%,100%{box-shadow:0 0 6px var(--amber)}50%{box-shadow:0 0 18px var(--amber)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--amber);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);padding:0 6px;color:var(--amber);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#b8d8c0;}
+        .narrator p em{color:var(--amber);font-style:italic;}
+        .narrator p strong{color:var(--cream);}
+        .narrator.em{border-left-color:var(--em);} .narrator.em::before{color:var(--em);}
+        .narrator.rose{border-left-color:var(--rose);} .narrator.rose::before{color:var(--rose);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--amber);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;background:linear-gradient(135deg,var(--amber),#d97706);border:none;border-radius:50px;padding:15px 30px;font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;color:#030f07;cursor:pointer;transition:all 0.25s;touch-action:manipulation;box-shadow:0 4px 24px rgba(245,158,11,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);}
+        .cta-btn:disabled{opacity:0.35;transform:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(245,158,11,0.15);border-left:3px solid var(--amber);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--amber);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#7aa888;}
+        .insight p em{color:var(--amber);font-style:normal;font-weight:600;}
+        .insight.em{border-left-color:var(--em);border-color:rgba(16,185,129,0.15);} .insight.em .lbl{color:var(--em);}
+        .insight.rose{border-left-color:var(--rose);border-color:rgba(251,113,133,0.15);} .insight.rose .lbl{color:var(--rose);}
+        /* guess buttons */
+        .guess-btn{width:100%;padding:14px 20px;border-radius:14px;background:var(--bg3);border:1.5px solid var(--border);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;cursor:pointer;transition:all 0.2s;touch-action:manipulation;text-align:center;margin-bottom:10px;}
+        .guess-btn:hover{border-color:var(--amber);color:var(--amber);background:var(--amber-dim);}
+        .guess-btn.correct{background:var(--em-dim);border-color:rgba(16,185,129,0.4);color:var(--em);}
+        .guess-btn.wrong{background:var(--rose-dim);border-color:rgba(251,113,133,0.3);color:var(--rose);opacity:0.5;}
+        /* dot grid */
+        .dot-grid-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+        .dot-grid{display:flex;flex-wrap:wrap;gap:2px;}
+        .gdot{width:clamp(7px,2.2vw,11px);height:clamp(7px,2.2vw,11px);border-radius:2px;transition:all 0.2s;}
+        .gdot.healthy{background:rgba(255,255,255,0.08);}
+        .gdot.sick{background:var(--amber);box-shadow:0 0 4px var(--amber);}
+        .gdot.false-pos{background:var(--rose);box-shadow:0 0 4px var(--rose);}
+        .gdot.true-pos{background:var(--em);box-shadow:0 0 6px var(--em);}
+        .legend-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;}
+        .legend-item{display:flex;align-items:center;gap:5px;font-size:0.75em;color:var(--muted);}
+        .legend-swatch{width:12px;height:12px;border-radius:3px;}
+        /* prevalence slider */
+        .slider-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+        .slider-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+        input[type=range]{flex:1;accent-color:var(--amber);}
+        .slider-val{font-family:'DM Sans',monospace;font-size:1.1em;font-weight:700;color:var(--amber);min-width:52px;text-align:center;}
+        .result-numbers{display:flex;gap:10px;flex-wrap:wrap;}
+        .result-box{flex:1;min-width:100px;padding:12px;border-radius:12px;border:1.5px solid;text-align:center;}
+        .result-box .num{font-family:'DM Sans',monospace;font-size:1.6em;font-weight:700;display:block;margin-bottom:2px;}
+        .result-box .lab{font-size:0.68em;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+        /* complete */
+        .complete-badge{background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(16,185,129,0.06));border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius);padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--amber);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--amber);}
+        .learn-box.notice .learn-title{color:var(--em,#10b981);}
+        .learn-box.why .learn-title{color:var(--rose);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--amber);color:var(--amber);}
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div id="felt"></div>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div style="font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Act II of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot active"></div>
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0 -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Art of Uncertainty · Act II</div>
+      <div class="act-name">The <em>Test</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;"><div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">🧪</div></div>
+    <div class="narrator">
+      <p>You take a medical test for a rare disease. The result comes back <em>positive.</em></p>
+      <p style="margin-top:10px">The doctor tells you: <strong>"This test is 99% accurate."</strong></p>
+      <p style="margin-top:10px">What is the probability you actually have the disease?</p>
+    </div>
+    <div class="insight">
+      <div class="lbl">Before you continue</div>
+      <p>What does your gut say? Hold your answer. The real answer depends on something the doctor hasn't told you — and it will change everything.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Make your guess →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: GUESS -->
+  <section class="screen" id="screen-1">
+    <div class="act-title"><div class="act-label">Your intuition</div><div class="act-name">How likely is it <em>really?</em></div></div>
+    <div class="narrator"><p>The test is 99% accurate. You tested positive. What is the probability you actually have the disease?</p></div>
+    <div id="guessButtons">
+      <button class="guess-btn" onclick="guess(0)">About 99% — the test is 99% accurate</button>
+      <button class="guess-btn" onclick="guess(1)">About 90% — very likely</button>
+      <button class="guess-btn" onclick="guess(2)">About 50% — could go either way</button>
+      <button class="guess-btn" onclick="guess(3)">Less than 10% — actually probably fine</button>
+    </div>
+    <div id="guessFeedback" style="font-family:'Lora',serif;font-size:1em;line-height:1.7;color:var(--muted);min-height:20px;padding:8px 0;"></div>
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>Show me why →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: 1000 PEOPLE -->
+  <section class="screen" id="screen-2">
+    <div class="act-title"><div class="act-label">The concrete picture</div><div class="act-name">1000 people, <em>one test</em></div></div>
+    <div class="narrator rose">
+      <p>The missing information: this disease affects <em>1 in 1000 people.</em></p>
+      <p style="margin-top:8px">Watch what happens when we test 1000 people at once. Each dot is a person.</p>
+    </div>
+
+    <div class="dot-grid-wrap">
+      <div style="font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px;" id="dotGridLabel">1000 people. Tap "Reveal" to run the test.</div>
+      <div class="dot-grid" id="dotGrid"></div>
+      <div class="legend-row">
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(255,255,255,0.08);"></div>Healthy (negative)</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--em);"></div>Sick → true positive ✓</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--rose);"></div>Healthy → false positive ✗</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;">
+      <button style="padding:11px 22px;border-radius:12px;background:var(--amber-dim);border:1.5px solid rgba(245,158,11,0.3);color:var(--amber);font-family:'DM Sans',sans-serif;font-size:0.9em;font-weight:600;cursor:pointer;" onclick="revealTest()" id="btnReveal">Reveal the test results</button>
+      <button class="reset-btn" onclick="buildDotGrid()">Reset grid</button>
+    </div>
+
+    <div id="testSummary" style="display:none;">
+      <div class="result-numbers" style="margin-bottom:14px;">
+        <div class="result-box" style="border-color:rgba(16,185,129,0.3);"><span class="num" style="color:var(--em);" id="truePos">1</span><div class="lab">True positive<br>(actually sick)</div></div>
+        <div class="result-box" style="border-color:rgba(251,113,133,0.3);"><span class="num" style="color:var(--rose);" id="falsePos">10</span><div class="lab">False positive<br>(actually healthy)</div></div>
+        <div class="result-box" style="border-color:rgba(255,255,255,0.08);"><span class="num" style="color:var(--muted);" id="totalPos">11</span><div class="lab">Total positive<br>test results</div></div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid rgba(245,158,11,0.2);border-radius:var(--radius);padding:18px;margin-bottom:14px;text-align:center;">
+        <div style="font-family:'Lora',serif;font-size:1em;color:#a8c8b0;margin-bottom:6px;">If you test positive, the chance you're actually sick is:</div>
+        <div style="font-family:'DM Sans',monospace;font-size:2.2em;font-weight:700;color:var(--amber);" id="posteriorDisplay">1/11 ≈ 9%</div>
+        <div style="font-family:'Lora',serif;font-size:0.88em;color:var(--muted);margin-top:6px;font-style:italic;">Not 99%. Because most positive results come from the vast pool of healthy people.</div>
+      </div>
+    </div>
+
+    <div class="insight" id="testInsight" style="display:none;">
+      <div class="lbl">💡 The base rate</div>
+      <p>The disease is rare — only 1 in 1000 people have it. Even a 99% accurate test produces <em>about 10 false positives</em> for every 1 true positive. The <em>base rate</em> — how common the disease is — dominates the answer. The doctor forgot to tell you that part.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)" id="s2Next" disabled>What if the disease was more common? →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: PREVALENCE SLIDER -->
+  <section class="screen" id="screen-3">
+    <div class="act-title"><div class="act-label">The base rate matters</div><div class="act-name">Change the <em>prevalence</em></div></div>
+    <div class="narrator em">
+      <p>The accuracy of the test hasn't changed — still 99%. But watch what happens to your actual risk as the disease becomes more or less common.</p>
+    </div>
+    <div class="slider-wrap">
+      <div style="font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px;">Disease prevalence (1 in N people)</div>
+      <div class="slider-row">
+        <span style="font-size:0.82em;color:var(--muted);">Rare</span>
+        <input type="range" id="prevSlider" min="1" max="200" value="100" oninput="updatePrevalence()">
+        <span style="font-size:0.82em;color:var(--muted);">Common</span>
+      </div>
+      <div style="text-align:center;margin-bottom:12px;">
+        <span style="font-family:'Lora',serif;font-size:0.95em;color:var(--muted);">1 in </span>
+        <span style="font-family:'DM Sans',monospace;font-size:1.2em;font-weight:700;color:var(--amber);" id="prevVal">100</span>
+        <span style="font-family:'Lora',serif;font-size:0.95em;color:var(--muted);"> people have this disease</span>
+      </div>
+      <div class="result-numbers">
+        <div class="result-box" style="border-color:rgba(16,185,129,0.3);">
+          <span class="num" style="color:var(--em);" id="dynTrue">10</span>
+          <div class="lab">True positives<br>per 1000</div>
+        </div>
+        <div class="result-box" style="border-color:rgba(251,113,133,0.3);">
+          <span class="num" style="color:var(--rose);" id="dynFalse">10</span>
+          <div class="lab">False positives<br>per 1000</div>
+        </div>
+        <div class="result-box" style="border-color:rgba(245,158,11,0.3);">
+          <span class="num" style="color:var(--amber);" id="dynPost">50%</span>
+          <div class="lab">Real chance<br>if positive</div>
+        </div>
+      </div>
+    </div>
+    <div class="insight" id="prevInsight">
+      <div class="lbl">💡 The key relationship</div>
+      <p id="prevInsightText">Move the slider to see how prevalence drives everything. When the disease is very rare, most positives are false. When it's common, most positives are real. <em>Base rate is everything.</em></p>
+    </div>
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Move the prevalence slider to extremes. Set it to 1 in 2 (very common) and then to 1 in 200 (very rare). Watch how the "real chance if positive" changes dramatically even though the test accuracy stays at 99%.</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>When the disease is rare (1 in 200), a positive result gives you only about a 33% real chance of being sick. When it is common (1 in 2), a positive result is almost certainly real at 99%. The test did not change -- only the base rate did. Expected value depends entirely on context.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>Every decision under uncertainty involves weighing risk against reward. A 99% accurate test sounds decisive, but the expected value of a positive result depends on how common the condition is. This is why screening programmes for rare diseases produce mostly false positives -- and why understanding base rates is essential for rational decision making in medicine, finance, and everyday life.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(4)">✦ Act II Complete →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 4: COMPLETE -->
+  <section class="screen" id="screen-4">
+    <div class="act-title"><div class="act-label">Act II complete</div><div class="act-name">The test that <em>teaches</em></div></div>
+    <div class="complete-badge">
+      <span class="badge-icon">🧪</span>
+      <div class="badge-title">A 99% accurate test. A 9% real risk.</div>
+      <div class="badge-sub">Because most people don't have the disease.<br>Base rate changes everything.</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">💡 What you learned</div>
+      <p>Test accuracy alone tells you nothing. You must know the <em>base rate</em> — how common the condition is in the tested population. In screening programmes for rare diseases, most positive results are false positives. This is not a flaw in the test — it is mathematics, inevitably.</p>
+    </div>
+    <div class="insight em" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act III — The Update</div>
+      <p>Prior → Evidence → Posterior. There's a formula that packages exactly what you've been doing intuitively. It's called Bayes' theorem. We'll unpack it using the same medical test — and show you how to use it on any new information, for the rest of your life.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="cta-btn" onclick="celebrate()">✦ On to Act III →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='uncertainty_act1.html'">← Revisit Act I</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+<script>
+let curScreen=0;
+const TEST_SENS=0.99, TEST_SPEC=0.99;
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n; document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===2)buildDotGrid();
+  if(n===3)updatePrevalence();
+}
+
+function guess(i){
+  document.querySelectorAll('.guess-btn').forEach((b,j)=>{
+    b.className='guess-btn '+(j===3?'correct':'wrong');
+    b.style.pointerEvents='none';
+  });
+  const msgs=['Your gut said 99%. That\'s the most common answer. But "accurate" and "likely" are very different things. Let\'s see why.','90% sounds high. But there\'s a crucial number missing from this problem.','50/50 is a natural instinct. But the answer depends on something else entirely — something the doctor forgot to mention.','You sensed something was off. And you\'re right. Let\'s prove it.'];
+  document.getElementById('guessFeedback').textContent=msgs[i];
+  document.getElementById('s1Next').disabled=false;
+}
+
+function buildDotGrid(){
+  const grid=document.getElementById('dotGrid');
+  grid.innerHTML='';
+  for(let i=0;i<1000;i++){
+    const d=document.createElement('div');
+    d.className='gdot healthy'; d.id=`gd${i}`;
+    grid.appendChild(d);
+  }
+  document.getElementById('testSummary').style.display='none';
+  document.getElementById('testInsight').style.display='none';
+  document.getElementById('s2Next').disabled=true;
+  document.getElementById('btnReveal').disabled=false;
+  document.getElementById('dotGridLabel').textContent='1000 people. Each dot is a person.';
+}
+
+function revealTest(){
+  document.getElementById('btnReveal').disabled=true;
+  // 1 truly sick person, ~10 false positives
+  const sickIdx=Math.floor(Math.random()*1000);
+  const falsePosList=[];
+  while(falsePosList.length<10){
+    const r=Math.floor(Math.random()*1000);
+    if(r!==sickIdx&&!falsePosList.includes(r)) falsePosList.push(r);
+  }
+  // Animate
+  let i=0;
+  const timer=setInterval(()=>{
+    if(i<1000){
+      const dot=document.getElementById(`gd${i}`);
+      if(i===sickIdx) dot.className='gdot true-pos';
+      else if(falsePosList.includes(i)) dot.className='gdot false-pos';
+      i+=5;
+    } else {
+      clearInterval(timer);
+      document.getElementById('testSummary').style.display='block';
+      document.getElementById('testInsight').style.display='block';
+      document.getElementById('s2Next').disabled=false;
+      document.getElementById('dotGridLabel').textContent='Test complete. Green = truly sick. Red = false positive.';
+      launchMiniConfetti();
+    }
+  },8);
+}
+
+function updatePrevalence(){
+  const N=parseInt(document.getElementById('prevSlider').value);
+  const truePerK=1000/N;
+  const falsePerK=(1000-truePerK)*0.01; // 1% false positive rate
+  const posterior=truePerK/(truePerK+falsePerK);
+  document.getElementById('prevVal').textContent=N;
+  document.getElementById('dynTrue').textContent=truePerK<1?'<1':Math.round(truePerK);
+  document.getElementById('dynFalse').textContent=Math.round(falsePerK);
+  document.getElementById('dynPost').textContent=Math.round(posterior*100)+'%';
+  const msg=posterior<0.2?`Only <em>${Math.round(posterior*100)}%</em> real risk — even a positive result is probably a false alarm.`
+    :posterior<0.6?`<em>${Math.round(posterior*100)}%</em> real risk — the base rate and accuracy are roughly balanced.`
+    :`<em>${Math.round(posterior*100)}%</em> real risk — the disease is common enough that a positive result is likely real.`;
+  document.getElementById('prevInsightText').innerHTML=msg;
+}
+
+function celebrate(){launchConfetti();setTimeout(()=>window.location.href='uncertainty_act3.html',900);}
+
+const cc=document.getElementById('confetti'),cx=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<90;i++) parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*5,vy:2+Math.random()*4,
+    c:['#10b981','#f59e0b','#38bdf8','#fb7185'][Math.floor(Math.random()*4)],s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},3500);
+}
+function launchMiniConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;
+  for(let i=0;i<18;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.45,vx:(Math.random()-.5)*6,vy:-(2+Math.random()*5),c:['#10b981','#f59e0b'][Math.floor(Math.random()*2)],s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!afr)animC();
+}
+function animC(){
+  cx.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;cx.save();cx.globalAlpha=p.l;cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cx.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;
+}
+</script>
+</body>
+</html>

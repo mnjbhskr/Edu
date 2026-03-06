@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0d0a06">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Clock That Never Stops — Act II</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg:        #0d0a06;
+            --bg2:       #14100a;
+            --bg3:       #1c160e;
+            --amber:     #f59e0b;
+            --amber-dim: rgba(245,158,11,0.12);
+            --amber-glow:rgba(245,158,11,0.25);
+            --teal:      #14b8a6;
+            --teal-dim:  rgba(20,184,166,0.12);
+            --rose:      #fb7185;
+            --rose-dim:  rgba(251,113,133,0.12);
+            --cream:     #fef3c7;
+            --text:      #e8dcc8;
+            --muted:     #7a6a52;
+            --border:    rgba(245,158,11,0.1);
+            --radius:    16px;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        html, body { height:100%; background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; overflow-x:hidden; }
+
+        #warmth { position:fixed; inset:0; z-index:0; pointer-events:none;
+            background: radial-gradient(ellipse at 30% 70%, rgba(20,184,166,0.06) 0%, transparent 50%),
+                        radial-gradient(ellipse at 70% 30%, rgba(245,158,11,0.04) 0%, transparent 50%), var(--bg); }
+        #app { position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column; }
+
+        .app-header {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:14px 20px 12px; border-bottom:1px solid var(--border);
+            background:rgba(13,10,6,0.9); backdrop-filter:blur(12px);
+            position:sticky; top:0; z-index:10;
+        }
+        .header-logo { font-family:'Lora',serif; font-size:1.05em; font-style:italic; color:var(--muted); }
+        .header-logo span { color:var(--amber); font-style:normal; }
+        .progress-wrap { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+        .act-indicator { font-size:0.62em; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+        .progress-dots { display:flex; gap:6px; }
+        .dot { width:8px; height:8px; border-radius:50%; background:var(--border); transition:all 0.4s; }
+        .dot.done { background:var(--teal); }
+        .dot.active { background:var(--amber); box-shadow:0 0 8px var(--amber); }
+
+        .screen { display:none; flex-direction:column; flex:1; padding:24px 20px 100px; animation:fadeUp 0.5s ease both; }
+        .screen.active { display:flex; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+        .narrator {
+            background:var(--bg2); border:1px solid var(--border);
+            border-left:3px solid var(--amber); border-radius:var(--radius);
+            padding:18px 20px; margin-bottom:20px; position:relative;
+        }
+        .narrator::before { content:'✦'; position:absolute; top:-10px; left:16px; background:var(--bg2); padding:0 6px; color:var(--amber); font-size:0.78em; }
+        .narrator p { font-family:'Lora',serif; font-size:1.1em; line-height:1.82; color:#d4c4a8; }
+        .narrator p em { color:var(--amber); font-style:italic; }
+        .narrator p strong { color:var(--cream); font-weight:600; }
+        .narrator.teal { border-left-color:var(--teal); }
+        .narrator.teal::before { color:var(--teal); }
+
+        .act-title { text-align:center; margin-bottom:22px; }
+        .act-label { font-size:0.68em; text-transform:uppercase; letter-spacing:3px; color:var(--muted); margin-bottom:8px; }
+        .act-name { font-family:'Lora',serif; font-size:clamp(1.6em,6vw,2.2em); font-weight:400; color:var(--cream); }
+        .act-name em { color:var(--teal); font-style:italic; }
+
+        .cta-btn {
+            width:100%; max-width:400px; margin:0 auto; display:block;
+            background:linear-gradient(135deg, var(--teal), #0d9488);
+            border:none; border-radius:50px; padding:15px 30px;
+            font-family:'DM Sans',sans-serif; font-size:1em; font-weight:600;
+            color:#fff; cursor:pointer; transition:all 0.25s; touch-action:manipulation;
+            box-shadow:0 4px 20px rgba(20,184,166,0.25);
+        }
+        .cta-btn:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(20,184,166,0.35); }
+        .cta-btn:disabled { opacity:0.35; transform:none; box-shadow:none; cursor:default; }
+        .cta-btn.amber-btn { background:linear-gradient(135deg,var(--amber),#d97706); color:#0d0a06; box-shadow:0 4px 20px rgba(245,158,11,0.25); }
+        .cta-btn.ghost-btn { background:transparent; border:1.5px solid var(--border); color:var(--muted); box-shadow:none; }
+
+        .insight { background:var(--bg2); border:1px solid rgba(20,184,166,0.15); border-left:3px solid var(--teal); border-radius:var(--radius); padding:16px 18px; margin-bottom:16px; }
+        .insight .lbl { font-size:0.68em; text-transform:uppercase; letter-spacing:2px; color:var(--teal); margin-bottom:6px; }
+        .insight p { font-family:'Lora',serif; font-size:1em; line-height:1.72; color:#b8a888; }
+        .insight p em { color:var(--teal); font-style:normal; font-weight:600; }
+        .insight.amber { border-left-color:var(--amber); border-color:rgba(245,158,11,0.15); }
+        .insight.amber .lbl { color:var(--amber); }
+
+        /* ── Calendar grid ── */
+        .cal-grid {
+            display:grid; grid-template-columns:repeat(7,1fr); gap:3px;
+            margin-bottom:12px;
+        }
+        .cal-header {
+            text-align:center; font-size:0.68em; color:var(--muted);
+            text-transform:uppercase; letter-spacing:1px; padding:4px 0;
+        }
+        .cal-cell {
+            aspect-ratio:1; border-radius:6px; display:flex;
+            align-items:center; justify-content:center;
+            font-size:clamp(0.62em,2.2vw,0.82em); font-weight:600;
+            transition:all 0.15s; cursor:default;
+        }
+        .cal-cell.empty { background:transparent; }
+        .cal-cell.normal { background:rgba(255,255,255,0.03); color:#6a5a42; }
+        .cal-cell.highlight { background:var(--teal-dim); border:1px solid rgba(20,184,166,0.3); color:var(--teal); }
+        .cal-cell.target { background:var(--amber-dim); border:1.5px solid rgba(245,158,11,0.5); color:var(--amber); font-size:1.1em; box-shadow:0 0 10px rgba(245,158,11,0.2); }
+        .cal-cell.today { background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:var(--cream); }
+
+        /* ── Week counter ── */
+        .week-ticker {
+            background:var(--bg2); border:1px solid var(--border);
+            border-radius:var(--radius); padding:16px 20px; margin-bottom:16px;
+        }
+        .week-row {
+            display:flex; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap;
+        }
+        .week-num {
+            font-family:'DM Sans',monospace; font-size:clamp(1.5em,8vw,2.5em);
+            font-weight:700; color:var(--teal); min-width:60px; text-align:center;
+        }
+        .week-label { font-size:0.82em; color:var(--muted); line-height:1.4; }
+        .remainder-display {
+            background:var(--amber-dim); border:1.5px solid rgba(245,158,11,0.3);
+            border-radius:10px; padding:8px 16px;
+            font-family:'DM Sans',monospace; font-size:1.1em; font-weight:700;
+            color:var(--amber); display:inline-block;
+        }
+
+        /* ── Step navigator ── */
+        .step-nav {
+            display:flex; gap:8px; justify-content:center; margin-bottom:16px;
+        }
+        .step-btn {
+            background:var(--bg3); border:1.5px solid var(--border);
+            border-radius:30px; padding:10px 20px;
+            color:var(--muted); font-family:'DM Sans',sans-serif;
+            font-size:0.88em; font-weight:600; cursor:pointer;
+            transition:all 0.2s; touch-action:manipulation;
+        }
+        .step-btn:hover { border-color:var(--teal); color:var(--teal); background:var(--teal-dim); }
+        .step-btn:disabled { opacity:0.3; cursor:default; }
+        .step-btn.primary { background:var(--teal-dim); border-color:var(--teal); color:var(--teal); }
+
+        /* ── Feedback ── */
+        .feedback {
+            background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+            padding:14px 16px; margin-bottom:16px; min-height:52px;
+            font-family:'Lora',serif; font-size:1em; line-height:1.7; color:#a09070;
+        }
+
+        /* ── Birthday calculator ── */
+        .bday-calc {
+            background:var(--bg2); border:1px solid rgba(245,158,11,0.15);
+            border-radius:var(--radius); padding:20px; margin-bottom:16px;
+        }
+        .bday-label { font-size:0.72em; text-transform:uppercase; letter-spacing:2px; color:var(--amber); margin-bottom:12px; }
+        .bday-row {
+            display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:14px;
+        }
+        .bday-select {
+            background:var(--bg3); border:1.5px solid var(--border);
+            border-radius:10px; padding:10px 14px;
+            color:var(--cream); font-family:'DM Sans',sans-serif; font-size:0.95em;
+            outline:none; cursor:pointer; transition:border-color 0.2s; flex:1; min-width:120px;
+        }
+        .bday-select:focus { border-color:var(--amber); }
+        .bday-result {
+            background:var(--bg3); border:1px solid rgba(245,158,11,0.2);
+            border-radius:var(--radius); padding:16px 18px; text-align:center;
+            font-family:'Lora',serif; font-size:1.05em; color:#d4c4a8; line-height:1.7;
+        }
+        .bday-result .day-reveal {
+            font-size:1.5em; font-weight:700; color:var(--amber); display:block; margin-top:6px;
+        }
+
+        /* ── Progress bar ── */
+        .progress-bar { height:3px; background:rgba(255,255,255,0.05); border-radius:2px; margin-bottom:16px; }
+        .progress-fill { height:100%; background:linear-gradient(90deg, var(--teal), var(--amber)); border-radius:2px; transition:width 0.4s ease; width:0%; }
+
+        /* ── Completion ── */
+        .complete-badge { background:linear-gradient(135deg, rgba(20,184,166,0.1), rgba(245,158,11,0.06)); border:1px solid rgba(20,184,166,0.2); border-radius:var(--radius); padding:24px; margin-bottom:20px; text-align:center; }
+        .badge-icon { font-size:3.5em; display:block; margin-bottom:10px; }
+        .badge-title { font-family:'Lora',serif; font-size:1.3em; color:var(--teal); margin-bottom:6px; }
+        .badge-sub { font-size:0.85em; color:var(--muted); font-family:'Lora',serif; font-style:italic; line-height:1.6; }
+
+        /* Challenge card */
+        .challenge-card { background:var(--bg2); border:1px solid rgba(20,184,166,0.15); border-left:3px solid var(--teal); border-radius:var(--radius); padding:18px 20px; margin-bottom:14px; }
+        .challenge-q { font-family:'Lora',serif; font-size:1.1em; color:var(--cream); margin-bottom:14px; line-height:1.6; }
+        .answer-btns { display:flex; flex-wrap:wrap; gap:8px; }
+        .ans-btn { padding:10px 18px; border-radius:10px; background:var(--bg3); border:1.5px solid var(--border); color:var(--muted); font-family:'DM Sans',sans-serif; font-size:0.95em; font-weight:600; cursor:pointer; transition:all 0.2s; touch-action:manipulation; flex:1; min-width:80px; }
+        .ans-btn:hover { border-color:var(--teal); color:var(--teal); background:var(--teal-dim); }
+        .ans-btn.correct { background:rgba(20,184,166,0.15); border-color:var(--teal); color:var(--teal); pointer-events:none; }
+        .ans-btn.wrong { background:rgba(251,113,133,0.1); border-color:rgba(251,113,133,0.3); color:var(--rose); pointer-events:none; }
+
+        #confetti { position:fixed; inset:0; pointer-events:none; z-index:50; }
+        .bottom-pad { height:20px; }
+
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--amber);}
+        .learn-box.notice .learn-title{color:var(--teal);}
+        .learn-box.why .learn-title{color:var(--rose,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--amber);color:var(--amber);}
+    </style>
+</head>
+<body>
+
+<canvas id="confetti"></canvas>
+<div id="warmth"></div>
+
+<div id="app">
+    <header class="app-header">
+        <div class="header-logo">mathsedu<span>.org</span></div>
+        <div class="progress-wrap">
+            <div class="act-indicator">Act II of V</div>
+            <div class="progress-dots">
+                <div class="dot done"></div>
+                <div class="dot active" id="dot1"></div>
+                <div class="dot" id="dot2"></div>
+                <div class="dot" id="dot3"></div>
+                <div class="dot" id="dot4"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ══ SCREEN 0: OPENING ══ -->
+    <section class="screen active" id="screen-0">
+        <div class="act-title">
+            <div class="act-label">The Clock That Never Stops · Act II</div>
+            <div class="act-name">The <em>Calendar</em></div>
+        </div>
+
+        <div style="text-align:center; margin:8px 0 20px;">
+            <div style="font-size:4.5em; display:inline-block; animation:float 3s ease-in-out infinite;">📅</div>
+        </div>
+        <style>@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}</style>
+
+        <div class="narrator">
+            <p>In Act I, you learned that the clock wraps at 12.</p>
+            <p style="margin-top:10px">The calendar wraps too — but at different numbers.</p>
+            <p style="margin-top:10px">Weeks wrap at <em>7</em>. Months at <em>12</em>. Years have rules about leap days that involve mod 4 and mod 100 and mod 400.</p>
+            <p style="margin-top:10px">In this act, you'll build a calendar calculator. By the end, you'll be able to find the day of the week for <em>any date</em> — past, present, or future.</p>
+        </div>
+
+        <div class="insight teal" style="margin-bottom:20px;">
+            <div class="lbl">The practical power</div>
+            <p>Gauss — the same mathematician who studied prime density — worked out a formula for day-of-week calculations. It's pure modular arithmetic. <em>No lookup tables. Just remainders.</em></p>
+        </div>
+
+        <button class="cta-btn amber-btn" onclick="goToScreen(1)">Build the calendar →</button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 1: WEEK STEPPING ══ -->
+    <section class="screen" id="screen-1">
+        <div class="act-title">
+            <div class="act-label">Step by step</div>
+            <div class="act-name">Counting <em>weeks</em></div>
+        </div>
+
+        <div class="narrator teal">
+            <p>Let's count forward from today by adding days one week at a time.</p>
+            <p style="margin-top:8px">Watch how the <em>remainder</em> tells you the day — regardless of how many weeks you skip.</p>
+        </div>
+
+        <!-- Calendar mini-grid -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;">
+            <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px;">This week</div>
+            <div class="cal-grid" id="calGrid"></div>
+        </div>
+
+        <!-- Week ticker -->
+        <div class="week-ticker">
+            <div class="week-row">
+                <div class="week-num" id="weekCount">0</div>
+                <div class="week-label">weeks ahead<br><span style="color:var(--muted);font-size:0.85em;">= <span id="totalDays">0</span> total days</span></div>
+                <div style="margin-left:auto;">
+                    <div style="font-size:0.7em;color:var(--muted);margin-bottom:4px;">remainder</div>
+                    <div class="remainder-display" id="weekRemainder">0</div>
+                </div>
+            </div>
+            <div style="font-family:'Lora',serif;font-size:0.95em;color:var(--cream);" id="weekDayResult">
+                Start: <strong id="startDayName">today</strong>
+            </div>
+        </div>
+
+        <div class="progress-bar"><div class="progress-fill" id="weekProgress"></div></div>
+
+        <div class="step-nav">
+            <button class="step-btn" onclick="addWeeks(-1)" id="prevWeek" disabled>← −1 week</button>
+            <button class="step-btn primary" onclick="addWeeks(1)">+1 week →</button>
+            <button class="step-btn" onclick="addWeeks(4)">+4 weeks</button>
+            <button class="step-btn" onclick="addWeeks(52)">+1 year</button>
+        </div>
+
+        <div style="text-align:center;">
+            <button class="reset-btn" onclick="initWeekStepper()">Reset weeks</button>
+        </div>
+
+        <div class="feedback" id="weekFeedback">
+            Add weeks to count forward. Notice: the day of week repeats every 7 days.
+        </div>
+
+        <div class="learn-box try-this">
+          <div class="learn-title">Try This</div>
+          <p>Add 1 week at a time until you reach 8 weeks. Then try the +1 year button. Watch the remainder value on the right — does the day of the week change?</p>
+        </div>
+        <div class="learn-box notice">
+          <div class="learn-title">What To Notice</div>
+          <p>Adding 7 days always gives remainder 0 — the same day of the week. Adding 52 weeks (364 days) gives 364 mod 7 = 0. That is why birthdays shift by only 1 or 2 days each year: a year is 365 or 366 days, not an exact multiple of 7.</p>
+        </div>
+        <div class="learn-box why">
+          <div class="learn-title">Why It Matters</div>
+          <p>The calendar is modular arithmetic with multiple moduli running simultaneously — mod 7 for weeks, mod 12 for months, mod 4, mod 100, and mod 400 for leap years. Understanding this structure lets you calculate any date without a calendar.</p>
+        </div>
+
+        <div class="insight" id="weekInsight" style="display:none;">
+            <div class="lbl">💡 The pattern</div>
+            <p id="weekInsightText">The day of week depends only on the <em>remainder mod 7</em> — not on how many full weeks you've passed. 52 weeks (364 days) → 364 mod 7 = 0 → same day of week. That's why birthdays shift by 1 or 2 days each year.</p>
+        </div>
+
+        <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>
+            Now calculate any date →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 2: THE BIRTHDAY CALCULATOR ══ -->
+    <section class="screen" id="screen-2">
+        <div class="act-title">
+            <div class="act-label">Real application</div>
+            <div class="act-name">What day were you <em>born</em>?</div>
+        </div>
+
+        <div class="narrator">
+            <p>Gauss worked out a formula to find the day of the week for any date. It uses modular arithmetic throughout.</p>
+            <p style="margin-top:8px">Let's use a simplified version — you choose a year, and we'll calculate the day for January 1st of that year.</p>
+        </div>
+
+        <!-- Birthday calculator -->
+        <div class="bday-calc">
+            <div class="bday-label">Calculate the day of January 1st for any year</div>
+            <div class="bday-row">
+                <select class="bday-select" id="yearSelect" onchange="calcBirthday()">
+                </select>
+                <div style="font-size:1em;color:var(--muted);">January 1st</div>
+            </div>
+            <div class="bday-result" id="bdayResult">
+                <span>Choose a year above</span>
+            </div>
+        </div>
+
+        <!-- Show the working -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;" id="workingBox" style="display:none;">
+            <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px;">The calculation</div>
+            <div id="workingSteps" style="font-family:'DM Sans',monospace;font-size:0.85em;line-height:2;color:#a09070;"></div>
+        </div>
+
+        <div class="insight teal" style="margin-bottom:16px;">
+            <div class="lbl">💡 How the formula works</div>
+            <p>The full Zeller/Gauss formula accounts for years, centuries, leap years — all using mod arithmetic. Every step is a remainder calculation. The answer always comes out as 0–6, giving the day of the week.</p>
+        </div>
+
+        <!-- Challenges -->
+        <div style="margin-bottom:20px;">
+            <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;">Quick checks</div>
+
+            <div class="challenge-card">
+                <div class="challenge-q">January 1st, 2000 — what day was it? (Use the calculator above to check, then answer.)</div>
+                <div class="answer-btns">
+                    <button class="ans-btn" onclick="checkAnswer(this,'Saturday','ch-2000')">Saturday</button>
+                    <button class="ans-btn" onclick="checkAnswer(this,'Sunday','ch-2000')">Sunday</button>
+                    <button class="ans-btn" onclick="checkAnswer(this,'Monday','ch-2000')">Monday</button>
+                    <button class="ans-btn" onclick="checkAnswer(this,'Tuesday','ch-2000')">Tuesday</button>
+                </div>
+                <div id="ch-2000-fb" style="font-family:'Lora',serif;font-size:0.9em;margin-top:10px;min-height:18px;color:var(--muted);"></div>
+            </div>
+        </div>
+
+        <button class="cta-btn" onclick="goToScreen(3)" id="s2Next" disabled>
+            One more wrinkle — leap years →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 3: LEAP YEARS ══ -->
+    <section class="screen" id="screen-3">
+        <div class="act-title">
+            <div class="act-label">The complication</div>
+            <div class="act-name">Leap years and <em>mod</em></div>
+        </div>
+
+        <div class="narrator">
+            <p>A year has 365 days. But the Earth actually takes 365.2422 days to orbit the sun.</p>
+            <p style="margin-top:10px">That extra 0.2422 days builds up. After 4 years: ≈ 1 extra day. So we add a <em>leap day</em> every 4 years.</p>
+            <p style="margin-top:10px">But not exactly. After 100 years: 25 leap days → slightly too many. So we skip the leap year every 100 years. But after 400 years that overshoots again. So we add it back every 400 years.</p>
+        </div>
+
+        <!-- The rules as mod statements -->
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;">
+            <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:14px;">The leap year rule — in modular arithmetic</div>
+
+            <div id="leapRules"></div>
+        </div>
+
+        <!-- Interactive leap year tester -->
+        <div class="bday-calc">
+            <div class="bday-label">Is a year a leap year?</div>
+            <div class="bday-row">
+                <input type="number" id="leapYear" value="2024" min="1" max="3000"
+                    style="background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--cream);font-size:1.1em;font-family:'DM Sans',monospace;outline:none;width:120px;"
+                    oninput="checkLeap()">
+                <div style="font-size:1.5em;color:var(--muted);">→</div>
+                <div class="bday-result" style="flex:1;padding:12px 16px;" id="leapResult">Leap year ✓</div>
+            </div>
+            <div style="font-family:'Lora',serif;font-size:0.88em;color:var(--muted);margin-top:8px;font-style:italic;" id="leapExplain"></div>
+        </div>
+
+        <!-- Challenge: spot the leap years -->
+        <div style="margin-bottom:20px;">
+            <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;">Spot the pattern</div>
+            <div class="challenge-card">
+                <div class="challenge-q">Which of these is <strong>not</strong> a leap year?</div>
+                <div class="answer-btns">
+                    <button class="ans-btn" onclick="checkAnswer(this,'1900','ch-leap')">1900</button>
+                    <button class="ans-btn" onclick="checkAnswer(this,'2000','ch-leap')">2000</button>
+                    <button class="ans-btn" onclick="checkAnswer(this,'2024','ch-leap')">2024</button>
+                    <button class="ans-btn" onclick="checkAnswer(this,'2100','ch-leap')">2100</button>
+                </div>
+                <div id="ch-leap-fb" style="font-family:'Lora',serif;font-size:0.9em;margin-top:10px;min-height:18px;color:var(--muted);"></div>
+            </div>
+        </div>
+
+        <div class="insight" id="leapInsight" style="display:none;">
+            <div class="lbl">💡 Why this matters</div>
+            <p>1900 is divisible by 100 but not 400 — so it's not a leap year. 2000 is divisible by 400 — so it is. 2100 will not be. These rules mean a year is <em>365.2425 days</em> on average — close enough to the real value that we won't need to adjust for thousands of years.</p>
+        </div>
+
+        <button class="cta-btn" onclick="goToScreen(4)" id="s3Next" disabled>
+            ✦ Act II Complete →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 4: COMPLETION ══ -->
+    <section class="screen" id="screen-4">
+        <div class="act-title">
+            <div class="act-label">Act II complete</div>
+            <div class="act-name">The calendar <em>revealed</em></div>
+        </div>
+
+        <div class="complete-badge">
+            <span class="badge-icon">📅</span>
+            <div class="badge-title">You can navigate any calendar</div>
+            <div class="badge-sub">
+                Days, weeks, years, leap years — all modular arithmetic.<br>
+                The same idea. Different wrap points.
+            </div>
+        </div>
+
+        <div class="insight" style="margin-bottom:14px;">
+            <div class="lbl">💡 What you learned in Act II</div>
+            <p>Weeks wrap at 7. Adding 100 days means finding <em>100 mod 7 = 2</em>. Leap years are a beautifully precise patch using mod 4, mod 100, and mod 400. The calendar is pure modular arithmetic.</p>
+        </div>
+
+        <div class="insight amber" style="margin-bottom:20px;">
+            <div class="lbl">Coming in Act III — The Pattern</div>
+            <p>When you multiply numbers mod N, a strange thing happens. Some moduli produce <em>complete cycles</em> — the multiplication table visits every value before returning. Others leave gaps. Why? And what does this have to do with prime numbers? Act III explores the hidden algebraic structure.</p>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+            <button class="cta-btn" onclick="celebrate()">✦ On to Act III →</button>
+            <button class="cta-btn ghost-btn" onclick="window.location.href='clock_journey_act1.html'">← Revisit Act I</button>
+        </div>
+        <div class="bottom-pad"></div>
+    </section>
+
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const today = new Date();
+const todayDayIdx = today.getDay();
+const todayName = DAYS[todayDayIdx];
+
+let curScreen = 0;
+let weeksAdded = 0;
+let challengeProgress = {};
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function goToScreen(n) {
+    document.getElementById(`screen-${curScreen}`).classList.remove('active');
+    curScreen = n;
+    document.getElementById(`screen-${n}`).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+    if(n===1) initWeekStepper();
+    if(n===2) initBdayCalc();
+    if(n===3) initLeapYear();
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 1: WEEK STEPPER
+// ══════════════════════════════════════════════
+function initWeekStepper() {
+    weeksAdded = 0;
+    document.getElementById('weekCount').textContent = '0';
+    document.getElementById('totalDays').textContent = '0';
+    document.getElementById('weekRemainder').textContent = todayDayIdx;
+    document.getElementById('startDayName').textContent = todayName;
+    document.getElementById('weekDayResult').innerHTML = `Start: <strong>${todayName}</strong>`;
+    document.getElementById('weekProgress').style.width = '0%';
+    document.getElementById('weekFeedback').textContent = 'Add weeks to count forward. Notice: the day of week repeats every 7 days.';
+    document.getElementById('weekInsight').style.display = 'none';
+    document.getElementById('s1Next').disabled = true;
+    document.getElementById('prevWeek').disabled = true;
+    buildCalGrid();
+}
+
+function buildCalGrid() {
+    const grid = document.getElementById('calGrid');
+    grid.innerHTML = '';
+    DAYS.forEach(d => {
+        const h = document.createElement('div');
+        h.className = 'cal-header';
+        h.textContent = d.slice(0,2);
+        grid.appendChild(h);
+    });
+    for(let d=0;d<7;d++) {
+        const cell = document.createElement('div');
+        const isToday = d === todayDayIdx;
+        cell.className = `cal-cell ${isToday ? 'today' : 'normal'}`;
+        cell.textContent = isToday ? '★' : (d+1);
+        grid.appendChild(cell);
+    }
+}
+
+function addWeeks(n) {
+    weeksAdded = Math.max(0, weeksAdded + n);
+    const totalDays = weeksAdded * 7;
+    const dayIdx = (todayDayIdx + totalDays) % 7;
+    const dayName = DAYS[dayIdx];
+    const remainder = totalDays % 7;
+
+    document.getElementById('weekCount').textContent = weeksAdded;
+    document.getElementById('totalDays').textContent = totalDays;
+    document.getElementById('weekRemainder').textContent = remainder;
+    document.getElementById('prevWeek').disabled = weeksAdded === 0;
+
+    const progress = Math.min(100, weeksAdded / 60 * 100);
+    document.getElementById('weekProgress').style.width = progress + '%';
+
+    if(weeksAdded === 0) {
+        document.getElementById('weekDayResult').innerHTML = `Start: <strong>${todayName}</strong>`;
+        document.getElementById('weekFeedback').textContent = 'Add weeks to count forward. Notice: the day of week repeats every 7 days.';
+    } else {
+        document.getElementById('weekDayResult').innerHTML =
+            `In ${weeksAdded} week${weeksAdded>1?'s':''} (${totalDays} days): <strong style="color:var(--amber)">${dayName}</strong>`;
+
+        let fb = `${totalDays} days = ${weeksAdded} × 7. `;
+        if(remainder === 0) {
+            fb += `<span style="color:var(--teal)">No remainder! Same day as today: ${dayName}.</span>`;
+        } else {
+            fb += `Remainder: <span style="color:var(--amber)">${remainder}</span>. So ${remainder} day${remainder>1?'s':''} past ${todayName} → <span style="color:var(--amber)">${dayName}</span>.`;
+        }
+        document.getElementById('weekFeedback').innerHTML = fb;
+    }
+
+    if(weeksAdded >= 4) {
+        document.getElementById('weekInsight').style.display = 'block';
+    }
+    if(weeksAdded >= 8) {
+        document.getElementById('s1Next').disabled = false;
+    }
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 2: BIRTHDAY CALCULATOR
+// ══════════════════════════════════════════════
+function dayOfWeekForJan1(year) {
+    // Tomohiko Sakamoto's algorithm simplified for Jan 1
+    // Using: d = (year + floor(year/4) - floor(year/100) + floor(year/400) + 1) mod 7
+    const y = year;
+    const val = (y + Math.floor(y/4) - Math.floor(y/100) + Math.floor(y/400) + 1) % 7;
+    return ((val % 7) + 7) % 7; // ensure positive; 0=Sun
+}
+
+function initBdayCalc() {
+    const sel = document.getElementById('yearSelect');
+    sel.innerHTML = '';
+    const thisYear = today.getFullYear();
+    for(let y = thisYear + 10; y >= 1900; y--) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        if(y === thisYear) opt.selected = true;
+        sel.appendChild(opt);
+    }
+    calcBirthday();
+    document.getElementById('s2Next').disabled = true;
+}
+
+function calcBirthday() {
+    const year = parseInt(document.getElementById('yearSelect').value);
+    const dayIdx = dayOfWeekForJan1(year);
+    const dayName = DAYS[dayIdx];
+
+    // Show result
+    const result = document.getElementById('bdayResult');
+    result.innerHTML = `January 1st, ${year} was a <span class="day-reveal">${dayName}</span>`;
+
+    // Show working
+    const y = year;
+    const a = Math.floor(y/4);
+    const b = Math.floor(y/100);
+    const c = Math.floor(y/400);
+    const total = y + a - b + c + 1;
+    const rem = ((total % 7) + 7) % 7;
+
+    document.getElementById('workingSteps').innerHTML = `
+<span style="color:var(--muted);">year            </span><span style="color:var(--cream);">${y}</span>
+<span style="color:var(--muted);">+ floor(${y}/4)  </span><span style="color:var(--teal);">+ ${a}</span>
+<span style="color:var(--muted);">− floor(${y}/100) </span><span style="color:var(--rose);">− ${b}</span>
+<span style="color:var(--muted);">+ floor(${y}/400) </span><span style="color:var(--teal);">+ ${c}</span>
+<span style="color:var(--muted);">+ 1 (Jan offset)  </span><span style="color:var(--teal);">+ 1</span>
+<span style="color:var(--muted);">─────────────────────</span>
+<span style="color:var(--muted);">total            </span><span style="color:var(--cream);">${total}</span>
+<span style="color:var(--muted);">mod 7            </span><span style="color:var(--amber);">= ${rem}  →  ${dayName}</span>
+    `.trim();
+    document.getElementById('workingBox').style.display = 'block';
+}
+
+function checkAnswer(btn, chosen, id) {
+    const correct2000 = DAYS[dayOfWeekForJan1(2000)]; // Saturday
+    const correctLeap = '1900'; // not a leap year (div by 100, not 400)
+
+    let correct;
+    if(id === 'ch-2000') correct = correct2000;
+    else if(id === 'ch-leap') correct = correctLeap;
+
+    const isCorrect = chosen === correct;
+    const btns = btn.parentElement.querySelectorAll('.ans-btn');
+    btns.forEach(b => {
+        b.classList.add(b.textContent === correct ? 'correct' : 'wrong');
+        b.style.pointerEvents = 'none';
+    });
+
+    const fb = document.getElementById(`${id}-fb`);
+    if(isCorrect) {
+        fb.innerHTML = `<span style="color:var(--teal)">✓ Correct!</span> ${
+            id === 'ch-2000' ? `January 1st, 2000 was a ${correct}. The millennium arrived on a weekend!` :
+            `1900 is divisible by 100 but not 400. Divisible by 100 means skip the leap year — unless also divisible by 400.`
+        }`;
+        launchMiniConfetti();
+        challengeProgress[id] = true;
+
+        if(id === 'ch-2000') document.getElementById('s2Next').disabled = false;
+        if(id === 'ch-leap') {
+            document.getElementById('leapInsight').style.display = 'block';
+            document.getElementById('s3Next').disabled = false;
+        }
+    } else {
+        fb.innerHTML = `<span style="color:var(--rose)">Not quite.</span> Use the calculator above to check.`;
+    }
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 3: LEAP YEAR
+// ══════════════════════════════════════════════
+function isLeapYear(y) {
+    return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+}
+
+function initLeapYear() {
+    buildLeapRules();
+    checkLeap();
+    document.getElementById('leapInsight').style.display = 'none';
+    document.getElementById('s3Next').disabled = true;
+}
+
+function buildLeapRules() {
+    const rules = [
+        { test:`year mod 4 = 0`, verdict:`probably a leap year`, colour:'var(--teal)', icon:'📗' },
+        { test:`year mod 100 = 0`, verdict:`unless divisible by 100 → skip it`, colour:'var(--rose)', icon:'📕' },
+        { test:`year mod 400 = 0`, verdict:`unless divisible by 400 → add it back`, colour:'var(--teal)', icon:'📗' },
+    ];
+
+    const container = document.getElementById('leapRules');
+    container.innerHTML = '';
+    rules.forEach((r, i) => {
+        const div = document.createElement('div');
+        div.style.cssText = `display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);align-items:flex-start;animation:fadeUp 0.4s ease ${i*0.15}s both;`;
+        div.innerHTML = `
+            <div style="font-size:1.5em;flex-shrink:0;">${r.icon}</div>
+            <div>
+                <div style="font-family:'DM Sans',monospace;font-size:0.9em;font-weight:700;color:${r.colour};margin-bottom:3px;">${r.test}</div>
+                <div style="font-family:'Lora',serif;font-size:0.88em;color:var(--muted);">${r.verdict}</div>
+            </div>
+        `;
+        if(i === rules.length-1) div.style.borderBottom = 'none';
+        container.appendChild(div);
+    });
+}
+
+function checkLeap() {
+    const y = parseInt(document.getElementById('leapYear').value);
+    if(!y || y < 1) return;
+    const leap = isLeapYear(y);
+
+    const result = document.getElementById('leapResult');
+    result.style.color = leap ? 'var(--teal)' : 'var(--rose)';
+    result.textContent = leap ? `✓ ${y} is a leap year (366 days)` : `✗ ${y} is not a leap year (365 days)`;
+
+    let explain = '';
+    if(y % 400 === 0) explain = `${y} ÷ 400 = ${y/400} exactly → add leap day. Leap year.`;
+    else if(y % 100 === 0) explain = `${y} ÷ 100 = ${y/100} exactly, but ${y} ÷ 400 ≠ whole → skip leap year.`;
+    else if(y % 4 === 0) explain = `${y} ÷ 4 = ${y/4} exactly, and not divisible by 100 → leap year.`;
+    else explain = `${y} mod 4 = ${y%4} (not zero) → ordinary year.`;
+    document.getElementById('leapExplain').textContent = explain;
+}
+
+// ══════════════════════════════════════════════
+//  CELEBRATION
+// ══════════════════════════════════════════════
+function celebrate() {
+    launchConfetti();
+    setTimeout(() => {
+        alert('Acts III, IV and V of The Clock That Never Stops are coming soon — exploring multiplication tables mod N, the Caesar cipher, and the group structure underneath it all.');
+    }, 800);
+}
+
+// ══════════════════════════════════════════════
+//  CONFETTI
+// ══════════════════════════════════════════════
+const cc = document.getElementById('confetti'), cxc = cc.getContext('2d');
+let parts = [], afr = null;
+function launchConfetti() {
+    cc.width=innerWidth; cc.height=innerHeight; parts=[];
+    for(let i=0;i<80;i++) parts.push({
+        x:Math.random()*cc.width, y:-20, vx:(Math.random()-.5)*5, vy:2+Math.random()*4,
+        c:['#f59e0b','#14b8a6','#fef3c7','#fb7185'][Math.floor(Math.random()*4)],
+        s:5+Math.random()*7, r:Math.random()*Math.PI*2, vr:(Math.random()-.5)*.2, l:1
+    });
+    if(afr) cancelAnimationFrame(afr); animC(); setTimeout(()=>{parts=[];},3000);
+}
+function launchMiniConfetti() {
+    cc.width=innerWidth; cc.height=innerHeight;
+    for(let i=0;i<20;i++) parts.push({
+        x:innerWidth/2+(Math.random()-.5)*200, y:innerHeight*.5,
+        vx:(Math.random()-.5)*7, vy:-(3+Math.random()*5),
+        c:['#f59e0b','#14b8a6'][Math.floor(Math.random()*2)],
+        s:4+Math.random()*5, r:0, vr:(Math.random()-.5)*.3, l:1
+    });
+    if(!afr) animC();
+}
+function animC() {
+    cxc.clearRect(0,0,cc.width,cc.height);
+    parts=parts.filter(p=>p.l>.01);
+    parts.forEach(p=>{
+        p.x+=p.vx; p.y+=p.vy; p.vy+=.1; p.r+=p.vr; p.l-=.013;
+        cxc.save(); cxc.globalAlpha=p.l; cxc.translate(p.x,p.y); cxc.rotate(p.r);
+        cxc.fillStyle=p.c; cxc.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6); cxc.restore();
+    });
+    if(parts.length>0) afr=requestAnimationFrame(animC); else afr=null;
+}
+</script>
+</body>
+</html>

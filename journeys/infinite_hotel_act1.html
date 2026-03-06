@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050510">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Infinite Hotel &mdash; Act I</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#050510; --bg2:#090920; --bg3:#0e0e2a;
+            --indigo:#818cf8; --indigo-dim:rgba(129,140,248,0.12);
+            --teal:#2dd4bf; --teal-dim:rgba(45,212,191,0.1);
+            --silver:#e2e8f0; --silver-dim:rgba(226,232,240,0.08);
+            --gold:#fbbf24; --gold-dim:rgba(251,191,36,0.12);
+            --rose:#fb7185; --rose-dim:rgba(251,113,133,0.1);
+            --muted:#4a5080; --text:#c8d0f0;
+            --border:rgba(129,140,248,0.12); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(5,5,16,0.92);
+            backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--indigo);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--teal);}
+        .dot.active{background:var(--indigo);box-shadow:0 0 10px var(--indigo);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 6px var(--indigo)}50%{box-shadow:0 0 18px var(--indigo)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--indigo);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--indigo);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#c0c8e8;}
+        .narrator p em{color:var(--indigo);font-style:italic;}
+        .narrator p strong{color:var(--silver);font-weight:600;}
+        .narrator.teal{border-left-color:var(--teal);} .narrator.teal::before{color:var(--teal);}
+        .narrator.gold{border-left-color:var(--gold);} .narrator.gold::before{color:var(--gold);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--silver);}
+        .act-name em{color:var(--indigo);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--indigo),#6366f1);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#fff;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 24px rgba(129,140,248,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(129,140,248,0.45);}
+        .cta-btn:disabled{opacity:0.35;transform:none;box-shadow:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(129,140,248,0.15);border-left:3px solid var(--indigo);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--indigo);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#9098c0;}
+        .insight p em{color:var(--indigo);font-style:normal;font-weight:600;}
+        .insight.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);}
+        .insight.gold .lbl{color:var(--gold);}
+        .insight.teal{border-left-color:var(--teal);border-color:rgba(45,212,191,0.15);}
+        .insight.teal .lbl{color:var(--teal);}
+        .hotel-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px;margin-bottom:16px;overflow:hidden;}
+        .hotel-label{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;}
+        .rooms-scroll{overflow-x:auto;padding-bottom:4px;}
+        .rooms-row{display:flex;gap:4px;min-width:max-content;}
+        .room{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;}
+        .room-box{width:44px;height:44px;border-radius:8px;border:1.5px solid;
+            display:flex;align-items:center;justify-content:center;font-size:1.1em;
+            transition:all 0.4s ease;position:relative;}
+        .room-box.occupied{background:var(--indigo-dim);border-color:rgba(129,140,248,0.4);}
+        .room-box.empty{background:rgba(255,255,255,0.02);border-color:rgba(255,255,255,0.06);}
+        .room-box.new-guest{background:var(--gold-dim);border-color:rgba(251,191,36,0.5);}
+        .room-box.moving{animation:moveRoom 0.4s ease;}
+        @keyframes moveRoom{0%{transform:scale(0.8);opacity:0.5}100%{transform:scale(1);opacity:1}}
+        .room-num{font-size:0.62em;color:var(--muted);font-family:'DM Sans',monospace;}
+        .room-box.highlight{box-shadow:0 0 14px rgba(251,191,36,0.5);}
+        .room-dots{font-size:1.5em;color:var(--muted);padding:0 4px;align-self:center;margin-bottom:22px;}
+        .action-strip{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;}
+        .act-btn{padding:11px 20px;border-radius:12px;background:var(--bg3);
+            border:1.5px solid var(--border);color:var(--muted);
+            font-family:'DM Sans',sans-serif;font-size:0.9em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;}
+        .act-btn:hover,.act-btn:active{border-color:var(--indigo);color:var(--indigo);background:var(--indigo-dim);}
+        .act-btn:disabled{opacity:0.3;cursor:default;}
+        .status-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:14px 16px;margin-bottom:14px;min-height:54px;
+            font-family:'Lora',serif;font-size:1em;line-height:1.7;color:#8090b8;transition:all 0.3s;}
+        .status-card .hi{color:var(--silver);} .status-card .ind{color:var(--indigo);}
+        .status-card .gold{color:var(--gold);} .status-card .teal{color:var(--teal);}
+        .bus-scene{text-align:center;padding:20px;background:var(--bg2);
+            border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;}
+        .bus-icon{font-size:4em;display:block;margin-bottom:8px;animation:busRumble 0.5s ease infinite alternate;}
+        @keyframes busRumble{from{transform:translateX(-3px)}to{transform:translateX(3px)}}
+        .bus-label{font-family:'Lora',serif;font-size:1.05em;color:var(--silver);}
+        .bus-sub{font-size:0.85em;color:var(--muted);margin-top:4px;font-style:italic;}
+        .mapping-table{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px;margin-bottom:14px;overflow-x:auto;}
+        .map-row{display:flex;align-items:center;gap:10px;padding:7px 0;
+            border-bottom:1px solid rgba(255,255,255,0.04);font-family:'DM Sans',monospace;font-size:0.88em;}
+        .map-row:last-child{border-bottom:none;}
+        .map-from{color:var(--muted);min-width:120px;}
+        .map-arrow{color:var(--border);}
+        .map-to{color:var(--indigo);font-weight:700;}
+        .mindblown{background:linear-gradient(135deg,rgba(129,140,248,0.08),rgba(45,212,191,0.05));
+            border:1px solid rgba(129,140,248,0.25);border-radius:var(--radius);
+            padding:22px;margin-bottom:18px;text-align:center;}
+        .mindblown-eq{font-family:'DM Sans',monospace;font-size:clamp(1.1em,5vw,1.6em);font-weight:700;
+            color:var(--silver);margin-bottom:8px;line-height:1.5;}
+        .mindblown-eq .ind{color:var(--indigo);}
+        .mindblown-eq .gold{color:var(--gold);}
+        .mindblown-sub{font-family:'Lora',serif;font-size:0.95em;color:#7080a8;font-style:italic;}
+        .bijection-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px;margin-bottom:16px;overflow:hidden;}
+        .bijection-label{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px;}
+        #bijectionCanvas{width:100%;height:220px;display:block;border-radius:8px;}
+        .complete-badge{background:linear-gradient(135deg,rgba(129,140,248,0.1),rgba(45,212,191,0.05));
+            border:1px solid rgba(129,140,248,0.2);border-radius:var(--radius);
+            padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--indigo);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act I of V</div>
+      <div class="progress-dots">
+        <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: OPENING -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Infinite Hotel · Act I</div>
+      <div class="act-name">The Hotel That <em>Never Fills</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;">
+      <div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">🏨</div>
+    </div>
+    <div class="narrator">
+      <p>Imagine a hotel with infinitely many rooms.</p>
+      <p style="margin-top:10px">Every room is occupied. Every single one. The sign outside reads: <em>"No Vacancies."</em></p>
+      <p style="margin-top:10px">Then a new guest arrives.</p>
+      <p style="margin-top:10px">An ordinary hotel would turn them away. But this is <strong>Hilbert's Hotel</strong> — and the manager smiles and says:</p>
+      <p style="margin-top:10px"><em>"No problem. I can always make room."</em></p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">David Hilbert, 1924</div>
+      <p>The German mathematician David Hilbert used this thought experiment to reveal how infinity breaks every rule we think we know about numbers. You are about to feel exactly the same confusion — and then the same delight — that his students felt a century ago.</p>
+    </div>
+    <div class="insight">
+      <div class="lbl">Try This</div>
+      <p>Before you continue, try to answer: can a completely full hotel make room for one more guest? What about infinitely many more? Hold your answer in mind as you enter the hotel.</p>
+    </div>
+    <div class="insight teal">
+      <div class="lbl">What To Notice</div>
+      <p>The key word is <em>infinitely many rooms</em>. In a finite hotel with 100 rooms, full means full. But infinity behaves differently from any number you have ever encountered.</p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">Why It Matters</div>
+      <p>This is not a riddle or a trick. The logic behind Hilbert's Hotel is the same logic mathematicians use to compare infinite sets and build the foundations of modern mathematics.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Walk into the hotel →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: ONE NEW GUEST -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">The first puzzle</div>
+      <div class="act-name">One new <em>guest</em></div>
+    </div>
+    <div class="narrator">
+      <p>Every room is taken. <em>Room 1, room 2, room 3...</em> all the way to infinity. A lone traveller arrives and needs a room.</p>
+      <p style="margin-top:8px">The manager's solution is simple — and strange. <strong>Move every guest one room forward.</strong> Guest in room 1 → room 2. Guest in room 2 → room 3. And so on, forever.</p>
+      <p style="margin-top:8px">Room 1 is now empty. The traveller checks in.</p>
+    </div>
+    <div class="hotel-wrap">
+      <div class="hotel-label">Hilbert's Hotel — rooms 1 to ∞</div>
+      <div class="rooms-scroll"><div class="rooms-row" id="hotelRooms1"></div></div>
+    </div>
+    <div class="status-card" id="status1">The hotel is <span class="hi">fully occupied</span>. Every room has a guest.</div>
+    <div class="action-strip">
+      <button class="act-btn" onclick="newGuestArrives()" id="btnArrive">👤 Guest arrives</button>
+      <button class="act-btn" onclick="shiftEveryone()" id="btnShift" disabled>🔀 Shift everyone +1</button>
+      <button class="act-btn" onclick="checkIn()" id="btnCheckin" disabled>✓ Check in guest</button>
+      <button class="act-btn" onclick="resetHotel1()">Reset</button>
+    </div>
+    <div class="insight" id="insight1" style="display:none;">
+      <div class="lbl">💡 What just happened</div>
+      <p>By shifting everyone one room forward, we created room 1 — without anyone losing their room. The hotel is still full (every room occupied), but it has <em>one more guest</em> than before. <strong>∞ + 1 = ∞.</strong></p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>Now an infinite bus arrives →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: INFINITE BUS -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">The second puzzle</div>
+      <div class="act-name">An <em>infinite</em> bus</div>
+    </div>
+    <div class="narrator gold">
+      <p>That was just one guest. Now something more extraordinary happens.</p>
+      <p style="margin-top:10px">A bus pulls up outside — with <em>infinitely many passengers.</em> Passenger 1, passenger 2, passenger 3... forever.</p>
+      <p style="margin-top:10px">The hotel is full. The bus is infinite. Can the manager still find rooms for everyone?</p>
+    </div>
+    <div class="bus-scene" id="busScene">
+      <span class="bus-icon">🚌</span>
+      <div class="bus-label">An infinitely long bus. Every seat occupied.</div>
+      <div class="bus-sub" id="busSubtitle">Passengers: 1, 2, 3, 4, 5 ... ∞</div>
+    </div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;">
+      <div class="hotel-label">What would you do?</div>
+      <div style="display:flex;flex-direction:column;gap:8px;" id="strategyOptions">
+        <button class="act-btn" style="text-align:left;padding:13px 16px;" onclick="tryStrategy(0)">Shift everyone by infinite rooms — can't work, there's no "last" room</button>
+        <button class="act-btn" style="text-align:left;padding:13px 16px;" onclick="tryStrategy(1)">It's impossible — the hotel is full, the bus is infinite, nothing fits</button>
+        <button class="act-btn" style="text-align:left;padding:13px 16px;" onclick="tryStrategy(2)">Move existing guests to <em>odd</em> rooms, new passengers to <em>even</em> rooms</button>
+      </div>
+    </div>
+    <div id="strategyReveal" style="display:none;">
+      <div class="mapping-table">
+        <div class="hotel-label">The manager's solution</div>
+        <div class="map-row"><div class="map-from">Guest in room n</div><div class="map-arrow">→</div><div class="map-to">Room 2n-1 (odd)</div></div>
+        <div class="map-row"><div class="map-from">Bus passenger n</div><div class="map-arrow">→</div><div class="map-to">Room 2n (even)</div></div>
+        <div class="map-row"><div class="map-from" style="color:var(--silver);">Guest 1</div><div class="map-arrow">→</div><div class="map-to">Room 1</div></div>
+        <div class="map-row"><div class="map-from" style="color:var(--gold);">Passenger 1</div><div class="map-arrow">→</div><div class="map-to" style="color:var(--gold);">Room 2</div></div>
+        <div class="map-row"><div class="map-from" style="color:var(--silver);">Guest 2</div><div class="map-arrow">→</div><div class="map-to">Room 3</div></div>
+        <div class="map-row"><div class="map-from" style="color:var(--gold);">Passenger 2</div><div class="map-arrow">→</div><div class="map-to" style="color:var(--gold);">Room 4</div></div>
+      </div>
+      <div class="hotel-wrap">
+        <div class="hotel-label">The hotel after the bus — odd rooms (original), even rooms (bus)</div>
+        <div class="rooms-scroll"><div class="rooms-row" id="hotelRooms2"></div></div>
+      </div>
+      <div class="mindblown">
+        <div class="mindblown-eq">∞ + ∞ = <span class="ind">∞</span></div>
+        <div class="mindblown-sub">The hotel absorbed an infinitely long bus — and is still "full".<br>Every room is occupied. Everyone has a room.</div>
+      </div>
+      <div class="insight">
+        <div class="lbl">Try This</div>
+        <p>Pick any guest number or passenger number in your head. Can you work out which room they end up in? Guest n goes to room 2n-1. Passenger n goes to room 2n. Verify it for a few examples.</p>
+      </div>
+      <div class="insight teal">
+        <div class="lbl">What To Notice</div>
+        <p>The trick works because infinity has no end. We can interleave two infinite sequences (odd rooms, even rooms) and still fill every room exactly once. No room is double-booked, no room is empty.</p>
+      </div>
+      <div class="insight gold">
+        <div class="lbl">Why It Matters</div>
+        <p>This interleaving is a <em>bijection</em> — a perfect one-to-one matching. It is the formal tool mathematicians use to prove two sets are the same size, even when both are infinite.</p>
+      </div>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(3)" id="s2Next" disabled>What does this mean? →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: BIJECTION VISUAL -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">The crack in intuition</div>
+      <div class="act-name">As many <em>even</em> numbers as whole numbers?</div>
+    </div>
+    <div class="narrator teal">
+      <p>The bus solution did something astonishing. It matched every <em>whole number</em> (the guests) with an <em>even number</em> (their new room).</p>
+      <p style="margin-top:10px">1 → 2, 2 → 4, 3 → 6, 4 → 8 ...</p>
+      <p style="margin-top:10px">Every whole number has exactly one even number partner. Every even number has exactly one whole number partner. <strong>A perfect, exhaustive matching.</strong></p>
+    </div>
+
+    <!-- BIJECTION CANVAS -->
+    <div class="bijection-wrap">
+      <div class="bijection-label">Bijection visualiser — watch the one-to-one correspondence</div>
+      <canvas id="bijectionCanvas"></canvas>
+      <div style="font-family:'Lora',serif;font-size:0.82em;color:var(--muted);font-style:italic;margin-top:8px;" id="bijHint">Press a button below to animate the mapping arrows.</div>
+      <div class="action-strip" style="margin-top:12px;margin-bottom:0;">
+        <button class="act-btn" onclick="animBij('double')">Play n → 2n</button>
+        <button class="act-btn" onclick="animBij('shift')">Play n → n+1</button>
+        <button class="act-btn" onclick="resetBij()">Reset</button>
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">Try This</div>
+      <p>Click "Play n → 2n" to see whole numbers pair with even numbers. Then click "Play n → n+1" to see the shift mapping from the first puzzle. In both cases, every element on top connects to exactly one element on the bottom.</p>
+    </div>
+    <div class="insight teal">
+      <div class="lbl">What To Notice</div>
+      <p>Every whole number has exactly one even number partner — none are left out. The even numbers are a <em>proper subset</em> of the whole numbers, yet the two sets are the same size. This only works because both sets are infinite.</p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">Why It Matters</div>
+      <p>This perfect matching is called a <em>bijection</em>. It is how mathematicians formally define "same size" for infinite sets. Two sets have the same <em>cardinality</em> if and only if you can pair every element of one with exactly one element of the other, with nothing left over.</p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px;">
+      <div class="hotel-label" style="margin-bottom:12px;">The matching — tap each pair to check</div>
+      <div id="pairGrid" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+    <div class="narrator" style="margin-bottom:14px;">
+      <p>But wait. The even numbers are a <em>part</em> of the whole numbers. Surely there are "fewer" of them?</p>
+      <p style="margin-top:8px">For finite sets, yes. For infinite sets — <strong>this logic completely breaks down.</strong></p>
+    </div>
+    <div class="mindblown">
+      <div class="mindblown-eq" style="font-size:clamp(0.95em,4vw,1.3em);">{1, 2, 3, 4, 5 ...} ↔ {2, 4, 6, 8, 10 ...}</div>
+      <div class="mindblown-sub" style="margin-top:8px;">These two sets can be matched perfectly — one to one, none left over.<br>In the language Cantor invented: they have the <em>same size</em>.<br><span style="color:var(--indigo);font-style:normal;font-weight:600;">ℵ₀ = ℵ₀</span></div>
+    </div>
+    <div class="insight teal">
+      <div class="lbl">The new definition of "same size"</div>
+      <p>Two sets have the same size — Cantor called this the same <em>cardinality</em> — if you can match every element of one with exactly one element of the other, with nothing left over on either side. For infinite sets, this produces results that feel impossible. But they are provably, rigorously true.</p>
+    </div>
+    <div class="insight" style="margin-top:14px;">
+      <div class="lbl">Try This</div>
+      <p>Tap each pair above to verify the one-to-one matching. Then ask: is any whole number left without a partner? Is any even number unclaimed?</p>
+    </div>
+    <div class="insight teal">
+      <div class="lbl" style="color:var(--teal);">What To Notice</div>
+      <p>Every whole number has exactly one even number partner (n &rarr; 2n). None are left over on either side. This is a <em>bijection</em> — a perfect, exhaustive matching.</p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl" style="color:var(--gold);">Why It Matters</div>
+      <p>A bijection is how mathematicians define "same size" for infinite sets. The whole numbers and even numbers have the same cardinality (&alefsym;₀) — even though one is a proper subset of the other. This is the essence of infinity.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(4)">✦ Act I Complete →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 4: COMPLETE -->
+  <section class="screen" id="screen-4">
+    <div class="act-title">
+      <div class="act-label">Act I complete</div>
+      <div class="act-name">The hotel that <em>never fills</em></div>
+    </div>
+    <div class="complete-badge">
+      <span class="badge-icon">🏨</span>
+      <div class="badge-title">You've cracked your first infinite paradox</div>
+      <div class="badge-sub">A full hotel made room for one guest. Then for infinitely many more.<br>∞ + 1 = ∞. ∞ + ∞ = ∞. This is not a trick — it is mathematics.</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">💡 What you learned</div>
+      <p>Infinity is not a very large number. It is a <em>different kind of thing entirely.</em> Two infinite sets have the same size if you can match them perfectly, one to one. The whole numbers and even numbers match perfectly — so they're the same size. This defies intuition. That's exactly why it's worth knowing.</p>
+    </div>
+    <div class="insight gold" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act II — Counting the Uncountable</div>
+      <p>If whole numbers and even numbers are the same size — what about fractions? Between 0 and 1 alone, there are infinitely many: ½, ⅓, ¼, ⅕... Can we list them all? Can we count them? The answer will surprise you — in <em>both</em> directions.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="cta-btn" onclick="celebrate()">✦ On to Act II →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='prime_journey_act1.html'">← Back to The Prime Journey</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+var curScreen=0,stage1=0,pairsRevealed=0;
+function goToScreen(n){
+  document.getElementById('screen-'+curScreen).classList.remove('active');
+  curScreen=n;document.getElementById('screen-'+n).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1)buildHotel1();if(n===2)buildBusScene();if(n===3){buildPairGrid();initBij();}
+}
+(function(){var cv=document.getElementById('cosmos');function draw(){cv.width=innerWidth;cv.height=innerHeight;var ctx=cv.getContext('2d');var g=ctx.createRadialGradient(innerWidth*.2,innerHeight*.3,0,innerWidth*.5,innerHeight*.5,innerWidth*.8);g.addColorStop(0,'rgba(129,140,248,0.05)');g.addColorStop(0.5,'rgba(45,212,191,0.02)');g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);for(var i=0;i<220;i++){var x=Math.random()*cv.width,y=Math.random()*cv.height,r=Math.random()*1.5,a=0.04+Math.random()*0.35;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);var t=['255,255,255','180,200,255','200,240,255'];ctx.fillStyle='rgba('+t[Math.floor(Math.random()*t.length)]+','+a+')';ctx.fill();}}window.addEventListener('resize',draw);draw();})();
+var SHOW_ROOMS=8;
+function buildHotel1(){stage1=0;var row=document.getElementById('hotelRooms1');row.innerHTML='';for(var i=1;i<=SHOW_ROOMS;i++)row.appendChild(makeRoom(i,'🛏️','occupied'));var d=document.createElement('div');d.className='room-dots';d.textContent='···';row.appendChild(d);document.getElementById('status1').innerHTML='The hotel is <span class="hi">fully occupied</span>. Every room has a guest.';document.getElementById('btnArrive').disabled=false;document.getElementById('btnShift').disabled=true;document.getElementById('btnCheckin').disabled=true;document.getElementById('insight1').style.display='none';document.getElementById('s1Next').disabled=true;}
+function resetHotel1(){buildHotel1();}
+function makeRoom(num,emoji,state){var w=document.createElement('div');w.className='room';w.id='room1-'+num;var b=document.createElement('div');b.className='room-box '+(state==='occupied'?'occupied':state==='empty'?'empty':'new-guest');b.textContent=state==='empty'?'':emoji;var l=document.createElement('div');l.className='room-num';l.textContent=num;w.appendChild(b);w.appendChild(l);return w;}
+function newGuestArrives(){if(stage1!==0)return;stage1=1;document.getElementById('status1').innerHTML='<span class="gold">A new guest has arrived!</span> The hotel is full. What can the manager do?';document.getElementById('btnArrive').disabled=true;document.getElementById('btnShift').disabled=false;var row=document.getElementById('hotelRooms1'),nr=document.createElement('div');nr.className='room';var b=document.createElement('div');b.className='room-box new-guest';b.textContent='🧳';var l=document.createElement('div');l.className='room-num';l.textContent='?';nr.appendChild(b);nr.appendChild(l);row.insertBefore(nr,row.firstChild);}
+function shiftEveryone(){if(stage1!==1)return;stage1=2;document.getElementById('btnShift').disabled=true;document.getElementById('status1').innerHTML='<span class="ind">Shifting...</span> Every guest moves one room forward.';var delay=0;for(var i=SHOW_ROOMS;i>=1;i--){(function(idx){var r=document.getElementById('room1-'+idx);if(r)setTimeout(function(){r.querySelector('.room-box').classList.add('moving');r.querySelector('.room-num').textContent=idx+1;r.id='room1-'+(idx+1);},delay);})(i);delay+=80;}setTimeout(function(){var fr=document.querySelector('#hotelRooms1 .room:nth-child(2)');if(fr){fr.querySelector('.room-box').className='room-box empty';fr.querySelector('.room-box').textContent='';fr.querySelector('.room-num').textContent='1';fr.id='room1-1';}document.getElementById('status1').innerHTML='<span class="teal">Room 1 is now empty!</span> Everyone shifted forward. The new guest can check in.';document.getElementById('btnCheckin').disabled=false;},delay+200);}
+function checkIn(){if(stage1!==2)return;stage1=3;document.getElementById('btnCheckin').disabled=true;var g=document.querySelector('#hotelRooms1 .room:first-child .room-box');if(g)g.style.animation='moveRoom 0.4s ease';var er=document.getElementById('room1-1');if(er){var b=er.querySelector('.room-box');b.className='room-box new-guest highlight';b.textContent='🛏️';}document.getElementById('status1').innerHTML='<span class="gold">Guest checked in to room 1!</span> The hotel is full again — with one extra guest. <span class="ind">∞ + 1 = ∞.</span>';document.getElementById('insight1').style.display='block';setTimeout(function(){launchMiniConfetti();document.getElementById('s1Next').disabled=false;},500);}
+function buildBusScene(){document.getElementById('strategyReveal').style.display='none';document.getElementById('s2Next').disabled=true;var btns=document.querySelectorAll('#strategyOptions .act-btn');for(var i=0;i<btns.length;i++){btns[i].disabled=false;btns[i].style.borderColor='';btns[i].style.color='';btns[i].style.opacity='';}}
+function tryStrategy(idx){var btns=document.querySelectorAll('#strategyOptions .act-btn');for(var j=0;j<btns.length;j++){btns[j].disabled=true;if(j===2){btns[j].style.borderColor='var(--teal)';btns[j].style.color='var(--teal)';}else if(j!==idx)btns[j].style.opacity='0.3';}if(idx===2){setTimeout(function(){buildHotel2();document.getElementById('strategyReveal').style.display='block';document.getElementById('s2Next').disabled=false;launchMiniConfetti();},300);}else{setTimeout(function(){buildHotel2();document.getElementById('strategyReveal').style.display='block';document.getElementById('s2Next').disabled=false;},600);}}
+function buildHotel2(){var row=document.getElementById('hotelRooms2');row.innerHTML='';for(var i=1;i<=10;i++){var isOdd=i%2!==0,w=document.createElement('div');w.className='room';var b=document.createElement('div');b.className='room-box occupied';b.style.background=isOdd?'rgba(129,140,248,0.15)':'rgba(251,191,36,0.12)';b.style.borderColor=isOdd?'rgba(129,140,248,0.4)':'rgba(251,191,36,0.4)';b.textContent='🛏️';var l=document.createElement('div');l.className='room-num';l.style.color=isOdd?'var(--indigo)':'var(--gold)';l.textContent=i;w.appendChild(b);w.appendChild(l);row.appendChild(w);}var d=document.createElement('div');d.className='room-dots';d.textContent='···';row.appendChild(d);}
+var pairData=[[1,2],[2,4],[3,6],[4,8],[5,10]];
+function buildPairGrid(){pairsRevealed=0;var grid=document.getElementById('pairGrid');grid.innerHTML='';pairData.forEach(function(p){var n=p[0],e=p[1],row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;cursor:pointer;transition:all 0.2s;';row.innerHTML='<div style="font-family:monospace;font-size:1em;color:#7080a8;min-width:100px;">Whole # <span style="color:var(--silver);font-weight:700;">'+n+'</span></div><div style="color:var(--border);font-size:1.2em;">↔</div><div style="font-family:monospace;font-size:1em;color:#7080a8;">Even # <span style="color:var(--indigo);font-weight:700;">'+e+'</span></div><div style="margin-left:auto;font-size:1.1em;opacity:0;transition:opacity 0.3s;" class="pair-check">✓</div>';row.onclick=function(){row.style.borderColor='rgba(45,212,191,0.4)';row.style.background='rgba(45,212,191,0.05)';row.querySelector('.pair-check').style.opacity='1';row.querySelector('.pair-check').style.color='var(--teal)';row.onclick=null;pairsRevealed++;};grid.appendChild(row);});var inf=document.createElement('div');inf.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg2);border:1.5px solid rgba(129,140,248,0.2);border-radius:12px;';inf.innerHTML='<div style="font-family:monospace;font-size:1em;color:#7080a8;min-width:100px;">Whole # <span style="color:var(--silver);font-weight:700;">n</span></div><div style="color:var(--border);font-size:1.2em;">↔</div><div style="font-family:monospace;font-size:1em;color:#7080a8;">Even # <span style="color:var(--indigo);font-weight:700;">2n</span></div><div style="margin-left:auto;font-size:0.75em;color:var(--indigo);font-style:italic;">for all n</div>';grid.appendChild(inf);}
+
+/* Bijection Canvas */
+var bijAF=null;
+function initBij(){if(bijAF){cancelAnimationFrame(bijAF);bijAF=null;}var cv=document.getElementById('bijectionCanvas');if(!cv)return;var dpr=window.devicePixelRatio||1,w=cv.parentElement.clientWidth-32;cv.style.width=w+'px';cv.style.height='220px';cv.width=w*dpr;cv.height=220*dpr;var ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);bijStatic(ctx,w,220);document.getElementById('bijHint').textContent='Press a button below to animate the mapping arrows.';}
+function bijStatic(ctx,w,h){ctx.clearRect(0,0,w,h);var count=6,topY=44,botY=176,pad=30,gap=(w-pad*2)/count;ctx.textAlign='center';ctx.fillStyle='#4a5080';ctx.font="600 11px 'DM Sans',sans-serif";ctx.fillText('Whole numbers',w/2,16);ctx.fillText('(press Play to see mapping)',w/2,h-4);ctx.font="bold 15px 'DM Sans',sans-serif";for(var i=0;i<count;i++){var x=pad+gap*i+gap/2;ctx.beginPath();ctx.arc(x,topY,17,0,Math.PI*2);ctx.fillStyle='rgba(129,140,248,0.12)';ctx.fill();ctx.strokeStyle='rgba(129,140,248,0.35)';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='#818cf8';ctx.fillText(i+1,x,topY+5);ctx.beginPath();ctx.arc(x,botY,17,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.03)';ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;ctx.stroke();ctx.fillStyle='#3a4060';ctx.fillText('?',x,botY+5);}ctx.fillStyle='#4a5080';ctx.font="bold 18px sans-serif";ctx.fillText('...',pad+count*gap+gap/2-8,topY+5);ctx.fillText('...',pad+count*gap+gap/2-8,botY+5);}
+function animBij(mode){if(bijAF){cancelAnimationFrame(bijAF);bijAF=null;}var cv=document.getElementById('bijectionCanvas');if(!cv)return;var dpr=window.devicePixelRatio||1,w=cv.parentElement.clientWidth-32;cv.style.width=w+'px';cv.style.height='220px';cv.width=w*dpr;cv.height=220*dpr;var ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);var count=6,topY=44,botY=176,pad=30,gap=(w-pad*2)/count,progress=0,speed=0.014;var botL=mode==='double'?'Even numbers (2n)':'Whole numbers (n+1)';document.getElementById('bijHint').textContent=mode==='double'?'n → 2n : every whole number maps to exactly one even number.':'n → n+1 : the shift mapping from the first puzzle.';function frame(){progress=Math.min(progress+speed,1);ctx.clearRect(0,0,w,220);ctx.textAlign='center';ctx.fillStyle='#4a5080';ctx.font="600 11px 'DM Sans',sans-serif";ctx.fillText('Whole numbers (n)',w/2,16);ctx.fillText(botL,w/2,216);ctx.font="bold 15px 'DM Sans',sans-serif";for(var i=0;i<count;i++){var x=pad+gap*i+gap/2,bv=mode==='double'?(i+1)*2:i+2;ctx.beginPath();ctx.arc(x,topY,17,0,Math.PI*2);ctx.fillStyle='rgba(129,140,248,0.12)';ctx.fill();ctx.strokeStyle='rgba(129,140,248,0.35)';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='#818cf8';ctx.fillText(i+1,x,topY+5);ctx.beginPath();ctx.arc(x,botY,17,0,Math.PI*2);ctx.fillStyle='rgba(45,212,191,0.08)';ctx.fill();ctx.strokeStyle='rgba(45,212,191,0.35)';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='#2dd4bf';ctx.fillText(bv,x,botY+5);var stagger=i*0.09,ap=Math.max(0,Math.min(1,(progress-stagger)/(1-count*0.09)));if(ap>0){var fY=topY+19,tY=botY-19,cY=fY+(tY-fY)*easeOut(ap),al=0.25+ap*0.55;ctx.beginPath();ctx.moveTo(x,fY);ctx.lineTo(x,cY);ctx.strokeStyle='rgba(251,191,36,'+al+')';ctx.lineWidth=2.5;ctx.stroke();if(ap>0.7){ctx.beginPath();ctx.moveTo(x-5,cY-7);ctx.lineTo(x,cY);ctx.lineTo(x+5,cY-7);ctx.strokeStyle='rgba(251,191,36,'+al+')';ctx.lineWidth=2.5;ctx.stroke();}}}ctx.fillStyle='#4a5080';ctx.font="bold 18px sans-serif";var dx=pad+count*gap+gap/2-8;ctx.fillText('...',dx,topY+5);ctx.fillText('...',dx,botY+5);if(progress<1)bijAF=requestAnimationFrame(frame);else bijAF=null;}frame();}
+function easeOut(t){return 1-Math.pow(1-t,3);}
+function resetBij(){initBij();}
+function celebrate(){launchConfetti();setTimeout(function(){window.location.href='infinite_hotel_act2.html';},900);}
+var cc=document.getElementById('confetti'),cxc=cc.getContext('2d'),parts=[],afr=null;
+function launchConfetti(){cc.width=innerWidth;cc.height=innerHeight;parts=[];for(var i=0;i<90;i++)parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*5,vy:2+Math.random()*4,c:['#818cf8','#2dd4bf','#fbbf24','#e2e8f0','#fb7185'][Math.floor(Math.random()*5)],s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});if(afr)cancelAnimationFrame(afr);animC();setTimeout(function(){parts=[];},3500);}
+function launchMiniConfetti(){cc.width=innerWidth;cc.height=innerHeight;for(var i=0;i<22;i++)parts.push({x:innerWidth/2+(Math.random()-.5)*220,y:innerHeight*.4,vx:(Math.random()-.5)*8,vy:-(3+Math.random()*6),c:['#818cf8','#2dd4bf','#fbbf24'][Math.floor(Math.random()*3)],s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});if(!afr)animC();}
+function animC(){cxc.clearRect(0,0,cc.width,cc.height);parts=parts.filter(function(p){return p.l>.01;});parts.forEach(function(p){p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;cxc.save();cxc.globalAlpha=p.l;cxc.translate(p.x,p.y);cxc.rotate(p.r);cxc.fillStyle=p.c;cxc.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cxc.restore();});if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;}
+</script>
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050510">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Infinite Hotel — Act II</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#050510; --bg2:#090920; --bg3:#0e0e2a;
+            --indigo:#818cf8; --indigo-dim:rgba(129,140,248,0.12);
+            --teal:#2dd4bf; --teal-dim:rgba(45,212,191,0.1);
+            --silver:#e2e8f0; --silver-dim:rgba(226,232,240,0.08);
+            --gold:#fbbf24; --gold-dim:rgba(251,191,36,0.12);
+            --rose:#fb7185; --rose-dim:rgba(251,113,133,0.1);
+            --muted:#4a5080; --text:#c8d0f0;
+            --border:rgba(129,140,248,0.12); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(5,5,16,0.92);
+            backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--teal);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--teal);}
+        .dot.active{background:var(--teal);box-shadow:0 0 10px var(--teal);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 6px var(--teal)}50%{box-shadow:0 0 18px var(--teal)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--teal);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--teal);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#c0c8e8;}
+        .narrator p em{color:var(--teal);font-style:italic;}
+        .narrator p strong{color:var(--silver);font-weight:600;}
+        .narrator.indigo{border-left-color:var(--indigo);} .narrator.indigo::before{color:var(--indigo);}
+        .narrator.gold{border-left-color:var(--gold);} .narrator.gold::before{color:var(--gold);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--silver);}
+        .act-name em{color:var(--teal);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--teal),#0d9488);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#fff;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 24px rgba(45,212,191,0.25);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(45,212,191,0.4);}
+        .cta-btn:disabled{opacity:0.35;transform:none;box-shadow:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(45,212,191,0.15);border-left:3px solid var(--teal);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--teal);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#9098c0;}
+        .insight p em{color:var(--teal);font-style:normal;font-weight:600;}
+        .insight.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);}
+        .insight.gold .lbl{color:var(--gold);}
+        .insight.indigo{border-left-color:var(--indigo);border-color:rgba(129,140,248,0.15);}
+        .insight.indigo .lbl{color:var(--indigo);}
+
+        /* ── Fraction grid ── */
+        .frac-grid-wrap{background:var(--bg2);border:1px solid var(--border);
+            border-radius:var(--radius);padding:16px;margin-bottom:16px;overflow:hidden;}
+        .frac-grid{display:grid;gap:3px;margin-bottom:8px;}
+        .frac-cell{height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+            font-family:'DM Sans',monospace;font-size:clamp(0.6em,2.2vw,0.78em);font-weight:700;
+            border:1.5px solid transparent;transition:all 0.3s;cursor:default;}
+        .frac-cell.empty{background:rgba(255,255,255,0.02);color:var(--muted);}
+        .frac-cell.revealed{background:var(--indigo-dim);border-color:rgba(129,140,248,0.3);color:var(--indigo);}
+        .frac-cell.diagonal{background:var(--teal-dim);border-color:rgba(45,212,191,0.5);color:var(--teal);
+            box-shadow:0 0 10px rgba(45,212,191,0.2);}
+        .frac-cell.counted{background:var(--gold-dim);border-color:rgba(251,191,36,0.4);color:var(--gold);}
+        .frac-cell.header{background:rgba(255,255,255,0.04);color:var(--silver);font-size:0.72em;
+            letter-spacing:1px;border-color:rgba(255,255,255,0.06);}
+
+        /* ── Snake path ── */
+        .snake-label{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:8px;}
+        .count-seq{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+        .count-chip{padding:5px 10px;border-radius:8px;font-family:'DM Sans',monospace;
+            font-size:0.78em;font-weight:700;animation:chipIn 0.25s ease both;}
+        @keyframes chipIn{from{opacity:0;transform:scale(0.6)}to{opacity:1;transform:scale(1)}}
+
+        /* ── Step navigator ── */
+        .step-nav{display:flex;gap:8px;justify-content:center;margin-bottom:14px;flex-wrap:wrap;}
+        .step-btn{padding:10px 18px;border-radius:12px;background:var(--bg3);
+            border:1.5px solid var(--border);color:var(--muted);
+            font-family:'DM Sans',sans-serif;font-size:0.88em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;}
+        .step-btn:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-dim);}
+        .step-btn.primary{background:var(--teal-dim);border-color:var(--teal);color:var(--teal);}
+
+        /* ── Number line ── */
+        .num-line{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:18px;margin-bottom:14px;}
+        .num-line-track{height:4px;background:rgba(255,255,255,0.08);border-radius:2px;
+            position:relative;margin:14px 0;}
+        .num-line-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--indigo));
+            border-radius:2px;transition:width 1s ease;}
+        .tick-row{display:flex;justify-content:space-between;margin-top:4px;}
+        .tick{font-family:'DM Sans',monospace;font-size:0.72em;color:var(--muted);}
+        .fraction-dots{display:flex;gap:3px;flex-wrap:wrap;margin-top:10px;}
+        .fdot{width:6px;height:6px;border-radius:50%;background:var(--indigo-dim);
+            border:1px solid rgba(129,140,248,0.3);transition:all 0.2s;}
+        .fdot.shown{background:var(--teal);border-color:var(--teal);}
+
+        /* ── Aleph display ── */
+        .aleph-reveal{text-align:center;padding:22px;background:var(--bg2);
+            border:1px solid rgba(45,212,191,0.2);border-radius:var(--radius);margin-bottom:16px;}
+        .aleph-sym{font-size:clamp(3em,14vw,5.5em);font-weight:700;font-family:'DM Sans',sans-serif;
+            background:linear-gradient(135deg,var(--teal),var(--indigo));
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+            display:block;margin-bottom:8px;}
+        .aleph-name{font-family:'Lora',serif;font-size:1.1em;color:var(--silver);margin-bottom:6px;}
+        .aleph-sub{font-family:'Lora',serif;font-size:0.9em;color:var(--muted);font-style:italic;line-height:1.6;}
+
+        /* Complete badge */
+        .complete-badge{background:linear-gradient(135deg,rgba(45,212,191,0.1),rgba(129,140,248,0.06));
+            border:1px solid rgba(45,212,191,0.2);border-radius:var(--radius);
+            padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--teal);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        /* ── Learn boxes ── */
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--teal);}
+        .learn-box.notice .learn-title{color:var(--gold);}
+        .learn-box.why .learn-title{color:var(--rose);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--teal);color:var(--teal);}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act II of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot active"></div>
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: OPENING -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Infinite Hotel · Act II</div>
+      <div class="act-name">Can we <em>count</em> the fractions?</div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;">
+      <div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">🔢</div>
+    </div>
+    <div class="narrator">
+      <p>In Act I, the hotel absorbed an infinite bus. We matched whole numbers with even numbers — a perfect pairing. Both sets are the same "size."</p>
+      <p style="margin-top:10px">Now a harder question. Between the numbers 0 and 1, there are infinitely many fractions: ½, ⅓, ¼, ⅕, 1/100, 1/1000...</p>
+      <p style="margin-top:10px">And between ½ and ⅓, there are <em>more</em> fractions. And between those, more still.</p>
+      <p style="margin-top:10px">Can we count them? Can we list them all — 1st fraction, 2nd fraction, 3rd fraction...?</p>
+    </div>
+    <div class="insight">
+      <div class="lbl">Try This</div>
+      <p>Think about it before you continue. Are there more fractions than whole numbers? Or the same number? Or is the question even meaningful? Sit with your answer for a moment.</p>
+    </div>
+    <div class="insight teal">
+      <div class="lbl">What To Notice</div>
+      <p>Between any two fractions, there is always another fraction. The fractions seem impossibly dense — packed infinitely close together. Surely that means there are "more" of them?</p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">Why It Matters</div>
+      <p>Cantor's answer to this question shocked the mathematical world. Whether a set is "bigger" than another is not about how densely packed it feels — it is about whether you can build a <em>bijection</em> between them.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Build the list →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: THE FRACTION GRID -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Cantor's grid</div>
+      <div class="act-name">Arranging all <em>fractions</em></div>
+    </div>
+    <div class="narrator">
+      <p>Here's Cantor's ingenious idea. Arrange all fractions p/q in a grid — numerators along the top, denominators down the side.</p>
+      <p style="margin-top:8px">Every fraction appears <em>somewhere</em> in this infinite grid. Now — can we find a path that visits every cell?</p>
+    </div>
+
+    <div class="frac-grid-wrap">
+      <div class="snake-label">Fraction grid — numerator/denominator</div>
+      <div class="frac-grid" id="fracGrid" style="grid-template-columns:repeat(6,1fr);"></div>
+      <div style="font-family:'Lora',serif;font-size:0.85em;color:var(--muted);font-style:italic;margin-top:6px;" id="gridHint">
+        Tap "Reveal path" to see how Cantor snaked through this grid
+      </div>
+    </div>
+
+    <div class="step-nav">
+      <button class="step-btn primary" onclick="startSnake()" id="btnSnake">Reveal the path →</button>
+      <button class="step-btn" onclick="pauseSnake()" id="btnPause" disabled>Pause</button>
+      <button class="step-btn" onclick="resetGrid()" id="btnReset">Reset</button>
+    </div>
+
+    <div class="count-seq" id="countSeq" style="min-height:36px;"></div>
+
+    <div id="snakeInsight" style="display:none;">
+      <div class="insight">
+        <div class="lbl">Try This</div>
+        <p>Watch the path again and pick any fraction — say 3/4. Can you figure out when it would be visited? Follow the diagonals: it sits on the diagonal where numerator + denominator = 7.</p>
+      </div>
+      <div class="insight teal">
+        <div class="lbl">What To Notice</div>
+        <p>By zigzagging diagonally through the grid, Cantor created a list of every fraction. First 1/1, then 1/2, then 2/1, then 3/1, then 2/2, then 1/3... <em>Every fraction appears exactly once.</em> No fraction is missed.</p>
+      </div>
+      <div class="insight gold">
+        <div class="lbl">Why It Matters</div>
+        <p>Because we can list the fractions 1st, 2nd, 3rd..., we have a <em>bijection</em> between the fractions and the whole numbers. They are the same size — even though fractions are infinitely dense. Density and size are completely different things for infinite sets.</p>
+      </div>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>What does this mean? →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: COUNTABLY INFINITE -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">A new word</div>
+      <div class="act-name"><em>Countably</em> infinite</div>
+    </div>
+    <div class="narrator indigo">
+      <p>We can list the fractions: 1st, 2nd, 3rd... Every fraction eventually appears on the list. We say the fractions are <em>countably infinite.</em></p>
+      <p style="margin-top:10px">The whole numbers are countably infinite. The even numbers are countably infinite. The fractions are countably infinite. They're all the same size — and that size has a name.</p>
+    </div>
+
+    <div class="aleph-reveal" id="alephReveal" style="opacity:0;transition:opacity 0.8s;">
+      <span class="aleph-sym">ℵ₀</span>
+      <div class="aleph-name">Aleph-null (ℵ₀)</div>
+      <div class="aleph-sub">The size of the counting numbers.<br>The smallest infinity.<br>Any set that can be listed has this size.</div>
+    </div>
+
+    <div class="narrator" style="margin-top:4px;">
+      <p>All these sets have size ℵ₀:</p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;" id="alephSets">
+    </div>
+
+    <div class="insight">
+      <div class="lbl">Try This</div>
+      <p>Think of as many different types of infinite sets as you can — odd numbers, negative numbers, multiples of 7. Could you build a listing for each? (Hint: yes, you can.) Now ask: is <em>everything</em> infinite countable?</p>
+    </div>
+    <div class="insight teal">
+      <div class="lbl">What To Notice</div>
+      <p>Whole numbers, even numbers, fractions, prime numbers — they can all be listed. They all have size ℵ₀. It starts to feel like every infinite set might be the same size.</p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">Why It Matters</div>
+      <p>What about the decimal numbers — 0.123456..., π, √2? Can we list those too? Think carefully. The answer in Act III will shatter this pattern completely. Not all infinities are the same.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)">Try to list the decimals →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: COMPLETE -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">Act II complete</div>
+      <div class="act-name">The countable <em>infinite</em></div>
+    </div>
+    <div class="complete-badge">
+      <span class="badge-icon">🔢</span>
+      <div class="badge-title">You listed the fractions</div>
+      <div class="badge-sub">There are infinitely many fractions — but they can all be counted.<br>ℵ₀: the size of any set you can list.</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">💡 What you learned</div>
+      <p>A set is <em>countably infinite</em> if you can match its elements with the counting numbers — 1st, 2nd, 3rd... The whole numbers, even numbers, and all fractions are countably infinite. They all have size ℵ₀. This feels like it should mean everything infinite is the same size. Act III is about to demolish that assumption.</p>
+    </div>
+    <div class="insight gold" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act III — The Diagonal Argument</div>
+      <p>The most beautiful proof in mathematics. You will try to list every decimal number between 0 and 1. Then — in real time — we will construct a decimal that is <em>not on your list.</em> No matter what list you build. The proof is airtight. And it will shatter your intuition about infinity completely.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="learn-box try-this">
+        <div class="learn-title">Try This</div>
+        <p>Can you list all the fractions between 0 and 1? Try writing them in a grid where row <em>n</em> has denominator <em>n</em>. Then trace a diagonal zigzag path through the grid.</p>
+      </div>
+      <div class="learn-box notice">
+        <div class="learn-title">What To Notice</div>
+        <p>Every fraction appears somewhere on your zigzag path, giving each one a unique counting number. This means the rationals are <em>countable</em> &mdash; they can be matched one-to-one with the natural numbers, even though they seem far more numerous.</p>
+      </div>
+      <div class="learn-box why">
+        <div class="learn-title">Why It Matters</div>
+        <p>This is Cantor's first great surprise: adding fractions to the number line doesn't increase the "size" of infinity. The rationals have the same cardinality as the naturals. But the reals are a different story entirely &mdash; that's next.</p>
+      </div>
+
+      <button class="cta-btn" onclick="celebrate()">✦ On to Act III →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='infinite_hotel_act1.html'">← Revisit Act I</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+let snakeTimer=null;
+let snakeStep=0;
+let snakeRunning=false;
+
+// Grid: 5 rows (denominators 1-5) × 5 cols (numerators 1-5) + headers
+const ROWS=5, COLS=5;
+// Diagonal snake path through (row,col) — classic Cantor zigzag
+function buildSnakePath(){
+  const path=[];
+  for(let d=0;d<ROWS+COLS-1;d++){
+    if(d%2===0){
+      for(let r=Math.min(d,ROWS-1);r>=Math.max(0,d-COLS+1);r--){
+        path.push([r,d-r]);
+      }
+    } else {
+      for(let r=Math.max(0,d-COLS+1);r<=Math.min(d,ROWS-1);r++){
+        path.push([r,d-r]);
+      }
+    }
+  }
+  return path;
+}
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n; document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1)buildGrid();
+  if(n===2)initAleph();
+}
+
+function buildGrid(){
+  snakeStep=0; snakeRunning=false;
+  if(snakeTimer){clearInterval(snakeTimer);snakeTimer=null;}
+  document.getElementById('s1Next').disabled=true;
+  document.getElementById('snakeInsight').style.display='none';
+  document.getElementById('btnSnake').disabled=false;
+  document.getElementById('btnPause').disabled=true;
+  document.getElementById('countSeq').innerHTML='';
+
+  const grid=document.getElementById('fracGrid');
+  grid.innerHTML='';
+  // 6 cols: label + 5 numerators
+  grid.style.gridTemplateColumns='repeat(6,1fr)';
+
+  // Header row
+  const corner=makeCell('','header');
+  grid.appendChild(corner);
+  for(let c=1;c<=COLS;c++) grid.appendChild(makeCell(`n=${c}`,'header'));
+
+  // Data rows
+  for(let r=0;r<ROWS;r++){
+    grid.appendChild(makeCell(`d=${r+1}`,'header'));
+    for(let c=0;c<COLS;c++){
+      const cell=makeCell(`${c+1}/${r+1}`,'empty');
+      cell.id=`fc-${r}-${c}`;
+      grid.appendChild(cell);
+    }
+  }
+}
+
+function makeCell(txt,cls){
+  const d=document.createElement('div');
+  d.className=`frac-cell ${cls}`;
+  d.textContent=txt;
+  return d;
+}
+
+const snakePath=buildSnakePath();
+let countNum=0;
+
+function startSnake(){
+  if(snakeRunning)return;
+  snakeRunning=true;
+  countNum=snakeStep;
+  document.getElementById('btnSnake').disabled=true;
+  document.getElementById('btnPause').disabled=false;
+  document.getElementById('gridHint').textContent='Watch the path snake through every fraction...';
+
+  snakeTimer=setInterval(()=>{
+    if(snakeStep>=snakePath.length){
+      clearInterval(snakeTimer); snakeTimer=null; snakeRunning=false;
+      document.getElementById('snakeInsight').style.display='block';
+      document.getElementById('s1Next').disabled=false;
+      document.getElementById('btnPause').disabled=true;
+      document.getElementById('gridHint').textContent='Every fraction has been visited — and numbered.';
+      launchMiniConfetti();
+      return;
+    }
+    const [r,c]=snakePath[snakeStep];
+    // Previous diagonal cell → counted
+    if(snakeStep>0){
+      const [pr,pc]=snakePath[snakeStep-1];
+      const prev=document.getElementById(`fc-${pr}-${pc}`);
+      if(prev) prev.className='frac-cell counted';
+    }
+    const cell=document.getElementById(`fc-${r}-${c}`);
+    if(cell) cell.className='frac-cell diagonal';
+
+    // Add chip
+    countNum++;
+    const chip=document.createElement('div');
+    chip.className='count-chip';
+    chip.style.cssText=`background:var(--indigo-dim);border:1px solid rgba(129,140,248,0.3);color:var(--indigo);animation-delay:0s;`;
+    chip.textContent=`${countNum}: ${c+1}/${r+1}`;
+    const seq=document.getElementById('countSeq');
+    seq.appendChild(chip);
+    seq.scrollLeft=seq.scrollWidth;
+
+    snakeStep++;
+  },280);
+}
+
+function pauseSnake(){
+  if(snakeTimer){clearInterval(snakeTimer);snakeTimer=null;snakeRunning=false;}
+  document.getElementById('btnSnake').disabled=false;
+  document.getElementById('btnPause').disabled=true;
+}
+
+function resetGrid(){
+  if(snakeTimer){clearInterval(snakeTimer);snakeTimer=null;}
+  snakeRunning=false; snakeStep=0; countNum=0;
+  buildGrid();
+  document.getElementById('countSeq').innerHTML='';
+  document.getElementById('snakeInsight').style.display='none';
+  document.getElementById('s1Next').disabled=true;
+}
+
+// Screen 2: Aleph
+const alephSetsData=[
+  {icon:'🔢', name:'Whole numbers', eg:'1, 2, 3, 4, 5 ...'},
+  {icon:'⚖️', name:'Fractions (rationals)', eg:'1/1, 1/2, 2/1, 3/1 ...'},
+  {icon:'➗', name:'Even numbers', eg:'2, 4, 6, 8, 10 ...'},
+  {icon:'🔲', name:'Perfect squares', eg:'1, 4, 9, 16, 25 ...'},
+  {icon:'⭕', name:'Prime numbers', eg:'2, 3, 5, 7, 11 ...'},
+];
+
+function initAleph(){
+  setTimeout(()=>{document.getElementById('alephReveal').style.opacity='1';},200);
+  const container=document.getElementById('alephSets');
+  container.innerHTML='';
+  alephSetsData.forEach((s,i)=>{
+    const div=document.createElement('div');
+    div.style.cssText=`display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);animation:fadeUp 0.4s ease ${i*0.1}s both;`;
+    if(i===alephSetsData.length-1)div.style.borderBottom='none';
+    div.innerHTML=`<span style="font-size:1.4em;">${s.icon}</span>
+      <div>
+        <div style="font-family:'Lora',serif;font-size:0.95em;color:var(--silver);">${s.name}</div>
+        <div style="font-family:'DM Sans',monospace;font-size:0.78em;color:var(--muted);">${s.eg}</div>
+      </div>
+      <div style="margin-left:auto;font-family:'DM Sans',monospace;font-size:0.88em;font-weight:700;color:var(--teal);">ℵ₀</div>`;
+    container.appendChild(div);
+  });
+}
+
+function celebrate(){
+  launchConfetti();
+  setTimeout(()=>window.location.href='infinite_hotel_act3.html',900);
+}
+
+// Cosmos
+(function(){
+  const cv=document.getElementById('cosmos');
+  function draw(){
+    cv.width=innerWidth;cv.height=innerHeight;
+    const ctx=cv.getContext('2d');
+    const g=ctx.createRadialGradient(innerWidth*.7,innerHeight*.2,0,innerWidth*.5,innerHeight*.5,innerWidth*.9);
+    g.addColorStop(0,'rgba(45,212,191,0.05)');g.addColorStop(0.5,'rgba(129,140,248,0.02)');g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);
+    for(let i=0;i<200;i++){
+      const x=Math.random()*cv.width,y=Math.random()*cv.height,r=Math.random()*1.5,a=0.03+Math.random()*0.3;
+      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(200,220,255,${a})`;ctx.fill();
+    }
+  }
+  window.addEventListener('resize',draw);draw();
+})();
+
+// Confetti
+const cc=document.getElementById('confetti'),cxc=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<90;i++) parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*5,vy:2+Math.random()*4,
+    c:['#2dd4bf','#818cf8','#fbbf24','#e2e8f0'][Math.floor(Math.random()*4)],
+    s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},3500);
+}
+function launchMiniConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;
+  for(let i=0;i<22;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.45,
+    vx:(Math.random()-.5)*7,vy:-(3+Math.random()*5),
+    c:['#2dd4bf','#fbbf24'][Math.floor(Math.random()*2)],
+    s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!afr)animC();
+}
+function animC(){
+  cxc.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;
+    cxc.save();cxc.globalAlpha=p.l;cxc.translate(p.x,p.y);cxc.rotate(p.r);
+    cxc.fillStyle=p.c;cxc.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cxc.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;
+}
+</script>
+</body>
+</html>

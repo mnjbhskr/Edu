@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#04020f">
+    <title>The Shape of Space — Act II</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#04020f;--bg2:#080418;--bg3:#0d0625;
+            --indigo:#6366f1;--indigo-dim:rgba(99,102,241,0.12);
+            --rose:#ec4899;--rose-dim:rgba(236,72,153,0.1);
+            --lavender:#c4b5fd;--lav-dim:rgba(196,181,253,0.08);
+            --gold:#fbbf24;--gold-dim:rgba(251,191,36,0.1);
+            --cyan:#67e8f9;--cyan-dim:rgba(103,232,249,0.1);
+            --cream:#f8fafc;--text:#b4a8d8;--muted:#2e2050;
+            --border:rgba(99,102,241,0.14);--radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:1px solid var(--border);background:rgba(4,2,15,0.93);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--rose);font-style:normal;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--indigo);}
+        .dot.active{background:var(--rose);box-shadow:0 0 10px var(--rose);animation:p 2s ease infinite;}
+        @keyframes p{0%,100%{box-shadow:0 0 6px var(--rose)}50%{box-shadow:0 0 18px var(--rose)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--rose);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);padding:0 6px;color:var(--rose);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#b4a0d0;}
+        .narrator p em{color:var(--rose);font-style:italic;}
+        .narrator p strong{color:var(--cream);}
+        .narrator.indigo{border-left-color:var(--indigo);} .narrator.indigo::before{color:var(--indigo);}
+        .narrator.gold{border-left-color:var(--gold);} .narrator.gold::before{color:var(--gold);}
+        .narrator.cyan{border-left-color:var(--cyan);} .narrator.cyan::before{color:var(--cyan);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--rose);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;background:linear-gradient(135deg,var(--rose),#be185d);border:none;border-radius:50px;padding:15px 30px;font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;color:#fff;cursor:pointer;transition:all 0.25s;touch-action:manipulation;box-shadow:0 4px 24px rgba(236,72,153,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);}
+        .cta-btn:disabled{opacity:0.35;transform:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(236,72,153,0.15);border-left:3px solid var(--rose);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--rose);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#6858a0;}
+        .insight p em{color:var(--rose);font-style:normal;font-weight:600;}
+        .insight.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);} .insight.gold .lbl{color:var(--gold);}
+        .insight.indigo{border-left-color:var(--indigo);border-color:rgba(99,102,241,0.15);} .insight.indigo .lbl{color:var(--indigo);}
+        .insight.cyan{border-left-color:var(--cyan);border-color:rgba(103,232,249,0.15);} .insight.cyan .lbl{color:var(--cyan);}
+
+        /* Canvas */
+        .cv-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:4px;margin-bottom:14px;overflow:hidden;}
+        canvas{display:block;width:100%;}
+
+        /* Angle display */
+        .angle-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+        .angle-box{flex:1;min-width:80px;padding:10px;border-radius:12px;border:1.5px solid;text-align:center;}
+        .angle-val{font-family:'DM Sans',monospace;font-size:1.5em;font-weight:700;display:block;margin-bottom:2px;}
+        .angle-lbl{font-size:0.65em;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+
+        /* Surface toggle */
+        .surf-btn{flex:1;padding:10px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg3);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.85em;font-weight:600;cursor:pointer;transition:all 0.2s;text-align:center;}
+        .surf-btn.active{background:var(--rose-dim);border-color:rgba(236,72,153,0.4);color:var(--rose);}
+
+        /* Reset button */
+        .reset-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:10px;border:1px solid var(--border);
+            background:var(--bg3);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.75em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;margin-bottom:14px;}
+        .reset-btn:hover{border-color:rgba(236,72,153,0.35);color:var(--rose);}
+
+        /* Learning box */
+        .learning-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:0;margin-bottom:16px;overflow:hidden;}
+        .learning-box .lb-section{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.04);}
+        .learning-box .lb-section:last-child{border-bottom:none;}
+        .lb-header{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;font-weight:700;}
+        .lb-header.try{color:var(--indigo);}
+        .lb-header.notice{color:var(--gold);}
+        .lb-header.matters{color:var(--rose);}
+        .lb-body{font-family:'Lora',serif;font-size:0.92em;line-height:1.72;color:#6858a0;}
+        .lb-body em{color:var(--lavender);font-style:normal;font-weight:600;}
+
+        /* Complete */
+        .complete-badge{background:linear-gradient(135deg,rgba(236,72,153,0.1),rgba(99,102,241,0.06));border:1px solid rgba(236,72,153,0.2);border-radius:var(--radius);padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--rose);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--amber,var(--gold,#f59e0b));}
+        .learn-box.notice .learn-title{color:var(--teal,var(--em,#10b981));}
+        .learn-box.why .learn-title{color:var(--rose,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--amber,var(--gold));color:var(--amber,var(--gold));}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div style="font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Act II of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot active"></div>
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0 -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Shape of Space · Act II</div>
+      <div class="act-name">Measuring <em>Curvature</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;"><div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">📐</div></div>
+    <div class="narrator">
+      <p>1820. Carl Friedrich Gauss — perhaps the greatest mathematician who ever lived — is hired to survey the Kingdom of Hanover. He spends years measuring triangles across mountains.</p>
+      <p style="margin-top:10px">He already knew: the angles of a triangle sum to 180° — <em>on a flat surface</em>. But what if the surface isn't flat?</p>
+      <p style="margin-top:10px">He realised something profound: the deviation from 180° is not an error. <strong>It is the curvature.</strong></p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">The Theorema Egregium — "Remarkable Theorem"</div>
+      <p>Gauss proved that curvature is <em>intrinsic</em> — a property of the surface itself, measurable from within, without ever stepping outside it. A creature living on a curved surface can discover that curvature by measuring triangles. We might be such a creature.</p>
+    </div>
+
+    <div class="insight cyan">
+      <div class="lbl">Real-world connection — GPS satellites</div>
+      <p>GPS satellites orbit 20,200 km above Earth. Their signals travel through curved spacetime — and the curvature matters. Without correcting for spacetime curvature, GPS would drift by <em>~10 km per day</em>. Every time your phone finds your location, it is accounting for the curvature of space. Gauss's idea, made practical.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(1)">Measure it →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: TRIANGLE ON SURFACES -->
+  <section class="screen" id="screen-1">
+    <div class="act-title"><div class="act-label">Angle sum</div><div class="act-name">180° — or <em>not quite</em></div></div>
+    <div class="narrator"><p>The same triangle, drawn on three different surfaces. Select each and watch how the angle sum changes. The deviation from 180° is the Gaussian curvature.</p></div>
+
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button class="surf-btn active" id="sb0" onclick="setSurface(0)">Flat</button>
+      <button class="surf-btn" id="sb1" onclick="setSurface(1)">Sphere</button>
+      <button class="surf-btn" id="sb2" onclick="setSurface(2)">Saddle</button>
+    </div>
+
+    <div class="cv-wrap"><canvas id="triCanvas" height="240"></canvas></div>
+
+    <div class="angle-row" id="angleRow"></div>
+
+    <div id="curveInsight" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;font-family:'Lora',serif;font-size:0.95em;line-height:1.7;color:var(--text);min-height:52px;"></div>
+
+    <button class="reset-btn" onclick="setSurface(0);document.getElementById('sb0').click();">↺ Reset to flat</button>
+
+    <div class="insight" id="gaussInsight" style="display:none;">
+      <div class="lbl">Gauss's brilliant insight</div>
+      <p>You don't need to leave a surface to measure its curvature. Just draw a triangle and measure the angles. The excess above 180° divided by the area gives you the Gaussian curvature K. <em>On a sphere of radius R: K = 1/R². The smaller the sphere, the more curved it is.</em></p>
+    </div>
+
+    <!-- Learning box -->
+    <div class="learning-box" id="learningBox1" style="display:none;">
+      <div class="lb-section">
+        <div class="lb-header try">Try This</div>
+        <div class="lb-body">Click through all three surfaces: flat, sphere, and saddle. Watch how the triangle's angles change on each surface. Compare the angle sums — how far does each deviate from 180°?</div>
+      </div>
+      <div class="lb-section">
+        <div class="lb-header notice">What To Notice</div>
+        <div class="lb-body">On a sphere, angles bulge outward (sum > 180°). On a saddle, they pinch inward (sum < 180°). The amount of deviation is proportional to the <em>area of the triangle relative to the curvature</em>. Tiny triangles on any surface look flat.</div>
+      </div>
+      <div class="lb-section">
+        <div class="lb-header matters">Why It Matters</div>
+        <div class="lb-body">This is exactly how cosmologists measure the curvature of the universe. They use the cosmic microwave background as a giant triangle spanning the observable universe. The angle sum tells them the global geometry. <em>We are the creatures on the surface, using Gauss's method to measure our own space.</em></div>
+      </div>
+    </div>
+
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Count the vertices, edges, and faces of a cube. Compute V - E + F. Now try it with a tetrahedron, or any other polyhedron. What do you always get?</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>For any convex polyhedron, V - E + F = 2. This is Euler's formula — one of the most beautiful results in mathematics. It holds not because of angles or lengths, but because of the shape's topology.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>The Euler characteristic is a topological invariant — it doesn't change under continuous deformation. It classifies surfaces: a sphere has chi=2, a torus has chi=0, and each additional handle reduces chi by 2.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>Act II Complete →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: COMPLETE -->
+  <section class="screen" id="screen-2">
+    <div class="act-title"><div class="act-label">Act II complete</div><div class="act-name">Curvature is <em>intrinsic</em></div></div>
+    <div class="complete-badge">
+      <span class="badge-icon">📐</span>
+      <div class="badge-title">The angle sum tells you the shape of space</div>
+      <div class="badge-sub">= 180°: flat · > 180°: spherical · < 180°: hyperbolic<br>Measurable from inside — Gauss's Theorema Egregium</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">What you learned</div>
+      <p>Gaussian curvature is intrinsic — it can be measured from within a surface without any external reference. The angle sum of a triangle reveals the curvature. On a unit sphere: triangle angles sum to 180° + area. On a saddle: 180° - area. <em>This is how we could, in principle, measure the curvature of the universe we live in.</em></p>
+    </div>
+    <div class="insight gold" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act III — Geodesics</div>
+      <p>On a curved surface, what is the "straightest possible path" between two points? Not a Euclidean straight line — something more fundamental. Geodesics. And the reason a flight from London to New York arcs over Greenland isn't a detour — it's the shortest path on a sphere.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="cta-btn" onclick="celebrate2()">On to Act III →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='space_act1.html'">← Revisit Act I</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+let surfMode=0;
+let surfsSeen=new Set();
+let triCv,triCtx,triW=300,triH=240;
+
+function initCosmos(){
+  const c=document.getElementById('cosmos'),ctx=c.getContext('2d');
+  c.width=innerWidth;c.height=innerHeight;
+  for(let i=0;i<200;i++){
+    const x=Math.random()*c.width,y=Math.random()*c.height,r=Math.random()*1.5;
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(${180+Math.floor(Math.random()*75)},${160+Math.floor(Math.random()*75)},255,${0.15+Math.random()*0.55})`;
+    ctx.fill();
+  }
+}
+initCosmos();
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n;document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1){initTriCanvas();setSurface(0);}
+}
+
+function initTriCanvas(){
+  triCv=document.getElementById('triCanvas');
+  triW=triCv.parentElement.clientWidth-8;triCv.width=triW;triCv.height=triH;
+  triCtx=triCv.getContext('2d');
+}
+
+const surfaces=[
+  {name:'Flat',col:'#c4b5fd',K:0,
+   angles:[60,60,60],sum:180,sumLabel:'= 180°',extra:'exactly',
+   desc:'On a flat plane, the angle sum is exactly 180°. Euclid\'s theorem holds perfectly. Curvature K = 0. This is the geometry of your classroom floor.',
+   drawBg:(ctx,W,H)=>{
+     for(let x=0;x<W;x+=25) for(let y=0;y<H;y+=25){
+       ctx.strokeStyle='rgba(196,181,253,0.08)';ctx.strokeRect(x,y,25,25);}
+   }},
+  {name:'Sphere',col:'#ec4899',K:1,
+   angles:[90,90,90],sum:270,sumLabel:'= 270° !!',extra:'90° excess',
+   desc:'The classic example: a triangle on a sphere from the North Pole to two points on the equator 90° apart. Each angle is 90°. Sum = 270°. 90° excess. This excess, divided by the sphere\'s area, gives the curvature K = 1/R².',
+   drawBg:(ctx,W,H)=>{
+     ctx.strokeStyle='rgba(236,72,153,0.1)';ctx.lineWidth=1;
+     const cx=W/2,cy=H/2,r=Math.min(W,H)*0.42;
+     ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+     ctx.beginPath();ctx.ellipse(cx,cy,r,r*0.3,0,0,Math.PI*2);ctx.stroke();
+   }},
+  {name:'Saddle',col:'#67e8f9',K:-1,
+   angles:[45,45,45],sum:135,sumLabel:'= 135°',extra:'45° deficit',
+   desc:'On a saddle surface, a triangle\'s angles sum to LESS than 180°. Here: 135°. A 45° deficit. Negative curvature K < 0. The surface curves away from itself in every direction — like a mountain pass.',
+   drawBg:(ctx,W,H)=>{
+     ctx.strokeStyle='rgba(103,232,249,0.08)';ctx.lineWidth=1;
+     for(let t=-4;t<=4;t+=0.8){
+       ctx.beginPath();
+       for(let s=-3;s<=3;s+=0.1){
+         const x=W/2+s*W*0.16,y=H/2+t*H*0.1+s*s*H*0.09-t*t*H*0.045;
+         s===-3?ctx.moveTo(x,y):ctx.lineTo(x,y);
+       }ctx.stroke();
+     }
+   }},
+];
+
+function setSurface(i){
+  surfMode=i;
+  surfsSeen.add(i);
+  [0,1,2].forEach(j=>{
+    const b=document.getElementById(`sb${j}`);
+    b.className=`surf-btn${j===i?' active':''}`;
+  });
+  if(!triCtx)return;
+  const s=surfaces[i];
+  triCtx.clearRect(0,0,triW,triH);
+  s.drawBg(triCtx,triW,triH);
+  // Draw triangle
+  const pts=getTriPts(i);
+  triCtx.strokeStyle=s.col;triCtx.lineWidth=2.5;
+  triCtx.fillStyle=`${s.col}20`;
+  triCtx.beginPath();
+  triCtx.moveTo(pts[0].x,pts[0].y);
+  pts.forEach(p=>triCtx.lineTo(p.x,p.y));
+  triCtx.closePath();triCtx.fill();
+  triCtx.beginPath();
+  triCtx.moveTo(pts[0].x,pts[0].y);
+  pts.forEach(p=>triCtx.lineTo(p.x,p.y));
+  triCtx.closePath();triCtx.stroke();
+  // Angle arcs and labels
+  pts.forEach((p,vi)=>{
+    const angle=s.angles[vi];
+    triCtx.fillStyle=s.col;triCtx.font='bold 13px DM Sans';
+    triCtx.fillText(`${angle}°`,p.x+(vi===0?-16:vi===1?-20:8),p.y+(vi===0?-8:12));
+  });
+  // Angle sum display
+  const ar=document.getElementById('angleRow');
+  ar.innerHTML=`
+    <div class="angle-box" style="border-color:rgba(255,255,255,0.08);">
+      <span class="angle-val" style="color:${s.col}">${s.angles[0]}° + ${s.angles[1]}° + ${s.angles[2]}°</span>
+      <div class="angle-lbl">three angles</div>
+    </div>
+    <div class="angle-box" style="border-color:${s.K===0?'rgba(196,181,253,0.3)':s.K>0?'rgba(236,72,153,0.3)':'rgba(103,232,249,0.3)'};">
+      <span class="angle-val" style="color:${s.col}">${s.sum}° ${s.sumLabel}</span>
+      <div class="angle-lbl">${s.extra}</div>
+    </div>`;
+  document.getElementById('curveInsight').textContent=s.desc;
+  launchMiniConfetti();
+  if(surfsSeen.size>=3){
+    document.getElementById('gaussInsight').style.display='block';
+    document.getElementById('learningBox1').style.display='block';
+    document.getElementById('s1Next').disabled=false;
+  }
+}
+
+function getTriPts(i){
+  const cx=triW/2,cy=triH/2;
+  if(i===0) return [{x:cx,y:cy-85},{x:cx-75,y:cy+55},{x:cx+75,y:cy+55}];
+  if(i===1) return [{x:cx,y:cy-85},{x:cx-70,y:cy+55},{x:cx+70,y:cy+55}];
+  return [{x:cx,y:cy-70},{x:cx-80,y:cy+60},{x:cx+80,y:cy+60}];
+}
+
+function celebrate2(){launchConfetti();setTimeout(()=>window.location.href='space_act3.html',900);}
+
+const cc=document.getElementById('confetti'),cxcf=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<90;i++) parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*5,vy:2+Math.random()*4,
+    c:['#ec4899','#6366f1','#c4b5fd','#fbbf24'][Math.floor(Math.random()*4)],
+    s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},3500);
+}
+function launchMiniConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;
+  for(let i=0;i<15;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.4,vx:(Math.random()-.5)*7,vy:-(3+Math.random()*5),c:['#ec4899','#c4b5fd'][Math.floor(Math.random()*2)],s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!afr)animC();
+}
+function animC(){
+  cxcf.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;cxcf.save();cxcf.globalAlpha=p.l;cxcf.translate(p.x,p.y);cxcf.rotate(p.r);cxcf.fillStyle=p.c;cxcf.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cxcf.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;
+}
+</script>
+</body>
+</html>

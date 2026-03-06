@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#030408">
+<title>The Unreasonable Effectiveness — Act I</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+:root{
+  --bg:#030408;--bg2:#080b14;--bg3:#0d1120;
+  --gold:#fbbf24;--gold-d:rgba(251,191,36,0.1);
+  --vio:#8b5cf6;--cyan:#22d3ee;--amber:#f59e0b;
+  --emerald:#10b981;--coral:#f43f5e;--silver:#e2e8f0;
+  --text:#7b8fa8;--muted:#1e2d42;
+  --border:rgba(251,191,36,0.18);--radius:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 30%,rgba(251,191,36,0.06) 0%,transparent 55%),
+             radial-gradient(ellipse at 20% 80%,rgba(139,92,246,0.04) 0%,transparent 45%),var(--bg);}
+canvas#stars{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.6;}
+#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+  border-bottom:1px solid var(--border);background:rgba(3,4,8,0.93);
+  backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+.logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+.logo b{font-style:normal;font-weight:400;color:var(--gold);}
+.pdots{display:flex;gap:6px;}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+.dot.done{background:var(--gold);}.dot.now{background:var(--gold);box-shadow:0 0 10px var(--gold);animation:dp 2s ease infinite;}
+@keyframes dp{0%,100%{box-shadow:0 0 6px var(--gold)}50%{box-shadow:0 0 22px var(--gold)}}
+.scr{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:up 0.45s ease both;}
+.scr.on{display:flex;}
+@keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.atitle{text-align:center;margin-bottom:24px;}
+.albl{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+.aname{font-family:'Lora',serif;font-size:clamp(1.55em,6vw,2.1em);font-weight:400;color:var(--silver);}
+.box{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--gold);
+  border-radius:var(--radius);padding:18px 20px;margin-bottom:18px;position:relative;}
+.box::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+  padding:0 6px;color:var(--gold);font-size:0.78em;}
+.box p{font-family:'Lora',serif;font-size:1.05em;line-height:1.85;color:#3a5070;}
+.box p em{color:var(--gold);font-style:italic;}.box p strong{color:var(--silver);}
+.box.vio{border-left-color:var(--vio);}.box.vio::before{color:var(--vio);}
+.box.emerald{border-left-color:var(--emerald);}.box.emerald::before{color:var(--emerald);}
+.info{background:var(--bg2);border:1px solid rgba(251,191,36,0.15);border-left:3px solid var(--gold);
+  border-radius:var(--radius);padding:15px 17px;margin-bottom:14px;}
+.info .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:5px;}
+.info p{font-family:'Lora',serif;font-size:0.96em;line-height:1.72;color:#1a3050;}
+.info p em{font-style:normal;font-weight:600;color:var(--gold);}
+.info.vio{border-left-color:var(--vio);border-color:rgba(139,92,246,0.15);}.info.vio .lbl{color:var(--vio);}
+.info.emerald{border-left-color:var(--emerald);border-color:rgba(16,185,129,0.15);}.info.emerald .lbl{color:var(--emerald);}
+.info.cyan{border-left-color:var(--cyan);border-color:rgba(34,211,238,0.15);}.info.cyan .lbl{color:var(--cyan);}
+.info.coral{border-left-color:var(--coral);border-color:rgba(244,63,94,0.15);}.info.coral .lbl{color:var(--coral);}
+.btn{width:100%;max-width:400px;margin:0 auto 10px;display:block;border:none;border-radius:50px;
+  padding:15px 30px;font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+  color:#000;cursor:pointer;transition:all 0.25s;touch-action:manipulation;}
+.btn:hover{transform:translateY(-2px);}
+.btn-g{background:linear-gradient(135deg,var(--gold),#d97706);box-shadow:0 4px 24px rgba(251,191,36,0.3);}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;color:var(--text);}
+
+/* Wigner quote */
+.wigner{text-align:center;padding:32px 16px;margin-bottom:18px;
+  background:radial-gradient(ellipse at 50% 50%,rgba(251,191,36,0.07) 0%,transparent 70%),var(--bg2);
+  border:1px solid rgba(251,191,36,0.2);border-radius:var(--radius);}
+.wquote{font-family:'Lora',serif;font-size:clamp(1.1em,4vw,1.35em);line-height:1.85;
+  color:#2a4060;font-style:italic;margin-bottom:14px;}
+.wquote em{color:var(--gold);font-style:normal;}
+.wauthor{font-size:0.75em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);}
+
+/* Mystery cards - tap to reveal */
+.mystery-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);
+  padding:16px;margin-bottom:9px;cursor:pointer;transition:all 0.3s;overflow:hidden;}
+.mystery-card:hover{border-color:rgba(251,191,36,0.4);}
+.mystery-card.open{border-color:var(--gold);background:var(--gold-d);}
+.mc-front{display:flex;align-items:center;gap:12px;}
+.mc-icon{font-size:1.8em;flex-shrink:0;}
+.mc-title{font-family:'Lora',serif;font-size:0.95em;font-weight:600;color:var(--silver);}
+.mc-teaser{font-size:0.78em;color:var(--muted);font-style:italic;font-family:'Lora',serif;margin-top:2px;}
+.mc-body{font-family:'Lora',serif;font-size:0.88em;color:#1a3050;line-height:1.72;margin-top:12px;
+  display:none;border-top:1px solid rgba(251,191,36,0.15);padding-top:12px;}
+.mc-body strong{color:var(--silver);}
+.mc-body em{color:var(--gold);font-style:italic;}
+.mystery-card.open .mc-body{display:block;}
+
+/* Timeline */
+.timeline{margin:4px 0 16px;}
+.tl-item{display:flex;gap:12px;margin-bottom:16px;position:relative;}
+.tl-item::before{content:'';position:absolute;left:14px;top:28px;bottom:-10px;width:1px;
+  background:linear-gradient(to bottom,rgba(251,191,36,0.3),transparent);}
+.tl-item:last-child::before{display:none;}
+.tl-dot{width:28px;height:28px;border-radius:50%;background:var(--bg3);border:2px solid var(--gold);
+  display:flex;align-items:center;justify-content:center;font-size:0.7em;font-weight:700;
+  color:var(--gold);flex-shrink:0;margin-top:2px;}
+.tl-year{font-size:0.68em;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:2px;}
+.tl-event{font-family:'Lora',serif;font-size:0.9em;font-weight:600;color:var(--silver);margin-bottom:3px;}
+.tl-desc{font-size:0.8em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.5;}
+
+/* Learning boxes */
+.learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+.learn-box .learn-title{font-size:.72em;text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:6px;}
+.learn-box.try-this{border-left:3px solid var(--cyan);} .learn-box.try-this .learn-title{color:var(--cyan);}
+.learn-box.notice{border-left:3px solid var(--gold);} .learn-box.notice .learn-title{color:var(--gold);}
+.learn-box.why{border-left:3px solid var(--emerald);} .learn-box.why .learn-title{color:var(--emerald);}
+.learn-box p{font-family:'Lora',serif;font-size:.92em;line-height:1.7;color:#1a3050;}
+.learn-box p em{color:var(--gold);font-style:normal;font-weight:600;}
+/* Reset button */
+.reset-btn{background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;
+  padding:8px 16px;font-family:'DM Sans',sans-serif;font-size:.82em;font-weight:600;
+  color:var(--muted);cursor:pointer;transition:all .2s;margin-bottom:12px;}
+.reset-btn:hover{border-color:var(--gold);color:var(--gold);}
+/* Canvas */
+.cvwrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:4px;margin-bottom:12px;overflow:hidden;}
+canvas.demo{display:block;width:100%;}
+.slwrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+.slrow{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+input[type=range]{flex:1;accent-color:var(--gold);}
+.slval{font-family:'DM Sans',monospace;font-size:.9em;font-weight:700;color:var(--gold);min-width:60px;text-align:right;}
+.pad{height:20px;}
+#cfv{position:fixed;inset:0;pointer-events:none;z-index:50;}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<canvas id="cfv"></canvas>
+<div id="bg"></div>
+<div id="app">
+<header class="hdr">
+  <div class="logo">mathsedu<b>.org</b></div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+    <div style="font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Journey 10 · Act I of V</div>
+    <div class="pdots">
+      <div class="dot now"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+  </div>
+</header>
+
+<!-- S0: WIGNER'S QUESTION -->
+<section class="scr on" id="s0">
+  <div class="atitle">
+    <div class="albl">The Unreasonable Effectiveness · Act I</div>
+    <div class="aname">A question with <em style="color:var(--gold)">no good answer</em></div>
+  </div>
+  <div class="wigner">
+    <div class="wquote">"The miracle of the <em>appropriateness of the language of mathematics</em> for the formulation of the laws of physics is a wonderful gift which we neither understand nor deserve."</div>
+    <div class="wauthor">— Eugene Wigner, 1960</div>
+  </div>
+  <div class="box">
+    <p>Eugene Wigner was one of the great physicists of the twentieth century. In 1960 he wrote a paper with a strange title: <em>The Unreasonable Effectiveness of Mathematics in the Natural Sciences.</em></p>
+    <p style="margin-top:10px">His question was not about physics. It was about mathematics. Specifically, about a mysterious and beautiful fact that every physicist and mathematician knows, but nobody has adequately explained:</p>
+    <p style="margin-top:10px"><strong>Mathematics — invented by human minds, for purely abstract reasons — turns out to describe physical reality with uncanny precision.</strong></p>
+  </div>
+  <div class="info">
+    <div class="lbl">The puzzle</div>
+    <p>Riemann invented his non-Euclidean geometry as a pure mathematical curiosity in the 1850s. Sixty years later, Einstein discovered that this geometry <em>is the geometry of spacetime.</em> Nobody planned this. The connection had no reason to exist — yet it was exact.</p>
+  </div>
+  <button class="btn btn-g" onclick="go('s1')">How strange is this, really? →</button>
+  <div class="pad"></div>
+</section>
+
+<!-- S1: THE EXAMPLES -->
+<section class="scr" id="s1">
+  <div class="atitle">
+    <div class="albl">The evidence</div>
+    <div class="aname">Mathematics invented for <em style="color:var(--gold)">no reason</em></div>
+  </div>
+  <div class="box"><p>Consider a pattern. Mathematicians explore abstract structures for purely intellectual reasons. Decades or centuries later, physicists discover that <em>those exact structures</em> describe the universe. Tap each to see the story.</p></div>
+  <div class="learn-box try-this">
+    <div class="learn-title">Try This</div>
+    <p>Tap at least three of the cards below. For each one, note the time gap between the mathematical invention and the physical application. These are not approximations &mdash; the mathematics fits <em>exactly</em>.</p>
+  </div>
+  <div id="mysteryCards"></div>
+  <div class="info" id="mysteryInsight" style="display:none;">
+    <div class="lbl">💡 The pattern</div>
+    <p>In every case: the mathematics came <em>first</em>, invented for abstract reasons. The physics came <em>later</em> — and found that the mathematics already fit, perfectly. This is not a coincidence you can dismiss with statistics. It happens too consistently, and the fit is too precise.</p>
+  </div>
+  <button class="btn btn-g" id="s1next" disabled onclick="go('s1b')">See the mathematics in action →</button>
+  <div class="pad"></div>
+</section>
+
+<!-- S1B: INTERACTIVE DEMOS -->
+<section class="scr" id="s1b">
+  <div class="atitle">
+    <div class="albl">Mathematics emerges from nature</div>
+    <div class="aname">Adjust parameters, <em style="color:var(--gold)">see mathematics</em></div>
+  </div>
+  <div class="box"><p>Three phenomena. Three equations. In each case, mathematics describes reality with uncanny precision. <em>Drag the sliders and watch the mathematics emerge.</em></p></div>
+
+  <div class="learn-box try-this">
+    <div class="learn-title">Try This</div>
+    <p>Adjust each parameter below. Notice how a simple mathematical function perfectly captures the behaviour: an ellipse for orbits, a sine wave for oscillation, an exponential for growth. These are not approximations &mdash; they are exact descriptions.</p>
+  </div>
+
+  <!-- Planetary motion = ellipse -->
+  <div style="font-size:.72em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:8px;">Planetary motion &rarr; Ellipse</div>
+  <div class="cvwrap"><canvas id="orbitCv" class="demo" height="220"></canvas></div>
+  <div class="slwrap">
+    <div class="slrow">
+      <span style="font-size:.8em;color:var(--muted);">circular</span>
+      <input type="range" id="eccSl" min="0" max="90" value="40" oninput="drawDemos()">
+      <span style="font-size:.8em;color:var(--muted);">elongated</span>
+      <span class="slval" id="eccVal">e=0.40</span>
+    </div>
+  </div>
+
+  <!-- Wave motion = sine -->
+  <div style="font-size:.72em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:8px;">Wave motion &rarr; Sine wave</div>
+  <div class="cvwrap"><canvas id="waveCv" class="demo" height="160"></canvas></div>
+  <div class="slwrap">
+    <div class="slrow">
+      <span style="font-size:.8em;color:var(--muted);">low freq</span>
+      <input type="range" id="freqSl" min="1" max="8" value="3" oninput="drawDemos()">
+      <span style="font-size:.8em;color:var(--muted);">high freq</span>
+      <span class="slval" id="freqVal">f=3</span>
+    </div>
+  </div>
+
+  <!-- Population growth = exponential -->
+  <div style="font-size:.72em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:8px;">Population growth &rarr; Exponential</div>
+  <div class="cvwrap"><canvas id="popCv" class="demo" height="160"></canvas></div>
+  <div class="slwrap">
+    <div class="slrow">
+      <span style="font-size:.8em;color:var(--muted);">slow</span>
+      <input type="range" id="rateSl" min="5" max="50" value="20" oninput="drawDemos()">
+      <span style="font-size:.8em;color:var(--muted);">fast</span>
+      <span class="slval" id="rateVal">r=0.20</span>
+    </div>
+  </div>
+
+  <button class="reset-btn" onclick="resetDemos()">&#8634; Reset all</button>
+
+  <div class="learn-box notice">
+    <div class="learn-title">What To Notice</div>
+    <p>Each physical phenomenon is captured by a mathematical function that was invented for abstract reasons. Ellipses were studied by the ancient Greeks for their geometric beauty. Sine waves emerged from trigonometry. Exponentials from the study of compound interest. <em>None were designed with these physical applications in mind.</em></p>
+  </div>
+  <div class="learn-box why">
+    <div class="learn-title">Why It Matters</div>
+    <p>This is Wigner's mystery made visible. The mathematics was not built to describe these phenomena &mdash; yet it fits perfectly. Planets do not know about ellipses. Waves do not know about sine functions. But the universe obeys these equations with extraordinary precision.</p>
+  </div>
+
+  <button class="btn btn-g" onclick="go('s2')">The timeline of coincidences →</button>
+  <div class="pad"></div>
+</section>
+
+<!-- S2: TIMELINE -->
+<section class="scr" id="s2">
+  <div class="atitle">
+    <div class="albl">When the mathematics arrived</div>
+    <div class="aname">A <em style="color:var(--gold)">persistent pattern</em></div>
+  </div>
+  <div class="box"><p>The gap between mathematical invention and physical application is often measured in decades or centuries. The mathematics arrived first — with no physical motivation — and waited.</p></div>
+  <div class="timeline" id="tlDiv"></div>
+  <div class="info emerald">
+    <div class="lbl">💡 The question sharpens</div>
+    <p>If this happened once, it would be coincidence. If it happened twice, it would be remarkable. It has happened dozens of times, across every branch of physics, with mathematics from every era. The pattern is systematic. <em>Which means it demands an explanation.</em></p>
+  </div>
+  <button class="btn btn-g" onclick="go('s3')">What are the possible explanations? →</button>
+  <div class="pad"></div>
+</section>
+
+<!-- S3: PREVIEW -->
+<section class="scr" id="s3">
+  <div class="atitle">
+    <div class="albl">Act I complete</div>
+    <div class="aname">Three journeys ahead</div>
+  </div>
+  <div class="box emerald">
+    <p>This journey has five acts. Act I has posed the question. Now:</p>
+    <p style="margin-top:10px"><strong>Act II</strong> — We go through the great examples in detail: complex numbers and quantum mechanics, non-Euclidean geometry and general relativity, group theory and particle physics.</p>
+    <p style="margin-top:10px"><strong>Act III</strong> — The great equations of physics. Why are they so simple? Why do they work?</p>
+    <p style="margin-top:10px"><strong>Acts IV & V</strong> — What does this all mean? Three philosophical positions, and the question that remains permanently open.</p>
+  </div>
+  <div class="info">
+    <div class="lbl">💡 Your vantage point</div>
+    <p>You have now completed Journeys 1–9. You know complex numbers (Journey 3). You know geometry (Journey 6). You know symmetry (Journey 7). You know information theory (Journey 9). <em>You are uniquely positioned to appreciate why the unreasonable effectiveness is so unreasonable.</em></p>
+  </div>
+  <button class="btn btn-g" onclick="celebrate()">✦ On to Act II →</button>
+  <button class="btn btn-ghost" onclick="window.location.href='mind_act1.html'">← J9 The Mathematics of Mind</button>
+  <div class="pad"></div>
+</section>
+</div>
+
+<script>
+// STARS
+const sc=document.getElementById('stars'),sx=sc.getContext('2d');
+sc.width=innerWidth;sc.height=innerHeight;
+const stars=Array.from({length:120},()=>({
+  x:Math.random()*sc.width,y:Math.random()*sc.height,
+  r:Math.random()*1.2+0.2,a:Math.random(),va:(Math.random()-.5)*0.008
+}));
+function animStars(){
+  sx.clearRect(0,0,sc.width,sc.height);
+  stars.forEach(s=>{s.a=Math.max(0.05,Math.min(0.9,s.a+s.va));
+    if(s.a<=0.05||s.a>=0.9)s.va*=-1;
+    sx.beginPath();sx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    sx.fillStyle=`rgba(251,191,36,${s.a*0.4})`;sx.fill();});
+  requestAnimationFrame(animStars);}
+animStars();
+
+let cur='s0';
+function go(id){
+  document.getElementById(cur).classList.remove('on');
+  cur=id;document.getElementById(id).classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(id==='s1')initCards();
+  if(id==='s1b')initDemos();
+  if(id==='s2')initTimeline();
+}
+
+// INTERACTIVE DEMOS
+var demosInited=false;
+function initDemos(){
+  if(demosInited) return; demosInited=true;
+  drawDemos();
+}
+function resetDemos(){
+  document.getElementById('eccSl').value=40;
+  document.getElementById('freqSl').value=3;
+  document.getElementById('rateSl').value=20;
+  drawDemos();
+}
+function drawDemos(){
+  drawOrbitDemo();
+  drawWaveDemo();
+  drawPopDemo();
+}
+function drawOrbitDemo(){
+  var cv=document.getElementById('orbitCv');
+  var W=cv.parentElement.clientWidth-8; cv.width=W; cv.height=220;
+  var c=cv.getContext('2d'),H=220;
+  c.fillStyle='#080b14'; c.fillRect(0,0,W,H);
+  var ecc=parseInt(document.getElementById('eccSl').value)/100;
+  document.getElementById('eccVal').textContent='e='+ecc.toFixed(2);
+  var cx=W/2, cy=H/2, a=W*0.35, b=a*Math.sqrt(1-ecc*ecc);
+  var focalShift=a*ecc;
+  // Draw orbit ellipse
+  c.strokeStyle='rgba(251,191,36,0.6)';c.lineWidth=2;
+  c.beginPath();
+  for(var t=0;t<=Math.PI*2.01;t+=0.02){
+    var x=cx+focalShift+a*Math.cos(t), y=cy+b*Math.sin(t);
+    t===0?c.moveTo(x,y):c.lineTo(x,y);
+  }
+  c.stroke();
+  // Sun at focus
+  c.fillStyle='#fbbf24';c.beginPath();c.arc(cx,cy,6,0,Math.PI*2);c.fill();
+  c.fillStyle='rgba(251,191,36,0.15)';c.beginPath();c.arc(cx,cy,14,0,Math.PI*2);c.fill();
+  // Planet
+  var pt=Date.now()/2000;
+  var px=cx+focalShift+a*Math.cos(pt), py=cy+b*Math.sin(pt);
+  c.fillStyle='#22d3ee';c.beginPath();c.arc(px,py,4,0,Math.PI*2);c.fill();
+  c.fillStyle='rgba(251,191,36,0.35)';c.font='10px DM Sans';c.textAlign='left';
+  c.fillText('Kepler: orbits are ellipses (1609)',8,H-6);
+  c.fillText('r = a(1-e\u00B2)/(1+e\u00B7cos\u03B8)',8,14);
+  requestAnimationFrame(function(){if(cur==='s1b')drawOrbitDemo();});
+}
+function drawWaveDemo(){
+  var cv=document.getElementById('waveCv');
+  var W=cv.parentElement.clientWidth-8; cv.width=W; cv.height=160;
+  var c=cv.getContext('2d'),H=160;
+  c.fillStyle='#080b14'; c.fillRect(0,0,W,H);
+  var freq=parseInt(document.getElementById('freqSl').value);
+  document.getElementById('freqVal').textContent='f='+freq;
+  var t=Date.now()/1000;
+  c.strokeStyle='rgba(251,191,36,0.6)';c.lineWidth=2;c.beginPath();
+  for(var px=0;px<W;px++){
+    var x=px/W*Math.PI*2*freq;
+    var y=H/2-Math.sin(x+t*2)*H*0.35;
+    px===0?c.moveTo(px,y):c.lineTo(px,y);
+  }
+  c.stroke();
+  // Zero line
+  c.strokeStyle='rgba(251,191,36,0.12)';c.lineWidth=1;c.setLineDash([4,4]);
+  c.beginPath();c.moveTo(0,H/2);c.lineTo(W,H/2);c.stroke();c.setLineDash([]);
+  c.fillStyle='rgba(251,191,36,0.35)';c.font='10px DM Sans';c.textAlign='left';
+  c.fillText('y = A\u00B7sin(2\u03C0ft)',8,14);
+  c.fillText('Sound, light, quantum states',8,H-6);
+  requestAnimationFrame(function(){if(cur==='s1b')drawWaveDemo();});
+}
+function drawPopDemo(){
+  var cv=document.getElementById('popCv');
+  var W=cv.parentElement.clientWidth-8; cv.width=W; cv.height=160;
+  var c=cv.getContext('2d'),H=160;
+  c.fillStyle='#080b14'; c.fillRect(0,0,W,H);
+  var rate=parseInt(document.getElementById('rateSl').value)/100;
+  document.getElementById('rateVal').textContent='r='+rate.toFixed(2);
+  c.strokeStyle='rgba(251,191,36,0.6)';c.lineWidth=2;c.beginPath();
+  var maxY=Math.exp(rate*10);
+  for(var px=0;px<W;px++){
+    var t=px/W*10;
+    var y=Math.exp(rate*t);
+    var py=H-(y/maxY)*H*0.85-H*0.05;
+    if(py<0) py=0;
+    px===0?c.moveTo(px,py):c.lineTo(px,py);
+  }
+  c.stroke();
+  c.fillStyle='rgba(251,191,36,0.35)';c.font='10px DM Sans';c.textAlign='left';
+  c.fillText('N(t) = N\u2080\u00B7e^(rt)',8,14);
+  c.fillText('Bacteria, viruses, compound interest',8,H-6);
+}
+
+// MYSTERY CARDS
+const MC=[
+  {icon:'⚡',title:'Complex Numbers → Quantum Mechanics',teaser:'Invented in 1545 to solve cubic equations',
+   body:'<strong>The invention:</strong> Gerolamo Cardano introduced complex numbers in 1545 — numbers involving √(−1) — purely to solve certain cubic equations. They seemed like a convenient fiction: useful tricks with no physical meaning. René Descartes called them "imaginary" in mockery.\n\n<strong>The application:</strong> In 1925, Heisenberg and Schrödinger independently discovered that quantum mechanics requires complex numbers — not as a notational convenience, but as a fundamental feature of reality. The wave function ψ is complex-valued. Its squared magnitude gives probabilities, but the complex phase is physically real — interference patterns between quantum states depend on it. A 2021 experiment confirmed that quantum mechanics cannot be reformulated using only real numbers without losing predictive power.\n\n<em>Gap: 380 years. Purpose during invention: none whatsoever.</em>'},
+  {icon:'🌐',title:'Non-Euclidean Geometry → General Relativity',teaser:'Invented 1820s as a mathematical curiosity',
+   body:'<strong>The invention:</strong> Gauss, Bolyai, and Lobachevsky explored geometries where Euclid\'s parallel postulate fails — surfaces curved in ways that flat space cannot accommodate. In 1854, Riemann generalised this to arbitrary dimensions with his concept of a Riemannian manifold: a space with a local metric that can vary continuously. This was pure mathematics. Riemann had no physical application in mind.\n\n<strong>The application:</strong> In 1915, Einstein needed a mathematical framework to express his intuition that gravity is the curvature of spacetime. He contacted his friend Marcel Grossmann, who pointed him to Riemann\'s 60-year-old work. The mathematics fit perfectly — not approximately, but exactly. Einstein\'s field equations Gμν = 8πGTμν are written entirely in the language Riemann had invented for abstract reasons.\n\n<em>Gap: ~60 years. Riemannian geometry was the exact tool needed — and it already existed.</em>'},
+  {icon:'💎',title:'Group Theory → Particle Physics',teaser:'Invented 1830s to understand polynomial equations',
+   body:'<strong>The invention:</strong> Évariste Galois developed group theory in 1832 — aged 20, the night before the duel that killed him — to understand why some polynomial equations cannot be solved by radicals. Group theory describes abstract symmetries: the mathematical structure of transformations that leave something unchanged.\n\n<strong>The application:</strong> The Standard Model of particle physics is, at its core, a statement about symmetry groups. The electroweak force has SU(2)×U(1) symmetry. The strong force has SU(3) symmetry. Every particle is a representation of these groups. In 1961, Gell-Mann used the group SU(3) to predict the existence and properties of the Omega-minus particle — before it was discovered experimentally. Galois\'s abstract symmetry algebra had become the language of fundamental physics.\n\n<em>Gap: ~130 years. A theory about polynomials became the grammar of reality.</em>'},
+  {icon:'〰️',title:'Fourier Analysis → Heat, Sound, Quantum Mechanics',teaser:'Invented 1822 to describe heat flow',
+   body:'<strong>The invention:</strong> Joseph Fourier showed in 1822 that any periodic function can be expressed as a sum of sine and cosine waves — the Fourier series. Mathematicians were initially sceptical (Cauchy had doubts about its rigour), but the technique was powerful. It was designed for one problem: heat diffusion.\n\n<strong>The applications:</strong> Fourier analysis turned out to be one of the most universal tools in all of physics and engineering. It describes sound waves, electrical signals, and quantum mechanical eigenstates. The Heisenberg uncertainty principle — ΔxΔp ≥ ℏ/2 — is a direct consequence of Fourier analysis: position and momentum are Fourier conjugate pairs. MRI machines, telecommunications, JPEG compression, and spectroscopy all run on Fourier\'s 1822 mathematics.\n\n<em>Gap: immediate for heat, 100+ years for quantum mechanics. One tool, infinite applications.</em>'},
+  {icon:'🔢',title:'Matrix Algebra → Quantum Mechanics (Again)',teaser:'Invented 1858 for abstract algebra',
+   body:'<strong>The invention:</strong> Arthur Cayley introduced matrices and matrix multiplication in 1858 as a way to compactly represent linear transformations. For decades, matrices were considered interesting but narrowly useful — a tool for solving systems of equations more elegantly.\n\n<strong>The application:</strong> Heisenberg\'s matrix mechanics (1925) represented physical observables — position, momentum, energy — as matrices. The fact that matrix multiplication is non-commutative (AB ≠ BA in general) turned out to express the fundamental physical fact that quantum measurements disturb each other: measuring position first gives a different result than measuring momentum first. Non-commutativity of matrices = non-commutativity of quantum measurements. Cayley had built the exact framework, 67 years in advance.\n\n<em>Gap: 67 years. Non-commutativity, invented as algebra, became the heart of quantum theory.</em>'},
+];
+
+let opened=0;
+function initCards(){
+  opened=0;const w=document.getElementById('mysteryCards');w.innerHTML='';
+  MC.forEach(m=>{
+    const d=document.createElement('div');d.className='mystery-card';
+    d.innerHTML=`<div class="mc-front"><span class="mc-icon">${m.icon}</span>
+      <div><div class="mc-title">${m.title}</div><div class="mc-teaser">${m.teaser}</div></div>
+      <span style="margin-left:auto;color:var(--muted);font-size:0.85em;flex-shrink:0;">▾</span></div>
+      <div class="mc-body">${m.body.replace(/\n\n/g,'</p><p style="margin-top:8px">').replace(/^/,'<p>').replace(/$/,'</p>')}</div>`;
+    d.onclick=()=>{const was=d.classList.contains('open');
+      d.classList.toggle('open');
+      if(!was){opened++;mini();
+        if(opened>=3){document.getElementById('mysteryInsight').style.display='block';document.getElementById('s1next').disabled=false;}}
+    };
+    w.appendChild(d);
+  });
+  document.getElementById('mysteryInsight').style.display='none';
+  document.getElementById('s1next').disabled=true;
+}
+
+// TIMELINE
+const TL=[
+  {y:'1545',dot:'C',event:'Complex numbers invented',desc:'Cardano introduces √(−1) to solve cubic equations. Called "imaginary" — no physical meaning intended.'},
+  {y:'1822',dot:'F',event:'Fourier analysis invented',desc:'Fourier shows any function is a sum of sine waves. Designed for heat. Will describe quantum mechanics 100 years later.'},
+  {y:'1832',dot:'G',event:'Group theory invented',desc:'Galois, aged 20, develops group theory for polynomials. Will become the language of particle physics in the 20th century.'},
+  {y:'1854',dot:'R',event:'Riemannian geometry invented',desc:'Riemann generalises geometry to curved n-dimensional spaces. No physical motivation. Einstein will need it in 60 years.'},
+  {y:'1858',dot:'C',event:'Matrix algebra invented',desc:'Cayley formalises matrices. Non-commutativity is noted as a curiosity. It will turn out to describe quantum measurements.'},
+  {y:'1915',dot:'E',event:'General Relativity: Riemannian geometry = spacetime',desc:'Einstein discovers that Riemann\'s 60-year-old abstract geometry is the exact language of gravity.'},
+  {y:'1925',dot:'H',event:'Quantum Mechanics: matrices, complex numbers',desc:'Heisenberg and Schrödinger discover that quantum physics requires matrix algebra AND complex numbers — invented for algebra.'},
+  {y:'1961',dot:'G',event:'SU(3) predicts the Omega-minus particle',desc:'Gell-Mann uses Galois\'s group theory to predict an undiscovered particle. It is found experimentally in 1964.'},
+];
+
+function initTimeline(){
+  const w=document.getElementById('tlDiv');w.innerHTML='';
+  TL.forEach((t,i)=>{
+    const d=document.createElement('div');d.className='tl-item';
+    d.style.animation='up 0.35s ease '+(i*0.07)+'s both';
+    d.innerHTML=`<div class="tl-dot">${t.dot}</div>
+      <div style="flex:1;padding-top:3px;">
+        <div class="tl-year">${t.y}</div>
+        <div class="tl-event">${t.event}</div>
+        <div class="tl-desc">${t.desc}</div>
+      </div>`;
+    w.appendChild(d);
+  });
+}
+
+function celebrate(){confetti();setTimeout(()=>window.location.href='unreasonable_act2.html',900);}
+
+const cfv=document.getElementById('cfv'),cfx=cfv.getContext('2d');
+let ps=[],raf=null;
+function confetti(){
+  cfv.width=innerWidth;cfv.height=innerHeight;ps=[];
+  for(let i=0;i<110;i++)ps.push({x:Math.random()*cfv.width,y:-20,
+    vx:(Math.random()-.5)*6,vy:2+Math.random()*5,
+    c:['#fbbf24','#f59e0b','#8b5cf6','#22d3ee','#10b981'][Math.floor(Math.random()*5)],
+    s:4+Math.random()*8,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.25,l:1});
+  if(raf)cancelAnimationFrame(raf);animcf();setTimeout(()=>ps=[],4500);
+}
+function mini(){
+  cfv.width=innerWidth;cfv.height=innerHeight;
+  for(let i=0;i<12;i++)ps.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.4,
+    vx:(Math.random()-.5)*7,vy:-(3+Math.random()*5),
+    c:['#fbbf24','#f59e0b'][Math.floor(Math.random()*2)],s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!raf)animcf();
+}
+function animcf(){
+  cfx.clearRect(0,0,cfv.width,cfv.height);ps=ps.filter(p=>p.l>.01);
+  ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;
+    cfx.save();cfx.globalAlpha=p.l;cfx.translate(p.x,p.y);cfx.rotate(p.r);
+    cfx.fillStyle=p.c;cfx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cfx.restore();});
+  if(ps.length>0)raf=requestAnimationFrame(animcf);else raf=null;
+}
+</script>
+</body>
+</html>

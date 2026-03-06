@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#030f07">
+    <title>The Art of Uncertainty — Act V</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#030f07;--bg2:#061a0c;--bg3:#0a2410;
+            --em:#10b981;--em-dim:rgba(16,185,129,0.12);
+            --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.12);
+            --rose:#fb7185;--rose-dim:rgba(251,113,133,0.1);
+            --sky:#38bdf8;--sky-dim:rgba(56,189,248,0.1);
+            --cream:#f0fdf4;--text:#c8e8d0;--muted:#3a6048;
+            --gold:#fbbf24;--gold-dim:rgba(251,191,36,0.1);
+            --border:rgba(16,185,129,0.12);--radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #felt{position:fixed;inset:0;z-index:0;pointer-events:none;
+            background:radial-gradient(ellipse at 30% 40%,rgba(16,185,129,0.05) 0%,transparent 55%),
+                        radial-gradient(ellipse at 70% 65%,rgba(245,158,11,0.04) 0%,transparent 50%),var(--bg);}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:1px solid var(--border);background:rgba(3,15,7,0.92);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--gold);font-style:normal;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--em);}
+        .dot.active{background:var(--gold);box-shadow:0 0 12px var(--gold);animation:p 2s ease infinite;}
+        @keyframes p{0%,100%{box-shadow:0 0 6px var(--gold)}50%{box-shadow:0 0 22px var(--gold)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.55s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);padding:0 6px;color:var(--gold);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#b8d8c0;}
+        .narrator p em{color:var(--gold);font-style:italic;}
+        .narrator p strong{color:var(--cream);}
+        .narrator.em{border-left-color:var(--em);} .narrator.em::before{color:var(--em);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--gold);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;background:linear-gradient(135deg,var(--gold),#d97706);border:none;border-radius:50px;padding:15px 30px;font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;color:#030f07;cursor:pointer;transition:all 0.25s;touch-action:manipulation;box-shadow:0 4px 24px rgba(251,191,36,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(251,191,36,0.45);}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(251,191,36,0.15);border-left:3px solid var(--gold);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#7aa888;}
+        .insight p em{color:var(--gold);font-style:normal;font-weight:600;}
+        .insight.em{border-left-color:var(--em);border-color:rgba(16,185,129,0.15);} .insight.em .lbl{color:var(--em);}
+
+        /* Bayesian loop */
+        .loop-node{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;flex:1;min-width:100px;}
+        .loop-sym{font-family:'DM Sans',monospace;font-size:1.3em;font-weight:700;display:block;margin-bottom:4px;}
+        .loop-name{font-family:'Lora',serif;font-size:0.88em;font-weight:600;color:var(--cream);margin-bottom:3px;}
+        .loop-eg{font-size:0.75em;color:var(--muted);font-style:italic;}
+
+        /* Act cards */
+        .act-card{background:var(--bg2);border:1px solid var(--border);border-left:3px solid;border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;animation:fadeUp 0.4s ease both;}
+        .ac-label{font-size:0.62em;text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;}
+        .ac-title{font-family:'Lora',serif;font-size:1em;font-weight:600;color:var(--cream);margin-bottom:3px;}
+        .ac-prior{font-size:0.82em;color:var(--muted);font-style:italic;font-family:'Lora',serif;}
+
+        /* Application cards */
+        .app-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;}
+        .app-icon{font-size:1.8em;flex-shrink:0;}
+        .app-name{font-family:'Lora',serif;font-size:0.95em;font-weight:600;color:var(--cream);margin-bottom:2px;}
+        .app-body{font-size:0.82em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.5;}
+
+        /* Final */
+        .final-wrap{text-align:center;padding:28px 16px;background:linear-gradient(135deg,rgba(16,185,129,0.07),rgba(245,158,11,0.05),rgba(251,191,36,0.04));border:1px solid rgba(251,191,36,0.2);border-radius:var(--radius);margin-bottom:20px;}
+        .final-star{font-size:4.5em;display:block;margin-bottom:12px;}
+        .final-title{font-family:'Lora',serif;font-size:1.5em;color:var(--gold);margin-bottom:10px;font-weight:600;}
+        .final-body{font-family:'Lora',serif;font-size:1em;color:#6a9878;line-height:1.9;font-style:italic;}
+        .final-body em{color:var(--cream);font-style:normal;}
+
+        /* Next journeys */
+        .next-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;display:flex;gap:14px;align-items:center;transition:border-color 0.2s;}
+        .next-card:hover{border-color:rgba(251,191,36,0.25);}
+        .next-tag{font-size:0.65em;background:var(--gold-dim);border:1px solid rgba(251,191,36,0.2);color:var(--gold);border-radius:20px;padding:2px 8px;margin-left:auto;white-space:nowrap;flex-shrink:0;}
+        .next-tag.available{background:var(--em-dim);border-color:rgba(16,185,129,0.3);color:var(--em);}
+
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--amber);}
+        .learn-box.notice .learn-title{color:var(--em,#10b981);}
+        .learn-box.why .learn-title{color:var(--rose);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--gold);color:var(--gold);}
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div id="felt"></div>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div style="font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Act V of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div>
+        <div class="dot done"></div><div class="dot active"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0 -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Art of Uncertainty · Act V</div>
+      <div class="act-name">The <em>Framework</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;"><div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">🧭</div></div>
+    <div class="narrator">
+      <p>A door opened. A test came back positive. A formula was revealed. A courtroom made an error.</p>
+      <p style="margin-top:10px">Every act was the same move: <em>start with a belief, receive evidence, update.</em></p>
+      <p style="margin-top:10px">This is not just a technique for probability puzzles. It is the correct way to think under uncertainty — in science, medicine, law, and everyday life.</p>
+      <p style="margin-top:10px">You are now a Bayesian.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">See the complete picture →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: THE LOOP -->
+  <section class="screen" id="screen-1">
+    <div class="act-title"><div class="act-label">The Bayesian loop</div><div class="act-name">One move, <em>infinite applications</em></div></div>
+    <div class="narrator em">
+      <p>Every act was one iteration of the same loop. The output of each update becomes the input for the next.</p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+        <div class="loop-node" style="border-color:rgba(16,185,129,0.3);">
+          <span class="loop-sym" style="color:var(--em);">Prior</span>
+          <div class="loop-name">P(H)</div>
+          <div class="loop-eg">What you believe before</div>
+        </div>
+        <div style="font-size:1.5em;color:var(--muted);flex-shrink:0;">+</div>
+        <div class="loop-node" style="border-color:rgba(245,158,11,0.3);">
+          <span class="loop-sym" style="color:var(--amber);">Evidence</span>
+          <div class="loop-name">P(E|H)</div>
+          <div class="loop-eg">New information arrives</div>
+        </div>
+        <div style="font-size:1.5em;color:var(--muted);flex-shrink:0;">→</div>
+        <div class="loop-node" style="border-color:rgba(56,189,248,0.3);">
+          <span class="loop-sym" style="color:var(--sky);">Posterior</span>
+          <div class="loop-name">P(H|E)</div>
+          <div class="loop-eg">Updated belief</div>
+        </div>
+      </div>
+      <div style="text-align:center;font-family:'Lora',serif;font-size:0.88em;color:var(--muted);font-style:italic;">
+        The posterior becomes the new prior. Then new evidence arrives. The loop repeats.
+        <br>This is how science works. This is how rational minds work.
+      </div>
+    </div>
+
+    <!-- Every act mapped -->
+    <div id="actCards"></div>
+    <div style="text-align:center;"><button class="reset-btn" onclick="buildActCards()">Reset act cards</button></div>
+
+    <button class="cta-btn" onclick="goToScreen(2)">Where this thinking lives →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: REAL WORLD -->
+  <section class="screen" id="screen-2">
+    <div class="act-title"><div class="act-label">Bayesian thinking in the world</div><div class="act-name">Every field, <em>one idea</em></div></div>
+    <div class="narrator"><p>Bayesian reasoning is not an academic curiosity. It is the engine behind some of the most important technology and methodology of the modern world.</p></div>
+
+    <div id="appCards"></div>
+
+    <div class="insight em" style="margin-bottom:14px;">
+      <div class="lbl">💡 The question to always ask</div>
+      <p>Every time you encounter a statistic, a test result, a news headline, a claim of certainty — ask: <em>What was the prior? What is the base rate? How common is this in the population?</em> The answer transforms information from raw numbers into genuine understanding.</p>
+    </div>
+
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Think of a random walk: flip a coin and step right for heads, left for tails. After 100 steps, you could be anywhere -- but most likely you are close to where you started. Now imagine a grain of pollen on water, jostled by millions of molecular collisions. That is Brownian motion -- a continuous random walk discovered by Robert Brown in 1827 and explained by Einstein in 1905.</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>Each act in this journey was a random walk through ideas. You started with a gut feeling (the prior), took a step when new evidence arrived, and ended up somewhere unexpected. The Bayesian loop -- prior, evidence, posterior -- is itself a walk: each update moves your belief, and after many updates, you converge on reality. Just as a random walk's average displacement grows with the square root of time, your certainty grows with the square root of evidence.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>Random walks and Brownian motion are not just mathematical curiosities. Stock prices follow random walks (the basis of modern finance). Molecules diffuse through random motion (the basis of chemistry and biology). Search algorithms explore solution spaces through randomised steps. Even your brain's neural activity resembles a random walk through possible states. The mathematics of uncertainty is not about eliminating randomness -- it is about understanding its structure and using it wisely.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)">✦ Complete the journey →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: FINAL -->
+  <section class="screen" id="screen-3">
+    <div class="act-title"><div class="act-label">Complete</div><div class="act-name">The Art of <em>Uncertainty</em></div></div>
+
+    <div class="final-wrap">
+      <span class="final-star">✦</span>
+      <div class="final-title">The Art of Uncertainty — Complete</div>
+      <div class="final-body">
+        You let a door teach you that intuition lies.<br>
+        You let a test show you that "99% accurate" means almost nothing alone.<br>
+        You unpacked a formula that looks like symbols and found <em>common sense.</em><br>
+        You saw innocent people convicted because a courtroom forgot the base rate.<br><br>
+        These are not probability tricks.<br>
+        <em>They are the tools of a mind that reasons honestly under uncertainty.</em><br><br>
+        Every day you will encounter claims, statistics, tests, and evidence.<br>
+        Now you know what to ask.
+      </div>
+    </div>
+
+    <div style="font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;text-align:center;">Continue your journey</div>
+    <div id="nextCards"></div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+      <button class="cta-btn" onclick="grandFinale()">✦ Celebrate this journey</button>
+      <button class="cta-btn ghost" onclick="window.location.href='uncertainty_act1.html'">← Start from the beginning</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n;document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1)buildActCards();
+  if(n===2)buildAppCards();
+  if(n===3)buildNextCards();
+}
+
+const actData=[
+  {icon:'🚪',act:'Act I',title:'The Door',col:'var(--em)',
+   prior:'Prior: 1/3 chance your door has the car',
+   evidence:'Evidence: host opens a goat door',
+   posterior:'Posterior: switching gives 2/3 chance of winning'},
+  {icon:'🧪',act:'Act II',title:'The Test',col:'var(--amber)',
+   prior:'Prior: 1 in 1,000 people have the disease',
+   evidence:'Evidence: positive test result (99% accurate)',
+   posterior:'Posterior: only ~9% chance you\'re actually sick'},
+  {icon:'🔄',act:'Act III',title:'The Update',col:'var(--sky)',
+   prior:'P(H) — your prior probability',
+   evidence:'P(E|H) — how expected is this evidence?',
+   posterior:'P(H|E) = P(E|H)×P(H)/P(E) — Bayes\' theorem'},
+  {icon:'⚖️',act:'Act IV',title:'The Prosecutor',col:'var(--rose)',
+   prior:'Prior: very few people commit this crime',
+   evidence:'DNA match (1 in 1 million false rate)',
+   posterior:'Posterior: ~50% given city population — not "certain guilt"'},
+];
+
+function buildActCards(){
+  const c=document.getElementById('actCards');c.innerHTML='';
+  actData.forEach((a,i)=>{
+    const div=document.createElement('div');
+    div.className='act-card';
+    div.style.cssText=`border-left-color:${a.col};animation-delay:${i*0.1}s;`;
+    div.innerHTML=`<div style="display:flex;gap:10px;align-items:flex-start;">
+      <div style="font-size:1.6em;flex-shrink:0;">${a.icon}</div>
+      <div style="flex:1;">
+        <div class="ac-label" style="color:${a.col}">${a.act} — ${a.title}</div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
+          <div class="ac-prior"><span style="color:var(--em);font-style:normal;font-weight:600;">Prior:</span> ${a.prior.replace('Prior: ','')}</div>
+          <div class="ac-prior"><span style="color:var(--amber);font-style:normal;font-weight:600;">Evidence:</span> ${a.evidence.replace('Evidence: ','')}</div>
+          <div class="ac-prior"><span style="color:${a.col};font-style:normal;font-weight:600;">Posterior:</span> ${a.posterior.replace('Posterior: ','')}</div>
+        </div>
+      </div>
+    </div>`;
+    c.appendChild(div);
+  });
+}
+
+const appData=[
+  {icon:'🌦️',name:'Weather forecasting',body:'Tomorrow\'s forecast is a posterior probability — prior weather patterns updated with atmospheric data. "70% chance of rain" is Bayes\' theorem run on satellite readings.'},
+  {icon:'🏥',name:'Medical diagnosis',body:'A doctor\'s differential diagnosis is Bayesian. They start with base rates for each condition, update on symptoms and test results, converge on a posterior diagnosis.'},
+  {icon:'📧',name:'Spam filters',body:'Your email\'s spam filter is a Naïve Bayes classifier. It calculates P(spam | these words) using learned priors. Every time you mark something as spam, you update its model.'},
+  {icon:'🚗',name:'Self-driving cars',body:'Sensor fusion in autonomous vehicles uses Bayesian filtering — continuously updating probability distributions over the car\'s position and surrounding objects as new sensor data arrives.'},
+  {icon:'🔬',name:'Scientific inference',body:'Bayesian inference is an alternative to p-values in statistics. Instead of asking "how unlikely is this data if there\'s no effect?", it asks "given this data, what should I believe about the effect?".'},
+  {icon:'🧠',name:'How your brain works',body:'Predictive processing theory suggests the brain is a Bayesian inference machine — constantly generating predictions (priors) and updating on sensory evidence (likelihoods) to perceive the world.'},
+];
+
+function buildAppCards(){
+  const c=document.getElementById('appCards');c.innerHTML='';
+  appData.forEach(a=>{
+    const div=document.createElement('div');
+    div.className='app-card';
+    div.innerHTML=`<div class="app-icon">${a.icon}</div>
+      <div><div class="app-name">${a.name}</div><div class="app-body">${a.body}</div></div>`;
+    c.appendChild(div);
+  });
+}
+
+const nextData=[
+  {icon:'🏨',title:'The Infinite Hotel',sub:'Hilbert\'s Hotel. Cantor\'s diagonal. Some infinities are bigger than others.',tag:'available'},
+  {icon:'🔢',title:'The Prime Journey',sub:'Why do some numbers refuse to be divided? Euclid\'s proof. The Riemann Hypothesis.',tag:'available'},
+  {icon:'🕐',title:'The Clock That Never Stops',sub:'Modular arithmetic. Caesar ciphers. Group theory.',tag:'available'},
+  {icon:'📐',title:'The Shape of Change',sub:'Calculus. Rates of change. The mathematics underneath physics, finance, and engineering.',tag:'soon'},
+];
+
+function buildNextCards(){
+  const c=document.getElementById('nextCards');c.innerHTML='';
+  nextData.forEach(n=>{
+    const div=document.createElement('div');
+    div.className='next-card';
+    const isAvail=n.tag==='available';
+    div.style.cursor=isAvail?'pointer':'default';
+    if(isAvail) div.onclick=()=>{
+      const map={'Infinite':'infinite_hotel_act1.html','Prime':'prime_journey_act1.html','Clock':'clock_journey_act1.html'};
+      for(const [k,v] of Object.entries(map)) if(n.title.includes(k)) window.location.href=v;
+    };
+    div.innerHTML=`<div style="font-size:1.8em;flex-shrink:0;">${n.icon}</div>
+      <div style="flex:1;">
+        <div style="font-family:'Lora',serif;font-size:0.95em;font-weight:600;color:var(--cream);margin-bottom:2px;">${n.title}</div>
+        <div style="font-size:0.78em;color:var(--muted);font-family:'Lora',serif;font-style:italic;">${n.sub}</div>
+      </div>
+      <div class="next-tag ${isAvail?'available':''}">${isAvail?'Available now':'Coming soon'}</div>`;
+    c.appendChild(div);
+  });
+}
+
+function grandFinale(){launchConfetti();}
+
+const cc=document.getElementById('confetti'),cx=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<140;i++) parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*6,vy:2+Math.random()*5,
+    c:['#fbbf24','#10b981','#f59e0b','#fb7185','#38bdf8','#f0fdf4'][Math.floor(Math.random()*6)],
+    s:5+Math.random()*8,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.25,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},4000);
+}
+function animC(){
+  cx.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.01;cx.save();cx.globalAlpha=p.l;cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cx.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;
+}
+</script>
+</body>
+</html>

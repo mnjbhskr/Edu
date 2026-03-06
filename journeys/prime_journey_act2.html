@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#07071a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>The Prime Journey — Act II</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap');
+
+        :root {
+            --bg:        #07071a;
+            --bg2:       #0e0e28;
+            --bg3:       #13132f;
+            --gold:      #fbbf24;
+            --gold-dim:  rgba(251,191,36,0.12);
+            --green:     #10b981;
+            --green-dim: rgba(16,185,129,0.12);
+            --cyan:      #22d3ee;
+            --cyan-dim:  rgba(34,211,238,0.1);
+            --pink:      #f472b6;
+            --text:      #e2e2f0;
+            --muted:     #7070a0;
+            --panel:     rgba(255,255,255,0.03);
+            --border:    rgba(255,255,255,0.07);
+            --radius:    18px;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        html, body {
+            height:100%; background:var(--bg); color:var(--text);
+            font-family:'Nunito',sans-serif; overflow-x:hidden;
+        }
+
+        /* Stars */
+        #stars { position:fixed; inset:0; z-index:0; pointer-events:none;
+            background: radial-gradient(ellipse at 15% 25%, rgba(34,211,238,0.04) 0%, transparent 55%),
+                        radial-gradient(ellipse at 85% 75%, rgba(251,191,36,0.03) 0%, transparent 55%), var(--bg); }
+
+        #app { position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column; }
+
+        /* Header */
+        .app-header {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:16px 20px 12px;
+            border-bottom:1px solid var(--border);
+            background:rgba(7,7,26,0.9);
+            backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+            position:sticky; top:0; z-index:10;
+        }
+        .header-logo { font-family:'Crimson Pro',serif; font-size:1.1em; font-style:italic; color:var(--muted); }
+        .header-logo span { color:var(--gold); font-style:normal; }
+        .progress-wrap { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+        .progress-dots { display:flex; gap:6px; align-items:center; }
+        .dot { width:8px; height:8px; border-radius:50%; background:var(--border); transition:all 0.4s ease; }
+        .dot.active { background:var(--cyan); box-shadow:0 0 8px var(--cyan); }
+        .dot.done { background:var(--green); }
+        .act-indicator { font-size:0.65em; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+
+        /* Screens */
+        .screen { display:none; flex-direction:column; flex:1; padding:24px 20px 100px; animation:fadeUp 0.5s ease both; }
+        .screen.active { display:flex; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+        /* Narrator */
+        .narrator {
+            background:var(--bg2); border:1px solid var(--border);
+            border-left:3px solid var(--cyan); border-radius:var(--radius);
+            padding:18px 20px; margin-bottom:20px; position:relative;
+        }
+        .narrator::before { content:'✦'; position:absolute; top:-10px; left:18px;
+            background:var(--bg2); padding:0 6px; color:var(--cyan); font-size:0.8em; }
+        .narrator p { font-family:'Crimson Pro',serif; font-size:1.12em; line-height:1.78; color:#c8c8e8; }
+        .narrator p em { color:var(--gold); font-style:italic; }
+        .narrator p strong { color:#fff; font-weight:400; }
+        .narrator.gold-accent { border-left-color:var(--gold); }
+        .narrator.gold-accent::before { color:var(--gold); }
+        .narrator.green-accent { border-left-color:var(--green); }
+        .narrator.green-accent::before { color:var(--green); }
+
+        /* Act title */
+        .act-title { text-align:center; margin-bottom:22px; }
+        .act-label { font-size:0.7em; text-transform:uppercase; letter-spacing:3px; color:var(--muted); margin-bottom:6px; }
+        .act-name { font-family:'Crimson Pro',serif; font-size:clamp(1.6em,6vw,2.2em); font-weight:300; color:#fff; }
+        .act-name em { color:var(--cyan); font-style:italic; }
+
+        /* Character card */
+        .character-card {
+            background:var(--bg2); border:1px solid rgba(34,211,238,0.15);
+            border-radius:var(--radius); padding:20px; margin-bottom:20px;
+            display:flex; gap:16px; align-items:flex-start;
+        }
+        .char-avatar {
+            width:64px; height:64px; border-radius:50%; flex-shrink:0;
+            background:linear-gradient(135deg, rgba(34,211,238,0.2), rgba(251,191,36,0.1));
+            border:2px solid rgba(34,211,238,0.3);
+            display:flex; align-items:center; justify-content:center; font-size:1.8em;
+        }
+        .char-info .name { font-weight:800; color:var(--cyan); font-size:1em; margin-bottom:2px; }
+        .char-info .title { font-size:0.75em; color:var(--muted); margin-bottom:8px; font-style:italic; }
+        .char-info .quote {
+            font-family:'Crimson Pro',serif; font-size:0.95em; line-height:1.65; color:#b0b0d0;
+            border-left:2px solid rgba(34,211,238,0.2); padding-left:10px;
+        }
+
+        /* Sieve Grid */
+        .sieve-container {
+            background:var(--bg2); border:1px solid var(--border);
+            border-radius:var(--radius); padding:16px; margin-bottom:16px;
+            overflow:hidden;
+        }
+        .sieve-grid {
+            display:grid; grid-template-columns:repeat(10, 1fr); gap:3px;
+        }
+        .sieve-cell {
+            aspect-ratio:1; border-radius:6px;
+            background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.05);
+            display:flex; align-items:center; justify-content:center;
+            font-size:clamp(0.6em, 2.2vw, 0.82em);
+            font-family:'Courier New', monospace; color:#8080a8;
+            transition:all 0.2s ease; cursor:default; position:relative;
+            font-weight:600;
+        }
+        .sieve-cell.one { color:#303050; background:rgba(255,255,255,0.01); }
+        .sieve-cell.current-prime {
+            background:var(--gold-dim); border-color:rgba(251,191,36,0.4); color:var(--gold);
+            box-shadow:0 0 12px rgba(251,191,36,0.2);
+            animation:cellPulse 0.8s ease infinite alternate;
+        }
+        @keyframes cellPulse { from{box-shadow:0 0 6px rgba(251,191,36,0.1)} to{box-shadow:0 0 18px rgba(251,191,36,0.4)} }
+        .sieve-cell.being-crossed {
+            background:rgba(244,114,182,0.15); border-color:rgba(244,114,182,0.4); color:var(--pink);
+            transform:scale(1.1); z-index:2;
+        }
+        .sieve-cell.crossed {
+            background:rgba(255,255,255,0.01); border-color:rgba(255,255,255,0.02); color:#303050;
+            text-decoration:line-through;
+        }
+        .sieve-cell.confirmed {
+            background:var(--gold-dim); border-color:rgba(251,191,36,0.3); color:var(--gold);
+        }
+
+        /* Sieve controls */
+        .sieve-controls { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; align-items:center; }
+        .ctrl-btn {
+            background:var(--bg3); border:1.5px solid var(--border);
+            border-radius:30px; padding:10px 20px;
+            color:var(--muted); font-family:'Nunito',sans-serif; font-size:0.88em; font-weight:700;
+            cursor:pointer; transition:all 0.2s ease; touch-action:manipulation;
+        }
+        .ctrl-btn:hover, .ctrl-btn:active { border-color:var(--cyan); color:var(--cyan); background:var(--cyan-dim); }
+        .ctrl-btn.primary { background:var(--cyan-dim); border-color:var(--cyan); color:var(--cyan); }
+        .ctrl-btn:disabled { opacity:0.3; cursor:default; }
+
+        /* Speed */
+        .speed-row { display:flex; align-items:center; gap:8px; margin-left:auto; }
+        .speed-row label { font-size:0.75em; color:var(--muted); }
+        .speed-row input[type=range] { width:80px; accent-color:var(--cyan); }
+
+        /* Status bar */
+        .sieve-status {
+            background:var(--bg3); border:1px solid var(--border); border-radius:12px;
+            padding:12px 16px; margin-bottom:16px; min-height:52px;
+            font-family:'Crimson Pro',serif; font-size:1em; line-height:1.6; color:#a0a0c0;
+        }
+        .sieve-status .gold { color:var(--gold); }
+        .sieve-status .cyan { color:var(--cyan); }
+        .sieve-status .pink { color:var(--pink); }
+
+        /* Stats strip */
+        .stats-strip {
+            display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;
+        }
+        .stat-pill {
+            background:var(--bg3); border:1px solid var(--border);
+            border-radius:20px; padding:6px 14px;
+            font-size:0.8em; display:flex; gap:6px; align-items:center;
+        }
+        .stat-pill .val { color:var(--cyan); font-weight:800; }
+
+        /* Prime chips */
+        .prime-chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; min-height:32px; }
+        .prime-chip {
+            background:var(--gold-dim); border:1.5px solid rgba(251,191,36,0.3);
+            border-radius:8px; padding:4px 10px;
+            font-size:0.85em; font-weight:700; color:var(--gold);
+            animation:chipIn 0.3s ease both;
+        }
+        @keyframes chipIn { from{opacity:0;transform:scale(0.5)} to{opacity:1;transform:scale(1)} }
+
+        /* Insight card */
+        .insight-card {
+            background:var(--bg2); border:1px solid rgba(16,185,129,0.2);
+            border-left:3px solid var(--green); border-radius:var(--radius);
+            padding:18px 20px; margin-bottom:16px;
+        }
+        .insight-card .insight-label {
+            font-size:0.7em; text-transform:uppercase; letter-spacing:2px;
+            color:var(--green); margin-bottom:8px;
+        }
+        .insight-card p {
+            font-family:'Crimson Pro',serif; font-size:1.05em; line-height:1.72; color:#c0c0e0;
+        }
+        .insight-card p em { color:var(--cyan); font-style:normal; font-weight:600; }
+
+        /* CTA */
+        .cta-btn {
+            width:100%; max-width:400px; margin:0 auto; display:block;
+            background:linear-gradient(135deg, var(--cyan), #0891b2);
+            border:none; border-radius:50px; padding:16px 32px;
+            font-family:'Nunito',sans-serif; font-size:1.05em; font-weight:800;
+            color:#fff; cursor:pointer; transition:all 0.25s ease;
+            touch-action:manipulation; box-shadow:0 4px 24px rgba(34,211,238,0.2);
+        }
+        .cta-btn:hover, .cta-btn:active { transform:translateY(-2px); box-shadow:0 8px 32px rgba(34,211,238,0.3); }
+        .cta-btn:disabled { opacity:0.35; transform:none; cursor:default; }
+        .cta-btn.gold-btn {
+            background:linear-gradient(135deg, var(--gold), #f59e0b);
+            color:#07071a; box-shadow:0 4px 24px rgba(251,191,36,0.2);
+        }
+        .cta-btn.green-btn {
+            background:linear-gradient(135deg, var(--green), #059669);
+            box-shadow:0 4px 24px rgba(16,185,129,0.2);
+        }
+
+        /* Step highlight */
+        .step-indicator {
+            background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+            padding:10px 16px; margin-bottom:12px; display:flex; gap:10px; align-items:center;
+        }
+        .step-num { font-size:1.3em; font-weight:800; color:var(--cyan); min-width:28px; }
+        .step-text { font-family:'Crimson Pro',serif; font-size:0.95em; color:#a0a0c0; line-height:1.5; }
+
+        /* Manual mode */
+        .manual-grid {
+            display:grid; grid-template-columns:repeat(10, 1fr); gap:3px; margin-bottom:16px;
+        }
+        .manual-cell {
+            aspect-ratio:1; border-radius:6px;
+            background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);
+            display:flex; align-items:center; justify-content:center;
+            font-size:clamp(0.6em, 2.2vw, 0.82em); font-family:'Courier New',monospace;
+            color:#8080a8; cursor:pointer; transition:all 0.2s ease; font-weight:600;
+            touch-action:manipulation;
+        }
+        .manual-cell:active { transform:scale(0.9); }
+        .manual-cell.one { color:#303050; cursor:default; }
+        .manual-cell.prime-confirmed { background:var(--gold-dim); border-color:rgba(251,191,36,0.4); color:var(--gold); cursor:default; }
+        .manual-cell.user-crossed { background:rgba(244,114,182,0.08); border-color:rgba(244,114,182,0.2); color:#505060; text-decoration:line-through; cursor:default; }
+        .manual-cell.should-cross { animation:shouldCross 1s ease infinite alternate; }
+        @keyframes shouldCross { from{border-color:rgba(244,114,182,0.2)} to{border-color:rgba(244,114,182,0.6);background:rgba(244,114,182,0.1)} }
+
+        /* Revelation */
+        .revelation-number {
+            text-align:center; padding:32px 20px;
+            background:var(--bg2); border:1px solid rgba(34,211,238,0.1); border-radius:var(--radius);
+            margin-bottom:20px;
+        }
+        .revel-label { font-size:0.72em; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:12px; }
+        .big-stat { font-size:clamp(2.5em,12vw,4em); font-weight:800; color:var(--cyan);
+            text-shadow:0 0 40px rgba(34,211,238,0.3); line-height:1; }
+        .big-stat-sub { font-size:0.85em; color:var(--muted); margin-top:6px;
+            font-family:'Crimson Pro',serif; font-style:italic; }
+
+        /* Confetti */
+        #confetti { position:fixed; inset:0; pointer-events:none; z-index:50; }
+        .bottom-pad { height:20px; }
+
+        /* Scroll progress in sieve */
+        .sieve-progress-bar {
+            height:3px; background:rgba(255,255,255,0.05); border-radius:2px;
+            margin-bottom:16px; overflow:hidden;
+        }
+        .sieve-progress-fill {
+            height:100%; background:linear-gradient(90deg, var(--cyan), var(--gold));
+            border-radius:2px; transition:width 0.3s ease; width:0%;
+        }
+
+        /* Historical map decoration */
+        .map-decoration {
+            background:var(--bg2); border:1px solid rgba(251,191,36,0.1);
+            border-radius:var(--radius); padding:20px; margin-bottom:20px;
+            text-align:center; position:relative; overflow:hidden;
+        }
+        .map-decoration::before {
+            content:''; position:absolute; inset:0; opacity:0.03;
+            background:repeating-linear-gradient(45deg, #fbbf24 0px, #fbbf24 1px, transparent 1px, transparent 12px);
+        }
+        .map-year { font-size:clamp(2em,10vw,3.5em); font-weight:800; color:rgba(251,191,36,0.2);
+            position:absolute; top:10px; right:16px; font-family:'Crimson Pro',serif; }
+        .map-text { font-family:'Crimson Pro',serif; font-size:1.1em; line-height:1.7; color:#a0a0c0; position:relative; z-index:1; }
+        .map-text strong { color:var(--gold); font-weight:400; }
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--gold,var(--amber,#f59e0b));}
+        .learn-box.notice .learn-title{color:var(--cyan,#22d3ee);}
+        .learn-box.why .learn-title{color:var(--rose,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--gold,var(--amber));color:var(--gold,var(--amber));}
+
+    </style>
+</head>
+<body>
+
+<canvas id="confetti"></canvas>
+<div id="stars"></div>
+
+<div id="app">
+
+    <header class="app-header">
+        <div class="header-logo">mathsedu<span>.org</span></div>
+        <div class="progress-wrap">
+            <div class="act-indicator">Act II of V</div>
+            <div class="progress-dots">
+                <div class="dot done" id="dot0"></div>
+                <div class="dot active" id="dot1"></div>
+                <div class="dot" id="dot2"></div>
+                <div class="dot" id="dot3"></div>
+                <div class="dot" id="dot4"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ══ SCREEN 0: OPENING ══ -->
+    <section class="screen active" id="screen-0">
+        <div class="act-title">
+            <div class="act-label">Act II · The Prime Journey</div>
+            <div class="act-name">The <em>Ancient</em> Sieve</div>
+        </div>
+
+        <div class="map-decoration">
+            <div class="map-year">240 BCE</div>
+            <div class="map-text">
+                <strong>Alexandria, Egypt.</strong><br>
+                The greatest library in the ancient world.<br>
+                A mathematician with a beautiful idea.
+            </div>
+        </div>
+
+        <div class="character-card">
+            <div class="char-avatar">🏛️</div>
+            <div class="char-info">
+                <div class="name">Eratosthenes of Cyrene</div>
+                <div class="title">Librarian · Mathematician · 276–194 BCE</div>
+                <div class="quote">
+                    "He had no computer. No calculator. Just patience, papyrus, and one remarkably clever idea that still works perfectly today."
+                </div>
+            </div>
+        </div>
+
+        <div class="narrator">
+            <p>In Act I, you discovered that some numbers are <em>lonely</em> — they refuse every rectangle.</p>
+            <p style="margin-top:10px">Now a new question: <em>can you find all primes at once, systematically?</em></p>
+            <p style="margin-top:10px">Eratosthenes could. His method is called <strong>the sieve</strong> — and you're about to run it yourself.</p>
+        </div>
+
+        <button class="cta-btn" onclick="goToScreen(1)">Meet the Sieve →</button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 1: MANUAL SIEVE ══ -->
+    <section class="screen" id="screen-1">
+        <div class="act-title">
+            <div class="act-label">Step by step</div>
+            <div class="act-name">You <em>run</em> the sieve</div>
+        </div>
+
+        <div class="narrator gold-accent">
+            <p>The rule is simple: <em>cross out every multiple of each prime you find.</em> What survives is prime.</p>
+            <p style="margin-top:8px"><em>Why does this work?</em> If a number is a multiple of 2 — say 6, or 8, or 10 — then 2 divides it evenly. That means it can form a rectangle. So it's not prime. We can cross it out immediately.</p>
+            <p style="margin-top:8px; font-size:0.92em; color:var(--muted);">Start with 2. Tap 4, 6, 8, 10... to cross them out. Then we'll move to the next prime.</p>
+        </div>
+
+        <div id="currentStepBox" class="step-indicator">
+            <div class="step-num" id="stepNum">2</div>
+            <div class="step-text" id="stepText">2 is prime — the first and only even prime. Now cross out every multiple of 2: tap 4, 6, 8, 10...</div>
+        </div>
+
+        <div class="manual-grid" id="manualGrid"></div>
+
+        <div class="sieve-status" id="manualStatus">
+            Tap the multiples of <span class="cyan" id="currentPrimeLabel">2</span> to cross them out.
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+            <button class="ctrl-btn primary" onclick="advanceManualSieve()" id="nextPrimeBtn" disabled>
+                Next prime →
+            </button>
+            <button class="ctrl-btn" onclick="revealCurrentMultiples()">Show me the multiples</button>
+        </div>
+
+        <div class="prime-chips" id="manualPrimeChips"></div>
+
+        <div class="insight-card" id="manualInsight" style="display:none;">
+            <div class="insight-label">💡 The pattern</div>
+            <p id="manualInsightText"></p>
+        </div>
+
+        <div class="insight-card">
+          <div class="insight-label">Try This</div>
+          <p>Start with 2: tap every multiple of 2 in the grid (4, 6, 8, 10...) to cross them out. Then advance to 3, and cross out its remaining multiples (9, 15, 21...). Keep going through 5 and 7.</p>
+        </div>
+        <div class="insight-card cyan-card">
+          <div class="insight-label">What To Notice</div>
+          <p>Each new prime has <em>fewer</em> multiples left to cross out — because earlier primes already eliminated most composites. By the time you reach 7, almost everything is already resolved.</p>
+        </div>
+        <div class="insight-card green-card">
+          <div class="insight-label">Why It Matters</div>
+          <p>This is the Sieve of Eratosthenes — invented around 240 BCE and still the most elegant way to find all primes up to any limit. It works because every composite number has a prime factor no larger than its square root. That is why you only need to sieve up to sqrt(N).</p>
+        </div>
+
+        <button class="cta-btn gold-btn" onclick="goToScreen(2)" id="manualNextBtn" disabled>
+            Now watch it at full speed →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 2: ANIMATED SIEVE ══ -->
+    <section class="screen" id="screen-2">
+        <div class="act-title">
+            <div class="act-label">The full picture</div>
+            <div class="act-name">All primes to <em>100</em></div>
+        </div>
+
+        <div class="narrator">
+            <p>You've seen the logic. Now watch the sieve run at full speed — hunting every prime from 2 to 100.</p>
+            <p style="margin-top:8px; font-size:0.92em; color:var(--muted)">Notice how the primes <em>thin out</em> as numbers grow larger. That thinning is one of mathematics' great mysteries.</p>
+        </div>
+
+        <div class="sieve-progress-bar"><div class="sieve-progress-fill" id="progressFill"></div></div>
+
+        <div class="sieve-controls">
+            <button class="ctrl-btn primary" onclick="toggleSieve()" id="startBtn">▶ Start Sieve</button>
+            <button class="ctrl-btn" onclick="stepSieve()" id="stepBtn">Step</button>
+            <button class="ctrl-btn" onclick="resetSieve()" id="resetBtn">Reset</button>
+            <div class="speed-row">
+                <label>Slow</label>
+                <input type="range" id="speedSlider" min="1" max="10" value="5">
+                <label>Fast</label>
+            </div>
+        </div>
+
+        <div class="sieve-container">
+            <div class="sieve-grid" id="sieveGrid"></div>
+        </div>
+
+        <div class="sieve-status" id="sieveStatus">
+            Press <span class="cyan">Start Sieve</span> or <span class="cyan">Step</span> to begin.
+        </div>
+
+        <div class="stats-strip" id="statsStrip"></div>
+
+        <div class="prime-chips" id="sievePrimeChips"></div>
+
+        <div class="learn-box try-this">
+            <div class="learn-title">Try This</div>
+            <p>Run the sieve at slow speed and watch which numbers survive each round of elimination. Then reset and run it at full speed — notice how the pattern of survivors changes as you go higher. Try stepping through one prime at a time to see exactly which composites each prime removes.</p>
+        </div>
+        <div class="learn-box notice">
+            <div class="learn-title">What To Notice</div>
+            <p>As the sieve runs, the gaps between surviving primes grow wider and more irregular. Twin primes (pairs like 11,13 or 29,31 separated by just 2) become rarer but never seem to stop appearing entirely. The pattern of prime gaps looks almost random, yet hides deep structure.</p>
+        </div>
+        <div class="learn-box why">
+            <div class="learn-title">Why It Matters</div>
+            <p>The distribution of prime gaps is one of the deepest unsolved problems in mathematics. The Twin Prime Conjecture — that there are infinitely many pairs of primes separated by 2 — remains unproven after centuries of effort. In 2013, Yitang Zhang made a breakthrough by proving gaps are bounded, but the full conjecture is still open.</p>
+        </div>
+
+        <button class="reset-btn" onclick="resetSieve()">Reset sieve</button>
+
+        <button class="cta-btn green-btn" onclick="goToScreen(3)" id="sieveNextBtn" disabled>
+            The primes are infinite — here's the proof →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 3: EUCLID'S PROOF SETUP ══ -->
+    <section class="screen" id="screen-3">
+        <div class="act-title">
+            <div class="act-label">The deepest question</div>
+            <div class="act-name">Do they <em>ever</em> end?</div>
+        </div>
+
+        <div class="narrator green-accent">
+            <p>After the sieve, a natural question emerges:</p>
+            <p style="margin-top:10px; font-size:1.05em;"><em>"If I kept going forever, would the primes eventually run out?"</em></p>
+            <p style="margin-top:10px">Euclid answered this 2,300 years ago with an argument so elegant it still appears in university courses today.</p>
+            <p style="margin-top:10px">And you can understand <em>every single step.</em></p>
+        </div>
+
+        <div class="character-card" style="border-color:rgba(16,185,129,0.15);">
+            <div class="char-avatar" style="background:linear-gradient(135deg,rgba(16,185,129,0.2),rgba(34,211,238,0.1)); border-color:rgba(16,185,129,0.3);">🔬</div>
+            <div class="char-info">
+                <div class="name" style="color:var(--green);">Euclid's Strategy</div>
+                <div class="title">Proof by Contradiction</div>
+                <div class="quote">
+                    "Assume the opposite of what you want to prove. Then show that assumption leads to something impossible. Therefore the opposite must be true."
+                </div>
+            </div>
+        </div>
+
+        <div id="proofSteps">
+            <!-- Built dynamically -->
+        </div>
+
+        <button class="cta-btn green-btn" onclick="startProof()">Walk me through the proof →</button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 4: INTERACTIVE PROOF ══ -->
+    <section class="screen" id="screen-4">
+        <div class="act-title">
+            <div class="act-label">Euclid's proof</div>
+            <div class="act-name">Step by <em>step</em></div>
+        </div>
+
+        <div id="proofWalkthrough"></div>
+
+        <button class="cta-btn green-btn" onclick="goToScreen(5)" id="proofNextBtn" style="display:none;">
+            ✦ Act II Complete →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 5: ACT COMPLETE ══ -->
+    <section class="screen" id="screen-5">
+        <div class="act-title">
+            <div class="act-label">Act II complete</div>
+            <div class="act-name">You've <em>proved</em> the infinite</div>
+        </div>
+
+        <div style="text-align:center; padding:32px 20px; background:var(--bg2); border-radius:var(--radius); margin-bottom:20px; border:1px solid rgba(16,185,129,0.15);">
+            <div style="font-size:3em; margin-bottom:12px;">∞</div>
+            <div style="font-family:'Crimson Pro',serif; font-size:1.2em; color:var(--green); margin-bottom:8px;">
+                There are infinitely many primes.
+            </div>
+            <div style="font-size:0.85em; color:var(--muted); font-family:'Crimson Pro',serif; font-style:italic;">
+                Proved by Euclid, ~300 BCE.<br>You just reconstructed the argument yourself.
+            </div>
+        </div>
+
+        <div class="insight-card" style="margin-bottom:16px;">
+            <div class="insight-label">💡 What you learned in Act II</div>
+            <p>The <em>Sieve of Eratosthenes</em> — a 2,300-year-old algorithm still used in computing today. Euclid's proof that primes never end — one of the oldest proofs in existence. And the fact that mathematics doesn't need experiments — only <em>logic.</em></p>
+        </div>
+
+        <div class="insight-card" style="border-left-color:var(--cyan);">
+            <div class="insight-label" style="color:var(--cyan);">Coming in Act III</div>
+            <p>The primes thin out as numbers grow. But <em>how</em> fast? There's a formula that estimates the answer — and it reveals something strangely beautiful about the structure of numbers. The <em>Prime Number Theorem</em> awaits.</p>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
+            <button class="cta-btn green-btn" onclick="celebrateComplete()">
+                ✦ Celebrate & Continue to Act III
+            </button>
+            <button class="cta-btn" style="background:transparent; border:1.5px solid var(--border); color:var(--muted); box-shadow:none;"
+                onclick="window.location.href='prime_journey_act1.html'">
+                ← Revisit Act I
+            </button>
+        </div>
+        <div class="bottom-pad"></div>
+    </section>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+let currentScreen = 0;
+function goToScreen(n) {
+    document.getElementById(`screen-${currentScreen}`).classList.remove('active');
+    currentScreen = n;
+    document.getElementById(`screen-${n}`).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+    // Update dots
+    for (let i=0;i<5;i++) {
+        const d=document.getElementById(`dot${i}`);
+        if(d){ d.className='dot'; if(i<n)d.classList.add('done'); else if(i===n)d.classList.add('active'); }
+    }
+    if (n===1) initManualSieve();
+    if (n===2) initAnimatedSieve();
+    if (n===3) buildProofIntro();
+    if (n===4) initProofWalkthrough();
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 1: MANUAL SIEVE (2–30)
+// ══════════════════════════════════════════════
+const MANUAL_N = 30;
+const manualState = {}; // n -> 'prime'|'crossed'|'untouched'
+let manualCurrentPrime = 2;
+let manualPrimes = [];
+let manualMultiplesNeeded = new Set();
+let manualCrossedByUser = new Set();
+
+function initManualSieve() {
+    // Init state
+    for (let i=1;i<=MANUAL_N;i++) manualState[i] = i===1 ? 'one' : 'untouched';
+    manualCurrentPrime = 2;
+    manualPrimes = [];
+    manualMultiplesNeeded = new Set();
+    manualCrossedByUser = new Set();
+
+    buildManualGrid();
+    updateManualStep(2);
+}
+
+function buildManualGrid() {
+    const grid = document.getElementById('manualGrid');
+    grid.innerHTML = '';
+    for (let i=1;i<=MANUAL_N;i++) {
+        const cell = document.createElement('div');
+        cell.className = 'manual-cell' + (i===1?' one':'');
+        cell.textContent = i;
+        cell.id = `mc-${i}`;
+        if (i>1) cell.onclick = () => manualTapCell(i);
+        grid.appendChild(cell);
+    }
+}
+
+function updateManualStep(p) {
+    manualCurrentPrime = p;
+    // Mark p as prime
+    manualState[p] = 'prime';
+    setManualCell(p, 'prime-confirmed');
+    manualPrimes.push(p);
+    renderManualChips();
+
+    // Calculate multiples needed
+    manualMultiplesNeeded = new Set();
+    for (let m=p*2; m<=MANUAL_N; m+=p) {
+        if (manualState[m] === 'untouched') manualMultiplesNeeded.add(m);
+    }
+
+    document.getElementById('currentPrimeLabel').textContent = p;
+    document.getElementById('stepNum').textContent = p;
+
+    const msgs = {
+        2: `2 is the first prime — and the only even prime. Every other even number is a multiple of 2. Cross out all multiples of 2: tap 4, 6, 8...`,
+        3: `3 is prime! (4 was already crossed.) Now cross out multiples of 3. Some are already gone — only new ones count.`,
+        5: `5 is prime! 4 and 6 are gone. Cross out multiples of 5 that haven't been crossed yet.`,
+        7: `7 is prime! Notice we need fewer crossings now — earlier primes already eliminated most multiples.`,
+    };
+    document.getElementById('stepText').textContent = msgs[p] || `${p} is prime! Cross out its remaining multiples.`;
+    document.getElementById('manualStatus').innerHTML = `Tap the multiples of <span class="cyan">${p}</span> to cross them out. (${manualMultiplesNeeded.size} remain)`;
+    document.getElementById('nextPrimeBtn').disabled = true;
+
+    // Reveal insight after second prime
+    if (manualPrimes.length >= 2) {
+        const insight = document.getElementById('manualInsight');
+        insight.style.display = 'block';
+        document.getElementById('manualInsightText').innerHTML =
+            `Each prime eliminates its multiples. Numbers that survive every sieve step <em>must be prime</em> — nothing divided them. This is Eratosthenes' insight: you don't need to test each number individually. The sieve does all the work at once.`;
+    }
+}
+
+function manualTapCell(n) {
+    if (manualState[n] !== 'untouched') return;
+    if (n % manualCurrentPrime !== 0) {
+        // Wrong tap — gentle feedback
+        const cell = document.getElementById(`mc-${n}`);
+        cell.style.borderColor = 'rgba(244,114,182,0.5)';
+        setTimeout(() => cell.style.borderColor='', 600);
+        document.getElementById('manualStatus').innerHTML = `<span class="pink">${n} isn't a multiple of ${manualCurrentPrime}.</span> Look for numbers that ${manualCurrentPrime} divides evenly.`;
+        return;
+    }
+
+    // Correct — cross it
+    manualState[n] = 'crossed';
+    manualCrossedByUser.add(n);
+    manualMultiplesNeeded.delete(n);
+    setManualCell(n, 'user-crossed');
+
+    if (manualMultiplesNeeded.size === 0) {
+        document.getElementById('manualStatus').innerHTML = `<span class="gold">All multiples of ${manualCurrentPrime} crossed out! ✓</span> Now find the next prime.`;
+        document.getElementById('nextPrimeBtn').disabled = false;
+
+        // Check if we've done enough
+        if (manualCurrentPrime >= 5) {
+            document.getElementById('manualNextBtn').disabled = false;
+        }
+    } else {
+        document.getElementById('manualStatus').innerHTML = `Good! <span class="cyan">${manualMultiplesNeeded.size}</span> multiple${manualMultiplesNeeded.size>1?'s':''} of ${manualCurrentPrime} remaining.`;
+    }
+}
+
+function revealCurrentMultiples() {
+    manualMultiplesNeeded.forEach(n => {
+        const cell = document.getElementById(`mc-${n}`);
+        if (cell) cell.classList.add('should-cross');
+    });
+    setTimeout(() => {
+        document.querySelectorAll('.manual-cell.should-cross').forEach(c => c.classList.remove('should-cross'));
+    }, 2000);
+}
+
+function advanceManualSieve() {
+    // Find next untouched number
+    let next = manualCurrentPrime + 1;
+    while (next <= MANUAL_N && manualState[next] !== 'untouched') next++;
+    if (next <= MANUAL_N) {
+        updateManualStep(next);
+    } else {
+        // Done — remaining untouched are prime
+        for (let i=2;i<=MANUAL_N;i++) {
+            if (manualState[i]==='untouched') {
+                manualState[i]='prime';
+                setManualCell(i,'prime-confirmed');
+                manualPrimes.push(i);
+            }
+        }
+        renderManualChips();
+        document.getElementById('nextPrimeBtn').disabled = true;
+        document.getElementById('manualNextBtn').disabled = false;
+        document.getElementById('manualStatus').innerHTML = `<span class="gold">Sieve complete!</span> You've found all primes up to ${MANUAL_N}.`;
+    }
+}
+
+function setManualCell(n, cls) {
+    const cell = document.getElementById(`mc-${n}`);
+    if (!cell) return;
+    cell.className = 'manual-cell ' + cls;
+}
+
+function renderManualChips() {
+    const chips = document.getElementById('manualPrimeChips');
+    chips.innerHTML = '';
+    manualPrimes.forEach((p,i) => {
+        const chip = document.createElement('div');
+        chip.className = 'prime-chip';
+        chip.style.animationDelay = `${i*0.05}s`;
+        chip.textContent = p;
+        chips.appendChild(chip);
+    });
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 2: ANIMATED SIEVE
+// ══════════════════════════════════════════════
+const SIEVE_N = 100;
+let sieveCells = [], sieveStateArr = [], sievePrimes = [];
+let sieveRunning = false, sievePaused = false, sieveTimer = null;
+let sieveGen = null, sieveComplete = false;
+
+function initAnimatedSieve() {
+    buildSieveGrid();
+    resetSieve();
+}
+
+function buildSieveGrid() {
+    const grid = document.getElementById('sieveGrid');
+    grid.innerHTML = '';
+    sieveCells = [];
+    for (let i=1;i<=SIEVE_N;i++) {
+        const d = document.createElement('div');
+        d.className = 'sieve-cell' + (i===1?' one':'');
+        d.textContent = i;
+        d.id = `sc-${i}`;
+        grid.appendChild(d);
+        sieveCells[i] = d;
+    }
+}
+
+function setSieveCell(i, cls) {
+    if (!sieveCells[i]) return;
+    const c = sieveCells[i];
+    c.className = 'sieve-cell ' + (i===1?'one ':'')+cls;
+}
+
+function* sieveGenerator() {
+    sieveStateArr = new Array(SIEVE_N+1).fill(0);
+    sievePrimes = [];
+    sieveStateArr[1] = -1;
+
+    for (let p=2; p<=SIEVE_N; p++) {
+        if (sieveStateArr[p] === 0) {
+            // p is prime
+            sieveStateArr[p] = 3;
+            sievePrimes.push(p);
+            setSieveCell(p, 'current-prime');
+            updateSieveStatus(`<span class="cyan">${p}</span> is prime — crossing out its multiples...`);
+            updateSieveStats();
+            renderSievePrimeChips();
+            yield 'found-prime';
+
+            for (let m=p*p; m<=SIEVE_N; m+=p) {
+                if (sieveStateArr[m] === 0) {
+                    sieveStateArr[m] = 1;
+                    setSieveCell(m, 'being-crossed');
+                    yield 'crossing';
+                    setSieveCell(m, 'crossed');
+                }
+            }
+            setSieveCell(p, 'confirmed');
+        } else if (sieveStateArr[p] === 1) {
+            setSieveCell(p, 'crossed');
+        }
+        // Update progress
+        document.getElementById('progressFill').style.width = `${p/SIEVE_N*100}%`;
+    }
+
+    // Reveal remaining primes
+    for (let i=2;i<=SIEVE_N;i++) {
+        if (sieveStateArr[i]===0) {
+            sieveStateArr[i]=3; sievePrimes.push(i);
+            setSieveCell(i,'confirmed');
+        }
+    }
+    updateSieveStatus(`<span class="gold">Sieve complete!</span> Found <span class="cyan">${sievePrimes.length}</span> primes up to ${SIEVE_N}.`);
+    updateSieveStats();
+    renderSievePrimeChips();
+    document.getElementById('progressFill').style.width = '100%';
+    document.getElementById('sieveNextBtn').disabled = false;
+    document.getElementById('startBtn').textContent = '▶ Start Sieve';
+    sieveComplete = true;
+    launchMiniConfetti();
+}
+
+function toggleSieve() {
+    if (sieveComplete) { resetSieve(); return; }
+    if (!sieveGen) sieveGen = sieveGenerator();
+    if (sieveRunning && !sievePaused) {
+        sievePaused = true;
+        clearTimeout(sieveTimer);
+        document.getElementById('startBtn').textContent = '▶ Resume';
+    } else {
+        sievePaused = false; sieveRunning = true;
+        document.getElementById('startBtn').textContent = '⏸ Pause';
+        runSieve();
+    }
+}
+
+function runSieve() {
+    if (sievePaused || sieveComplete) return;
+    const delay = 220 - document.getElementById('speedSlider').value * 20;
+    const result = sieveGen.next();
+    if (!result.done) {
+        sieveTimer = setTimeout(runSieve, result.value==='found-prime'?delay*3:delay*0.8);
+    }
+}
+
+function stepSieve() {
+    if (sieveComplete) return;
+    if (!sieveGen) sieveGen = sieveGenerator();
+    sievePaused = true; clearTimeout(sieveTimer);
+    document.getElementById('startBtn').textContent = '▶ Resume';
+    sieveGen.next();
+}
+
+function resetSieve() {
+    clearTimeout(sieveTimer);
+    sieveRunning=false; sievePaused=false; sieveComplete=false; sieveGen=null; sievePrimes=[];
+    buildSieveGrid();
+    document.getElementById('sieveStatus').innerHTML = `Press <span class="cyan">Start Sieve</span> or <span class="cyan">Step</span> to begin.`;
+    document.getElementById('statsStrip').innerHTML = '';
+    document.getElementById('sievePrimeChips').innerHTML = '';
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('startBtn').textContent = '▶ Start Sieve';
+    document.getElementById('sieveNextBtn').disabled = true;
+}
+
+function updateSieveStatus(html) { document.getElementById('sieveStatus').innerHTML = html; }
+
+function updateSieveStats() {
+    const pct = (sievePrimes.length / SIEVE_N * 100).toFixed(1);
+    document.getElementById('statsStrip').innerHTML = `
+        <div class="stat-pill">Primes found: <span class="val">${sievePrimes.length}</span></div>
+        <div class="stat-pill">Density: <span class="val">${pct}%</span></div>
+        <div class="stat-pill">Largest: <span class="val">${sievePrimes[sievePrimes.length-1]||'—'}</span></div>
+    `;
+}
+
+function renderSievePrimeChips() {
+    const chips = document.getElementById('sievePrimeChips');
+    chips.innerHTML = '';
+    sievePrimes.forEach((p,i) => {
+        const chip = document.createElement('div');
+        chip.className = 'prime-chip';
+        chip.style.animationDelay = `0s`;
+        chip.textContent = p;
+        chips.appendChild(chip);
+    });
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 3: PROOF INTRO
+// ══════════════════════════════════════════════
+function buildProofIntro() {
+    const steps = [
+        { icon:'🤔', title:'The question', text:"Suppose primes DID run out. Suppose there are only finitely many — call them p₁, p₂, p₃ ... pₙ. Is that possible?" },
+        { icon:'✖️', title:'Euclid\'s move', text:"Multiply ALL of them together, then add 1. Call this number Q = (p₁ × p₂ × p₃ × ... × pₙ) + 1" },
+        { icon:'🔍', title:'The key question', text:"Is Q prime? Or is it composite? Either way, something extraordinary happens..." },
+    ];
+    const container = document.getElementById('proofSteps');
+    container.innerHTML = '';
+    steps.forEach((s, i) => {
+        const div = document.createElement('div');
+        div.style.cssText = `
+            background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+            padding:18px; margin-bottom:12px; display:flex; gap:14px; align-items:flex-start;
+            animation: fadeUp 0.4s ease ${i*0.15}s both;
+        `;
+        div.innerHTML = `
+            <div style="font-size:1.8em;flex-shrink:0;">${s.icon}</div>
+            <div>
+                <div style="font-weight:800;color:var(--green);font-size:0.85em;margin-bottom:4px;">${s.title}</div>
+                <div style="font-family:'Crimson Pro',serif;font-size:1em;line-height:1.65;color:#b0b0d0;">${s.text}</div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 4: INTERACTIVE PROOF
+// ══════════════════════════════════════════════
+let proofStep = 0;
+const proofSteps = [
+    {
+        title: "Assume primes run out",
+        content: `Imagine we have collected <em>all</em> the primes in the universe. Let's use the small ones: 2, 3, 5, 7, 11, 13.`,
+        interactive: 'primes-list',
+        question: null,
+        insight: null,
+    },
+    {
+        title: "Multiply them all together",
+        content: `Euclid says: multiply every prime together.<br><br>2 × 3 × 5 × 7 × 11 × 13 = <strong style="color:var(--gold)">30,030</strong>`,
+        interactive: 'multiply',
+        question: "What do you get when you divide 30,030 by 2?",
+        options: ["15,015 — divides perfectly", "Something with a remainder"],
+        correct: 0,
+        insight: "Right! Every prime divides 30,030 perfectly — by construction. That's the whole point.",
+    },
+    {
+        title: "Now add 1",
+        content: `Euclid adds 1 to get <strong style="color:var(--cyan)">Q = 30,031</strong>.<br><br>Now ask: what happens when you divide Q by one of our primes?`,
+        interactive: null,
+        question: "What is 30,031 ÷ 2?",
+        options: ["15,015 exactly", "15,015 remainder 1 — doesn't divide!"],
+        correct: 1,
+        insight: "Exactly! Adding 1 means every prime leaves a remainder of 1. None of them divide Q!",
+    },
+    {
+        title: "The impossible situation",
+        content: `Q = 30,031 is not divisible by 2, 3, 5, 7, 11, or 13.<br><br>But every number greater than 1 must be divisible by <em>some</em> prime. So...`,
+        interactive: null,
+        question: "What must be true about Q = 30,031?",
+        options: [
+            "It must be divisible by a prime we haven't listed",
+            "It can't exist — it's impossible",
+        ],
+        correct: 0,
+        insight: "Yes! Q must be divisible by a prime that wasn't in our original list. Our list was incomplete — no matter what list you start with!",
+    },
+    {
+        title: "The conclusion",
+        content: `No matter how many primes you collect, Euclid's argument always finds a new one.<br><br>Therefore <strong style="color:var(--green)">the list of primes can never be complete.</strong>`,
+        interactive: 'conclusion',
+        question: null,
+        insight: "This is proof by contradiction: we assumed primes were finite, and showed that assumption leads to a contradiction. Therefore primes are infinite. QED.",
+    },
+];
+
+function initProofWalkthrough() {
+    proofStep = 0;
+    renderProofStep();
+}
+
+function renderProofStep() {
+    const container = document.getElementById('proofWalkthrough');
+    const step = proofSteps[proofStep];
+    if (!step) {
+        document.getElementById('proofNextBtn').style.display = 'block';
+        return;
+    }
+
+    container.innerHTML = '';
+
+    // Progress
+    const prog = document.createElement('div');
+    prog.style.cssText = 'display:flex;gap:6px;margin-bottom:20px;';
+    proofSteps.forEach((_,i) => {
+        const d = document.createElement('div');
+        d.style.cssText = `height:3px;flex:1;border-radius:2px;background:${i<=proofStep?'var(--green)':'var(--border)'};transition:background 0.3s;`;
+        prog.appendChild(d);
+    });
+    container.appendChild(prog);
+
+    // Narrator
+    const narr = document.createElement('div');
+    narr.className = 'narrator green-accent';
+    narr.style.marginBottom = '20px';
+    narr.innerHTML = `
+        <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--green);margin-bottom:6px;">Step ${proofStep+1} of ${proofSteps.length} — ${step.title}</div>
+        <p>${step.content}</p>
+    `;
+    container.appendChild(narr);
+
+    // Interactive element
+    if (step.interactive === 'primes-list') {
+        const div = document.createElement('div');
+        div.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;';
+        [2,3,5,7,11,13].forEach(p => {
+            const chip = document.createElement('div');
+            chip.className = 'prime-chip';
+            chip.textContent = p;
+            div.appendChild(chip);
+        });
+        container.appendChild(div);
+    }
+
+    if (step.interactive === 'conclusion') {
+        const box = document.createElement('div');
+        box.style.cssText = 'text-align:center;padding:28px;background:var(--bg2);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);margin-bottom:20px;';
+        box.innerHTML = `
+            <div style="font-size:2.5em;margin-bottom:8px;">∞</div>
+            <div style="font-family:'Crimson Pro',serif;font-size:1.3em;color:var(--green);">There are infinitely many primes.</div>
+            <div style="font-size:0.8em;color:var(--muted);margin-top:6px;font-style:italic;font-family:'Crimson Pro',serif;">Euclid, Elements, Book IX, Proposition 20. ~300 BCE.</div>
+        `;
+        container.appendChild(box);
+    }
+
+    // Question
+    if (step.question) {
+        const qbox = document.createElement('div');
+        qbox.style.cssText = 'margin-bottom:16px;';
+        qbox.innerHTML = `<div style="font-family:'Crimson Pro',serif;font-size:1.05em;color:#c0c0e0;margin-bottom:12px;">💭 ${step.question}</div>`;
+
+        step.options.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.style.cssText = `
+                width:100%;text-align:left;background:var(--bg3);border:1.5px solid var(--border);
+                border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;
+                font-family:'Crimson Pro',serif;font-size:1em;color:var(--muted);
+                transition:all 0.2s;touch-action:manipulation;
+            `;
+            btn.textContent = opt;
+            btn.onclick = () => answerProofQuestion(i, step.correct, step.insight, qbox);
+            qbox.appendChild(btn);
+        });
+        container.appendChild(qbox);
+    } else {
+        // Auto-advance button
+        const btn = document.createElement('button');
+        btn.className = 'cta-btn green-btn';
+        btn.style.marginTop = '8px';
+        btn.textContent = proofStep < proofSteps.length - 1 ? 'Next step →' : 'Proof complete ✓';
+        btn.onclick = () => { proofStep++; renderProofStep(); };
+        container.appendChild(btn);
+    }
+}
+
+function answerProofQuestion(chosen, correct, insight, qbox) {
+    const btns = qbox.querySelectorAll('button');
+    btns.forEach((btn, i) => {
+        btn.style.cursor = 'default';
+        if (i === correct) {
+            btn.style.background = 'var(--green-dim)';
+            btn.style.borderColor = 'var(--green)';
+            btn.style.color = 'var(--green)';
+        } else if (i === chosen && chosen !== correct) {
+            btn.style.background = 'rgba(244,114,182,0.08)';
+            btn.style.borderColor = 'rgba(244,114,182,0.3)';
+            btn.style.color = 'var(--pink)';
+        }
+    });
+
+    const insightEl = document.createElement('div');
+    insightEl.className = 'insight-card';
+    insightEl.style.marginTop = '12px';
+    insightEl.innerHTML = `
+        <div class="insight-label">💡 ${chosen===correct?'Exactly right':'The key insight'}</div>
+        <p>${insight}</p>
+    `;
+    qbox.appendChild(insightEl);
+
+    // Advance button
+    const btn = document.createElement('button');
+    btn.className = 'cta-btn green-btn';
+    btn.style.marginTop = '16px';
+    btn.textContent = proofStep < proofSteps.length - 1 ? 'Next step →' : '✦ Proof complete!';
+    btn.onclick = () => {
+        proofStep++;
+        if (proofStep >= proofSteps.length) {
+            document.getElementById('proofNextBtn').style.display = 'block';
+            document.getElementById('proofWalkthrough').innerHTML = `
+                <div style="text-align:center;padding:32px 20px;background:var(--bg2);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);margin-bottom:20px;">
+                    <div style="font-size:2.5em;margin-bottom:12px;">🎓</div>
+                    <div style="font-family:'Crimson Pro',serif;font-size:1.3em;color:var(--green);margin-bottom:8px;">You followed Euclid's proof.</div>
+                    <div style="font-size:0.85em;color:var(--muted);font-family:'Crimson Pro',serif;font-style:italic;">An argument unchanged for 2,300 years.<br>Still taught in every university mathematics course.</div>
+                </div>
+            `;
+        } else {
+            renderProofStep();
+        }
+    };
+    qbox.appendChild(btn);
+}
+
+function startProof() { goToScreen(4); }
+
+// ══════════════════════════════════════════════
+//  CELEBRATION
+// ══════════════════════════════════════════════
+function celebrateComplete() {
+    launchConfetti();
+    setTimeout(() => { alert("Act III coming soon: The Pattern That Isn't — the Prime Number Theorem and the mystery of prime distribution."); }, 700);
+}
+
+// ══════════════════════════════════════════════
+//  CONFETTI
+// ══════════════════════════════════════════════
+const confCanvas = document.getElementById('confetti');
+const confCtx = confCanvas.getContext('2d');
+let particles = []; let animFrame = null;
+
+function launchConfetti() {
+    confCanvas.width=window.innerWidth; confCanvas.height=window.innerHeight;
+    particles=[];
+    for(let i=0;i<100;i++) particles.push({
+        x:Math.random()*confCanvas.width, y:-10-Math.random()*100,
+        vx:(Math.random()-0.5)*5, vy:2+Math.random()*5,
+        color:['#fbbf24','#10b981','#22d3ee','#f472b6','#fff'][Math.floor(Math.random()*5)],
+        size:5+Math.random()*8, rotation:Math.random()*Math.PI*2, vr:(Math.random()-0.5)*0.2, life:1
+    });
+    if(animFrame) cancelAnimationFrame(animFrame);
+    animateConfetti();
+    setTimeout(()=>{particles=[];},3500);
+}
+function launchMiniConfetti() {
+    confCanvas.width=window.innerWidth; confCanvas.height=window.innerHeight;
+    for(let i=0;i<30;i++) particles.push({
+        x:Math.random()*confCanvas.width, y:confCanvas.height*0.5,
+        vx:(Math.random()-0.5)*8, vy:-(4+Math.random()*6),
+        color:['#22d3ee','#10b981'][Math.floor(Math.random()*2)],
+        size:4+Math.random()*6, rotation:0, vr:(Math.random()-0.5)*0.3, life:1
+    });
+    if(!animFrame) animateConfetti();
+}
+function animateConfetti() {
+    confCtx.clearRect(0,0,confCanvas.width,confCanvas.height);
+    particles=particles.filter(p=>p.life>0.01);
+    particles.forEach(p=>{
+        p.x+=p.vx; p.y+=p.vy; p.vy+=0.1; p.rotation+=p.vr; p.life-=0.012;
+        confCtx.save(); confCtx.globalAlpha=p.life;
+        confCtx.translate(p.x,p.y); confCtx.rotate(p.rotation);
+        confCtx.fillStyle=p.color;
+        confCtx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6);
+        confCtx.restore();
+    });
+    if(particles.length>0) animFrame=requestAnimationFrame(animateConfetti);
+    else animFrame=null;
+}
+
+// Star background
+(function(){
+    const canvas=document.createElement('canvas');
+    const starsEl=document.getElementById('stars');
+    canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;';
+    starsEl.appendChild(canvas);
+    function resize(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;draw();}
+    function draw(){
+        const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height);
+        for(let i=0;i<100;i++){
+            ctx.beginPath(); ctx.arc(Math.random()*canvas.width,Math.random()*canvas.height,Math.random()*1.2,0,Math.PI*2);
+            ctx.fillStyle=`rgba(255,255,255,${0.1+Math.random()*0.25})`; ctx.fill();
+        }
+    }
+    window.addEventListener('resize',resize); resize();
+})();
+</script>
+</body>
+</html>

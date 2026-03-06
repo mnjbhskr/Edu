@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#04020f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Shape of Space — Act I</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#04020f; --bg2:#080418; --bg3:#0d0625;
+            --indigo:#6366f1; --indigo-dim:rgba(99,102,241,0.12);
+            --rose:#ec4899; --rose-dim:rgba(236,72,153,0.1);
+            --lavender:#c4b5fd; --lav-dim:rgba(196,181,253,0.08);
+            --gold:#fbbf24; --gold-dim:rgba(251,191,36,0.1);
+            --cyan:#67e8f9; --cyan-dim:rgba(103,232,249,0.1);
+            --cream:#f8fafc; --text:#b4a8d8; --muted:#2e2050;
+            --border:rgba(99,102,241,0.14); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(4,2,15,0.93);
+            backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--indigo);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--indigo);}
+        .dot.active{background:var(--indigo);box-shadow:0 0 10px var(--indigo);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 6px var(--indigo)}50%{box-shadow:0 0 20px var(--indigo)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--indigo);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--indigo);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#b4a0d0;}
+        .narrator p em{color:var(--lavender);font-style:italic;}
+        .narrator p strong{color:var(--cream);font-weight:600;}
+        .narrator.rose{border-left-color:var(--rose);} .narrator.rose::before{color:var(--rose);}
+        .narrator.gold{border-left-color:var(--gold);} .narrator.gold::before{color:var(--gold);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--indigo);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--indigo),#4f46e5);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#fff;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 24px rgba(99,102,241,0.35);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(99,102,241,0.5);}
+        .cta-btn:disabled{opacity:0.35;transform:none;box-shadow:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(99,102,241,0.15);border-left:3px solid var(--indigo);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--indigo);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#6858a0;}
+        .insight p em{color:var(--lavender);font-style:normal;font-weight:600;}
+        .insight.rose{border-left-color:var(--rose);border-color:rgba(236,72,153,0.15);}
+        .insight.rose .lbl{color:var(--rose);}
+        .insight.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);}
+        .insight.gold .lbl{color:var(--gold);}
+
+        /* Postulate display */
+        .postulate{background:linear-gradient(135deg,var(--indigo-dim),var(--lav-dim));
+            border:1px solid rgba(99,102,241,0.2);border-radius:var(--radius);
+            padding:20px;margin-bottom:16px;text-align:center;}
+        .post-num{font-size:0.65em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .post-text{font-family:'Lora',serif;font-size:1em;line-height:1.8;color:var(--cream);font-style:italic;}
+
+        /* Three worlds grid */
+        .worlds-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+        .world-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);
+            padding:0;overflow:hidden;cursor:pointer;transition:all 0.25s;}
+        .world-card:hover{border-color:rgba(99,102,241,0.35);}
+        .world-card.selected{border-color:rgba(99,102,241,0.5);box-shadow:0 0 20px rgba(99,102,241,0.15);}
+        .world-header{display:flex;align-items:center;gap:12px;padding:14px 16px;}
+        .world-icon{font-size:1.8em;flex-shrink:0;}
+        .world-name{font-family:'Lora',serif;font-size:1em;font-weight:600;color:var(--cream);}
+        .world-sub{font-size:0.8em;color:var(--muted);font-family:'Lora',serif;font-style:italic;}
+        .world-canvas-wrap{padding:0 16px 16px;display:none;}
+        .world-card.selected .world-canvas-wrap{display:block;}
+        .world-canvas{display:block;width:100%;border-radius:10px;background:var(--bg3);}
+        .world-fact{padding:10px 16px 14px;font-family:'Lora',serif;font-size:0.88em;
+            color:#6858a0;line-height:1.6;border-top:1px solid rgba(255,255,255,0.04);display:none;}
+        .world-card.selected .world-fact{display:block;}
+
+        /* Postulates comparison */
+        .compare-row{display:flex;gap:8px;margin-bottom:8px;align-items:stretch;}
+        .compare-box{flex:1;padding:12px;border-radius:12px;border:1px solid;text-align:center;}
+        .compare-label{font-size:0.65em;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;}
+        .compare-val{font-family:'Lora',serif;font-size:0.88em;line-height:1.5;}
+
+        /* Canvas wrap */
+        .cv-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:4px;margin-bottom:14px;overflow:hidden;}
+        canvas.demo-canvas{display:block;width:100%;border-radius:10px;background:var(--bg3);}
+
+        /* Slider controls */
+        .slider-group{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
+        .slider-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+        .slider-row:last-child{margin-bottom:0;}
+        .slider-label{font-size:0.78em;color:var(--muted);min-width:52px;text-align:right;}
+        .slider-row input[type=range]{flex:1;accent-color:var(--indigo);}
+        .slider-val{font-family:'DM Sans',monospace;font-size:0.82em;color:var(--indigo);min-width:36px;text-align:right;}
+
+        /* Reset button */
+        .reset-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:10px;border:1px solid var(--border);
+            background:var(--bg3);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.75em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;margin-bottom:14px;}
+        .reset-btn:hover{border-color:rgba(99,102,241,0.35);color:var(--indigo);}
+
+        /* Learning box */
+        .learning-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:0;margin-bottom:16px;overflow:hidden;}
+        .learning-box .lb-section{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.04);}
+        .learning-box .lb-section:last-child{border-bottom:none;}
+        .lb-header{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;font-weight:700;}
+        .lb-header.try{color:var(--indigo);}
+        .lb-header.notice{color:var(--gold);}
+        .lb-header.matters{color:var(--rose);}
+        .lb-body{font-family:'Lora',serif;font-size:0.92em;line-height:1.72;color:#6858a0;}
+        .lb-body em{color:var(--lavender);font-style:normal;font-weight:600;}
+
+        /* Geometry vs Topology visual */
+        .geo-topo-row{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+        .geo-topo-card{flex:1;min-width:140px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;}
+        .geo-topo-card canvas{display:block;margin:0 auto 10px;border-radius:8px;}
+        .gt-label{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;}
+        .gt-desc{font-family:'Lora',serif;font-size:0.82em;color:#6858a0;line-height:1.5;}
+
+        /* complete */
+        .complete-badge{background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(236,72,153,0.06));
+            border:1px solid rgba(99,102,241,0.22);border-radius:var(--radius);
+            padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--indigo);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--amber,var(--gold,#f59e0b));}
+        .learn-box.notice .learn-title{color:var(--teal,var(--em,#10b981));}
+        .learn-box.why .learn-title{color:var(--rose,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--amber,var(--gold));color:var(--amber,var(--gold));}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act I of V</div>
+      <div class="progress-dots">
+        <div class="dot active"></div>
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: OPENING -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Shape of Space · Act I</div>
+      <div class="act-name">The Fifth <em>Postulate</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;">
+      <div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">📐</div>
+    </div>
+
+    <div class="narrator" style="border-left-color:var(--lavender);">
+      <p style="color:var(--cream);font-size:1.2em;font-weight:600;text-align:center;margin-bottom:8px;">How can we describe the shape of the universe?</p>
+      <p>It sounds like a question for philosophers. But it turns out to be a question for <em>geometry</em> — and the answer begins with a single, troubled postulate written 2,300 years ago.</p>
+    </div>
+
+    <div class="narrator">
+      <p>Around 300 BCE, Euclid wrote the <em>Elements</em> — thirteen books laying the foundations of all geometry. Every theorem proved from five simple postulates.</p>
+      <p style="margin-top:10px">Four were obviously true. The fifth was different. It troubled mathematicians for <strong>two thousand years.</strong></p>
+    </div>
+
+    <div class="postulate">
+      <div class="post-num">Euclid's Fifth Postulate — 300 BCE</div>
+      <div class="post-text">"If a line segment intersects two straight lines forming interior angles on the same side that sum to less than 180°, then those two lines, if extended indefinitely, must meet on that side."</div>
+    </div>
+
+    <div class="insight gold">
+      <div class="lbl">The problem</div>
+      <p>The other four postulates were crisp and self-evident. This one felt different — more like a theorem waiting to be proved than a foundational assumption. For 2000 years, mathematicians tried to derive it from the other four. They all failed. The reason they failed is one of the most beautiful discoveries in the history of thought.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">See why it troubled them →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: SIMPLER FORM + GEOMETRY vs TOPOLOGY -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">The parallel postulate</div>
+      <div class="act-name">One line through <em>one point</em></div>
+    </div>
+    <div class="narrator">
+      <p>The fifth postulate has a simpler, equivalent form — known as Playfair's axiom:</p>
+    </div>
+
+    <div class="postulate" style="border-left:3px solid var(--indigo);text-align:left;">
+      <div class="post-num">Playfair's Axiom — equivalent to Euclid's 5th</div>
+      <div class="post-text">"Through any point not on a given line, there exists <em style="color:var(--lavender);">exactly one</em> line parallel to the given line."</div>
+    </div>
+
+    <div class="narrator gold" style="margin-top:4px;">
+      <p>This feels obviously true. Draw a line. Pick a point above it. There's exactly one direction you can go without the lines ever meeting.</p>
+      <p style="margin-top:8px">But is it <em>necessarily</em> true? Or is it only true on a <strong>flat surface?</strong></p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;">
+      <div style="font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px;">What if we change the surface?</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:10px;align-items:center;padding:8px;background:rgba(255,255,255,0.02);border-radius:10px;">
+          <span style="font-size:1.3em;">📄</span>
+          <div><div style="font-family:'Lora',serif;font-size:0.9em;color:var(--cream);">Flat plane</div>
+          <div style="font-size:0.78em;color:var(--muted);font-style:italic;">Exactly 1 parallel line — the 5th postulate holds</div></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;padding:8px;background:rgba(236,72,153,0.04);border-radius:10px;">
+          <span style="font-size:1.3em;">🌍</span>
+          <div><div style="font-family:'Lora',serif;font-size:0.9em;color:var(--cream);">Sphere</div>
+          <div style="font-size:0.78em;color:var(--rose);font-style:italic;">0 parallel lines — all "straight" lines eventually meet</div></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;padding:8px;background:rgba(103,232,249,0.04);border-radius:10px;">
+          <span style="font-size:1.3em;">🐴</span>
+          <div><div style="font-family:'Lora',serif;font-size:0.9em;color:var(--cream);">Saddle (hyperbolic)</div>
+          <div style="font-size:0.78em;color:var(--cyan);font-style:italic;">Infinitely many parallel lines — lines diverge from each other forever</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Geometry vs Topology distinction -->
+    <div class="narrator" style="border-left-color:var(--lavender);">
+      <p>Before we go further, a crucial distinction: <em>geometry</em> and <em>topology</em> are not the same thing.</p>
+      <p style="margin-top:8px"><strong>Geometry</strong> cares about measurement — distances, angles, areas. <strong>Topology</strong> cares about structure — connectedness, holes, what can be deformed into what.</p>
+    </div>
+
+    <div class="geo-topo-row">
+      <div class="geo-topo-card">
+        <canvas id="geoCanvas1" width="120" height="80" style="width:120px;height:80px;"></canvas>
+        <div class="gt-label" style="color:var(--indigo);">Geometry says</div>
+        <div class="gt-desc">A circle and an oval are <em style="color:var(--cream);">different</em>. Different radii, different areas.</div>
+      </div>
+      <div class="geo-topo-card">
+        <canvas id="geoCanvas2" width="120" height="80" style="width:120px;height:80px;"></canvas>
+        <div class="gt-label" style="color:var(--rose);">Topology says</div>
+        <div class="gt-desc">A circle and an oval are <em style="color:var(--cream);">the same</em>. One deforms into the other without tearing.</div>
+      </div>
+    </div>
+
+    <div class="insight rose">
+      <div class="lbl">The discovery</div>
+      <p>In the 1820s, Bolyai and Lobachevsky independently realised: if you simply <em>replace</em> the 5th postulate with a different assumption, you get a perfectly consistent geometry — just not a flat one. Euclid wasn't wrong. He was describing <em>one particular kind of space</em>.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(2)">Explore topology →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: INTERACTIVE TOPOLOGY DEMOS -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">Topology in action</div>
+      <div class="act-name">Stretch, bend, <em>but never tear</em></div>
+    </div>
+
+    <div class="narrator">
+      <p>In topology, you can <em>stretch</em>, <em>bend</em>, <em>twist</em>, and <em>rotate</em> a shape — and it stays "the same" topologically. The only thing you cannot do is tear it or glue new parts together. Use the sliders to deform the shape below.</p>
+    </div>
+
+    <!-- Shape manipulation with sliders -->
+    <div class="cv-wrap"><canvas id="shapeCanvas" class="demo-canvas" height="220"></canvas></div>
+
+    <div class="slider-group">
+      <div class="slider-row">
+        <span class="slider-label">Stretch</span>
+        <input type="range" id="sliderStretch" min="0" max="100" value="50" oninput="drawShape()">
+        <span class="slider-val" id="valStretch">1.0x</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Bend</span>
+        <input type="range" id="sliderBend" min="0" max="100" value="0" oninput="drawShape()">
+        <span class="slider-val" id="valBend">0°</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Twist</span>
+        <input type="range" id="sliderTwist" min="0" max="100" value="0" oninput="drawShape()">
+        <span class="slider-val" id="valTwist">0°</span>
+      </div>
+      <div class="slider-row">
+        <span class="slider-label">Rotate</span>
+        <input type="range" id="sliderRotate" min="0" max="100" value="0" oninput="drawShape()">
+        <span class="slider-val" id="valRotate">0°</span>
+      </div>
+    </div>
+    <button class="reset-btn" onclick="resetShapeSliders()">↺ Reset sliders</button>
+
+    <div class="insight">
+      <div class="lbl">The topological rule</div>
+      <p>No matter how you move the sliders, the shape keeps its fundamental property: <em>one hole (or no hole)</em>. You can deform it wildly, but you cannot change its topology without tearing or gluing. This is the essence of topological invariance.</p>
+    </div>
+
+    <!-- Coffee mug ↔ doughnut demo -->
+    <div class="narrator rose">
+      <p>The most famous example in topology: a <em>coffee mug</em> is topologically identical to a <em>doughnut</em>. Both have exactly one hole. You can continuously deform one into the other without tearing. Watch the morph below.</p>
+    </div>
+
+    <div class="cv-wrap"><canvas id="mugCanvas" class="demo-canvas" height="200"></canvas></div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
+      <input type="range" id="morphSlider" min="0" max="100" value="0" oninput="drawMorph()" style="flex:1;accent-color:var(--rose);">
+      <span style="font-family:'DM Sans',monospace;font-size:0.82em;color:var(--rose);min-width:80px;text-align:right;" id="morphLabel">Coffee mug</span>
+    </div>
+    <button class="reset-btn" onclick="document.getElementById('morphSlider').value=0;drawMorph();">↺ Reset morph</button>
+
+    <!-- Learning box: Try This / What To Notice / Why It Matters -->
+    <div class="learning-box">
+      <div class="lb-section">
+        <div class="lb-header try">Try This</div>
+        <div class="lb-body">Drag the morph slider slowly from left to right. Watch the handle of the mug shrink as the body swells into a ring. Then drag the shape sliders above — stretch and twist the circle as wildly as you like.</div>
+      </div>
+      <div class="lb-section">
+        <div class="lb-header notice">What To Notice</div>
+        <div class="lb-body">The hole in the mug handle is <em>the same hole</em> as the hole in the doughnut. No matter how much you deform either shape, that hole persists. This "number of holes" is a <em>topological invariant</em>.</div>
+      </div>
+      <div class="lb-section">
+        <div class="lb-header matters">Why It Matters</div>
+        <div class="lb-body">Topology strips away measurement to reveal deep structural truths. The universe might be a sphere (no holes), a torus (one hole), or something stranger. <em>Topology tells us what shapes are fundamentally possible</em> — and constrains what the universe can be.</div>
+      </div>
+    </div>
+
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Try morphing the coffee mug into a doughnut by dragging the slider. At what point can you no longer tell which object you're looking at?</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>The coffee mug and the doughnut both have exactly one hole — the handle. In topology, any continuous deformation that doesn't tear or glue counts as 'the same shape'. This equivalence is called homeomorphism.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>Topology studies properties that survive stretching and bending — connectedness, holes, boundaries. It is geometry freed from rigid distances, and it underpins modern physics, data science, and even robotics.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)">See the three geometries →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: THREE WORLDS -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">Three geometries</div>
+      <div class="act-name">Three <em>universes</em></div>
+    </div>
+    <div class="narrator">
+      <p>Tap each geometry to see what "parallel lines" look like on that surface. The lines start parallel — then the surface decides their fate.</p>
+    </div>
+
+    <div class="worlds-grid" id="worldsGrid"></div>
+
+    <div class="compare-row" id="compareRow" style="display:none;">
+      <div class="compare-box" style="border-color:rgba(196,181,253,0.25);background:rgba(196,181,253,0.04);">
+        <div class="compare-label" style="color:var(--lavender);">Flat</div>
+        <div class="compare-val" style="color:var(--lavender);">Parallel lines stay parallel forever</div>
+      </div>
+      <div class="compare-box" style="border-color:rgba(236,72,153,0.25);background:rgba(236,72,153,0.04);">
+        <div class="compare-label" style="color:var(--rose);">Sphere</div>
+        <div class="compare-val" style="color:var(--rose);">All lines converge — no parallels</div>
+      </div>
+      <div class="compare-box" style="border-color:rgba(103,232,249,0.25);background:rgba(103,232,249,0.04);">
+        <div class="compare-label" style="color:var(--cyan);">Saddle</div>
+        <div class="compare-val" style="color:var(--cyan);">Lines diverge — infinitely many parallels</div>
+      </div>
+    </div>
+
+    <div class="insight" id="worldInsight" style="display:none;">
+      <div class="lbl">Three consistent geometries</div>
+      <p>Each is internally consistent. None is more "correct" than the others. The question is: <em>which one describes actual physical space?</em> Euclid assumed the flat one. For 2000 years, everyone agreed. Then Einstein asked a different question.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(4)" id="s3Next" disabled>Act I Complete →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 4: COMPLETE -->
+  <section class="screen" id="screen-4">
+    <div class="act-title"><div class="act-label">Act I complete</div><div class="act-name">Three <em>geometries</em></div></div>
+    <div class="complete-badge">
+      <span class="badge-icon">📐</span>
+      <div class="badge-title">Euclid wasn't wrong — just incomplete</div>
+      <div class="badge-sub">Flat. Spherical. Hyperbolic.<br>Three consistent geometries. The 5th postulate chooses between them.</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">What you learned</div>
+      <p>Euclid's 5th postulate is not a logical necessity — it's a choice. Replace it, and you get a different but equally consistent geometry. There are exactly three possibilities: flat (zero curvature), spherical (positive curvature), hyperbolic (negative curvature). <em>The question of which one describes our universe is empirical, not philosophical.</em></p>
+    </div>
+    <div class="insight rose" style="margin-bottom:14px;">
+      <div class="lbl">Geometry vs topology — the key distinction</div>
+      <p>Geometry measures — distances, angles, curvature. Topology classifies — holes, connectedness, deformability. A coffee mug and a doughnut are geometrically different but topologically identical. <em>Both perspectives will be essential for understanding the shape of the universe.</em></p>
+    </div>
+    <div class="insight gold" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act II — Measuring Curvature</div>
+      <p>In 1820, Carl Friedrich Gauss was hired to survey the Kingdom of Hanover. He used triangles. And he noticed something extraordinary — that the angles of a triangle could tell him whether he was living in a curved space, without ever stepping outside it to look.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="cta-btn" onclick="celebrate()">On to Act II →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='calculus_act5.html'">← The Shape of Change</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+let worldsOpened=0;
+
+// Star field
+const cosmos=document.getElementById('cosmos');
+const cctx=cosmos.getContext('2d');
+function drawStars(){
+  cosmos.width=innerWidth; cosmos.height=innerHeight;
+  cctx.clearRect(0,0,cosmos.width,cosmos.height);
+  for(let i=0;i<200;i++){
+    const x=Math.random()*cosmos.width, y=Math.random()*cosmos.height;
+    const r=Math.random()*1.5;
+    const alpha=0.15+Math.random()*0.55;
+    cctx.beginPath();cctx.arc(x,y,r,0,Math.PI*2);
+    cctx.fillStyle=`rgba(${180+Math.floor(Math.random()*75)},${160+Math.floor(Math.random()*75)},255,${alpha})`;
+    cctx.fill();
+  }
+}
+drawStars();
+window.addEventListener('resize',drawStars);
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n; document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1) drawGeoTopoVisuals();
+  if(n===2){ initShapeCanvas(); drawShape(); initMorphCanvas(); drawMorph(); }
+  if(n===3) buildWorlds();
+}
+
+// ---- Geometry vs Topology visuals ----
+function drawGeoTopoVisuals(){
+  // Canvas 1: circle vs oval — geometry difference
+  const c1=document.getElementById('geoCanvas1');
+  const x1=c1.getContext('2d');
+  c1.width=120;c1.height=80;
+  x1.clearRect(0,0,120,80);
+  // Circle
+  x1.strokeStyle='rgba(99,102,241,0.9)';x1.lineWidth=2;
+  x1.beginPath();x1.arc(35,40,22,0,Math.PI*2);x1.stroke();
+  // Oval
+  x1.strokeStyle='rgba(196,181,253,0.9)';x1.lineWidth=2;
+  x1.beginPath();x1.ellipse(87,40,28,16,0,0,Math.PI*2);x1.stroke();
+  // Not-equal sign
+  x1.fillStyle='rgba(255,255,255,0.3)';x1.font='bold 14px DM Sans';
+  x1.fillText('≠',56,45);
+
+  // Canvas 2: circle morphing to oval — topology same
+  const c2=document.getElementById('geoCanvas2');
+  const x2=c2.getContext('2d');
+  c2.width=120;c2.height=80;
+  x2.clearRect(0,0,120,80);
+  // Circle
+  x2.strokeStyle='rgba(236,72,153,0.9)';x2.lineWidth=2;
+  x2.beginPath();x2.arc(35,40,22,0,Math.PI*2);x2.stroke();
+  // Oval (same topology)
+  x2.strokeStyle='rgba(236,72,153,0.9)';x2.lineWidth=2;
+  x2.setLineDash([4,3]);
+  x2.beginPath();x2.ellipse(87,40,28,16,0,0,Math.PI*2);x2.stroke();
+  x2.setLineDash([]);
+  // Arrow
+  x2.strokeStyle='rgba(236,72,153,0.5)';x2.lineWidth=1.5;
+  x2.beginPath();x2.moveTo(58,35);x2.bezierCurveTo(62,30,66,30,70,35);x2.stroke();
+  x2.beginPath();x2.moveTo(70,35);x2.lineTo(67,30);x2.stroke();
+  x2.beginPath();x2.moveTo(70,35);x2.lineTo(66,37);x2.stroke();
+  // Equals sign
+  x2.fillStyle='rgba(255,255,255,0.3)';x2.font='bold 14px DM Sans';
+  x2.fillText('=',56,55);
+}
+
+// ---- Interactive shape manipulation ----
+let shapeCv, shapeCtx, shapeW=300, shapeH=220;
+function initShapeCanvas(){
+  shapeCv=document.getElementById('shapeCanvas');
+  shapeW=shapeCv.parentElement.clientWidth-8;
+  shapeCv.width=shapeW;shapeCv.height=shapeH;
+  shapeCtx=shapeCv.getContext('2d');
+}
+
+function drawShape(){
+  if(!shapeCtx)return;
+  const stretch=(parseInt(document.getElementById('sliderStretch').value)-50)/50; // -1 to 1
+  const bend=parseInt(document.getElementById('sliderBend').value)/100; // 0 to 1
+  const twist=parseInt(document.getElementById('sliderTwist').value)/100; // 0 to 1
+  const rotate=parseInt(document.getElementById('sliderRotate').value)/100*Math.PI*2; // 0 to 2pi
+
+  document.getElementById('valStretch').textContent=(1+stretch).toFixed(1)+'x';
+  document.getElementById('valBend').textContent=Math.round(bend*180)+'°';
+  document.getElementById('valTwist').textContent=Math.round(twist*180)+'°';
+  document.getElementById('valRotate').textContent=Math.round(rotate*180/Math.PI)+'°';
+
+  const ctx=shapeCtx;
+  ctx.clearRect(0,0,shapeW,shapeH);
+  ctx.fillStyle='rgba(99,102,241,0.04)';ctx.fillRect(0,0,shapeW,shapeH);
+
+  const cx=shapeW/2, cy=shapeH/2;
+  const baseR=Math.min(shapeW,shapeH)*0.3;
+  const N=80;
+
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate(rotate);
+
+  // Draw deformed circle
+  ctx.strokeStyle='rgba(99,102,241,0.9)';ctx.lineWidth=3;
+  ctx.fillStyle='rgba(99,102,241,0.08)';
+  ctx.beginPath();
+  for(let i=0;i<=N;i++){
+    const t=i/N*Math.PI*2;
+    // Base circle
+    let px=Math.cos(t)*baseR;
+    let py=Math.sin(t)*baseR;
+    // Stretch horizontally
+    px*=(1+stretch*0.7);
+    py*=(1-stretch*0.3);
+    // Bend: shift y based on x position
+    py+=bend*px*px/(baseR)*0.6;
+    // Twist: rotate each point by an angle proportional to y
+    const twistAngle=twist*Math.PI*py/(baseR*1.5);
+    const rx=px*Math.cos(twistAngle)-py*Math.sin(twistAngle)*0.3;
+    const ry=px*Math.sin(twistAngle)*0.3+py*Math.cos(twistAngle);
+    i===0?ctx.moveTo(rx,ry):ctx.lineTo(rx,ry);
+  }
+  ctx.closePath();ctx.fill();ctx.stroke();
+
+  // Centre dot
+  ctx.fillStyle='rgba(196,181,253,0.6)';
+  ctx.beginPath();ctx.arc(0,0,4,0,Math.PI*2);ctx.fill();
+
+  // Label
+  ctx.fillStyle='rgba(196,181,253,0.5)';ctx.font='11px DM Sans';
+  ctx.rotate(-rotate);
+  ctx.fillText('same topology — still one closed curve',-(shapeW*0.35),shapeH*0.42);
+  ctx.restore();
+}
+
+function resetShapeSliders(){
+  document.getElementById('sliderStretch').value=50;
+  document.getElementById('sliderBend').value=0;
+  document.getElementById('sliderTwist').value=0;
+  document.getElementById('sliderRotate').value=0;
+  drawShape();
+}
+
+// ---- Coffee mug ↔ doughnut morph ----
+let mugCv, mugCtx, mugW=300, mugH=200;
+function initMorphCanvas(){
+  mugCv=document.getElementById('mugCanvas');
+  mugW=mugCv.parentElement.clientWidth-8;
+  mugCv.width=mugW;mugCv.height=mugH;
+  mugCtx=mugCv.getContext('2d');
+}
+
+function drawMorph(){
+  if(!mugCtx)return;
+  const t=parseInt(document.getElementById('morphSlider').value)/100; // 0=mug, 1=doughnut
+  const ctx=mugCtx;
+  ctx.clearRect(0,0,mugW,mugH);
+  ctx.fillStyle='rgba(236,72,153,0.03)';ctx.fillRect(0,0,mugW,mugH);
+
+  const cx=mugW/2, cy=mugH/2;
+
+  // Label
+  const labels=['Coffee mug','Morphing...','Doughnut (torus)'];
+  const lbl=t<0.15?labels[0]:t>0.85?labels[2]:labels[1];
+  document.getElementById('morphLabel').textContent=lbl;
+
+  // Interpolate between mug silhouette and torus cross-section
+  // Mug (t=0): body = large ellipse left-center, handle = small loop on right
+  // Doughnut (t=1): symmetric torus (outer + inner ellipse)
+
+  const bodyW=55+t*25; // body width grows
+  const bodyH=50-t*15; // body height shrinks
+  const bodyX=cx-20*(1-t); // body shifts to center
+  const bodyY=cy;
+
+  // Handle parameters
+  const handleDist=60*(1-t)+0*t; // distance from body center (shrinks to 0)
+  const handleW=18*(1-t)+bodyW*t; // handle width (grows to match body)
+  const handleH=25*(1-t)+bodyH*t*0.6; // handle height
+  const handleX=bodyX+bodyW*(1-t*0.5)+handleDist*(1-t);
+  const handleY=cy;
+
+  // Draw body (outer shape)
+  ctx.strokeStyle='rgba(236,72,153,0.85)';ctx.lineWidth=2.5;
+  ctx.fillStyle='rgba(236,72,153,0.08)';
+
+  // At t=0: mug body (rectangular-ish with rounded bottom)
+  // At t=1: torus outer ellipse
+  if(t<0.5){
+    // Mug body
+    const flatness=1-t*2; // 1 at t=0, 0 at t=0.5
+    const rr=12+t*20;
+    ctx.beginPath();
+    // Mug shape: rounded rectangle morphing to ellipse
+    const bx=bodyX, by=bodyY;
+    const bw=bodyW, bh=bodyH;
+    const topFlat=bh*0.8*flatness;
+    ctx.ellipse(bx, by, bw, bh, 0, 0, Math.PI*2);
+    ctx.fill();ctx.stroke();
+
+    // Flat top for mug
+    if(flatness>0.1){
+      ctx.strokeStyle='rgba(236,72,153,0.4)';ctx.lineWidth=1.5;
+      ctx.beginPath();
+      ctx.ellipse(bx, by-bh+5*flatness, bw*0.85, 8*flatness, 0, 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    // Handle
+    ctx.strokeStyle='rgba(236,72,153,0.85)';ctx.lineWidth=2.5;
+    const hx=bx+bw+8*(1-t*2);
+    ctx.beginPath();
+    ctx.ellipse(hx, by, handleW, handleH, 0, -Math.PI*0.5, Math.PI*0.5);
+    ctx.stroke();
+  } else {
+    // Torus (t=0.5 to 1)
+    const tt=(t-0.5)*2; // 0 to 1 within second half
+    const outerRx=bodyW;
+    const outerRy=bodyH*(0.7+tt*0.3);
+    const innerRx=outerRx*(0.35+tt*0.15);
+    const innerRy=outerRy*(0.3+tt*0.2);
+
+    // Outer ellipse
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, outerRx, outerRy, 0, 0, Math.PI*2);
+    ctx.fill();ctx.stroke();
+
+    // Inner hole
+    ctx.fillStyle='rgba(4,2,15,0.95)';
+    ctx.strokeStyle='rgba(236,72,153,0.6)';ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, innerRx, innerRy, 0, 0, Math.PI*2);
+    ctx.fill();ctx.stroke();
+  }
+
+  // Hole indicator
+  ctx.fillStyle='rgba(251,191,36,0.7)';ctx.font='bold 11px DM Sans';
+  if(t<0.3){
+    const hx=bodyX+bodyW+25;
+    ctx.fillText('1 hole',hx+5,cy);
+    ctx.strokeStyle='rgba(251,191,36,0.4)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(hx-2,cy-3,12,0,Math.PI*2);ctx.stroke();
+  } else if(t>0.7){
+    ctx.fillText('1 hole',cx-15,cy+4);
+  }
+
+  // Phase label
+  ctx.fillStyle='rgba(196,181,253,0.4)';ctx.font='10px DM Sans';
+  ctx.fillText('same topology: genus 1 (one hole)',mugW*0.15,mugH-10);
+}
+
+// ---- Three worlds ----
+const worldData=[
+  {id:'flat', icon:'📄', name:'Flat (Euclidean)', sub:'Zero curvature · Playfair holds',
+   color:'#c4b5fd', col2:'rgba(196,181,253,0.6)',
+   fact:'On a flat plane, two lines that start parallel remain parallel forever. The angles of any triangle sum to exactly 180°. This is the geometry of everyday life — at human scales.',
+   draw:(cv,ctx,W,H)=>{
+     ctx.fillStyle='rgba(99,102,241,0.06)';ctx.fillRect(0,0,W,H);
+     ctx.strokeStyle='rgba(196,181,253,0.12)';ctx.lineWidth=1;
+     for(let x=20;x<W;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+     for(let y=20;y<H;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+     ctx.strokeStyle='rgba(196,181,253,0.9)';ctx.lineWidth=2.5;
+     ctx.beginPath();ctx.moveTo(20,H*0.38);ctx.lineTo(W-20,H*0.38);ctx.stroke();
+     ctx.beginPath();ctx.moveTo(20,H*0.62);ctx.lineTo(W-20,H*0.62);ctx.stroke();
+     for(const y of [H*0.38,H*0.62]){
+       ctx.fillStyle='rgba(196,181,253,0.8)';
+       ctx.beginPath();ctx.moveTo(W-20,y);ctx.lineTo(W-30,y-5);ctx.lineTo(W-30,y+5);ctx.closePath();ctx.fill();
+     }
+     ctx.fillStyle='rgba(196,181,253,0.5)';ctx.font='11px DM Sans';
+     ctx.fillText('parallel — remain parallel',W/2-65,H*0.25);
+   }
+  },
+  {id:'sphere', icon:'🌍', name:'Spherical (positive curvature)', sub:'Lines always converge · no parallels',
+   color:'#ec4899', col2:'rgba(236,72,153,0.6)',
+   fact:'On a sphere, every "straight" line (great circle) eventually meets every other. There are NO parallel lines. All meridians on Earth meet at the poles — even though they start "parallel" at the equator.',
+   draw:(cv,ctx,W,H)=>{
+     ctx.fillStyle='rgba(236,72,153,0.04)';ctx.fillRect(0,0,W,H);
+     const cx=W/2, cy=H/2, r=Math.min(W,H)*0.38;
+     ctx.strokeStyle='rgba(236,72,153,0.25)';ctx.lineWidth=1;
+     ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+     ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+     ctx.beginPath();ctx.ellipse(cx,cy,r,r*0.28,0,0,Math.PI*2);ctx.stroke();
+     ctx.strokeStyle='rgba(236,72,153,0.9)';ctx.lineWidth=2.5;
+     for(const offset of [-0.28,0.28]){
+       ctx.beginPath();ctx.ellipse(cx+offset*r,cy,r*0.28,r,0,0,Math.PI*2);ctx.stroke();
+     }
+     ctx.fillStyle='rgba(251,191,36,0.9)';
+     ctx.beginPath();ctx.arc(cx,cy-r,5,0,Math.PI*2);ctx.fill();
+     ctx.fillStyle='rgba(236,72,153,0.6)';ctx.font='11px DM Sans';
+     ctx.fillText('all lines meet here',cx-55,cy-r-8);
+     ctx.fillText('(and at south pole)',cx-58,cy+r+16);
+   }
+  },
+  {id:'saddle', icon:'🏔️', name:'Hyperbolic (negative curvature)', sub:'Lines diverge · infinitely many parallels',
+   color:'#67e8f9', col2:'rgba(103,232,249,0.6)',
+   fact:'On a saddle-shaped surface, "straight" lines spread away from each other. Through any point, there are infinitely many lines that never intersect a given line. This is hyperbolic geometry — and our universe might have this shape.',
+   draw:(cv,ctx,W,H)=>{
+     ctx.fillStyle='rgba(103,232,249,0.03)';ctx.fillRect(0,0,W,H);
+     ctx.strokeStyle='rgba(103,232,249,0.1)';ctx.lineWidth=1;
+     for(let t=-3;t<=3;t+=0.6){
+       ctx.beginPath();
+       for(let s=-2;s<=2;s+=0.05){
+         const x=cx_s(s,t,W,H), y=cy_s(s,t,W,H);
+         s===-2?ctx.moveTo(x,y):ctx.lineTo(x,y);
+       }ctx.stroke();
+     }
+     for(let s=-2;s<=2;s+=0.6){
+       ctx.beginPath();
+       for(let t=-3;t<=3;t+=0.05){
+         const x=cx_s(s,t,W,H), y=cy_s(s,t,W,H);
+         t===-3?ctx.moveTo(x,y):ctx.lineTo(x,y);
+       }ctx.stroke();
+     }
+     ctx.strokeStyle='rgba(103,232,249,0.9)';ctx.lineWidth=2.5;
+     ctx.beginPath();
+     for(let s=-2;s<=2;s+=0.04){
+       const x=cx_s(s,-0.6,W,H), y=cy_s(s,-0.6,W,H);
+       s===-2?ctx.moveTo(x,y):ctx.lineTo(x,y);
+     }ctx.stroke();
+     ctx.beginPath();
+     for(let s=-2;s<=2;s+=0.04){
+       const x=cx_s(s,0.6,W,H), y=cy_s(s,0.6,W,H);
+       s===-2?ctx.moveTo(x,y):ctx.lineTo(x,y);
+     }ctx.stroke();
+     ctx.fillStyle='rgba(103,232,249,0.5)';ctx.font='11px DM Sans';
+     ctx.fillText('lines diverge — never meet',W/2-70,H*0.12);
+   }
+  },
+];
+
+function cx_s(s,t,W,H){return W/2 + s*W*0.2;}
+function cy_s(s,t,W,H){return H/2 + t*H*0.12 + s*s*H*0.12 - t*t*H*0.06;}
+
+function buildWorlds(){
+  worldsOpened=0;
+  const grid=document.getElementById('worldsGrid');
+  grid.innerHTML='';
+  worldData.forEach((w,i)=>{
+    const card=document.createElement('div');
+    card.className='world-card';
+    card.id=`wcard-${w.id}`;
+    card.innerHTML=`
+      <div class="world-header">
+        <div class="world-icon">${w.icon}</div>
+        <div><div class="world-name" style="color:${w.color}">${w.name}</div>
+        <div class="world-sub">${w.sub}</div></div>
+      </div>
+      <div class="world-canvas-wrap">
+        <canvas class="world-canvas" id="wcv-${w.id}" height="130"></canvas>
+      </div>
+      <div class="world-fact">${w.fact}</div>`;
+    card.onclick=()=>selectWorld(w.id,w);
+    grid.appendChild(card);
+  });
+  document.getElementById('compareRow').style.display='none';
+  document.getElementById('worldInsight').style.display='none';
+  document.getElementById('s3Next').disabled=true;
+}
+
+function selectWorld(id,w){
+  const card=document.getElementById(`wcard-${id}`);
+  const wasSelected=card.classList.contains('selected');
+  worldData.forEach(wd=>{
+    document.getElementById(`wcard-${wd.id}`).classList.remove('selected');
+  });
+  if(!wasSelected){
+    card.classList.add('selected');
+    const cv=document.getElementById(`wcv-${id}`);
+    cv.width=cv.parentElement.clientWidth;
+    const ctx=cv.getContext('2d');
+    w.draw(cv,ctx,cv.width,cv.height);
+    worldsOpened++;
+    launchMiniConfetti();
+    if(worldsOpened>=2){
+      document.getElementById('compareRow').style.display='flex';
+      document.getElementById('worldInsight').style.display='block';
+      document.getElementById('s3Next').disabled=false;
+    }
+  }
+}
+
+function celebrate(){launchConfetti();setTimeout(()=>window.location.href='space_act2.html',900);}
+
+const cc=document.getElementById('confetti'),cxcf=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<90;i++) parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*5,vy:2+Math.random()*4,
+    c:['#6366f1','#ec4899','#c4b5fd','#fbbf24','#67e8f9'][Math.floor(Math.random()*5)],
+    s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},3500);
+}
+function launchMiniConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;
+  for(let i=0;i<18;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.4,
+    vx:(Math.random()-.5)*7,vy:-(3+Math.random()*5),
+    c:['#6366f1','#c4b5fd'][Math.floor(Math.random()*2)],s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!afr)animC();
+}
+function animC(){
+  cxcf.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;
+    cxcf.save();cxcf.globalAlpha=p.l;cxcf.translate(p.x,p.y);cxcf.rotate(p.r);
+    cxcf.fillStyle=p.c;cxcf.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cxcf.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;
+}
+</script>
+</body>
+</html>

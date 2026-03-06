@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gradient Descent | mathsedu.org</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+:root{--bg:#050814;--bg2:#0a0f1e;--bg3:#0f1628;--vio:#8b5cf6;--vio-d:rgba(139,92,246,0.12);--cyan:#22d3ee;--amber:#f59e0b;--emerald:#10b981;--coral:#f43f5e;--silver:#e2e8f0;--text:#94a3b8;--text2:#cbd5e1;--muted:#334155;--border:rgba(139,92,246,0.15);--radius:14px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;}
+canvas#bgc{position:fixed;inset:0;z-index:0;opacity:.4;}
+.page{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:0 24px 80px;}
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0 16px;border-bottom:1px solid var(--border);margin-bottom:48px;}
+.nav-logo{font-family:'Lora',serif;font-size:1.1em;color:var(--muted);}.nav-logo span{color:var(--vio);font-style:italic;}
+.nav-ch{font-size:.72em;text-transform:uppercase;letter-spacing:2px;color:var(--amber);}
+.hero{margin-bottom:56px;}
+.ch-tag{display:inline-block;font-size:.68em;text-transform:uppercase;letter-spacing:3px;color:var(--amber);border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:4px 14px;margin-bottom:18px;}
+h1{font-family:'Lora',serif;font-size:clamp(2.2em,5vw,3.2em);font-weight:400;color:var(--silver);line-height:1.2;margin-bottom:16px;}
+h1 em{color:var(--amber);font-style:italic;}
+.hero-sub{font-family:'Lora',serif;font-size:1.15em;color:#4a6080;line-height:1.9;max-width:680px;}
+h2{font-family:'Lora',serif;font-size:1.55em;font-weight:400;color:var(--silver);margin:48px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+h3{font-family:'Lora',serif;font-size:1.1em;font-weight:600;color:var(--text2);margin:28px 0 10px;}
+p{line-height:1.85;color:var(--text);margin-bottom:16px;font-size:.97em;}
+p strong{color:var(--text2);}p em{color:var(--amber);font-style:italic;}
+.callout{border-left:3px solid var(--amber);background:rgba(245,158,11,.08);border-radius:0 var(--radius) var(--radius) 0;padding:16px 20px;margin:24px 0;}
+.callout.vio{border-left-color:var(--vio);background:var(--vio-d);}
+.callout.emerald{border-left-color:var(--emerald);background:rgba(16,185,129,.08);}
+.callout.coral{border-left-color:var(--coral);background:rgba(244,63,94,.08);}
+.callout-lbl{font-size:.66em;text-transform:uppercase;letter-spacing:2px;color:var(--amber);margin-bottom:6px;}
+.callout.vio .callout-lbl{color:var(--vio);}.callout.emerald .callout-lbl{color:var(--emerald);}.callout.coral .callout-lbl{color:var(--coral);}
+.callout p{margin:0;font-family:'Lora',serif;font-size:.96em;color:#2a4060;line-height:1.75;}
+.callout p strong{color:var(--silver);}
+.math-block{font-family:'JetBrains Mono',monospace;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin:16px 0;font-size:.88em;color:var(--cyan);line-height:1.8;white-space:pre;}
+.ibox{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin:32px 0;}
+.ibox-lbl{font-size:.68em;text-transform:uppercase;letter-spacing:2px;color:var(--amber);margin-bottom:14px;}
+canvas.vis{display:block;border-radius:8px;background:var(--bg3);width:100%;}
+.ctrl{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap;}
+.ctrl label{font-size:.8em;color:var(--muted);}
+input[type=range]{flex:1;min-width:100px;accent-color:var(--amber);}
+.vbadge{font-family:'JetBrains Mono',monospace;font-size:.8em;color:var(--cyan);background:var(--bg3);padding:3px 9px;border-radius:6px;min-width:56px;text-align:center;}
+button{border:none;border-radius:8px;padding:8px 18px;font-family:'Inter',sans-serif;font-size:.82em;font-weight:500;cursor:pointer;transition:all .2s;}
+.bp{background:linear-gradient(135deg,var(--amber),#d97706);color:#000;}
+.bp:hover{transform:translateY(-1px);}
+.bs{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.bc{background:linear-gradient(135deg,var(--coral),#be185d);color:#fff;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:20px 0;}
+@media(max-width:600px){.three-col{grid-template-columns:1fr;}}
+.algo-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.algo-name{font-size:.78em;font-weight:700;color:var(--silver);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.algo-eq{font-family:'JetBrains Mono',monospace;font-size:.75em;color:var(--cyan);margin-bottom:8px;}
+.algo-desc{font-size:.78em;color:var(--muted);line-height:1.55;}
+.conn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin:20px 0;}
+.conn-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-decoration:none;transition:all .2s;display:block;}
+.conn-card:hover{border-color:rgba(139,92,246,.4);transform:translateY(-2px);}
+.cc-tag{font-size:.6em;text-transform:uppercase;letter-spacing:2px;color:var(--amber);margin-bottom:5px;}
+.cc-title{font-size:.88em;font-weight:600;color:var(--silver);margin-bottom:3px;}
+.cc-desc{font-size:.74em;color:var(--muted);line-height:1.5;}
+.learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin:24px 0;}
+.learn-box .learn-title{font-size:.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+.learn-box .learn-title.try{color:var(--cyan);}
+.learn-box .learn-title.notice{color:var(--amber);}
+.learn-box .learn-title.why{color:var(--emerald);}
+.learn-box ul{margin:0;padding-left:18px;font-size:.88em;line-height:1.8;color:var(--text2);}
+.learn-box ul li{margin-bottom:4px;}
+</style>
+</head>
+<body>
+<canvas id="bgc"></canvas>
+<div class="page">
+<nav>
+  <div class="nav-logo">mathsedu<span>.org</span></div>
+  <div class="nav-ch">Chapter 11 · Mathematics of Intelligence</div>
+</nav>
+<div class="hero">
+  <div class="ch-tag">Ch. 11 · Foundations · Page 3 of 15</div>
+  <h1>Gradient <em>Descent</em></h1>
+  <p class="hero-sub">The algorithm that learns — how a model navigates a mountain range of errors to find the valley of understanding.</p>
+</div>
+
+<h2>The Learning Problem</h2>
+<p>Every neural network begins as pure randomness. Its billions of parameters are initialised with small random values. Asked to predict anything, it produces nonsense. <strong>Learning is the process of adjusting these parameters until the predictions become good.</strong></p>
+<p>But "adjusting parameters" is deceptively simple language for a profound problem. A modern language model has 70 billion parameters. The space of possible configurations is unimaginably vast. How do you search it efficiently? The answer — elegant in its simplicity — is to follow the gradient.</p>
+
+<div class="callout">
+  <div class="callout-lbl">The Key Insight</div>
+  <p>At any point in parameter space, the gradient of the loss function tells you the direction of <strong>steepest ascent</strong> — the direction in which error increases fastest. Step in the opposite direction — downhill — and you reduce the error. Repeat millions of times. This is gradient descent.</p>
+</div>
+
+<h2>The Loss Function</h2>
+<p>Before descending, you need a landscape to descend. The <em>loss function</em> L(theta) measures how wrong the model currently is, given parameters theta. It maps every possible configuration of parameters to a single number: the error.</p>
+<p>For a model with two parameters (a toy case), the loss function is a surface — a literal landscape you can visualise. Valleys are good configurations; peaks and plateaus are bad. The goal: find the deepest valley.</p>
+
+<div class="math-block">Loss function L(theta):  R^n -> R    (n parameters -> one error number)
+
+Common choices:
+  Mean Squared Error:   L = (1/N) Sum_i (y_i - y_hat_i)^2       -- regression
+  Cross-Entropy:        L = -(1/N) Sum_i y_i log(y_hat_i)       -- classification
+  KL Divergence:        L = Sum_i p(i) log(p(i)/q(i))           -- distributions
+
+The gradient: nabla L(theta) = [dL/dtheta_1, dL/dtheta_2, ..., dL/dtheta_n]
+              A vector pointing in the direction of steepest ascent.</div>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — Loss Landscape Explorer</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">Click anywhere on the landscape to place the starting point. Press Run to watch gradient descent find the minimum. Adjust learning rate to see the effect.</p>
+  <canvas id="lsCanvas" class="vis" height="340"></canvas>
+  <div class="ctrl">
+    <label>Learning rate eta</label>
+    <input type="range" id="lrSlider" min="1" max="50" value="12" oninput="updateLR()">
+    <span class="vbadge" id="lrVal">eta = 0.12</span>
+    <button class="bp" onclick="runDescent()">Run descent</button>
+    <button class="bs" onclick="resetDescent()">Reset</button>
+  </div>
+  <div id="descentStats" style="margin-top:10px;font-family:'JetBrains Mono',monospace;font-size:.78em;color:var(--muted);"></div>
+</div>
+
+<div class="learn-box">
+  <div class="learn-title try">Try This</div>
+  <ul>
+    <li>Set learning rate to 0.05 (low) and click a starting point far from the minimum. Watch how slowly it converges.</li>
+    <li>Now set it to 0.45 (high). Watch the ball oscillate wildly, overshooting the valley.</li>
+    <li>Find the "sweet spot" around 0.10-0.20 where convergence is fast and smooth.</li>
+    <li>Click different starting points — some lead to different valleys (local minima).</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title notice">What To Notice</div>
+  <ul>
+    <li>Too small eta: the ball inches downhill painfully slowly. Training would take forever.</li>
+    <li>Too large eta: the ball bounces over the valley and may diverge entirely. Loss goes up instead of down.</li>
+    <li>Different starting positions can lead to different local minima — the landscape has multiple valleys.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title why">Why It Matters</div>
+  <ul>
+    <li>The learning rate is the single most important hyperparameter in training. Get it wrong and nothing works.</li>
+    <li>Real training uses learning rate schedules that change eta over time — warm up, then decay.</li>
+    <li>The existence of multiple local minima is why training neural networks is hard but also why different runs produce different (but equally good) models.</li>
+  </ul>
+</div>
+
+<h2>The Update Rule</h2>
+<p>At each step, the algorithm computes the gradient at the current position and takes a small step in the opposite direction. The size of the step is controlled by the <em>learning rate</em> eta — arguably the most important hyperparameter in deep learning.</p>
+
+<div class="math-block">Gradient descent update:
+  theta <- theta - eta * nabla L(theta)
+
+  theta  : current parameters (position in the landscape)
+  eta    : learning rate (step size)
+  nabla L: gradient (direction of steepest ascent)
+  -nabla L: direction of steepest descent -- we move here
+
+Too large eta -> overshoot, bounce around, diverge
+Too small eta -> progress glacially slow, get stuck</div>
+
+<div class="callout coral">
+  <div class="callout-lbl">The learning rate problem</div>
+  <p>If eta is too large, the ball bounces over valleys and diverges. If eta is too small, training takes impractically long. Finding a good eta is partly art, partly science. Modern practice uses <strong>adaptive learning rate schedules</strong>: warm-up from a small value, hold at a peak, then decay. GPT-3 used a cosine decay schedule over 300 billion tokens.</p>
+</div>
+
+<h2>Learning Rate Control</h2>
+<p>The learning rate controls the step size. This interactive lets you see the dramatic effect of changing it — from glacially slow to wildly unstable.</p>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — Learning Rate Effect</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">A simple 1D loss function. Drag the learning rate slider and press Run to see how step size affects convergence. The ball starts at the red dot.</p>
+  <canvas id="lrCanvas" class="vis" height="260"></canvas>
+  <div class="ctrl">
+    <label>Learning rate eta</label>
+    <input type="range" id="lrDemoSlider" min="1" max="100" value="15" oninput="updateLRDemo()">
+    <span class="vbadge" id="lrDemoVal">eta = 0.15</span>
+    <button class="bp" onclick="runLRDemo()">Run</button>
+    <button class="bs" onclick="resetLRDemo()">Reset</button>
+    <span id="lrDemoStatus" style="font-family:'JetBrains Mono',monospace;font-size:.76em;color:var(--muted);"></span>
+  </div>
+</div>
+
+<div class="learn-box">
+  <div class="learn-title try">Try This</div>
+  <ul>
+    <li>Set eta = 0.03 and run. Count how many steps to converge — it is very slow.</li>
+    <li>Set eta = 0.15 and run. It converges nicely in a handful of steps.</li>
+    <li>Set eta = 0.50 and run. The ball overshoots and oscillates.</li>
+    <li>Set eta = 0.95 and run. The ball diverges — it gets further from the minimum each step.</li>
+  </ul>
+</div>
+
+<h2>Stochastic Gradient Descent</h2>
+<p>With billions of training examples, computing the true gradient — which requires looking at every example — is prohibitively expensive. <strong>Stochastic Gradient Descent (SGD)</strong> uses a random mini-batch of, say, 32 examples to estimate the gradient. The estimate is noisy, but each step is computed 10 million times faster.</p>
+<p>Counterintuitively, this noise helps: it prevents the optimizer from settling too confidently in a poor local minimum. The stochastic jitter acts as a form of exploration.</p>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — Stochastic vs Full Gradient Descent</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">Watch SGD (noisy, orange) vs full-batch gradient descent (smooth, cyan) on the same landscape. SGD's noise helps it escape the local minimum that traps full GD.</p>
+  <canvas id="sgdCanvas" class="vis" height="300"></canvas>
+  <div class="ctrl">
+    <label>Noise level</label>
+    <input type="range" id="noiseSlider" min="0" max="100" value="40" oninput="document.getElementById('noiseVal').textContent='noise = '+parseInt(this.value)/100">
+    <span class="vbadge" id="noiseVal">noise = 0.40</span>
+    <button class="bp" onclick="runSGDDemo()">Run Both</button>
+    <button class="bs" onclick="resetSGDDemo()">Reset</button>
+  </div>
+  <div style="margin-top:8px;font-size:.76em;color:var(--muted);">
+    <span style="color:#22d3ee">--</span> Full Gradient Descent &nbsp;
+    <span style="color:#f59e0b">--</span> Stochastic GD (noisy)
+  </div>
+  <div id="sgdInfo" style="margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:.76em;color:var(--muted);"></div>
+</div>
+
+<div class="learn-box">
+  <div class="learn-title try">Try This</div>
+  <ul>
+    <li>Run with noise = 0. Both paths are identical — pure gradient descent.</li>
+    <li>Increase noise to 0.40. SGD wobbles but often finds a better minimum.</li>
+    <li>Push noise to 1.0. Too much noise — SGD jumps erratically and may never settle.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title notice">What To Notice</div>
+  <ul>
+    <li>Full GD follows a smooth path straight to the nearest local minimum — even if it is not the best one.</li>
+    <li>SGD's noisy path sometimes escapes shallow local minima and finds deeper valleys.</li>
+    <li>There is an optimal noise level: enough to explore, not so much that you cannot converge.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title why">Why It Matters</div>
+  <ul>
+    <li>Real training always uses mini-batch SGD — computing the exact gradient over all data is too expensive.</li>
+    <li>The noise in SGD acts as implicit regularisation, helping the model generalise better.</li>
+    <li>Batch size (which controls noise level) is a key hyperparameter alongside learning rate.</li>
+  </ul>
+</div>
+
+<div class="three-col">
+  <div class="algo-card">
+    <div class="algo-name">SGD</div>
+    <div class="algo-eq">theta <- theta - eta*nabla L</div>
+    <div class="algo-desc">Vanilla. Fast per step. Sensitive to learning rate. Used in initial deep learning breakthroughs (AlexNet, 2012).</div>
+  </div>
+  <div class="algo-card">
+    <div class="algo-name" style="color:var(--vio);">SGD + Momentum</div>
+    <div class="algo-eq">v <- beta*v + nabla L<br>theta <- theta - eta*v</div>
+    <div class="algo-desc">Accumulates velocity in consistent directions. Rolls through small local minima. beta typically 0.9.</div>
+  </div>
+  <div class="algo-card">
+    <div class="algo-name" style="color:var(--amber);">Adam</div>
+    <div class="algo-eq">Adaptive per-parameter<br>learning rates</div>
+    <div class="algo-desc">Default choice for most modern models. Combines momentum with per-parameter rate adaptation. Kingma & Ba, 2014.</div>
+  </div>
+</div>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — SGD vs Momentum vs Adam</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">Watch three optimisers descend the same landscape simultaneously. Observe how momentum smooths the path; how Adam adapts to the curvature.</p>
+  <canvas id="cmpCanvas" class="vis" height="300"></canvas>
+  <div class="ctrl">
+    <button class="bp" onclick="runComparison()">Compare optimisers</button>
+    <button class="bs" onclick="resetCmp()">Reset</button>
+    <span style="font-size:.76em;color:var(--muted);margin-left:8px;">
+      <span style="color:#22d3ee">--</span> SGD &nbsp;
+      <span style="color:#8b5cf6">--</span> Momentum &nbsp;
+      <span style="color:#f59e0b">--</span> Adam
+    </span>
+  </div>
+</div>
+
+<h2>Why Neural Networks Are Hard to Optimise</h2>
+<p>The loss landscape of a deep neural network is not a smooth bowl with one valley. It is a high-dimensional surface with <strong>saddle points</strong> (neither min nor max), <strong>flat regions</strong> (vanishing gradients), <strong>sharp cliffs</strong> (exploding gradients), and millions of local minima.</p>
+<p>Modern deep learning works despite this complexity for reasons not fully understood. One partial explanation: with enough parameters, most local minima are nearly as good as the global minimum, because the network is massively overparameterised — it has far more parameters than training examples, and any configuration that fits the data well is likely to generalise.</p>
+
+<div class="callout emerald">
+  <div class="callout-lbl">The remarkable fact</div>
+  <p>Despite this complexity, gradient descent reliably trains neural networks with hundreds of billions of parameters. The theoretical understanding lags far behind the empirical success. We know it works. We are still building the mathematics to explain precisely <strong>why</strong> it works as well as it does.</p>
+</div>
+
+<div class="math-block">Practical training loop (simplified):
+
+for epoch in range(num_epochs):
+  for batch in dataloader:                    # mini-batch of ~32-4096 examples
+    predictions = model(batch.inputs)         # forward pass
+    loss = criterion(predictions, batch.targets)
+    loss.backward()                           # compute nabla L via backpropagation
+    optimizer.step()                          # theta <- theta - eta*nabla L
+    optimizer.zero_grad()                     # clear accumulated gradients
+
+GPT-3: ~300 billion token updates. ~3.14x10^23 floating-point operations.
+       Equivalent to ~$4.6M in compute at 2020 prices.</div>
+
+<h2>Connected Mathematics</h2>
+<div class="conn-grid">
+  <a href="derivatives.html" class="conn-card">
+    <div class="cc-tag">Ch. 6 · Calculus</div>
+    <div class="cc-title">Derivatives</div>
+    <div class="cc-desc">The gradient is a vector of partial derivatives. The entire framework rests on this.</div>
+  </a>
+  <a href="backpropagation.html" class="conn-card">
+    <div class="cc-tag">Ch. 11 · AI · Page 4</div>
+    <div class="cc-title">Backpropagation</div>
+    <div class="cc-desc">How the gradient nabla L is computed efficiently through a neural network.</div>
+  </a>
+  <a href="loss_functions.html" class="conn-card">
+    <div class="cc-tag">Ch. 11 · AI · Page 9</div>
+    <div class="cc-title">Loss Functions</div>
+    <div class="cc-desc">What exactly the gradient is a gradient of — the landscape we descend.</div>
+  </a>
+  <a href="vectors_embeddings.html" class="conn-card">
+    <div class="cc-tag">Ch. 11 · AI · Page 1</div>
+    <div class="cc-title">Vectors & Embeddings</div>
+    <div class="cc-desc">The embedding matrix is one of the things gradient descent optimises.</div>
+  </a>
+  <a href="differential_equations.html" class="conn-card">
+    <div class="cc-tag">Ch. 6 · Calculus</div>
+    <div class="cc-title">Differential Equations</div>
+    <div class="cc-desc">In the limit of infinitesimal steps, gradient descent becomes gradient flow — a differential equation.</div>
+  </a>
+  <a href="fixed_point_theorems.html" class="conn-card">
+    <div class="cc-tag">Ch. 9 · Analysis</div>
+    <div class="cc-title">Fixed Point Theorems</div>
+    <div class="cc-desc">Convergence proofs for gradient descent use fixed-point arguments in function space.</div>
+  </a>
+</div>
+</div>
+
+<script>
+// BACKGROUND
+const bgc=document.getElementById('bgc'),bx=bgc.getContext('2d');
+bgc.width=innerWidth;bgc.height=innerHeight;
+const pts=Array.from({length:55},()=>({x:Math.random()*bgc.width,y:Math.random()*bgc.height,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25}));
+function animBg(){bx.clearRect(0,0,bgc.width,bgc.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=bgc.width;if(p.x>bgc.width)p.x=0;if(p.y<0)p.y=bgc.height;if(p.y>bgc.height)p.y=0;bx.beginPath();bx.arc(p.x,p.y,1.2,0,Math.PI*2);bx.fillStyle='rgba(139,92,246,.5)';bx.fill();});pts.forEach((a,i)=>pts.slice(i+1).forEach(b=>{const d=Math.hypot(a.x-b.x,a.y-b.y);if(d<90){bx.beginPath();bx.moveTo(a.x,a.y);bx.lineTo(b.x,b.y);bx.strokeStyle=`rgba(139,92,246,${.1*(1-d/90)})`;bx.lineWidth=.5;bx.stroke();}}));requestAnimationFrame(animBg);}
+animBg();window.addEventListener('resize',()=>{bgc.width=innerWidth;bgc.height=innerHeight;});
+
+// LOSS LANDSCAPE
+const lsc=document.getElementById('lsCanvas'),lsx=lsc.getContext('2d');
+let lsW,lsH,startPt=null,path=[],animId=null;
+let lr=0.12;
+
+function lossVal(x,y){
+  const nx=(x/lsW)*4-2,ny=(y/lsH)*4-2;
+  return 1.5*(nx*nx*0.3 + ny*ny*0.3) -
+    1.2*Math.exp(-((nx-0)**2+(ny-0)**2)/0.8) -
+    0.7*Math.exp(-((nx+1.1)**2+(ny+0.9)**2)/0.4) -
+    0.5*Math.exp(-((nx-1.2)**2+(ny+0.3)**2)/0.3) +
+    0.2*Math.sin(nx*3)*Math.cos(ny*2)*0.3;
+}
+function gradLoss(x,y){
+  const h=2;
+  return {gx:(lossVal(x+h,y)-lossVal(x-h,y))/(2*h),
+          gy:(lossVal(x,y+h)-lossVal(x,y-h))/(2*h)};}
+
+function drawLandscape(){
+  lsW=lsc.offsetWidth||700;lsc.width=lsW;lsH=lsc.offsetHeight||340;lsc.height=lsH;
+  const img=lsx.createImageData(lsW,lsH);
+  for(let y=0;y<lsH;y++){for(let x=0;x<lsW;x++){
+    const v=lossVal(x,y),t=Math.max(0,Math.min(1,(v+0.5)/2));
+    const idx=(y*lsW+x)*4;
+    img.data[idx]=Math.round(5+t*100);
+    img.data[idx+1]=Math.round(8+(1-t)*60);
+    img.data[idx+2]=Math.round(20+(1-t)*150);
+    img.data[idx+3]=255;
+  }}
+  lsx.putImageData(img,0,0);
+  if(path.length>1){
+    lsx.strokeStyle='rgba(245,158,11,.85)';lsx.lineWidth=2;lsx.beginPath();
+    lsx.moveTo(path[0].x,path[0].y);
+    path.forEach(p=>lsx.lineTo(p.x,p.y));lsx.stroke();
+    path.forEach((p,i)=>{if(i%5===0){lsx.beginPath();lsx.arc(p.x,p.y,2,0,Math.PI*2);lsx.fillStyle='rgba(245,158,11,.6)';lsx.fill();}});
+  }
+  if(startPt){lsx.beginPath();lsx.arc(startPt.x,startPt.y,7,0,Math.PI*2);lsx.fillStyle='#f59e0b';lsx.fill();}
+  if(path.length>0){const p=path[path.length-1];lsx.beginPath();lsx.arc(p.x,p.y,7,0,Math.PI*2);lsx.fillStyle='#10b981';lsx.fill();}
+  if(!startPt){lsx.fillStyle='rgba(139,92,246,.6)';lsx.font='14px Inter';lsx.textAlign='center';lsx.fillText('Click to place starting point',lsW/2,lsH/2);}
+}
+function updateLR(){lr=parseInt(document.getElementById('lrSlider').value)/100;document.getElementById('lrVal').textContent='eta = '+lr.toFixed(2);}
+function resetDescent(){cancelAnimationFrame(animId);path=[];startPt=null;document.getElementById('descentStats').textContent='';drawLandscape();}
+function runDescent(){
+  if(!startPt)return;
+  cancelAnimationFrame(animId);path=[{...startPt}];
+  let cx=startPt.x,cy=startPt.y,step=0;
+  function step_(){
+    if(step>500){document.getElementById('descentStats').textContent='Converged in '+step+' steps. Loss: '+lossVal(cx,cy).toFixed(4);return;}
+    const {gx,gy}=gradLoss(cx,cy);
+    cx-=lr*gx*lsW/4;cy-=lr*gy*lsH/4;
+    cx=Math.max(5,Math.min(lsW-5,cx));cy=Math.max(5,Math.min(lsH-5,cy));
+    path.push({x:cx,y:cy});
+    drawLandscape();
+    const loss=lossVal(cx,cy),gMag=Math.sqrt(gx**2+gy**2);
+    document.getElementById('descentStats').textContent='Step: '+step+' | Loss: '+loss.toFixed(4)+' | |nabla L|: '+gMag.toFixed(4);
+    if(gMag<0.002){document.getElementById('descentStats').textContent='Converged in '+step+' steps! Loss: '+loss.toFixed(4);return;}
+    step++;animId=requestAnimationFrame(step_);
+  }
+  step_();
+}
+lsc.addEventListener('click',e=>{
+  const r=lsc.getBoundingClientRect();
+  startPt={x:(e.clientX-r.left)*(lsW/r.width),y:(e.clientY-r.top)*(lsH/r.height)};
+  path=[];drawLandscape();
+});
+window.addEventListener('resize',drawLandscape);drawLandscape();
+
+// LEARNING RATE DEMO (1D)
+const lrc=document.getElementById('lrCanvas'),lrx=lrc.getContext('2d');
+let lrDemoLR=0.15,lrDemoPath=[],lrDemoAnimId=null;
+const LR_START_X=0.85;
+
+function lrLoss1D(x){return 0.5*(x-0.35)*(x-0.35)+0.15*Math.sin(x*8)*0.2;}
+function lrGrad1D(x){const h=0.001;return (lrLoss1D(x+h)-lrLoss1D(x-h))/(2*h);}
+
+function drawLRDemo(){
+  const W=lrc.offsetWidth||700;lrc.width=W;const H=lrc.offsetHeight||260;lrc.height=H;
+  lrx.fillStyle='#0a0f1e';lrx.fillRect(0,0,W,H);
+  const pad=40;
+  // Find min/max for scaling
+  let minY=Infinity,maxY=-Infinity;
+  for(let px=0;px<W;px++){const y=lrLoss1D(px/W);if(y<minY)minY=y;if(y>maxY)maxY=y;}
+  const range=maxY-minY||1;
+  function toScreen(x,y){return{sx:x*W,sy:H-pad-((y-minY)/range)*(H-2*pad)};}
+  // Draw loss curve
+  lrx.beginPath();
+  for(let px=0;px<W;px++){
+    const x=px/W,y=lrLoss1D(x);const{sy}=toScreen(x,y);
+    if(px===0)lrx.moveTo(px,sy);else lrx.lineTo(px,sy);
+  }
+  lrx.strokeStyle='rgba(139,92,246,.6)';lrx.lineWidth=2;lrx.stroke();
+  lrx.lineTo(W,H);lrx.lineTo(0,H);lrx.closePath();lrx.fillStyle='rgba(139,92,246,.08)';lrx.fill();
+  // Draw path
+  if(lrDemoPath.length>0){
+    lrDemoPath.forEach((xp,i)=>{
+      const y=lrLoss1D(xp);const{sx,sy}=toScreen(xp,y);
+      lrx.beginPath();lrx.arc(sx,sy,i===0?7:4,0,Math.PI*2);
+      lrx.fillStyle=i===0?'#f43f5e':i===lrDemoPath.length-1?'#10b981':'rgba(245,158,11,.7)';lrx.fill();
+      if(i>0){
+        const prev=lrDemoPath[i-1],py=lrLoss1D(prev);const p=toScreen(prev,py);
+        lrx.beginPath();lrx.moveTo(p.sx,p.sy);lrx.lineTo(sx,sy);lrx.strokeStyle='rgba(245,158,11,.4)';lrx.lineWidth=1.5;lrx.stroke();
+      }
+    });
+  } else {
+    const y=lrLoss1D(LR_START_X);const{sx,sy}=toScreen(LR_START_X,y);
+    lrx.beginPath();lrx.arc(sx,sy,7,0,Math.PI*2);lrx.fillStyle='#f43f5e';lrx.fill();
+    lrx.fillStyle='rgba(255,255,255,.5)';lrx.font='11px Inter';lrx.textAlign='center';lrx.fillText('Start',sx,sy-12);
+  }
+  // Minimum marker
+  const minX=0.35;const my=lrLoss1D(minX);const mp=toScreen(minX,my);
+  lrx.beginPath();lrx.arc(mp.sx,mp.sy,4,0,Math.PI*2);lrx.fillStyle='rgba(16,185,129,.4)';lrx.fill();
+  lrx.fillStyle='rgba(16,185,129,.5)';lrx.font='10px Inter';lrx.textAlign='center';lrx.fillText('minimum',mp.sx,mp.sy+16);
+}
+function updateLRDemo(){lrDemoLR=parseInt(document.getElementById('lrDemoSlider').value)/100;document.getElementById('lrDemoVal').textContent='eta = '+lrDemoLR.toFixed(2);}
+function resetLRDemo(){cancelAnimationFrame(lrDemoAnimId);lrDemoPath=[];document.getElementById('lrDemoStatus').textContent='';drawLRDemo();}
+function runLRDemo(){
+  cancelAnimationFrame(lrDemoAnimId);lrDemoPath=[LR_START_X];
+  let cx=LR_START_X,step=0;
+  function s(){
+    if(step>80){document.getElementById('lrDemoStatus').textContent='Stopped at step '+step+'. Loss: '+lrLoss1D(cx).toFixed(4);drawLRDemo();return;}
+    const g=lrGrad1D(cx);cx-=lrDemoLR*g;
+    cx=Math.max(0.02,Math.min(0.98,cx));
+    lrDemoPath.push(cx);
+    const loss=lrLoss1D(cx);
+    document.getElementById('lrDemoStatus').textContent='Step '+step+' | x='+cx.toFixed(3)+' | Loss='+loss.toFixed(4);
+    if(Math.abs(g)<0.005){document.getElementById('lrDemoStatus').textContent='Converged at step '+step+'! Loss='+loss.toFixed(4);drawLRDemo();return;}
+    step++;drawLRDemo();lrDemoAnimId=requestAnimationFrame(s);
+  }
+  s();
+}
+window.addEventListener('resize',drawLRDemo);drawLRDemo();
+
+// SGD DEMO
+const sgdc=document.getElementById('sgdCanvas'),sgdx=sgdc.getContext('2d');
+let sgdW,sgdH,sgdPaths={full:[],sgd:[]},sgdAnimId=null;
+
+function sgdLoss(x,y){
+  const nx=x*4-2,ny=y*4-2;
+  return 1.5*(nx*nx*0.3+ny*ny*0.3)-1.2*Math.exp(-(nx*nx+ny*ny)/0.8)-0.7*Math.exp(-((nx+1.1)**2+(ny+0.9)**2)/0.4)-0.5*Math.exp(-((nx-1.2)**2+(ny+0.3)**2)/0.3);
+}
+function sgdGrad(x,y){const h=0.002;return{gx:(sgdLoss(x+h,y)-sgdLoss(x-h,y))/(2*h),gy:(sgdLoss(x,y+h)-sgdLoss(x,y-h))/(2*h)};}
+
+function drawSGDDemo(){
+  sgdW=sgdc.offsetWidth||700;sgdc.width=sgdW;sgdH=sgdc.offsetHeight||300;sgdc.height=sgdH;
+  const img=sgdx.createImageData(sgdW,sgdH);
+  for(let y=0;y<sgdH;y++)for(let x=0;x<sgdW;x++){
+    const v=sgdLoss(x/sgdW,y/sgdH),t=Math.max(0,Math.min(1,(v+0.5)/2));
+    const idx=(y*sgdW+x)*4;
+    img.data[idx]=Math.round(5+t*80);img.data[idx+1]=Math.round(8+(1-t)*50);img.data[idx+2]=Math.round(20+(1-t)*120);img.data[idx+3]=255;
+  }
+  sgdx.putImageData(img,0,0);
+  [{k:'full',c:'#22d3ee'},{k:'sgd',c:'#f59e0b'}].forEach(({k,c})=>{
+    const p=sgdPaths[k];if(p.length<2)return;
+    sgdx.strokeStyle=c;sgdx.lineWidth=2;sgdx.beginPath();
+    sgdx.moveTo(p[0].x*sgdW,p[0].y*sgdH);p.forEach(pt=>sgdx.lineTo(pt.x*sgdW,pt.y*sgdH));sgdx.stroke();
+    const last=p[p.length-1];sgdx.beginPath();sgdx.arc(last.x*sgdW,last.y*sgdH,5,0,Math.PI*2);sgdx.fillStyle=c;sgdx.fill();
+  });
+  if(!sgdPaths.full.length){sgdx.fillStyle='rgba(139,92,246,.5)';sgdx.font='13px Inter';sgdx.textAlign='center';sgdx.fillText('Press Run Both to compare',sgdW/2,sgdH/2);}
+}
+function resetSGDDemo(){cancelAnimationFrame(sgdAnimId);sgdPaths={full:[],sgd:[]};document.getElementById('sgdInfo').textContent='';drawSGDDemo();}
+function runSGDDemo(){
+  cancelAnimationFrame(sgdAnimId);
+  const s={x:0.15,y:0.15};
+  sgdPaths={full:[{...s}],sgd:[{...s}]};
+  let fx=s.x,fy=s.y,sx=s.x,sy=s.y,step=0;
+  const noise=parseInt(document.getElementById('noiseSlider').value)/100;
+  const ETA=0.006;
+  function tick(){
+    if(step>300)return;
+    const gf=sgdGrad(fx,fy);fx-=ETA*gf.gx;fy-=ETA*gf.gy;
+    fx=Math.max(.02,Math.min(.98,fx));fy=Math.max(.02,Math.min(.98,fy));
+    const gs=sgdGrad(sx,sy);
+    sx-=ETA*(gs.gx+noise*(Math.random()-.5)*4);sy-=ETA*(gs.gy+noise*(Math.random()-.5)*4);
+    sx=Math.max(.02,Math.min(.98,sx));sy=Math.max(.02,Math.min(.98,sy));
+    sgdPaths.full.push({x:fx,y:fy});sgdPaths.sgd.push({x:sx,y:sy});
+    document.getElementById('sgdInfo').textContent='Step '+step+' | Full GD loss: '+sgdLoss(fx,fy).toFixed(4)+' | SGD loss: '+sgdLoss(sx,sy).toFixed(4);
+    drawSGDDemo();step++;sgdAnimId=requestAnimationFrame(tick);
+  }
+  tick();
+}
+window.addEventListener('resize',drawSGDDemo);drawSGDDemo();
+
+// COMPARISON CANVAS
+const cmc=document.getElementById('cmpCanvas'),cmx=cmc.getContext('2d');
+let cmW,cmH,cmpPaths={sgd:[],mom:[],adam:[]},cmpAnimId=null;
+const START={x:0.15,y:0.15};
+
+function drawCmp(){
+  cmW=cmc.offsetWidth||700;cmc.width=cmW;cmH=cmc.offsetHeight||300;cmc.height=cmH;
+  const img=cmx.createImageData(cmW,cmH);
+  for(let y=0;y<cmH;y++){for(let x=0;x<cmW;x++){
+    const sx=x/cmW*lsW,sy=y/cmH*lsH;const v=lossVal(sx,sy);
+    const t=Math.max(0,Math.min(1,(v+0.5)/2));
+    const idx=(y*cmW+x)*4;
+    img.data[idx]=Math.round(5+t*80);img.data[idx+1]=Math.round(8+(1-t)*50);img.data[idx+2]=Math.round(20+(1-t)*120);img.data[idx+3]=255;
+  }}
+  cmx.putImageData(img,0,0);
+  const cols={sgd:'#22d3ee',mom:'#8b5cf6',adam:'#f59e0b'};
+  Object.entries(cmpPaths).forEach(([k,path])=>{
+    if(path.length<2)return;
+    cmx.strokeStyle=cols[k];cmx.lineWidth=2;cmx.beginPath();
+    cmx.moveTo(path[0].x*cmW,path[0].y*cmH);
+    path.forEach(p=>cmx.lineTo(p.x*cmW,p.y*cmH));cmx.stroke();
+    const last=path[path.length-1];cmx.beginPath();cmx.arc(last.x*cmW,last.y*cmH,5,0,Math.PI*2);cmx.fillStyle=cols[k];cmx.fill();
+  });
+  if(!cmpPaths.sgd.length){cmx.fillStyle='rgba(139,92,246,.5)';cmx.font='13px Inter';cmx.textAlign='center';cmx.fillText('Press Compare optimisers',cmW/2,cmH/2);}
+}
+function resetCmp(){cancelAnimationFrame(cmpAnimId);cmpPaths={sgd:[],mom:[],adam:[]};drawCmp();}
+function runComparison(){
+  cancelAnimationFrame(cmpAnimId);
+  cmpPaths={sgd:[{...START}],mom:[{...START}],adam:[{...START}]};
+  let sgd={x:START.x,y:START.y},mom_={x:START.x,y:START.y},adam_={x:START.x,y:START.y};
+  let vmx=0,vmy=0;
+  let m1x=0,m1y=0,m2x=0,m2y=0,t_=0;
+  const ETA=0.008,BETA=0.9,B1=0.9,B2=0.999,EPS=1e-8;
+  let step=0;
+  function s(){
+    if(step>300)return;
+    function g(x,y){const sx=x*lsW,sy=y*lsH;const {gx,gy}=gradLoss(sx,sy);return{gx:gx/lsW,gy:gy/lsH};}
+    const gs=g(sgd.x,sgd.y),gm=g(mom_.x,mom_.y),ga=g(adam_.x,adam_.y);
+    sgd.x-=ETA*gs.gx*4;sgd.y-=ETA*gs.gy*4;
+    vmx=BETA*vmx+gm.gx*4;vmy=BETA*vmy+gm.gy*4;mom_.x-=ETA*vmx;mom_.y-=ETA*vmy;
+    t_++;m1x=B1*m1x+(1-B1)*ga.gx*4;m1y=B1*m1y+(1-B1)*ga.gy*4;
+    m2x=B2*m2x+(1-B2)*(ga.gx*4)**2;m2y=B2*m2y+(1-B2)*(ga.gy*4)**2;
+    const m1xh=m1x/(1-B1**t_),m1yh=m1y/(1-B1**t_);
+    const m2xh=m2x/(1-B2**t_),m2yh=m2y/(1-B2**t_);
+    adam_.x-=ETA*m1xh/(Math.sqrt(m2xh)+EPS);adam_.y-=ETA*m1yh/(Math.sqrt(m2yh)+EPS);
+    [sgd,mom_,adam_].forEach(p=>{p.x=Math.max(.02,Math.min(.98,p.x));p.y=Math.max(.02,Math.min(.98,p.y));});
+    cmpPaths.sgd.push({...sgd});cmpPaths.mom.push({...mom_});cmpPaths.adam.push({...adam_});
+    drawCmp();step++;cmpAnimId=requestAnimationFrame(s);
+  }
+  s();
+}
+drawCmp();
+</script>
+</body>
+</html>

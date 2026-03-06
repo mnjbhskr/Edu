@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#030f07">
+    <title>The Art of Uncertainty — Act IV</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#030f07;--bg2:#061a0c;--bg3:#0a2410;
+            --em:#10b981;--em-dim:rgba(16,185,129,0.12);
+            --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.12);
+            --rose:#fb7185;--rose-dim:rgba(251,113,133,0.1);
+            --sky:#38bdf8;--sky-dim:rgba(56,189,248,0.1);
+            --cream:#f0fdf4;--text:#c8e8d0;--muted:#3a6048;
+            --border:rgba(16,185,129,0.12);--radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #felt{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,rgba(251,113,133,0.03) 0%,transparent 60%),var(--bg);}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:1px solid var(--border);background:rgba(3,15,7,0.92);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--rose);font-style:normal;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--em);} .dot.active{background:var(--rose);box-shadow:0 0 10px var(--rose);animation:p 2s ease infinite;}
+        @keyframes p{0%,100%{box-shadow:0 0 6px var(--rose)}50%{box-shadow:0 0 18px var(--rose)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--rose);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);padding:0 6px;color:var(--rose);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#b8d8c0;}
+        .narrator p em{color:var(--rose);font-style:italic;}
+        .narrator p strong{color:var(--cream);}
+        .narrator.amber{border-left-color:var(--amber);} .narrator.amber::before{color:var(--amber);}
+        .narrator.em{border-left-color:var(--em);} .narrator.em::before{color:var(--em);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--rose);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;background:linear-gradient(135deg,var(--rose),#e11d48);border:none;border-radius:50px;padding:15px 30px;font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;color:#fff;cursor:pointer;transition:all 0.25s;touch-action:manipulation;box-shadow:0 4px 24px rgba(251,113,133,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);}
+        .cta-btn:disabled{opacity:0.35;transform:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(251,113,133,0.15);border-left:3px solid var(--rose);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--rose);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#7aa888;}
+        .insight p em{color:var(--rose);font-style:normal;font-weight:600;}
+        .insight.em{border-left-color:var(--em);border-color:rgba(16,185,129,0.15);} .insight.em .lbl{color:var(--em);}
+        .insight.amber{border-left-color:var(--amber);border-color:rgba(245,158,11,0.15);} .insight.amber .lbl{color:var(--amber);}
+        /* population visual */
+        .pop-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+        .pop-grid{display:flex;flex-wrap:wrap;gap:2px;}
+        .pdot{width:clamp(5px,1.5vw,8px);height:clamp(5px,1.5vw,8px);border-radius:1px;background:rgba(255,255,255,0.06);transition:all 0.15s;}
+        .pdot.suspect{background:var(--amber);box-shadow:0 0 4px var(--amber);}
+        .pdot.match{background:var(--rose);box-shadow:0 0 5px var(--rose);}
+        /* choice card */
+        .choice-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:10px;cursor:pointer;transition:all 0.2s;}
+        .choice-card:hover{border-color:rgba(251,113,133,0.4);background:var(--rose-dim);}
+        .choice-card.selected-wrong{border-color:rgba(251,113,133,0.4);background:var(--rose-dim);}
+        .choice-card.selected-right{border-color:rgba(16,185,129,0.4);background:var(--em-dim);}
+        .choice-title{font-family:'Lora',serif;font-size:1em;color:var(--cream);margin-bottom:4px;}
+        .choice-body{font-family:'Lora',serif;font-size:0.85em;color:var(--muted);font-style:italic;}
+        /* case card */
+        .case-card{background:var(--bg2);border:1px solid rgba(251,113,133,0.2);border-left:3px solid var(--rose);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+        .case-year{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--rose);margin-bottom:6px;}
+        .case-name{font-family:'Lora',serif;font-size:1.05em;font-weight:600;color:var(--cream);margin-bottom:6px;}
+        .case-body{font-family:'Lora',serif;font-size:0.9em;color:#7aa888;line-height:1.65;}
+        /* complete */
+        .complete-badge{background:linear-gradient(135deg,rgba(251,113,133,0.1),rgba(16,185,129,0.06));border:1px solid rgba(251,113,133,0.2);border-radius:var(--radius);padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--rose);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--amber);}
+        .learn-box.notice .learn-title{color:var(--em,#10b981);}
+        .learn-box.why .learn-title{color:var(--rose);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--rose);color:var(--rose);}
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div id="felt"></div>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div style="font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Act IV of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div>
+        <div class="dot active"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0 -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Art of Uncertainty · Act IV</div>
+      <div class="act-name">The <em>Prosecutor</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;"><div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">⚖️</div></div>
+    <div class="narrator">
+      <p>A crime has been committed. DNA evidence is collected from the scene.</p>
+      <p style="margin-top:10px">The defendant's DNA matches. The forensic expert testifies: <em>"The chance of a random person matching this DNA profile is 1 in 1,000,000."</em></p>
+      <p style="margin-top:10px">The prosecutor stands up and says: <strong>"There is a 1 in 1,000,000 chance this defendant is innocent."</strong></p>
+      <p style="margin-top:10px">Is the prosecutor right?</p>
+    </div>
+    <div class="insight amber">
+      <div class="lbl">Think before you answer</div>
+      <p>The forensic expert's number and the prosecutor's conclusion sound identical. But they are measuring completely different things. Do you see the difference?</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Reason it through →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: THE REASONING -->
+  <section class="screen" id="screen-1">
+    <div class="act-title"><div class="act-label">The question</div><div class="act-name">What does the <em>match</em> prove?</div></div>
+    <div class="narrator"><p>City population: 1,000,000 people. DNA false match rate: 1 in 1,000,000. The defendant matched. What is the probability they are guilty?</p></div>
+
+    <div id="choiceCards">
+      <div class="choice-card" onclick="pickReasoning(0)">
+        <div class="choice-title">999,999 in 1,000,000 — almost certain guilt</div>
+        <div class="choice-body">The match probability is 1 in a million, so the chance of innocence is 1 in a million</div>
+      </div>
+      <div class="choice-card" onclick="pickReasoning(1)">
+        <div class="choice-title">About 50% — it could go either way</div>
+        <div class="choice-body">In a city of 1 million, we'd expect roughly 1 innocent person to also match this profile</div>
+      </div>
+      <div class="choice-card" onclick="pickReasoning(2)">
+        <div class="choice-title">Impossible to say without more context</div>
+        <div class="choice-body">We need to know: how many suspects were tested? Was there other evidence?</div>
+      </div>
+    </div>
+
+    <div id="reasoningFeedback" style="display:none;"></div>
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>Show me the population →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: POPULATION VISUAL -->
+  <section class="screen" id="screen-2">
+    <div class="act-title"><div class="act-label">The base rate</div><div class="act-name">1 million people, <em>one match</em></div></div>
+    <div class="narrator rose">
+      <p>The prosecutor said: <em>"1 in a million chance of a false match — so the defendant must be guilty."</em></p>
+      <p style="margin-top:10px">But let's count. In a city of 1 million innocent people, how many would we expect to match this DNA profile?</p>
+    </div>
+
+    <div class="pop-wrap">
+      <div style="font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:8px;" id="popLabel">1 million people. Tap to reveal matches.</div>
+      <div class="pop-grid" id="popGrid"></div>
+      <div style="margin-top:10px;font-family:'Lora',serif;font-size:0.88em;color:var(--muted);font-style:italic;">
+        <span style="color:var(--amber);">■</span> Suspect &nbsp; <span style="color:var(--rose);">■</span> Other DNA match (innocent)
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;">
+      <button style="padding:11px 22px;border-radius:12px;background:var(--rose-dim);border:1.5px solid rgba(251,113,133,0.3);color:var(--rose);font-family:'DM Sans',sans-serif;font-size:0.9em;font-weight:600;cursor:pointer;" onclick="revealPop()" id="btnRevealPop">Reveal the matches</button>
+      <button class="reset-btn" onclick="buildPop()">Reset population</button>
+    </div>
+
+    <div id="popResult" style="display:none;">
+      <div style="background:var(--bg2);border:1px solid rgba(251,113,133,0.2);border-radius:var(--radius);padding:18px;margin-bottom:14px;text-align:center;">
+        <div style="font-family:'Lora',serif;font-size:1em;color:#a8c8b0;margin-bottom:8px;">People who match the DNA profile:</div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+          <div style="text-align:center;padding:12px 18px;background:var(--amber-dim);border:1px solid rgba(245,158,11,0.3);border-radius:12px;">
+            <div style="font-family:'DM Sans',monospace;font-size:1.8em;font-weight:700;color:var(--amber);">1</div>
+            <div style="font-size:0.72em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">The suspect</div>
+          </div>
+          <div style="text-align:center;padding:12px 18px;background:var(--rose-dim);border:1px solid rgba(251,113,133,0.3);border-radius:12px;">
+            <div style="font-family:'DM Sans',monospace;font-size:1.8em;font-weight:700;color:var(--rose);">~1</div>
+            <div style="font-size:0.72em;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Other matches</div>
+          </div>
+        </div>
+        <div style="font-family:'DM Sans',monospace;font-size:1.6em;font-weight:700;color:var(--amber);margin-top:14px;">P(guilty | match) ≈ 50%</div>
+        <div style="font-family:'Lora',serif;font-size:0.88em;color:var(--muted);margin-top:6px;font-style:italic;">A coin flip. Not "1 in a million chance of innocence."</div>
+      </div>
+      <div class="insight">
+        <div class="lbl">💡 The prosecutor's fallacy</div>
+        <p>The expert testified about P(match | innocent) — the chance of a match given innocence. The prosecutor claimed this equals P(innocent | match) — the chance of innocence given a match. <em>These are completely different quantities.</em> Confusing them is the Prosecutor's Fallacy. And it has sent innocent people to prison.</p>
+      </div>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)" id="s2Next" disabled>The real cases →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: REAL CASES -->
+  <section class="screen" id="screen-3">
+    <div class="act-title"><div class="act-label">The consequence</div><div class="act-name">Real people, <em>wrong maths</em></div></div>
+    <div class="narrator amber">
+      <p>This is not a theoretical problem. The Prosecutor's Fallacy — presenting P(evidence | innocent) as P(innocent | evidence) — has been used in real courts, with catastrophic results.</p>
+    </div>
+
+    <div id="casesContainer"></div>
+
+    <div class="insight em" style="margin-bottom:14px;">
+      <div class="lbl">💡 The same structure as Act II</div>
+      <p>A DNA match is just like a positive medical test. The "false match rate" is the false positive rate. The "prior probability of guilt" is the base rate. Without knowing how many people in the population would also match — the base rate — the match tells you almost nothing on its own. <em>Context is everything.</em></p>
+    </div>
+
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Go back to the population screen and tap "Reveal the matches" again. Imagine the city had 10 million people instead of 1 million. How many innocent people would match the DNA profile? Now imagine rolling a die 100 times and plotting the sum -- the histogram would form a bell curve, a normal distribution emerging from randomness.</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>The population grid shows that in a city of 1 million, roughly 1 innocent person matches the DNA. That makes the suspect one of about 2 matches -- a 50% chance, not 99.9999%. This is the same pattern as the Central Limit Theorem: individual outcomes are random, but when aggregated over a population, the distribution of matches follows a predictable pattern centred on the expected value.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>The normal distribution and the Central Limit Theorem explain why averages are predictable even when individuals are not. In a courtroom, forgetting the population size -- the denominator -- leads to the Prosecutor's Fallacy. In statistics, forgetting that individual dice rolls aggregate into a bell curve leads to misunderstanding randomness itself. The shape of uncertainty is always a distribution, and distributions need context.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(4)">✦ Act IV Complete →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 4: COMPLETE -->
+  <section class="screen" id="screen-4">
+    <div class="act-title"><div class="act-label">Act IV complete</div><div class="act-name">The fallacy that <em>matters</em></div></div>
+    <div class="complete-badge">
+      <span class="badge-icon">⚖️</span>
+      <div class="badge-title">You will never confuse these two again</div>
+      <div class="badge-sub">P(evidence | innocent) ≠ P(innocent | evidence).<br>The prosecutor's fallacy. Maths with consequences.</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">💡 What you learned</div>
+      <p>The probability of seeing evidence given innocence is not the same as the probability of innocence given evidence. Confusing them ignores the base rate — how many people in the population would produce the same evidence. A DNA match in a city of millions is not certain guilt. It is a starting point for Bayesian reasoning.</p>
+    </div>
+    <div class="insight em" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act V — The Framework</div>
+      <p>You've seen Bayesian reasoning in action four times. A door, a test, a formula, a courtroom. In Act V, we draw the complete map — show how every act was the same update — and look at where Bayesian thinking lives in the real world, from weather forecasting to spam filters to how your brain works.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="cta-btn" onclick="celebrate()">✦ On to Act V →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='uncertainty_act3.html'">← Revisit Act III</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n;document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===2)buildPop();
+  if(n===3)buildCases();
+}
+
+function pickReasoning(i){
+  document.querySelectorAll('.choice-card').forEach((c,j)=>{
+    c.onclick=null;
+    if(j===1||j===2) c.className='choice-card selected-right';
+    else c.className='choice-card selected-wrong';
+  });
+  const fb=document.getElementById('reasoningFeedback');
+  fb.style.display='block';
+  const msgs=[
+    '<div style="background:var(--rose-dim);border:1px solid rgba(251,113,133,0.2);border-radius:12px;padding:14px;font-family:\'Lora\',serif;font-size:0.95em;color:var(--rose);line-height:1.7;">That\'s the Prosecutor\'s Fallacy. The 1-in-a-million figure tells you how rare the DNA profile is — not how likely the defendant is guilty. Without knowing the city\'s population, you cannot make that leap.</div>',
+    '<div style="background:var(--em-dim);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:14px;font-family:\'Lora\',serif;font-size:0.95em;color:var(--em);line-height:1.7;">Exactly right. In a city of 1 million people with a 1-in-a-million match rate, we\'d expect roughly one innocent person to also match. The defendant is one of two candidates — not the only one.</div>',
+    '<div style="background:var(--em-dim);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:14px;font-family:\'Lora\',serif;font-size:0.95em;color:var(--em);line-height:1.7;">That\'s the most rigorous answer. Context matters enormously — how many people were tested, was there other evidence, how was the suspect identified? A good Bayesian always asks about the prior.</div>',
+  ];
+  fb.innerHTML=msgs[i];
+  document.getElementById('s1Next').disabled=false;
+}
+
+function buildPop(){
+  const grid=document.getElementById('popGrid');
+  grid.innerHTML='';
+  // Show 400 dots representing a sample of the million
+  const DOTS=400;
+  const suspectPos=Math.floor(Math.random()*DOTS);
+  for(let i=0;i<DOTS;i++){
+    const d=document.createElement('div');
+    d.className=`pdot${i===suspectPos?' suspect':''}`;
+    d.id=`pd${i}`;
+    grid.appendChild(d);
+  }
+  document.getElementById('popResult').style.display='none';
+  document.getElementById('s2Next').disabled=true;
+  document.getElementById('btnRevealPop').disabled=false;
+  document.getElementById('popLabel').textContent='400 people shown (representing 1 million). 1 is the suspect (amber).';
+}
+
+function revealPop(){
+  document.getElementById('btnRevealPop').disabled=true;
+  // Reveal ~1 false match among 400 dots (proportional to 1/million in 1 million)
+  const DOTS=400;
+  let matchAdded=false;
+  let delay=0;
+  const timer=setInterval(()=>{
+    for(let step=0;step<8;step++){
+      const i=Math.floor(Math.random()*DOTS);
+      const d=document.getElementById(`pd${i}`);
+      if(d&&!d.classList.contains('suspect')&&!d.classList.contains('match')&&!matchAdded&&Math.random()<0.015){
+        d.className='pdot match'; matchAdded=true;
+      }
+    }
+    delay++;
+    if(delay>80){
+      clearInterval(timer);
+      if(!matchAdded){
+        // Force one match somewhere that isn't suspect
+        for(let i=0;i<DOTS;i++){
+          const d=document.getElementById(`pd${i}`);
+          if(d&&!d.classList.contains('suspect')){d.className='pdot match';break;}
+        }
+      }
+      document.getElementById('popResult').style.display='block';
+      document.getElementById('s2Next').disabled=false;
+      document.getElementById('popLabel').textContent='DNA match found. Amber = suspect. Red = other person who also matches.';
+    }
+  },20);
+}
+
+const casesData=[
+  {year:'1999 — UK',name:'Sally Clark',body:'Sally Clark was convicted of murdering her two infant sons. An expert witness, Professor Roy Meadow, testified that the chance of two cot deaths in the same family was 1 in 73 million. He failed to account for the genetic correlation between siblings and the base rate. The Royal Statistical Society condemned the calculation. Clark was acquitted on appeal in 2003, after serving three years. She died in 2007.'},
+  {year:'The fallacy',name:'Roy Meadow\'s error',body:'Meadow multiplied the probability of one cot death by itself — assuming the two events were independent. They are not: families share genetics, environment, and risk factors. This is not just a mathematical error. It is a base-rate error. The prior probability that a mother would murder two children is extremely low. The evidence — however calculated — must be weighed against that prior.'},
+  {year:'The lesson',name:'P(rare evidence) ≠ P(guilt)',body:'Presenting a small probability of evidence as a large probability of guilt confuses cause and effect. The correct question is always: given all the evidence, what is the posterior probability of guilt — taking into account both the evidence and the prior? Courts are now more careful. The Royal Statistical Society publishes guidance for expert witnesses. But the fallacy still appears.'},
+];
+
+function buildCases(){
+  const c=document.getElementById('casesContainer');
+  c.innerHTML='';
+  casesData.forEach((cs,i)=>{
+    const div=document.createElement('div');
+    div.className='case-card';
+    div.style.animationDelay=`${i*0.1}s`;
+    div.innerHTML=`<div class="case-year">${cs.year}</div>
+      <div class="case-name">${cs.name}</div>
+      <div class="case-body">${cs.body}</div>`;
+    c.appendChild(div);
+  });
+}
+
+function celebrate(){launchConfetti();setTimeout(()=>window.location.href='uncertainty_act5.html',900);}
+
+const cc=document.getElementById('confetti'),cx=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<90;i++) parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*5,vy:2+Math.random()*4,
+    c:['#fb7185','#10b981','#f59e0b','#38bdf8'][Math.floor(Math.random()*4)],s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},3500);
+}
+function animC(){
+  cx.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;cx.save();cx.globalAlpha=p.l;cx.translate(p.x,p.y);cx.rotate(p.r);cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cx.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;
+}
+</script>
+</body>
+</html>

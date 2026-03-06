@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#04020f">
+    <title>The Shape of Space — Act IV</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#04020f;--bg2:#080418;--bg3:#0d0625;
+            --indigo:#6366f1;--rose:#ec4899;--lavender:#c4b5fd;
+            --gold:#fbbf24;--gold-dim:rgba(251,191,36,0.12);
+            --cyan:#67e8f9;--white:#f8fafc;
+            --cream:#f8fafc;--text:#b4a8d8;--muted:#2e2050;
+            --border:rgba(99,102,241,0.14);--radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:1px solid var(--border);background:rgba(4,2,15,0.93);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--gold);font-style:normal;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--indigo);}
+        .dot.active{background:var(--gold);box-shadow:0 0 12px var(--gold);animation:p 2s ease infinite;}
+        @keyframes p{0%,100%{box-shadow:0 0 6px var(--gold)}50%{box-shadow:0 0 22px var(--gold)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);padding:0 6px;color:var(--gold);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#b4a0d0;}
+        .narrator p em{color:var(--gold);font-style:italic;}
+        .narrator p strong{color:var(--cream);}
+        .narrator.rose{border-left-color:var(--rose);} .narrator.rose::before{color:var(--rose);}
+        .narrator.indigo{border-left-color:var(--indigo);} .narrator.indigo::before{color:var(--indigo);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--gold);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;background:linear-gradient(135deg,var(--gold),#d97706);border:none;border-radius:50px;padding:15px 30px;font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;color:#04020f;cursor:pointer;transition:all 0.25s;touch-action:manipulation;box-shadow:0 4px 28px rgba(251,191,36,0.4);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(251,191,36,0.55);}
+        .cta-btn:disabled{opacity:0.35;transform:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(251,191,36,0.15);border-left:3px solid var(--gold);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#6858a0;}
+        .insight p em{color:var(--gold);font-style:normal;font-weight:600;}
+        .insight.rose{border-left-color:var(--rose);border-color:rgba(236,72,153,0.15);} .insight.rose .lbl{color:var(--rose);}
+        .insight.cyan{border-left-color:var(--cyan);border-color:rgba(103,232,249,0.15);} .insight.cyan .lbl{color:var(--cyan);}
+        .insight.indigo{border-left-color:var(--indigo);border-color:rgba(99,102,241,0.15);} .insight.indigo .lbl{color:var(--indigo);}
+
+        .cv-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:4px;margin-bottom:14px;overflow:hidden;position:relative;}
+        canvas{display:block;width:100%;}
+
+        /* Mass slider */
+        .mass-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px;}
+        .mass-row{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+        input[type=range]{flex:1;accent-color:var(--gold);}
+        .mass-val{font-family:'DM Sans',monospace;font-size:1.1em;font-weight:700;color:var(--gold);min-width:90px;text-align:right;}
+
+        /* Reset button */
+        .reset-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:10px;border:1px solid var(--border);
+            background:var(--bg3);color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.75em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;margin-bottom:14px;}
+        .reset-btn:hover{border-color:rgba(251,191,36,0.35);color:var(--gold);}
+
+        /* Learning box */
+        .learning-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:0;margin-bottom:16px;overflow:hidden;}
+        .learning-box .lb-section{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.04);}
+        .learning-box .lb-section:last-child{border-bottom:none;}
+        .lb-header{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;font-weight:700;}
+        .lb-header.try{color:var(--indigo);}
+        .lb-header.notice{color:var(--gold);}
+        .lb-header.matters{color:var(--rose);}
+        .lb-body{font-family:'Lora',serif;font-size:0.92em;line-height:1.72;color:#6858a0;}
+        .lb-body em{color:var(--lavender);font-style:normal;font-weight:600;}
+
+        /* Evidence cards */
+        .ev-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.25s;border-left:3px solid var(--muted);}
+        .ev-card:hover{border-left-color:var(--gold);}
+        .ev-card.open{border-left-color:var(--gold);background:rgba(251,191,36,0.04);}
+        .ev-title{font-family:'Lora',serif;font-size:0.95em;font-weight:600;color:var(--cream);margin-bottom:4px;}
+        .ev-date{font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:6px;}
+        .ev-body{font-family:'Lora',serif;font-size:0.88em;color:#6858a0;line-height:1.65;display:none;}
+        .ev-card.open .ev-body{display:block;}
+
+        .complete-badge{background:linear-gradient(135deg,rgba(251,191,36,0.12),rgba(99,102,241,0.06));border:1px solid rgba(251,191,36,0.25);border-radius:var(--radius);padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;animation:glow 2s ease infinite;}
+        @keyframes glow{0%,100%{filter:drop-shadow(0 0 8px rgba(251,191,36,0.4))}50%{filter:drop-shadow(0 0 24px rgba(251,191,36,0.8))}}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--gold);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--amber,var(--gold,#f59e0b));}
+        .learn-box.notice .learn-title{color:var(--teal,var(--em,#10b981));}
+        .learn-box.why .learn-title{color:var(--rose,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--amber,var(--gold));color:var(--amber,var(--gold));}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div style="font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Act IV of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div>
+        <div class="dot active"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0 -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Shape of Space · Act IV</div>
+      <div class="act-name">Einstein's <em>Insight</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 14px;"><div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">🌌</div></div>
+    <div class="narrator">
+      <p>Newton explained gravity as a <em>force</em> — an invisible pull reaching across empty space. It worked brilliantly. For 230 years.</p>
+      <p style="margin-top:10px">Then Einstein asked a different question. Not "what force is pulling the apple?" but: <strong>"what if the apple is simply following the straightest possible path — and space itself is curved?"</strong></p>
+      <p style="margin-top:10px">Gravity is not a force. It is the <em>geometry</em> of spacetime.</p>
+    </div>
+    <div class="insight rose">
+      <div class="lbl">The most beautiful theory in physics</div>
+      <p>General Relativity, 1915. Ten equations relating the curvature of spacetime to the distribution of matter and energy. Condensed: <em>Gμν = 8πG/c⁴ · Tμν</em>. Left side: spacetime curvature. Right side: mass and energy. "Matter tells spacetime how to curve. Spacetime tells matter how to move."</p>
+    </div>
+
+    <div class="insight cyan">
+      <div class="lbl">Real-world connections</div>
+      <p>General Relativity is not just beautiful theory — it is built into everyday technology. <em>GPS satellites</em> must correct for spacetime curvature (+38 microseconds/day) or navigation drifts 10 km daily. <em>Gravitational lensing</em> lets astronomers see galaxies behind other galaxies. <em>Cosmology</em> uses Einstein's equations to model the entire history and fate of the universe.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(1)">Warp spacetime →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: INTERACTIVE SPACETIME GRID -->
+  <section class="screen" id="screen-1">
+    <div class="act-title"><div class="act-label">The warped fabric</div><div class="act-name">Mass curves <em>spacetime</em></div></div>
+    <div class="narrator"><p>Drag the mass slider. Watch the spacetime grid warp. A photon's path bends as it passes through the curved region.</p></div>
+
+    <div class="cv-wrap"><canvas id="stCanvas" height="280"></canvas></div>
+
+    <div class="mass-wrap">
+      <div class="mass-row">
+        <span style="font-size:0.82em;color:var(--muted);">No mass</span>
+        <input type="range" id="massSlider" min="0" max="100" value="0" oninput="updateMass()">
+        <span style="font-size:0.82em;color:var(--muted);">Black hole</span>
+        <span class="mass-val" id="massLabel">No mass</span>
+      </div>
+      <div id="massDesc" style="font-family:'Lora',serif;font-size:0.88em;color:var(--muted);font-style:italic;line-height:1.5;min-height:40px;"></div>
+    </div>
+
+    <button class="reset-btn" onclick="document.getElementById('massSlider').value=0;updateMass();">↺ Reset mass</button>
+
+    <div class="insight" id="stInsight" style="display:none;">
+      <div class="lbl">Gravity as geometry</div>
+      <p>The curvature you see IS gravity. Objects near the mass follow the curved geodesics of this warped grid. There is no force pulling them in — they simply follow the straightest available path through curved spacetime. <em>Einstein replaced Newton's mysterious "force at a distance" with pure geometry.</em></p>
+    </div>
+
+    <!-- Learning box -->
+    <div class="learning-box">
+      <div class="lb-section">
+        <div class="lb-header try">Try This</div>
+        <div class="lb-body">Slowly drag the slider from left to right. Watch how the grid lines warp inward around the mass. Notice the cyan photon path near the top — it bends more as mass increases.</div>
+      </div>
+      <div class="lb-section">
+        <div class="lb-header notice">What To Notice</div>
+        <div class="lb-body">At low mass, the grid is nearly flat and light travels straight. At high mass, the grid funnels inward and light bends dramatically. At "black hole" levels, even the <em>event horizon</em> appears — a boundary beyond which not even light can escape.</div>
+      </div>
+      <div class="lb-section">
+        <div class="lb-header matters">Why It Matters</div>
+        <div class="lb-body">This is not a metaphor. Spacetime really does curve around massive objects. GPS satellites experience this curvature. Astronomers see light from distant galaxies bent by intervening mass (gravitational lensing). <em>The grid you are warping is a simplified model of the actual fabric of reality.</em></div>
+      </div>
+    </div>
+
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Rotate the hypercube projection and try to count its vertices, edges, faces, and cells. A 4D hypercube should have 16 vertices, 32 edges, 24 faces, and 8 cubic cells.</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>We build higher dimensions by analogy: a point extends to a line, a line sweeps to a square, a square lifts to a cube, a cube extrudes to a hypercube. Each step doubles the vertices and adds a new type of boundary element.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>Higher-dimensional spaces aren't just abstract — they model real phenomena. Phase spaces in physics, feature spaces in machine learning, and configuration spaces in robotics all live in dimensions far beyond three.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next">The evidence →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: EVIDENCE -->
+  <section class="screen" id="screen-2">
+    <div class="act-title"><div class="act-label">Confirmed</div><div class="act-name">Predictions of <em>pure geometry</em></div></div>
+    <div class="narrator indigo"><p>General Relativity made predictions that seemed almost fantastical in 1915. Every single one has been confirmed. Tap each to read the story.</p></div>
+
+    <div id="evCards"></div>
+
+    <button class="reset-btn" onclick="buildEvidence();">↺ Reset cards</button>
+
+    <div class="insight" id="evFinalInsight" style="display:none;">
+      <div class="lbl">The extraordinary precision</div>
+      <p>General Relativity is the most precisely tested theory in physics. GPS satellites experience both special relativistic time dilation (moving fast: clocks slow) and general relativistic time dilation (being higher up in gravity: clocks speed up). The net effect: satellite clocks run fast by 38 microseconds per day. Without correction, GPS would drift ~10 km per day. <em>Your phone's navigation works because Einstein was right.</em></p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)">Act IV Complete →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: COMPLETE -->
+  <section class="screen" id="screen-3">
+    <div class="act-title"><div class="act-label">Act IV complete</div><div class="act-name">Gravity is <em>geometry</em></div></div>
+    <div class="complete-badge">
+      <span class="badge-icon">🌌</span>
+      <div class="badge-title">Mass curves spacetime. Objects follow geodesics.</div>
+      <div class="badge-sub">Newton's force replaced by Einstein's geometry.<br>Confirmed by eclipse, GPS, gravitational waves, black holes.</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">What you learned</div>
+      <p>General Relativity: a massive object curves the spacetime around it. Other objects — including light — follow geodesics in that curved spacetime. There is no force. Just geometry. The theory predicts light bending, time dilation near mass, gravitational waves, and black holes. All confirmed. <em>It is the most beautiful and precise theory in all of physics.</em></p>
+    </div>
+    <div class="insight rose" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act V — The Universe Has Shape</div>
+      <p>If mass curves spacetime locally, what is the global shape of the entire universe? Not a philosophical question — an empirical one. We can measure it using the cosmic microwave background. And the answer is extraordinary.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="cta-btn" onclick="celebrate4()">On to Act V →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='space_act3.html'">← Revisit Act III</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0, massVal=0;
+let stCv,stCtx,stW=300,stH=280;
+
+function initCosmos(){const c=document.getElementById('cosmos'),ctx=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;
+  for(let i=0;i<200;i++){const x=Math.random()*c.width,y=Math.random()*c.height,r=Math.random()*1.5;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=`rgba(${180+Math.floor(Math.random()*75)},${160+Math.floor(Math.random()*75)},255,${0.15+Math.random()*0.55})`;ctx.fill();}}
+initCosmos();
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n;document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1){initST();drawST();}
+  if(n===2)buildEvidence();
+}
+
+function initST(){
+  stCv=document.getElementById('stCanvas');
+  stW=stCv.parentElement.clientWidth-8;stCv.width=stW;stCv.height=stH;
+  stCtx=stCv.getContext('2d');
+}
+
+function updateMass(){
+  massVal=parseInt(document.getElementById('massSlider').value);
+  const labels=['No mass','Star (weak)','Neutron star','Black hole'];
+  const descs=[
+    'Flat spacetime — parallel grid lines, no curvature. Objects move in straight lines.',
+    'Mild curvature around a star (like our Sun). Light passing near the Sun bends by 1.75 arcseconds — confirmed by Eddington in 1919.',
+    'Strong curvature. Neutron stars pack more than 1 solar mass into ~10 km. Time near the surface runs measurably slower.',
+    'Extreme curvature. At the event horizon, the curvature becomes so great that not even light can escape. Spacetime closes in on itself.',
+  ];
+  const idx=massVal<5?0:massVal<40?1:massVal<80?2:3;
+  document.getElementById('massLabel').textContent=labels[idx];
+  document.getElementById('massDesc').textContent=descs[idx];
+  drawST();
+  if(massVal>=30){
+    document.getElementById('stInsight').style.display='block';
+    document.getElementById('s1Next').disabled=false;
+  }
+}
+
+function drawST(){
+  if(!stCtx)return;
+  const m=massVal/100;
+  stCtx.clearRect(0,0,stW,stH);
+  stCtx.fillStyle='rgba(4,2,15,0.95)';stCtx.fillRect(0,0,stW,stH);
+  const cx=stW/2, cy=stH/2;
+
+  // Warped grid
+  const GRID=8;
+  const step=stW/GRID;
+  stCtx.lineWidth=1;
+
+  // Horizontal lines
+  for(let row=0;row<=GRID;row++){
+    stCtx.beginPath();stCtx.strokeStyle=`rgba(99,102,241,${0.15+m*0.1})`;
+    for(let col=0;col<=GRID*4;col++){
+      const t=col/(GRID*4);
+      const rawX=t*stW;
+      const rawY=row*step;
+      const dx=rawX-cx, dy=rawY-cy;
+      const dist=Math.sqrt(dx*dx+dy*dy)||1;
+      const strength=m*60;
+      const warp=strength/(dist+strength*0.5);
+      const wx=rawX+dx*(-warp*0.4);
+      const wy=rawY+dy*(-warp*0.5)*Math.min(1,stH*0.4/dist);
+      col===0?stCtx.moveTo(wx,wy):stCtx.lineTo(wx,wy);
+    }stCtx.stroke();
+  }
+  // Vertical lines
+  for(let col=0;col<=GRID;col++){
+    stCtx.beginPath();stCtx.strokeStyle=`rgba(99,102,241,${0.15+m*0.1})`;
+    for(let row=0;row<=GRID*4;row++){
+      const t=row/(GRID*4);
+      const rawX=col*step;
+      const rawY=t*stH;
+      const dx=rawX-cx, dy=rawY-cy;
+      const dist=Math.sqrt(dx*dx+dy*dy)||1;
+      const strength=m*60;
+      const warp=strength/(dist+strength*0.5);
+      const wx=rawX+dx*(-warp*0.4);
+      const wy=rawY+dy*(-warp*0.5)*Math.min(1,stH*0.4/dist);
+      row===0?stCtx.moveTo(wx,wy):stCtx.lineTo(wx,wy);
+    }stCtx.stroke();
+  }
+
+  // Mass object
+  if(m>0){
+    const r=8+m*22;
+    const grd=stCtx.createRadialGradient(cx,cy,0,cx,cy,r*2);
+    grd.addColorStop(0,`rgba(251,191,36,${0.6+m*0.4})`);
+    grd.addColorStop(0.5,`rgba(251,191,36,${0.2*m})`);
+    grd.addColorStop(1,'rgba(0,0,0,0)');
+    stCtx.fillStyle=grd;stCtx.beginPath();stCtx.arc(cx,cy,r*2,0,Math.PI*2);stCtx.fill();
+    stCtx.fillStyle=m>0.8?'#111':'rgba(251,191,36,0.9)';
+    stCtx.beginPath();stCtx.arc(cx,cy,r,0,Math.PI*2);stCtx.fill();
+    // Event horizon at extreme mass
+    if(m>0.85){
+      stCtx.strokeStyle='rgba(251,191,36,0.4)';stCtx.lineWidth=1;stCtx.setLineDash([3,3]);
+      stCtx.beginPath();stCtx.arc(cx,cy,r*1.5,0,Math.PI*2);stCtx.stroke();stCtx.setLineDash([]);
+      stCtx.fillStyle='rgba(251,191,36,0.4)';stCtx.font='10px DM Sans';
+      stCtx.fillText('event horizon',cx+r*1.5+5,cy);
+    }
+  }
+
+  // Light path (geodesic)
+  if(m>0){
+    stCtx.strokeStyle='rgba(103,232,249,0.8)';stCtx.lineWidth=2;stCtx.setLineDash([]);
+    stCtx.beginPath();
+    const strength=m*80;
+    for(let i=0;i<=200;i++){
+      const rawX=i/200*stW;
+      const rawY=stH*0.25;
+      const dx=rawX-cx, dy=rawY-cy;
+      const dist=Math.sqrt(dx*dx+dy*dy)||1;
+      const bend=strength/(dist*dist+strength)*dy/dist*0.8;
+      const wy=rawY+bend*Math.max(0,1-Math.abs(rawX-cx)/120);
+      i===0?stCtx.moveTo(rawX,wy):stCtx.lineTo(rawX,wy);
+    }stCtx.stroke();
+    stCtx.fillStyle='rgba(103,232,249,0.7)';stCtx.font='10px DM Sans';
+    stCtx.fillText('light path (geodesic)',8,stH*0.25-8);
+  }
+}
+
+const evidenceData=[
+  {date:'1919 — Eddington Expedition',title:'Light bends around the Sun',
+   body:'Einstein predicted starlight passing near the Sun should bend by exactly 1.75 arcseconds due to spacetime curvature. In May 1919, Arthur Eddington photographed stars near the Sun during a solar eclipse — from two locations, to eliminate doubt. The deflection matched Einstein\'s prediction exactly. Newton\'s theory predicted half that amount. The next day, headlines worldwide: "Einstein\'s theory triumphant."'},
+  {date:'1959 — Pound-Rebka experiment',title:'Time runs slower near mass',
+   body:'General Relativity predicts that clocks near a massive object tick slower — gravitational time dilation. In 1959, Pound and Rebka at Harvard dropped gamma rays 22.5 metres and measured the tiny frequency shift as the photons climbed out of Earth\'s gravity well. The result matched Einstein\'s prediction to within 1%. Clocks at your feet literally tick slightly slower than clocks at your head.'},
+  {date:'1974-1993 — Hulse-Taylor binary pulsar',title:'Gravitational waves carry energy',
+   body:'Einstein predicted gravitational waves — ripples in spacetime curvature — in 1916. In 1974, Russell Hulse and Joseph Taylor discovered two neutron stars orbiting each other. Over decades, they observed the orbit shrinking at exactly the rate predicted if gravitational wave emission was carrying energy away. Nobel Prize awarded 1993. Direct detection came in 2015 (LIGO).'},
+  {date:'1995-present — GPS satellites',title:'Your phone uses General Relativity',
+   body:'GPS satellites orbit at ~20,200 km altitude. Two effects: (1) They move fast — special relativistic time dilation makes their clocks run slow by 7 microseconds/day. (2) They\'re higher in Earth\'s gravity well — general relativistic dilation makes their clocks run fast by 45 microseconds/day. Net: +38 microseconds/day. Without correction, GPS drifts ~10 km per day. The correction is built into every GPS receiver. Every navigation app on earth runs on General Relativity.'},
+  {date:'2015 — LIGO',title:'Gravitational waves detected directly',
+   body:'On 14 September 2015, LIGO detected the gravitational wave signal of two black holes merging 1.3 billion light-years away. The entire Earth vibrated by less than one-thousandth the diameter of a proton. The wave shape matched Einstein\'s equations precisely. Nobel Prize 2017. Einstein had predicted this in 1916. It took 99 years to confirm it.'},
+  {date:'2019 — Event Horizon Telescope',title:'The first photograph of a black hole',
+   body:'A network of eight radio telescopes across the Earth combined to form an Earth-sized telescope. On 10 April 2019, they released the first image of a black hole — the supermassive black hole in galaxy M87, 55 million light-years away. The ring of light and dark shadow matched General Relativity\'s predictions with remarkable precision. The thing Einstein\'s geometry predicted in 1915, we saw for the first time in 2019.'},
+];
+
+let evOpened=0;
+function buildEvidence(){
+  evOpened=0;
+  const c=document.getElementById('evCards');c.innerHTML='';
+  evidenceData.forEach((ev,i)=>{
+    const d=document.createElement('div');
+    d.className='ev-card';d.id=`ev-${i}`;
+    d.innerHTML=`<div class="ev-date">${ev.date}</div>
+      <div class="ev-title">${ev.title}</div>
+      <div class="ev-body">${ev.body}</div>`;
+    d.onclick=()=>{
+      const isOpen=d.classList.contains('open');
+      document.querySelectorAll('.ev-card').forEach(e=>e.classList.remove('open'));
+      if(!isOpen){
+        d.classList.add('open');evOpened++;launchMiniConfetti();
+        if(evOpened>=3)document.getElementById('evFinalInsight').style.display='block';
+      }
+    };
+    c.appendChild(d);
+  });
+  document.getElementById('evFinalInsight').style.display='none';
+}
+
+function celebrate4(){launchConfetti();setTimeout(()=>window.location.href='space_act5.html',900);}
+const cc=document.getElementById('confetti'),cxcf=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<120;i++)parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*6,vy:2+Math.random()*4,c:['#fbbf24','#6366f1','#ec4899','#c4b5fd','#67e8f9'][Math.floor(Math.random()*5)],s:5+Math.random()*8,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},4000);}
+function launchMiniConfetti(){cc.width=innerWidth;cc.height=innerHeight;
+  for(let i=0;i<15;i++)parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.4,vx:(Math.random()-.5)*7,vy:-(3+Math.random()*5),c:['#fbbf24','#c4b5fd'][Math.floor(Math.random()*2)],s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!afr)animC();}
+function animC(){cxcf.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;cxcf.save();cxcf.globalAlpha=p.l;cxcf.translate(p.x,p.y);cxcf.rotate(p.r);cxcf.fillStyle=p.c;cxcf.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cxcf.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;}
+// init mass display
+window.onload=()=>{updateMass();};
+</script>
+</body>
+</html>

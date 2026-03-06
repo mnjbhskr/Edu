@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0d0a06">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Clock That Never Stops — Act I</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg:        #0d0a06;
+            --bg2:       #14100a;
+            --bg3:       #1c160e;
+            --amber:     #f59e0b;
+            --amber-dim: rgba(245,158,11,0.12);
+            --amber-glow:rgba(245,158,11,0.25);
+            --teal:      #14b8a6;
+            --teal-dim:  rgba(20,184,166,0.12);
+            --rose:      #fb7185;
+            --rose-dim:  rgba(251,113,133,0.12);
+            --cream:     #fef3c7;
+            --text:      #e8dcc8;
+            --muted:     #7a6a52;
+            --border:    rgba(245,158,11,0.1);
+            --radius:    16px;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        html, body {
+            height:100%; background:var(--bg);
+            color:var(--text); font-family:'DM Sans', sans-serif;
+            overflow-x:hidden;
+        }
+
+        /* Warm glow background */
+        #warmth {
+            position:fixed; inset:0; z-index:0; pointer-events:none;
+            background:
+                radial-gradient(ellipse at 20% 80%, rgba(245,158,11,0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(20,184,166,0.04) 0%, transparent 50%),
+                var(--bg);
+        }
+
+        #app {
+            position:relative; z-index:1; min-height:100vh;
+            display:flex; flex-direction:column;
+        }
+
+        /* ── Header ── */
+        .app-header {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);
+            background:rgba(13,10,6,0.9);
+            backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+            position:sticky; top:0; z-index:10;
+        }
+        .header-logo {
+            font-family:'Lora', serif; font-size:1.05em;
+            font-style:italic; color:var(--muted); letter-spacing:0.3px;
+        }
+        .header-logo span { color:var(--amber); font-style:normal; }
+        .progress-wrap { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+        .act-indicator { font-size:0.62em; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+        .progress-dots { display:flex; gap:6px; }
+        .dot { width:8px; height:8px; border-radius:50%; background:var(--border); transition:all 0.4s; }
+        .dot.done { background:var(--teal); }
+        .dot.active { background:var(--amber); box-shadow:0 0 8px var(--amber); }
+
+        /* ── Screens ── */
+        .screen { display:none; flex-direction:column; flex:1; padding:24px 20px 100px; animation:fadeUp 0.5s ease both; }
+        .screen.active { display:flex; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+        /* ── Narrator ── */
+        .narrator {
+            background:var(--bg2); border:1px solid var(--border);
+            border-left:3px solid var(--amber); border-radius:var(--radius);
+            padding:18px 20px; margin-bottom:20px; position:relative;
+        }
+        .narrator::before {
+            content:'✦'; position:absolute; top:-10px; left:16px;
+            background:var(--bg2); padding:0 6px;
+            color:var(--amber); font-size:0.78em;
+        }
+        .narrator p { font-family:'Lora', serif; font-size:1.1em; line-height:1.82; color:#d4c4a8; }
+        .narrator p em { color:var(--amber); font-style:italic; }
+        .narrator p strong { color:var(--cream); font-weight:600; }
+        .narrator.teal { border-left-color:var(--teal); }
+        .narrator.teal::before { color:var(--teal); }
+        .narrator.rose { border-left-color:var(--rose); }
+        .narrator.rose::before { color:var(--rose); }
+
+        /* ── Act title ── */
+        .act-title { text-align:center; margin-bottom:22px; }
+        .act-label { font-size:0.68em; text-transform:uppercase; letter-spacing:3px; color:var(--muted); margin-bottom:8px; }
+        .act-name { font-family:'Lora', serif; font-size:clamp(1.6em,6vw,2.2em); font-weight:400; color:var(--cream); letter-spacing:0.3px; }
+        .act-name em { color:var(--amber); font-style:italic; }
+
+        /* ── CTA Button ── */
+        .cta-btn {
+            width:100%; max-width:400px; margin:0 auto; display:block;
+            background:linear-gradient(135deg, var(--amber), #d97706);
+            border:none; border-radius:50px; padding:15px 30px;
+            font-family:'DM Sans', sans-serif; font-size:1em; font-weight:600;
+            color:#0d0a06; cursor:pointer;
+            transition:all 0.25s ease; touch-action:manipulation;
+            box-shadow:0 4px 20px rgba(245,158,11,0.25);
+        }
+        .cta-btn:hover, .cta-btn:active { transform:translateY(-2px); box-shadow:0 8px 28px rgba(245,158,11,0.35); }
+        .cta-btn:disabled { opacity:0.35; transform:none; box-shadow:none; cursor:default; }
+        .cta-btn.teal-btn {
+            background:linear-gradient(135deg, var(--teal), #0d9488);
+            box-shadow:0 4px 20px rgba(20,184,166,0.25); color:#fff;
+        }
+        .cta-btn.ghost-btn {
+            background:transparent; border:1.5px solid var(--border); color:var(--muted);
+            box-shadow:none;
+        }
+
+        /* ── Insight card ── */
+        .insight {
+            background:var(--bg2); border:1px solid rgba(20,184,166,0.15);
+            border-left:3px solid var(--teal); border-radius:var(--radius);
+            padding:16px 18px; margin-bottom:16px;
+        }
+        .insight .lbl { font-size:0.68em; text-transform:uppercase; letter-spacing:2px; color:var(--teal); margin-bottom:6px; }
+        .insight p { font-family:'Lora', serif; font-size:1em; line-height:1.72; color:#b8a888; }
+        .insight p em { color:var(--teal); font-style:normal; font-weight:600; }
+        .insight.amber { border-left-color:var(--amber); border-color:rgba(245,158,11,0.15); }
+        .insight.amber .lbl { color:var(--amber); }
+
+        /* ── Clock Face ── */
+        .clock-wrap {
+            display:flex; align-items:center; justify-content:center;
+            margin-bottom:20px;
+        }
+        #clockCanvas {
+            border-radius:50%;
+            cursor:pointer;
+            touch-action:none;
+        }
+
+        /* ── Clock controls ── */
+        .clock-controls {
+            display:flex; gap:10px; justify-content:center;
+            flex-wrap:wrap; margin-bottom:16px;
+        }
+        .hour-btn {
+            background:var(--bg3); border:1.5px solid var(--border);
+            border-radius:30px; padding:9px 18px;
+            color:var(--muted); font-family:'DM Sans', sans-serif;
+            font-size:0.88em; font-weight:600;
+            cursor:pointer; transition:all 0.2s; touch-action:manipulation;
+        }
+        .hour-btn:hover, .hour-btn:active {
+            border-color:var(--amber); color:var(--amber); background:var(--amber-dim);
+        }
+
+        /* ── Number stream ── */
+        .number-stream {
+            background:var(--bg2); border:1px solid var(--border);
+            border-radius:var(--radius); padding:16px 20px;
+            margin-bottom:16px; overflow:hidden;
+        }
+        .stream-label {
+            font-size:0.7em; text-transform:uppercase; letter-spacing:2px;
+            color:var(--muted); margin-bottom:10px;
+        }
+        .stream-row {
+            display:flex; flex-wrap:wrap; gap:6px;
+        }
+        .stream-num {
+            min-width:36px; height:36px; border-radius:8px;
+            display:flex; align-items:center; justify-content:center;
+            font-family:'DM Sans', monospace; font-size:0.85em; font-weight:700;
+            transition:all 0.2s;
+        }
+        .stream-num.normal { background:rgba(255,255,255,0.04); color:var(--muted); }
+        .stream-num.wrap-point {
+            background:var(--amber-dim); border:1.5px solid rgba(245,158,11,0.4);
+            color:var(--amber);
+        }
+        .stream-num.current {
+            background:var(--amber); color:#0d0a06; font-weight:800;
+            box-shadow:0 0 12px var(--amber-glow);
+        }
+        .stream-num.teal-mark {
+            background:var(--teal-dim); border:1.5px solid rgba(20,184,166,0.4);
+            color:var(--teal);
+        }
+
+        /* ── Clock display ── */
+        .big-clock-num {
+            text-align:center; margin:8px 0 16px;
+        }
+        .big-clock-num .label { font-size:0.72em; text-transform:uppercase; letter-spacing:2px; color:var(--muted); margin-bottom:4px; }
+        .big-clock-num .val {
+            font-size:clamp(3em,14vw,5em); font-weight:700; color:var(--amber);
+            line-height:1; font-family:'DM Sans', sans-serif;
+            text-shadow:0 0 40px rgba(245,158,11,0.3);
+            transition:all 0.3s ease;
+        }
+        .big-clock-num .val.wrap { animation:wrapFlash 0.5s ease; }
+        @keyframes wrapFlash { 0%{color:var(--teal);text-shadow:0 0 60px rgba(20,184,166,0.8)} 100%{color:var(--amber);text-shadow:0 0 40px rgba(245,158,11,0.3)} }
+
+        /* Feedback */
+        .feedback {
+            background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+            padding:14px 16px; margin-bottom:16px; min-height:52px;
+            font-family:'Lora', serif; font-size:1em; line-height:1.7; color:#a09070;
+            opacity:0.7; transition:opacity 0.3s;
+        }
+        .feedback.show { opacity:1; }
+        .feedback .amber { color:var(--amber); }
+        .feedback .teal { color:var(--teal); }
+
+        /* ── Wrap demonstration ── */
+        .wrap-demo {
+            background:var(--bg2); border:1px solid var(--border);
+            border-radius:var(--radius); padding:20px; margin-bottom:16px;
+        }
+        .wrap-equation {
+            display:flex; align-items:center; justify-content:center;
+            gap:12px; flex-wrap:wrap; margin-bottom:12px;
+        }
+        .eq-part {
+            font-family:'DM Sans', monospace; font-size:clamp(1.2em,5vw,1.8em);
+            font-weight:700; padding:8px 14px; border-radius:10px;
+        }
+        .eq-num { color:var(--cream); background:rgba(255,255,255,0.04); }
+        .eq-op { color:var(--muted); background:transparent; }
+        .eq-mod { color:var(--teal); background:var(--teal-dim); border:1.5px solid rgba(20,184,166,0.3); }
+        .eq-result { color:var(--amber); background:var(--amber-dim); border:1.5px solid rgba(245,158,11,0.3); }
+        .eq-label {
+            font-size:0.72em; text-align:center; color:var(--muted);
+            font-family:'Lora', serif; font-style:italic; margin-top:4px;
+        }
+
+        /* ── Interactive mod calculator ── */
+        .mod-calc {
+            background:var(--bg2); border:1px solid var(--border);
+            border-radius:var(--radius); padding:20px; margin-bottom:16px;
+        }
+        .mod-inputs {
+            display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+            justify-content:center; margin-bottom:14px;
+        }
+        .mod-inp {
+            width:72px; height:52px; border-radius:10px;
+            background:var(--bg3); border:1.5px solid var(--border);
+            color:var(--cream); font-family:'DM Sans', monospace;
+            font-size:1.3em; font-weight:700; text-align:center;
+            outline:none; transition:border-color 0.2s;
+        }
+        .mod-inp:focus { border-color:var(--amber); }
+        .mod-inp.wide { width:90px; }
+        .mod-sym { font-size:1.3em; color:var(--muted); font-weight:300; }
+        .mod-result-display {
+            font-family:'DM Sans', monospace; font-size:2em; font-weight:700;
+            color:var(--amber); text-align:center;
+            background:var(--amber-dim); border-radius:12px; padding:10px 20px;
+            border:1px solid rgba(245,158,11,0.2);
+            transition:all 0.3s;
+        }
+
+        /* ── Challenge ── */
+        .challenge-card {
+            background:var(--bg2); border:1px solid rgba(245,158,11,0.15);
+            border-left:3px solid var(--amber); border-radius:var(--radius);
+            padding:18px 20px; margin-bottom:14px;
+        }
+        .challenge-q {
+            font-family:'Lora', serif; font-size:1.1em; color:var(--cream); margin-bottom:14px; line-height:1.6;
+        }
+        .answer-btns {
+            display:flex; flex-wrap:wrap; gap:8px;
+        }
+        .ans-btn {
+            padding:10px 20px; border-radius:10px;
+            background:var(--bg3); border:1.5px solid var(--border);
+            color:var(--muted); font-family:'DM Sans', sans-serif;
+            font-size:0.95em; font-weight:600; cursor:pointer;
+            transition:all 0.2s; touch-action:manipulation; flex:1; min-width:80px;
+        }
+        .ans-btn:hover { border-color:var(--amber); color:var(--amber); background:var(--amber-dim); }
+        .ans-btn.correct { background:rgba(20,184,166,0.15); border-color:var(--teal); color:var(--teal); pointer-events:none; }
+        .ans-btn.wrong { background:rgba(251,113,133,0.1); border-color:rgba(251,113,133,0.3); color:var(--rose); pointer-events:none; }
+
+        /* ── Completion ── */
+        .complete-badge {
+            background:linear-gradient(135deg, rgba(245,158,11,0.1), rgba(20,184,166,0.06));
+            border:1px solid rgba(245,158,11,0.2); border-radius:var(--radius);
+            padding:24px; margin-bottom:20px; text-align:center;
+        }
+        .badge-icon { font-size:3.5em; display:block; margin-bottom:10px; }
+        .badge-title { font-family:'Lora', serif; font-size:1.3em; color:var(--amber); margin-bottom:6px; }
+        .badge-sub { font-size:0.85em; color:var(--muted); font-family:'Lora', serif; font-style:italic; line-height:1.6; }
+
+        /* Confetti */
+        #confetti { position:fixed; inset:0; pointer-events:none; z-index:50; }
+        .bottom-pad { height:20px; }
+
+        /* Act badge strip on opening */
+        .act-strip {
+            display:flex; gap:8px; justify-content:center; flex-wrap:wrap;
+            margin:16px 0;
+        }
+        .act-pip {
+            padding:5px 12px; border-radius:20px;
+            font-size:0.72em; font-weight:600; letter-spacing:0.5px;
+            border:1.5px solid;
+        }
+        .act-pip.done { background:rgba(20,184,166,0.1); border-color:rgba(20,184,166,0.3); color:var(--teal); }
+        .act-pip.current { background:var(--amber-dim); border-color:rgba(245,158,11,0.4); color:var(--amber); }
+        .act-pip.future { background:transparent; border-color:var(--border); color:var(--muted); }
+
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--amber);}
+        .learn-box.notice .learn-title{color:var(--teal);}
+        .learn-box.why .learn-title{color:var(--rose,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--amber);color:var(--amber);}
+    </style>
+</head>
+<body>
+
+<canvas id="confetti"></canvas>
+<div id="warmth"></div>
+
+<div id="app">
+    <header class="app-header">
+        <div class="header-logo">mathsedu<span>.org</span></div>
+        <div class="progress-wrap">
+            <div class="act-indicator">Act I of V</div>
+            <div class="progress-dots">
+                <div class="dot active" id="dot0"></div>
+                <div class="dot" id="dot1"></div>
+                <div class="dot" id="dot2"></div>
+                <div class="dot" id="dot3"></div>
+                <div class="dot" id="dot4"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ══ SCREEN 0: OPENING ══ -->
+    <section class="screen active" id="screen-0">
+        <div class="act-title">
+            <div class="act-label">The Clock That Never Stops · Act I</div>
+            <div class="act-name">The Clock That <em>Wraps</em></div>
+        </div>
+
+        <div style="text-align:center; margin:8px 0 16px;">
+            <div style="font-size:5em; animation:tick 2s steps(1) infinite; display:inline-block;">🕐</div>
+        </div>
+        <style>
+            @keyframes tick {
+                0%{content:'🕐'} 8%{content:'🕑'} 16%{content:'🕒'} 25%{content:'🕓'}
+                33%{content:'🕔'} 41%{content:'🕕'} 50%{content:'🕖'} 58%{content:'🕗'}
+                66%{content:'🕘'} 75%{content:'🕙'} 83%{content:'🕚'} 91%{content:'🕛'}
+            }
+            @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+        </style>
+        <div style="font-size:5em; animation:float 3s ease-in-out infinite; text-align:center; margin-bottom:16px;">🕐</div>
+
+        <div class="narrator">
+            <p>You know how a clock works.</p>
+            <p style="margin-top:10px">The hand passes 12. Then it doesn't say 13. It says <em>1</em> again.</p>
+            <p style="margin-top:10px">It resets. It <em>wraps.</em></p>
+            <p style="margin-top:10px">That's not just a convenience of clock design. It's a beautiful idea in mathematics — one that shows up in secret codes, computer science, the calendar, and the architecture of the internet.</p>
+        </div>
+
+        <div class="act-strip">
+            <div class="act-pip current">I · The Clock Wraps</div>
+            <div class="act-pip future">II · The Calendar</div>
+            <div class="act-pip future">III · The Pattern</div>
+            <div class="act-pip future">IV · The Code</div>
+            <div class="act-pip future">V · The Group</div>
+        </div>
+
+        <div class="insight amber" style="margin-bottom:20px;">
+            <div class="lbl">What you'll discover</div>
+            <p>What happens when numbers wrap? Can we do arithmetic with wrapping numbers? Why does this matter beyond telling the time?</p>
+        </div>
+
+        <button class="cta-btn" onclick="goToScreen(1)">Start exploring →</button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 1: CLOCK EXPLORER ══ -->
+    <section class="screen" id="screen-1">
+        <div class="act-title">
+            <div class="act-label">Discovery</div>
+            <div class="act-name">What comes after <em>12</em>?</div>
+        </div>
+
+        <div class="narrator">
+            <p>A clock face has 12 positions. When the hand passes 12, it doesn't say 13 — it goes back to 1.</p>
+            <p style="margin-top:8px">Use the buttons below to add hours to the clock. See what happens when you go <em>past 12.</em></p>
+        </div>
+
+        <!-- Clock canvas -->
+        <div class="clock-wrap">
+            <canvas id="clockCanvas" width="260" height="260"></canvas>
+        </div>
+
+        <div class="big-clock-num">
+            <div class="label">clock shows</div>
+            <div class="val" id="clockDisplay">12</div>
+        </div>
+
+        <div class="clock-controls">
+            <button class="hour-btn" onclick="addHours(1)">+1 hour</button>
+            <button class="hour-btn" onclick="addHours(3)">+3 hours</button>
+            <button class="hour-btn" onclick="addHours(6)">+6 hours</button>
+            <button class="hour-btn" onclick="addHours(12)">+12 hours</button>
+        </div>
+
+        <div style="text-align:center;">
+            <button class="reset-btn" onclick="initClock()">Reset clock</button>
+        </div>
+
+        <div class="feedback show" id="clockFeedback">
+            Tap the buttons to advance the clock. What happens when you go past 12?
+        </div>
+
+        <!-- Number stream -->
+        <div class="number-stream" id="numberStream" style="display:none;">
+            <div class="stream-label">Hours counted so far</div>
+            <div class="stream-row" id="streamRow"></div>
+        </div>
+
+        <div class="insight" id="wrapInsight" style="display:none;">
+            <div class="lbl">💡 Notice this</div>
+            <p>13 shows as <em>1</em>. 14 shows as <em>2</em>. 24 shows as <em>12</em>. The clock doesn't care how many hours have actually passed — it only shows the <em>remainder</em> when you divide by 12.</p>
+        </div>
+
+        <div class="learn-box try-this">
+          <div class="learn-title">Try This</div>
+          <p>Add hours one at a time past 12. Try adding 1, then keep going to 13, 14, 15... all the way to 24. Watch the clock hand and the displayed number.</p>
+        </div>
+        <div class="learn-box notice">
+          <div class="learn-title">What To Notice</div>
+          <p>When you reach 13, the clock shows 1. At 25, it shows 1 again. The pattern repeats every 12 hours — the clock wraps. The displayed value is always the remainder after dividing by 12.</p>
+        </div>
+        <div class="learn-box why">
+          <div class="learn-title">Why It Matters</div>
+          <p>This wrapping behaviour is modular arithmetic — one of the most important ideas in mathematics. It appears in cryptography, computer science, music theory, and the calendar. Every time a value cycles back to the start, you are seeing arithmetic mod N.</p>
+        </div>
+
+        <button class="cta-btn" onclick="goToScreen('1b')" id="s1Next" disabled>
+            I see the pattern →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 1B: MODULAR ADDITION CLOCK ══ -->
+    <section class="screen" id="screen-1b">
+        <div class="act-title">
+            <div class="act-label">Experiment</div>
+            <div class="act-name">Modular <em>Addition</em></div>
+        </div>
+
+        <div class="narrator teal">
+            <p>What is <em>a + b</em> on a clock with numbers 0 to 11? Enter two numbers and watch the pointer step around the clock face.</p>
+        </div>
+
+        <div class="clock-wrap">
+            <canvas id="modClockCanvas" width="280" height="280" style="border-radius:50%;"></canvas>
+        </div>
+
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:12px;">
+                <label style="font-size:0.82em;color:var(--muted);">a =</label>
+                <input class="mod-inp" id="modClkA" type="number" value="3" min="0" max="11" style="width:60px;height:44px;font-size:1.1em;">
+                <span style="color:var(--muted);font-size:1.2em;font-weight:300;">+</span>
+                <label style="font-size:0.82em;color:var(--muted);">b =</label>
+                <input class="mod-inp" id="modClkB" type="number" value="5" min="0" max="11" style="width:60px;height:44px;font-size:1.1em;">
+                <button class="hour-btn" style="padding:10px 22px;font-weight:700;" onclick="runModClock()">Go</button>
+            </div>
+            <div id="modClkResult" style="text-align:center;font-family:'DM Sans',monospace;font-size:1.4em;font-weight:700;color:var(--amber);min-height:34px;"></div>
+        </div>
+
+        <div id="modClkFeedback" class="feedback show" style="text-align:center;">
+            Enter values for a and b (0-11), then press Go.
+        </div>
+
+        <div style="display:flex;gap:10px;max-width:400px;margin:0 auto 12px;">
+            <button class="reset-btn" onclick="resetModClock()">Reset clock</button>
+        </div>
+
+        <div class="insight" id="modClkInsight" style="display:none;">
+            <div class="lbl">Clock addition</div>
+            <p>On a 12-position clock (0-11), addition wraps around: <em>7 + 8 = 3</em> because 15 mod 12 = 3. This is modular arithmetic in action — the numbers form a closed cycle.</p>
+        </div>
+
+        <button class="cta-btn" onclick="goToScreen(2)" id="s1bNext" disabled>Name this pattern →</button>
+        <button class="cta-btn ghost-btn" onclick="goToScreen(1)" style="margin-top:10px;">← Back</button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 2: NAMING THE PATTERN ══ -->
+    <section class="screen" id="screen-2">
+        <div class="act-title">
+            <div class="act-label">A name for the pattern</div>
+            <div class="act-name"><em>Modular</em> arithmetic</div>
+        </div>
+
+        <div class="narrator">
+            <p>What the clock is doing has a name: <em>modular arithmetic.</em></p>
+            <p style="margin-top:10px">When we say "13 o'clock on a 12-hour clock", we mean: <strong>13 mod 12 = 1</strong></p>
+            <p style="margin-top:10px">The word <em>"mod"</em> means: divide by the clock size, and keep only the remainder.</p>
+        </div>
+
+        <!-- Animated equation examples -->
+        <div class="wrap-demo">
+            <div class="stream-label" style="margin-bottom:14px;">How it works — three examples</div>
+            <div id="wrapExamples"></div>
+        </div>
+
+        <div class="narrator teal" style="margin-bottom:14px;">
+            <p>The "clock size" is called the <em>modulus</em>. For a 12-hour clock, the modulus is 12. For a 7-day week, the modulus is 7. For hours in a day, it's 24.</p>
+            <p style="margin-top:8px">The modulus determines where the counting <em>resets.</em></p>
+        </div>
+
+        <!-- Interactive mod calculator -->
+        <div class="mod-calc">
+            <div class="stream-label" style="margin-bottom:12px;">Try your own — what is A mod B?</div>
+            <div class="mod-inputs">
+                <input class="mod-inp wide" id="modA" type="number" value="17" min="0" max="999" oninput="calcMod()">
+                <span class="mod-sym">mod</span>
+                <input class="mod-inp" id="modB" type="number" value="12" min="1" max="100" oninput="calcMod()">
+                <span class="mod-sym">=</span>
+                <div class="mod-result-display" id="modResult">5</div>
+            </div>
+            <div style="font-family:'Lora',serif;font-size:0.88em;color:var(--muted);font-style:italic;text-align:center;" id="modExplain">
+                17 ÷ 12 = 1 remainder 5. So 17 mod 12 = 5.
+            </div>
+        </div>
+
+        <div class="insight amber">
+            <div class="lbl">💡 The key idea</div>
+            <p>Modular arithmetic is just regular arithmetic — but instead of letting numbers grow forever, we <em>wrap them around</em> at a fixed point. The clock wraps at 12. The week wraps at 7. A byte in a computer wraps at 256.</p>
+        </div>
+
+        <button class="cta-btn" onclick="goToScreen(3)">Now let's use this →</button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 3: APPLICATION — DAYS ══ -->
+    <section class="screen" id="screen-3">
+        <div class="act-title">
+            <div class="act-label">A real question</div>
+            <div class="act-name">What day will it <em>be</em>?</div>
+        </div>
+
+        <div class="narrator">
+            <p>Today is <em id="todayDay">Monday</em>. What day of the week will it be in <strong>100 days</strong>?</p>
+            <p style="margin-top:10px">You could count 100 days on a calendar. Or you could use the clock idea.</p>
+            <p style="margin-top:10px">The week has 7 days. It <em>wraps</em> at 7. So this is just: <strong>100 mod 7.</strong></p>
+        </div>
+
+        <!-- Step-by-step visual -->
+        <div class="wrap-demo">
+            <div class="stream-label" style="margin-bottom:14px;">Walk through the calculation</div>
+            <div id="daySteps"></div>
+        </div>
+
+        <!-- Challenge questions -->
+        <div style="margin-bottom:20px;">
+            <div class="stream-label" style="margin-bottom:12px;">Now you try</div>
+
+            <div class="challenge-card" id="challenge1">
+                <div class="challenge-q">Today is <strong>Wednesday</strong>. What day will it be in <em>20 days</em>?</div>
+                <div class="answer-btns" id="ch1btns"></div>
+                <div id="ch1-fb" style="font-family:'Lora',serif;font-size:0.9em;margin-top:10px;min-height:20px;color:var(--muted);"></div>
+            </div>
+
+            <div class="challenge-card" id="challenge2" style="display:none;">
+                <div class="challenge-q">Today is <strong>Friday</strong>. What day will it be in <em>50 days</em>?</div>
+                <div class="answer-btns" id="ch2btns"></div>
+                <div id="ch2-fb" style="font-family:'Lora',serif;font-size:0.9em;margin-top:10px;min-height:20px;color:var(--muted);"></div>
+            </div>
+
+            <div class="challenge-card" id="challenge3" style="display:none;">
+                <div class="challenge-q">Today is <strong>Sunday</strong>. What day will it be in <em>100 days</em>?</div>
+                <div class="answer-btns" id="ch3btns"></div>
+                <div id="ch3-fb" style="font-family:'Lora',serif;font-size:0.9em;margin-top:10px;min-height:20px;color:var(--muted);"></div>
+            </div>
+        </div>
+
+        <div class="insight" id="dayInsight" style="display:none;">
+            <div class="lbl">💡 What you've just done</div>
+            <p>You used modular arithmetic to skip 100 calendar boxes in one calculation. A skill that takes ten seconds once you have the idea — and that underpins how computers schedule tasks, how music theory works, and how cryptographic keys are built.</p>
+        </div>
+
+        <button class="cta-btn teal-btn" onclick="goToScreen(4)" id="s3Next" disabled>
+            ✦ Act I Complete →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 4: ACT COMPLETE ══ -->
+    <section class="screen" id="screen-4">
+        <div class="act-title">
+            <div class="act-label">Act I complete</div>
+            <div class="act-name">The clock that <em>wraps</em></div>
+        </div>
+
+        <div class="complete-badge">
+            <span class="badge-icon">🕐</span>
+            <div class="badge-title">You understand mod arithmetic</div>
+            <div class="badge-sub">
+                The remainder when dividing by a fixed number.<br>
+                The mathematics underneath every clock, calendar, and cipher.
+            </div>
+        </div>
+
+        <div class="insight" style="margin-bottom:14px;">
+            <div class="lbl">💡 What you learned</div>
+            <p>Modular arithmetic is just counting with a wrap. The <em>modulus</em> is the wrap point. <em>A mod B</em> gives the remainder when A is divided by B. This simple idea — which a clock does every hour — turns out to be one of the most powerful ideas in mathematics.</p>
+        </div>
+
+        <div class="insight amber" style="margin-bottom:20px;">
+            <div class="lbl">Coming in Act II — The Calendar</div>
+            <p>Days of the week are mod 7. But what about years? What day of the week were you born on? And why does February sometimes have 29 days? In Act II, you'll build a year calculator using nothing but mod arithmetic.</p>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px;">
+            <button class="cta-btn" onclick="celebrateAndContinue()">✦ On to Act II →</button>
+            <button class="cta-btn ghost-btn" onclick="window.location.href='prime_journey_act5.html'">← Return to the Prime Journey</button>
+        </div>
+        <div class="bottom-pad"></div>
+    </section>
+
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════════
+//  STATE & CONSTANTS
+// ══════════════════════════════════════════════
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+let curScreen = 0;
+let clockHour = 12;    // 1–12
+let totalHours = 0;
+let wrapCount = 0;
+let streamNums = [];
+
+// Detect today
+const todayIdx = new Date().getDay(); // 0=Sun
+const todayName = DAYS[todayIdx];
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function goToScreen(n) {
+    document.getElementById(`screen-${curScreen}`).classList.remove('active');
+    curScreen = n;
+    document.getElementById(`screen-${n}`).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+    const dotIdx = n==='1b'?1:(typeof n==='number'?n:parseInt(n));
+    for(let i=0;i<5;i++){
+        const d=document.getElementById(`dot${i}`);
+        if(!d) continue;
+        d.className='dot';
+        if(i<dotIdx) d.classList.add('done');
+        else if(i===dotIdx) d.classList.add('active');
+    }
+    if(n===1) initClock();
+    if(n==='1b') initModClock();
+    if(n===2) initNaming();
+    if(n===3) initDays();
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 1: CLOCK
+// ══════════════════════════════════════════════
+function initClock() {
+    clockHour = 12; totalHours = 0; wrapCount = 0; streamNums = [];
+    drawClock(12);
+    document.getElementById('clockDisplay').textContent = '12';
+    document.getElementById('clockFeedback').textContent = 'Tap the buttons to advance the clock. What happens when you go past 12?';
+    document.getElementById('numberStream').style.display = 'none';
+    document.getElementById('wrapInsight').style.display = 'none';
+    document.getElementById('s1Next').disabled = true;
+}
+
+function drawClock(hour) {
+    const canvas = document.getElementById('clockCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const cx = W/2, cy = H/2, R = W/2 - 10;
+
+    ctx.clearRect(0,0,W,H);
+
+    // Background circle
+    const grad = ctx.createRadialGradient(cx,cy,0,cx,cy,R);
+    grad.addColorStop(0, '#1c160e');
+    grad.addColorStop(1, '#0d0a06');
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.fillStyle = grad; ctx.fill();
+
+    // Outer ring
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.strokeStyle = 'rgba(245,158,11,0.25)'; ctx.lineWidth = 2; ctx.stroke();
+
+    // Inner ring
+    ctx.beginPath(); ctx.arc(cx,cy,R-8,0,Math.PI*2);
+    ctx.strokeStyle = 'rgba(245,158,11,0.08)'; ctx.lineWidth = 1; ctx.stroke();
+
+    // Hour marks
+    for(let i=1;i<=12;i++) {
+        const angle = (i/12)*Math.PI*2 - Math.PI/2;
+        const isMain = i%3===0;
+        const r1 = R - (isMain ? 20 : 14);
+        const r2 = R - 6;
+        ctx.beginPath();
+        ctx.moveTo(cx + r1*Math.cos(angle), cy + r1*Math.sin(angle));
+        ctx.lineTo(cx + r2*Math.cos(angle), cy + r2*Math.sin(angle));
+        ctx.strokeStyle = isMain ? 'rgba(245,158,11,0.5)' : 'rgba(245,158,11,0.2)';
+        ctx.lineWidth = isMain ? 2 : 1; ctx.stroke();
+
+        // Numbers
+        if(isMain) {
+            const nr = R - 34;
+            ctx.fillStyle = i===hour ? '#fbbf24' : 'rgba(245,158,11,0.4)';
+            ctx.font = `bold ${i===hour?16:13}px DM Sans`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(i, cx + nr*Math.cos(angle), cy + nr*Math.sin(angle));
+        }
+    }
+
+    // Hour hand
+    const handAngle = (hour/12)*Math.PI*2 - Math.PI/2;
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    // Glow on hand
+    ctx.shadowBlur = 12; ctx.shadowColor = '#f59e0b';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo((R*0.55)*Math.cos(handAngle), (R*0.55)*Math.sin(handAngle));
+    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3;
+    ctx.lineCap = 'round'; ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Center dot
+    ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2);
+    ctx.fillStyle = '#f59e0b'; ctx.fill();
+    ctx.restore();
+
+    // If showing a "wrap" moment, draw teal overlay
+    if(wrapCount > 0) {
+        ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+        ctx.strokeStyle = 'rgba(20,184,166,0.3)'; ctx.lineWidth = 4; ctx.stroke();
+    }
+}
+
+function addHours(h) {
+    totalHours += h;
+    const prevHour = clockHour;
+
+    // Calculate new clock position (1-12)
+    const raw = totalHours % 12;
+    clockHour = raw === 0 ? 12 : raw;
+
+    const didWrap = (Math.floor(totalHours/12) > wrapCount);
+    if(didWrap) wrapCount = Math.floor(totalHours/12);
+
+    // Record stream
+    for(let i=1;i<=h;i++) {
+        const t = totalHours - h + i;
+        streamNums.push(t);
+    }
+
+    drawClock(clockHour);
+
+    const display = document.getElementById('clockDisplay');
+    display.textContent = clockHour;
+    if(didWrap) display.classList.add('wrap');
+    else display.classList.remove('wrap');
+    setTimeout(()=>display.classList.remove('wrap'), 600);
+
+    // Feedback
+    const fb = document.getElementById('clockFeedback');
+    if(totalHours <= 12) {
+        fb.innerHTML = `<span class="amber">${totalHours} total hours</span> → clock shows <span class="amber">${clockHour}</span>. Keep going past 12.`;
+    } else if(didWrap) {
+        fb.innerHTML = `<span class="teal">The clock wrapped!</span> ${totalHours} total hours — but the clock shows <span class="amber">${clockHour}</span>. It reset to 1 and kept going.`;
+    } else {
+        fb.innerHTML = `<span class="amber">${totalHours} total hours</span> → clock shows <span class="amber">${clockHour}</span>. That's because ${totalHours} ÷ 12 leaves remainder ${clockHour === 12 ? 0 : clockHour}.`;
+    }
+    fb.classList.add('show');
+
+    // Stream display
+    document.getElementById('numberStream').style.display = 'block';
+    renderStream();
+
+    // Insight after first wrap
+    if(totalHours >= 13) {
+        document.getElementById('wrapInsight').style.display = 'block';
+    }
+    // Unlock after exploring
+    if(totalHours >= 20) {
+        document.getElementById('s1Next').disabled = false;
+    }
+}
+
+function renderStream() {
+    const row = document.getElementById('streamRow');
+    row.innerHTML = '';
+    const show = streamNums.slice(-30); // last 30
+    show.forEach((n, idx) => {
+        const isWrap = n % 12 === 0;
+        const isCurrent = idx === show.length - 1;
+        const div = document.createElement('div');
+        div.className = `stream-num ${isCurrent ? 'current' : isWrap ? 'teal-mark' : n>12 ? 'wrap-point' : 'normal'}`;
+        div.textContent = n;
+        row.appendChild(div);
+    });
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 2: NAMING
+// ══════════════════════════════════════════════
+function initNaming() {
+    document.getElementById('todayDay').textContent = todayName;
+    buildWrapExamples();
+    calcMod();
+}
+
+function buildWrapExamples() {
+    const examples = [
+        { n:13, mod:12, result:1, explain:'13 hours → 1 o\'clock. 13 ÷ 12 = 1 remainder 1.' },
+        { n:25, mod:12, result:1, explain:'25 hours → 1 o\'clock. 25 ÷ 12 = 2 remainder 1.' },
+        { n:100, mod:7, result:2, explain:'100 days → day 2 (Tuesday if starting Sunday). 100 ÷ 7 = 14 remainder 2.' },
+    ];
+    const container = document.getElementById('wrapExamples');
+    container.innerHTML = '';
+    examples.forEach((ex, i) => {
+        const div = document.createElement('div');
+        div.style.cssText = `margin-bottom:14px; animation:fadeUp 0.4s ease ${i*0.15}s both;`;
+        div.innerHTML = `
+            <div class="wrap-equation">
+                <div class="eq-part eq-num">${ex.n}</div>
+                <div class="eq-part eq-op">mod</div>
+                <div class="eq-part eq-mod">${ex.mod}</div>
+                <div class="eq-part eq-op">=</div>
+                <div class="eq-part eq-result">${ex.result}</div>
+            </div>
+            <div class="eq-label">${ex.explain}</div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function calcMod() {
+    const a = parseInt(document.getElementById('modA').value) || 0;
+    const b = parseInt(document.getElementById('modB').value) || 1;
+    if(b <= 0) return;
+    const result = a % b;
+    const quotient = Math.floor(a / b);
+    document.getElementById('modResult').textContent = result;
+    document.getElementById('modExplain').textContent =
+        `${a} ÷ ${b} = ${quotient} remainder ${result}. So ${a} mod ${b} = ${result}.`;
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 3: DAYS CHALLENGES
+// ══════════════════════════════════════════════
+let challengesSolved = 0;
+
+function initDays() {
+    buildDaySteps();
+    buildChallenges();
+    challengesSolved = 0;
+    document.getElementById('s3Next').disabled = true;
+    document.getElementById('dayInsight').style.display = 'none';
+}
+
+function buildDaySteps() {
+    const container = document.getElementById('daySteps');
+
+    // Example: today is Monday, +100 days
+    // Monday = index 1 (Sun=0)
+    const todayOffset = todayIdx; // 0=Sun ... 6=Sat
+    const futureOffset = (todayOffset + 100) % 7;
+    const futureDay = DAYS[futureOffset];
+    const rem = 100 % 7;
+
+    container.innerHTML = `
+        <div style="margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+                <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-family:'DM Sans',monospace;font-size:0.9em;color:var(--muted);">100 days</div>
+                <div style="color:var(--muted);">mod</div>
+                <div style="background:var(--teal-dim);border:1px solid rgba(20,184,166,0.3);border-radius:8px;padding:8px 14px;font-family:'DM Sans',monospace;font-size:0.9em;color:var(--teal);">7 (days in week)</div>
+                <div style="color:var(--muted);">=</div>
+                <div style="background:var(--amber-dim);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:8px 14px;font-family:'DM Sans',monospace;font-size:0.9em;color:var(--amber);">${rem}</div>
+            </div>
+            <div style="font-family:'Lora',serif;font-size:0.9em;color:var(--muted);font-style:italic;">
+                100 ÷ 7 = 14 weeks and ${rem} extra days.
+            </div>
+        </div>
+        <div style="background:var(--bg3);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
+            <div style="font-size:0.72em;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px;">Today is ${todayName}. ${rem} extra days from now...</div>
+            <div style="font-family:'Lora',serif;font-size:1.05em;color:var(--cream);">
+                ${todayName} → +${rem} days → <span style="color:var(--amber)">${futureDay}</span>
+            </div>
+        </div>
+        <div style="font-family:'Lora',serif;font-size:0.9em;color:var(--teal);font-style:italic;">
+            In 100 days it will be <strong style="color:var(--amber)">${futureDay}</strong>. We skipped 14 full weeks and counted only the leftover days.
+        </div>
+    `;
+}
+
+function buildChallenges() {
+    // Challenge 1: Wednesday + 20 days
+    // Wed = 3. (3 + 20) % 7 = 23 % 7 = 2 = Tuesday
+    buildChallenge('ch1btns', 'ch1-fb', 1,
+        ['Monday','Tuesday','Wednesday','Thursday','Friday'],
+        'Tuesday',
+        'Wednesday is day 3. 20 mod 7 = 6. (3 + 6 - 1) mod 7 + 1 ... or just: Wed + 20 days = Tuesday. 20 = 2 weeks + 6 days.',
+        'ch1'
+    );
+}
+
+function buildChallenge(btnId, fbId, num, options, correct, explain, cardId) {
+    const container = document.getElementById(btnId);
+    container.innerHTML = '';
+    options.sort(()=>Math.random()-0.5);
+    options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'ans-btn';
+        btn.textContent = opt;
+        btn.onclick = () => answerChallenge(btn, opt, correct, fbId, num);
+        container.appendChild(btn);
+    });
+}
+
+function answerChallenge(btn, chosen, correct, fbId, num) {
+    const isCorrect = chosen === correct;
+    const fb = document.getElementById(fbId);
+
+    // Disable all buttons in that challenge
+    const btns = btn.parentElement.querySelectorAll('.ans-btn');
+    btns.forEach(b => {
+        b.classList.add(b.textContent === correct ? 'correct' : 'wrong');
+        b.style.pointerEvents = 'none';
+    });
+
+    if(isCorrect) {
+        fb.innerHTML = `<span style="color:var(--teal)">✓ Correct!</span> ${correct} — the week wraps every 7 days.`;
+        challengesSolved++;
+        launchMiniConfetti();
+
+        // Progress to next challenge
+        setTimeout(() => {
+            if(num === 1) {
+                document.getElementById('challenge2').style.display = 'block';
+                // Challenge 2: Friday + 50 days
+                // Fri = 5. 50 mod 7 = 1. Fri + 1 = Sat
+                buildChallenge('ch2btns','ch2-fb', 2,
+                    ['Thursday','Friday','Saturday','Sunday','Monday'],
+                    'Saturday',
+                    'Friday + 50 days. 50 mod 7 = 1. One day after Friday is Saturday.',
+                    'ch2'
+                );
+            } else if(num === 2) {
+                document.getElementById('challenge3').style.display = 'block';
+                // Challenge 3: Sunday + 100 days
+                // Sun = 0. 100 mod 7 = 2. Sun + 2 = Tuesday
+                buildChallenge('ch3btns','ch3-fb', 3,
+                    ['Monday','Tuesday','Wednesday','Saturday','Sunday'],
+                    'Tuesday',
+                    'Sunday + 100 days. 100 mod 7 = 2. Two days after Sunday is Tuesday.',
+                    'ch3'
+                );
+            } else if(num === 3) {
+                document.getElementById('dayInsight').style.display = 'block';
+                document.getElementById('s3Next').disabled = false;
+            }
+        }, 1200);
+    } else {
+        fb.innerHTML = `<span style="color:var(--rose)">Not quite.</span> Hint: how many days past a full number of weeks?`;
+    }
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 1B: MODULAR ADDITION CLOCK
+// ══════════════════════════════════════════════
+let modClkPos=0, modClkAnimating=false, modClkRuns=0;
+
+function initModClock(){
+    modClkPos=0; modClkAnimating=false;
+    document.getElementById('modClkResult').textContent='';
+    document.getElementById('modClkFeedback').textContent='Enter values for a and b (0-11), then press Go.';
+    document.getElementById('modClkInsight').style.display='none';
+    document.getElementById('s1bNext').disabled=true;
+    drawModClock(0,null,null);
+}
+
+function drawModClock(pointerPos, startPos, highlightEnd){
+    const cv=document.getElementById('modClockCanvas');
+    const ctx=cv.getContext('2d');
+    const W=cv.width,H=cv.height,cx=W/2,cy=H/2,R=W/2-14;
+    ctx.clearRect(0,0,W,H);
+    // Background
+    const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
+    grad.addColorStop(0,'#1c160e'); grad.addColorStop(1,'#0d0a06');
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.fillStyle=grad; ctx.fill();
+    ctx.strokeStyle='rgba(20,184,166,0.3)'; ctx.lineWidth=2; ctx.stroke();
+    // Numbers 0-11
+    for(let i=0;i<12;i++){
+        const angle=(i/12)*Math.PI*2 - Math.PI/2;
+        const nr=R-26;
+        const isStart=startPos!==null&&i===startPos;
+        const isEnd=highlightEnd!==null&&i===highlightEnd;
+        ctx.fillStyle=isEnd?'#f59e0b':isStart?'#14b8a6':'rgba(254,243,199,0.5)';
+        ctx.font=`${isStart||isEnd?'bold 16px':'13px'} DM Sans`;
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(i, cx+nr*Math.cos(angle), cy+nr*Math.sin(angle));
+        // Tick marks
+        const r1=R-10,r2=R-3;
+        ctx.beginPath();
+        ctx.moveTo(cx+r1*Math.cos(angle),cy+r1*Math.sin(angle));
+        ctx.lineTo(cx+r2*Math.cos(angle),cy+r2*Math.sin(angle));
+        ctx.strokeStyle=i%3===0?'rgba(245,158,11,0.4)':'rgba(245,158,11,0.15)';
+        ctx.lineWidth=i%3===0?2:1; ctx.stroke();
+    }
+    // Pointer
+    const pAngle=(pointerPos/12)*Math.PI*2 - Math.PI/2;
+    ctx.save(); ctx.translate(cx,cy);
+    ctx.shadowBlur=10; ctx.shadowColor='#f59e0b';
+    ctx.beginPath(); ctx.moveTo(0,0);
+    ctx.lineTo((R*0.55)*Math.cos(pAngle),(R*0.55)*Math.sin(pAngle));
+    ctx.strokeStyle='#f59e0b'; ctx.lineWidth=3; ctx.lineCap='round'; ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.beginPath(); ctx.arc(0,0,5,0,Math.PI*2);
+    ctx.fillStyle='#f59e0b'; ctx.fill();
+    ctx.restore();
+}
+
+function runModClock(){
+    if(modClkAnimating) return;
+    let a=parseInt(document.getElementById('modClkA').value)||0;
+    let b=parseInt(document.getElementById('modClkB').value)||0;
+    a=((a%12)+12)%12; b=((b%12)+12)%12;
+    const result=(a+b)%12;
+    modClkAnimating=true;
+    modClkPos=a;
+    drawModClock(a,a,null);
+    document.getElementById('modClkResult').textContent='';
+    document.getElementById('modClkFeedback').innerHTML='Starting at <span class="teal">'+a+'</span>, stepping '+b+' positions clockwise...';
+    let step=0;
+    function tick(){
+        if(step>=b){
+            modClkAnimating=false;
+            drawModClock(result,a,result);
+            document.getElementById('modClkResult').textContent=a+' + '+b+' mod 12 = '+result;
+            document.getElementById('modClkFeedback').innerHTML='<span class="teal">'+a+'</span> + <span class="amber">'+b+'</span> = '+(a+b)+(a+b>=12?' which wraps to <span class="amber">'+result+'</span>':' = <span class="amber">'+result+'</span>');
+            modClkRuns++;
+            if(modClkRuns>=2){
+                document.getElementById('modClkInsight').style.display='block';
+                document.getElementById('s1bNext').disabled=false;
+            }
+            launchMiniConfetti();
+            return;
+        }
+        step++;
+        modClkPos=(a+step)%12;
+        drawModClock(modClkPos,a,null);
+        setTimeout(tick, Math.max(120, 300-b*15));
+    }
+    setTimeout(tick, 350);
+}
+
+function resetModClock(){
+    modClkAnimating=false; modClkPos=0;
+    document.getElementById('modClkResult').textContent='';
+    document.getElementById('modClkFeedback').textContent='Enter values for a and b (0-11), then press Go.';
+    drawModClock(0,null,null);
+}
+
+// ══════════════════════════════════════════════
+//  CELEBRATE
+// ══════════════════════════════════════════════
+function celebrateAndContinue() {
+    launchConfetti();
+    setTimeout(() => { window.location.href = 'clock_journey_act2.html'; }, 900);
+}
+
+// ══════════════════════════════════════════════
+//  CONFETTI
+// ══════════════════════════════════════════════
+const cc = document.getElementById('confetti'), cx2 = cc.getContext('2d');
+let parts = [], afr = null;
+function launchConfetti() {
+    cc.width = innerWidth; cc.height = innerHeight; parts = [];
+    for(let i=0;i<80;i++) parts.push({
+        x:Math.random()*cc.width, y:-20, vx:(Math.random()-.5)*5, vy:2+Math.random()*4,
+        c:['#f59e0b','#14b8a6','#fef3c7','#fb7185','#34d399'][Math.floor(Math.random()*5)],
+        s:5+Math.random()*7, r:Math.random()*Math.PI*2, vr:(Math.random()-.5)*.2, l:1
+    });
+    if(afr) cancelAnimationFrame(afr); animC();
+    setTimeout(()=>{parts=[];},3000);
+}
+function launchMiniConfetti() {
+    cc.width = innerWidth; cc.height = innerHeight;
+    for(let i=0;i<20;i++) parts.push({
+        x:innerWidth/2+(Math.random()-.5)*200, y:innerHeight*.5,
+        vx:(Math.random()-.5)*7, vy:-(3+Math.random()*5),
+        c:['#f59e0b','#14b8a6'][Math.floor(Math.random()*2)],
+        s:4+Math.random()*5, r:0, vr:(Math.random()-.5)*.3, l:1
+    });
+    if(!afr) animC();
+}
+function animC() {
+    cx2.clearRect(0,0,cc.width,cc.height);
+    parts = parts.filter(p=>p.l>.01);
+    parts.forEach(p=>{
+        p.x+=p.vx; p.y+=p.vy; p.vy+=.1; p.r+=p.vr; p.l-=.013;
+        cx2.save(); cx2.globalAlpha=p.l; cx2.translate(p.x,p.y); cx2.rotate(p.r);
+        cx2.fillStyle=p.c; cx2.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6); cx2.restore();
+    });
+    if(parts.length>0) afr=requestAnimationFrame(animC); else afr=null;
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('todayDay').textContent = todayName;
+});
+</script>
+</body>
+</html>

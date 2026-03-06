@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#07071a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>The Prime Journey — Act III</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap');
+
+        :root {
+            --bg:        #07071a;
+            --bg2:       #0d0d24;
+            --bg3:       #12122e;
+            --gold:      #fbbf24;
+            --gold-dim:  rgba(251,191,36,0.12);
+            --green:     #10b981;
+            --green-dim: rgba(16,185,129,0.12);
+            --cyan:      #22d3ee;
+            --cyan-dim:  rgba(34,211,238,0.1);
+            --violet:    #a78bfa;
+            --violet-dim:rgba(167,139,250,0.12);
+            --pink:      #f472b6;
+            --text:      #e2e2f0;
+            --muted:     #6868a0;
+            --border:    rgba(255,255,255,0.07);
+            --radius:    18px;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        html, body { height:100%; background:var(--bg); color:var(--text);
+            font-family:'Nunito',sans-serif; overflow-x:hidden; }
+
+        /* Nebula background */
+        #nebula { position:fixed; inset:0; z-index:0; pointer-events:none;
+            background:
+                radial-gradient(ellipse at 10% 20%, rgba(167,139,250,0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 90% 80%, rgba(251,191,36,0.04) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(34,211,238,0.02) 0%, transparent 60%),
+                var(--bg); }
+
+        #app { position:relative; z-index:1; min-height:100vh; display:flex; flex-direction:column; }
+
+        /* Header */
+        .app-header {
+            display:flex; align-items:center; justify-content:space-between;
+            padding:14px 20px 11px;
+            border-bottom:1px solid var(--border);
+            background:rgba(7,7,26,0.9);
+            backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+            position:sticky; top:0; z-index:10;
+        }
+        .header-logo { font-family:'Crimson Pro',serif; font-size:1.1em; font-style:italic; color:var(--muted); }
+        .header-logo span { color:var(--violet); font-style:normal; }
+        .progress-wrap { display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+        .act-indicator { font-size:0.64em; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+        .progress-dots { display:flex; gap:6px; }
+        .dot { width:8px; height:8px; border-radius:50%; background:var(--border); transition:all 0.4s; }
+        .dot.done { background:var(--green); }
+        .dot.active { background:var(--violet); box-shadow:0 0 8px var(--violet); }
+
+        /* Screens */
+        .screen { display:none; flex-direction:column; flex:1; padding:24px 20px 100px; animation:fadeUp 0.5s ease both; }
+        .screen.active { display:flex; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(22px)} to{opacity:1;transform:translateY(0)} }
+
+        /* Narrator */
+        .narrator {
+            background:var(--bg2); border:1px solid var(--border);
+            border-left:3px solid var(--violet); border-radius:var(--radius);
+            padding:18px 20px; margin-bottom:20px; position:relative;
+        }
+        .narrator::before { content:'✦'; position:absolute; top:-10px; left:18px;
+            background:var(--bg2); padding:0 6px; color:var(--violet); font-size:0.8em; }
+        .narrator p { font-family:'Crimson Pro',serif; font-size:1.12em; line-height:1.78; color:#c4c4e4; }
+        .narrator p em { color:var(--gold); font-style:italic; }
+        .narrator p strong { color:#fff; font-weight:400; }
+        .narrator.gold-accent { border-left-color:var(--gold); }
+        .narrator.gold-accent::before { color:var(--gold); }
+        .narrator.green-accent { border-left-color:var(--green); }
+        .narrator.green-accent::before { color:var(--green); }
+        .narrator.cyan-accent { border-left-color:var(--cyan); }
+        .narrator.cyan-accent::before { color:var(--cyan); }
+
+        /* Act title */
+        .act-title { text-align:center; margin-bottom:22px; }
+        .act-label { font-size:0.7em; text-transform:uppercase; letter-spacing:3px; color:var(--muted); margin-bottom:6px; }
+        .act-name { font-family:'Crimson Pro',serif; font-size:clamp(1.6em,6vw,2.2em); font-weight:300; color:#fff; }
+        .act-name em { color:var(--violet); font-style:italic; }
+
+        /* Canvas panels */
+        .canvas-panel {
+            background:var(--bg2); border:1px solid var(--border);
+            border-radius:var(--radius); padding:16px; margin-bottom:16px;
+            overflow:hidden; position:relative;
+        }
+        .canvas-panel canvas { display:block; width:100%; border-radius:10px; }
+        .canvas-label {
+            font-size:0.68em; text-transform:uppercase; letter-spacing:2px;
+            color:var(--muted); margin-bottom:10px;
+        }
+
+        /* Number line */
+        #numberLineCanvas { height: 100px; }
+
+        /* Ulam spiral */
+        #ulamCanvas { aspect-ratio:1; max-height:340px; cursor:crosshair; }
+
+        /* Prediction row */
+        .prediction-row {
+            display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;
+        }
+        .predict-btn {
+            flex:1; min-width:120px;
+            background:var(--bg3); border:1.5px solid var(--border);
+            border-radius:12px; padding:12px 10px; text-align:center;
+            cursor:pointer; transition:all 0.25s; touch-action:manipulation;
+            font-family:'Crimson Pro',serif; font-size:0.95em; color:var(--muted);
+            line-height:1.4;
+        }
+        .predict-btn:hover,.predict-btn:active { border-color:var(--violet); color:var(--violet); background:var(--violet-dim); }
+        .predict-btn.selected { background:var(--violet-dim); border-color:var(--violet); color:var(--violet); }
+        .predict-btn.correct { background:var(--green-dim); border-color:var(--green); color:var(--green); }
+        .predict-btn.partial { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
+
+        /* Density chart */
+        #densityCanvas { height:200px; }
+
+        /* Stats */
+        .stats-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+        .stat-box {
+            flex:1; min-width:100px;
+            background:var(--bg3); border:1px solid var(--border); border-radius:12px;
+            padding:12px; text-align:center;
+        }
+        .stat-box .val { font-size:1.4em; font-weight:800; color:var(--violet); display:block; }
+        .stat-box .lbl { font-size:0.7em; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:2px; }
+
+        /* Controls */
+        .ctrl-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
+        .ctrl-btn {
+            background:var(--bg3); border:1.5px solid var(--border);
+            border-radius:30px; padding:9px 18px;
+            color:var(--muted); font-family:'Nunito',sans-serif; font-size:0.86em; font-weight:700;
+            cursor:pointer; transition:all 0.2s; touch-action:manipulation;
+        }
+        .ctrl-btn:hover,.ctrl-btn:active { border-color:var(--violet); color:var(--violet); background:var(--violet-dim); }
+        .ctrl-btn.active-btn { background:var(--violet-dim); border-color:var(--violet); color:var(--violet); }
+        .speed-row { display:flex; align-items:center; gap:8px; margin-left:auto; }
+        .speed-row label { font-size:0.72em; color:var(--muted); }
+        input[type=range] { accent-color:var(--violet); width:72px; }
+
+        /* Insight card */
+        .insight-card {
+            background:var(--bg2); border:1px solid rgba(167,139,250,0.2);
+            border-left:3px solid var(--violet); border-radius:var(--radius);
+            padding:16px 18px; margin-bottom:16px;
+        }
+        .insight-card .lbl { font-size:0.68em; text-transform:uppercase; letter-spacing:2px; color:var(--violet); margin-bottom:6px; }
+        .insight-card p { font-family:'Crimson Pro',serif; font-size:1.02em; line-height:1.7; color:#b8b8d8; }
+        .insight-card p em { color:var(--cyan); font-style:normal; font-weight:600; }
+        .insight-card p strong { color:#fff; font-weight:400; }
+        .insight-card.green-card { border-left-color:var(--green); border-color:rgba(16,185,129,0.15); }
+        .insight-card.green-card .lbl { color:var(--green); }
+        .insight-card.gold-card { border-left-color:var(--gold); border-color:rgba(251,191,36,0.15); }
+        .insight-card.gold-card .lbl { color:var(--gold); }
+
+        /* Formula display */
+        .formula-box {
+            background:var(--bg3); border:1px solid var(--border);
+            border-radius:12px; padding:16px 20px; margin-bottom:16px;
+            font-family:'Courier New',monospace; text-align:center;
+        }
+        .formula-main { font-size:clamp(1.1em,4vw,1.5em); color:var(--gold); letter-spacing:1px; margin-bottom:6px; }
+        .formula-sub { font-size:0.78em; color:var(--muted); font-family:'Nunito',sans-serif; }
+
+        /* PNT comparison table */
+        .pnt-table {
+            background:var(--bg3); border:1px solid var(--border); border-radius:12px;
+            overflow:hidden; margin-bottom:16px; width:100%;
+        }
+        .pnt-table th {
+            background:rgba(167,139,250,0.08); padding:8px 12px; font-size:0.75em;
+            text-transform:uppercase; letter-spacing:1px; color:var(--violet);
+            text-align:center; font-weight:700;
+        }
+        .pnt-table td {
+            padding:10px 12px; font-size:0.88em; text-align:center;
+            border-top:1px solid var(--border); color:#a0a0c0; font-family:'Courier New',monospace;
+        }
+        .pnt-table td.actual { color:var(--gold); font-weight:700; }
+        .pnt-table td.estimate { color:var(--cyan); }
+        .pnt-table td.error { color:var(--muted); font-size:0.82em; }
+
+        /* Mystery box */
+        .mystery-box {
+            background:linear-gradient(135deg, rgba(167,139,250,0.06), rgba(251,191,36,0.04));
+            border:1px solid rgba(167,139,250,0.2); border-radius:var(--radius);
+            padding:24px 20px; margin-bottom:20px; text-align:center; position:relative; overflow:hidden;
+        }
+        .mystery-box::before {
+            content:'?'; position:absolute; font-size:8em; font-weight:800; color:rgba(167,139,250,0.04);
+            top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none;
+            font-family:'Crimson Pro',serif;
+        }
+        .mystery-title { font-family:'Crimson Pro',serif; font-size:1.4em; color:var(--violet); margin-bottom:8px; }
+        .mystery-text { font-family:'Crimson Pro',serif; font-size:1em; line-height:1.7; color:#a0a0c0; }
+        .mystery-prize { color:var(--gold); font-weight:700; font-size:0.9em; margin-top:10px; }
+
+        /* CTA */
+        .cta-btn {
+            width:100%; max-width:400px; margin:0 auto; display:block;
+            background:linear-gradient(135deg, var(--violet), #7c3aed);
+            border:none; border-radius:50px; padding:16px 32px;
+            font-family:'Nunito',sans-serif; font-size:1.05em; font-weight:800;
+            color:#fff; cursor:pointer; transition:all 0.25s;
+            touch-action:manipulation; box-shadow:0 4px 24px rgba(167,139,250,0.2);
+        }
+        .cta-btn:hover,.cta-btn:active { transform:translateY(-2px); box-shadow:0 8px 32px rgba(167,139,250,0.35); }
+        .cta-btn:disabled { opacity:0.35; transform:none; cursor:default; }
+        .cta-btn.gold-btn { background:linear-gradient(135deg,var(--gold),#f59e0b); color:#07071a; }
+        .cta-btn.green-btn { background:linear-gradient(135deg,var(--green),#059669); }
+
+        /* Tooltip on canvas */
+        #ulamTooltip {
+            position:absolute; background:rgba(13,13,36,0.95); border:1px solid rgba(167,139,250,0.3);
+            border-radius:8px; padding:6px 10px; font-size:0.78em; color:var(--text);
+            pointer-events:none; display:none; z-index:5; white-space:nowrap;
+            font-family:'Courier New',monospace;
+        }
+
+        /* Gauss card */
+        .gauss-card {
+            background:var(--bg2); border:1px solid rgba(251,191,36,0.12);
+            border-radius:var(--radius); padding:18px; margin-bottom:16px;
+            display:flex; gap:14px; align-items:flex-start;
+        }
+        .gauss-avatar {
+            width:56px; height:56px; border-radius:50%; flex-shrink:0;
+            background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(167,139,250,0.1));
+            border:2px solid rgba(251,191,36,0.25);
+            display:flex; align-items:center; justify-content:center; font-size:1.6em;
+        }
+        .gauss-name { font-weight:800; color:var(--gold); font-size:0.9em; margin-bottom:2px; }
+        .gauss-title { font-size:0.72em; color:var(--muted); font-style:italic; margin-bottom:6px; }
+        .gauss-quote { font-family:'Crimson Pro',serif; font-size:0.93em; line-height:1.65; color:#a8a8c8; border-left:2px solid rgba(251,191,36,0.2); padding-left:10px; }
+
+        /* Range label */
+        .range-row { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+        .range-label { font-size:0.8em; color:var(--muted); min-width:80px; }
+        .range-val { font-size:0.85em; color:var(--violet); font-weight:700; min-width:40px; }
+
+        /* Legend */
+        .legend { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:12px; }
+        .legend-item { display:flex; align-items:center; gap:6px; font-size:0.75em; color:var(--muted); }
+        .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+        #confetti { position:fixed; inset:0; pointer-events:none; z-index:50; }
+        .bottom-pad { height:24px; }
+
+        /* Slide-in for ulam reveal */
+        @keyframes revealGlow {
+            from { opacity:0; transform:scale(0.95); }
+            to   { opacity:1; transform:scale(1); }
+        }
+        .reveal-anim { animation: revealGlow 0.6s ease both; }
+
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--gold,var(--amber,#f59e0b));}
+        .learn-box.notice .learn-title{color:var(--cyan,#22d3ee);}
+        .learn-box.why .learn-title{color:var(--rose,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--gold,var(--amber));color:var(--gold,var(--amber));}
+
+    </style>
+</head>
+<body>
+
+<canvas id="confetti"></canvas>
+<div id="nebula"></div>
+
+<div id="app">
+    <header class="app-header">
+        <div class="header-logo">mathsedu<span>.org</span></div>
+        <div class="progress-wrap">
+            <div class="act-indicator">Act III of V</div>
+            <div class="progress-dots">
+                <div class="dot done"></div>
+                <div class="dot done"></div>
+                <div class="dot active"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ══ SCREEN 0: OPENING ══ -->
+    <section class="screen active" id="screen-0">
+        <div class="act-title">
+            <div class="act-label">Act III · The Prime Journey</div>
+            <div class="act-name">The Pattern That <em>Isn't</em></div>
+        </div>
+
+        <div class="narrator">
+            <p>You've found the primes. You've sieved them. You've proved they go on forever.</p>
+            <p style="margin-top:10px">Now the question that has haunted mathematicians for centuries:</p>
+            <p style="margin-top:10px; font-size:1.1em;"><em>"Is there any pattern to where primes land?"</em></p>
+        </div>
+
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px;text-align:center;">
+            <div style="font-family:'Crimson Pro',serif;font-size:1em;line-height:1.8;color:#9090b8;">
+                2 · 3 · 5 · 7 · 11 · 13 · 17 · 19 · 23 · 29 · 31 · 37 · 41 · 43 · 47 · 53 · 59 · 61 · 67 · 71 · 73 · 79 · 83 · 89 · 97 ...
+            </div>
+            <div style="margin-top:14px;font-family:'Crimson Pro',serif;font-style:italic;color:var(--muted);font-size:0.9em;">
+                They appear irregularly — but follow deep statistical patterns. Are those patterns discoverable?
+            </div>
+        </div>
+
+        <div class="insight-card">
+            <div class="lbl">In this act you will</div>
+            <p>Plot primes on a number line and make predictions. Then see a <strong>spiral that reveals hidden structure</strong> — one of the most astonishing images in mathematics. Then meet a 15-year-old who found an approximate formula that still has no perfect explanation.</p>
+        </div>
+
+        <button class="cta-btn" onclick="goToScreen(1)">Search for the pattern →</button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 1: NUMBER LINE ══ -->
+    <section class="screen" id="screen-1">
+        <div class="act-title">
+            <div class="act-label">Open discovery</div>
+            <div class="act-name">Look at the <em>gaps</em></div>
+        </div>
+
+        <div class="narrator gold-accent">
+            <p>Here are the first 200 numbers. <em>Gold dots are prime.</em> Grey are composite.</p>
+            <p style="margin-top:8px;font-size:0.92em;color:var(--muted);">Look carefully. What do you notice about the gaps between primes?</p>
+        </div>
+
+        <div class="canvas-panel">
+            <div class="canvas-label">Primes up to 200 — plotted on a line</div>
+            <canvas id="numberLineCanvas" height="90"></canvas>
+        </div>
+
+        <div class="range-row">
+            <span class="range-label">Show up to</span>
+            <input type="range" id="nlRange" min="50" max="500" value="200" step="50"
+                oninput="updateNumberLine(this.value)">
+            <span class="range-val" id="nlVal">200</span>
+        </div>
+
+        <div class="stats-row" id="nlStats"></div>
+
+        <div class="narrator" style="margin-bottom:16px;">
+            <p>What's your prediction? As numbers get bigger, primes become...</p>
+        </div>
+
+        <div class="prediction-row">
+            <div class="predict-btn" id="pred0" onclick="choosePrediction(0)">More frequent — they speed up</div>
+            <div class="predict-btn" id="pred1" onclick="choosePrediction(1)">About the same density throughout</div>
+            <div class="predict-btn" id="pred2" onclick="choosePrediction(2)">Less frequent — they thin out</div>
+        </div>
+
+        <div class="insight-card" id="predFeedback" style="display:none;"></div>
+
+        <button class="cta-btn" onclick="goToScreen(2)" id="s1NextBtn" disabled>
+            Now look at them in a spiral →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 2: ULAM SPIRAL ══ -->
+    <section class="screen" id="screen-2">
+        <div class="act-title">
+            <div class="act-label">The shock</div>
+            <div class="act-name">The <em>Ulam</em> Spiral</div>
+        </div>
+
+        <div class="narrator cyan-accent">
+            <p>In 1963, mathematician Stanisław Ulam was bored in a meeting.</p>
+            <p style="margin-top:8px">He wrote the numbers 1, 2, 3... in a spiral, then <em>circled all the primes.</em></p>
+            <p style="margin-top:8px">What he saw stopped him cold.</p>
+        </div>
+
+        <div class="canvas-panel" style="position:relative;">
+            <div class="canvas-label">Numbers arranged in a spiral — <span style="color:var(--gold)">gold = prime</span></div>
+            <canvas id="ulamCanvas"></canvas>
+            <div id="ulamTooltip"></div>
+        </div>
+
+        <div class="ctrl-row">
+            <button class="ctrl-btn" onclick="toggleUlamBuild()" id="ulamBuildBtn">▶ Build spiral</button>
+            <button class="ctrl-btn" onclick="resetUlam()">Reset</button>
+            <button class="ctrl-btn active-btn" id="diagonalBtn" onclick="toggleDiagonals()">Show diagonals</button>
+            <div class="speed-row">
+                <label>Slow</label>
+                <input type="range" id="ulamSpeed" min="1" max="10" value="6">
+                <label>Fast</label>
+            </div>
+        </div>
+
+        <div class="insight-card" id="ulamInsight" style="display:none;">
+            <div class="lbl">💡 Do you see it?</div>
+            <p>The primes are not scattered without structure. They cluster along <em>diagonal lines.</em> Nobody fully understands why. This is an open problem — mathematicians have studied it for 60 years and there is still no complete explanation.</p>
+        </div>
+
+        <div id="ulamQuestion" style="display:none;">
+            <div class="narrator" style="margin-bottom:12px;">
+                <p><em>Look carefully at the golden dots.</em> Before you reveal the pattern — what do you actually see?</p>
+                <p style="margin-top:8px; font-size:0.92em; color:var(--muted)">Don't look for what you expect. Look at what's actually there.</p>
+            </div>
+            <div class="prediction-row">
+                <div class="predict-btn" onclick="answerUlam(0)">Completely without structure — no pattern</div>
+                <div class="predict-btn" onclick="answerUlam(1)">Diagonal stripes or lines</div>
+                <div class="predict-btn" onclick="answerUlam(2)">Circles or rings</div>
+            </div>
+        </div>
+
+        <div class="learn-box try-this">
+            <div class="learn-title">Try This</div>
+            <p>Build the Ulam spiral slowly and watch the gold dots appear. Then toggle the diagonal overlay on and off. Try resetting and building again — each time, pay attention to a different region of the spiral. Do the diagonals hold everywhere, or do they fade at the edges?</p>
+        </div>
+        <div class="learn-box notice">
+            <div class="learn-title">What To Notice</div>
+            <p>Primes cluster visibly along certain diagonal lines in the spiral. These diagonals correspond to quadratic polynomials — simple formulas like n<sup>2</sup> + n + 41 that produce an unusually high density of primes. The pattern is not perfect, but it is far stronger than chance would predict.</p>
+        </div>
+        <div class="learn-box why">
+            <div class="learn-title">Why It Matters</div>
+            <p>Stanislaw Ulam discovered this pattern by accident in 1963 while doodling during a lecture. The fact that primes form visible structure in a spiral arrangement is still not fully explained. It connects to deep questions about which polynomial expressions generate primes — a frontier that links number theory to algebra and geometry.</p>
+        </div>
+
+        <button class="reset-btn" onclick="resetUlam()">Reset spiral</button>
+
+        <button class="cta-btn" onclick="goToScreen(3)" id="s2NextBtn" disabled>
+            Why do they thin out? →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 3: DENSITY / PNT ══ -->
+    <section class="screen" id="screen-3">
+        <div class="act-title">
+            <div class="act-label">The formula</div>
+            <div class="act-name">Gauss at <em>fifteen</em></div>
+        </div>
+
+        <div class="gauss-card">
+            <div class="gauss-avatar">🧮</div>
+            <div>
+                <div class="gauss-name">Carl Friedrich Gauss</div>
+                <div class="gauss-title">Mathematician · 1777–1855</div>
+                <div class="gauss-quote">
+                    "At fifteen, he studied prime-counting tables late into the night. He noticed something — a rough formula that predicted prime density with uncanny accuracy. It would take another century to prove he was right."
+                </div>
+            </div>
+        </div>
+
+        <div class="narrator gold-accent">
+            <p>Gauss asked: among the numbers 1 to N, <em>approximately how many are prime?</em></p>
+            <p style="margin-top:8px">He noticed the answer seemed to follow a pattern connected to something called the <em>natural logarithm.</em></p>
+        </div>
+
+        <div class="formula-box">
+            <div class="formula-main">π(N) ≈ N / ln(N)</div>
+            <div class="formula-sub">π(N) = count of primes up to N &nbsp;·&nbsp; ln = natural logarithm</div>
+        </div>
+
+        <div class="narrator" style="margin-bottom:14px;">
+            <p>The remarkable thing isn't just that this works — it's <em>how well</em> it works. Watch:</p>
+        </div>
+
+        <table class="pnt-table">
+            <thead>
+                <tr>
+                    <th>N</th>
+                    <th>Actual primes</th>
+                    <th>Gauss estimate</th>
+                    <th>Error</th>
+                </tr>
+            </thead>
+            <tbody id="pntTable"></tbody>
+        </table>
+
+        <div class="canvas-panel">
+            <div class="canvas-label">Prime count vs Gauss estimate</div>
+            <canvas id="densityCanvas" height="200"></canvas>
+        </div>
+
+        <div class="insight-card gold-card">
+            <div class="lbl">💡 What is ln(N)?</div>
+            <p>ln(N) is the natural logarithm — it measures <em>how many times you multiply by e ≈ 2.718 to reach N.</em> Think of it like this: if numbers were rungs on an ever-stretching ladder, ln(N) counts how high the ladder has grown. When N = 100, ln(N) ≈ 4.6. When N = 1,000,000, ln(N) ≈ 13.8. It grows — but agonisingly slowly. That slow growth is why primes thin out: as numbers get larger, each one is less likely to be prime, because there are more potential divisors below it. But the thinning is gentle — primes never vanish entirely.</p>
+        </div>
+
+        <button class="cta-btn" onclick="goToScreen(4)">
+            But there's still a mystery →
+        </button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 4: RIEMANN ══ -->
+    <section class="screen" id="screen-4">
+        <div class="act-title">
+            <div class="act-label">The unsolved</div>
+            <div class="act-name">The deepest <em>mystery</em></div>
+        </div>
+
+        <div class="narrator">
+            <p>Gauss's formula is an approximation. It tells you <em>roughly</em> how many primes lie up to N.</p>
+            <p style="margin-top:10px">But mathematicians wanted to know the <em>exact</em> distribution — the precise music behind the primes.</p>
+            <p style="margin-top:10px">In 1859, Bernhard Riemann found a formula that seemed to capture that music perfectly.</p>
+            <p style="margin-top:10px">The formula required a hypothesis. A guess.</p>
+            <p style="margin-top:10px"><em>The guess has never been proved.</em></p>
+        </div>
+
+        <div class="mystery-box">
+            <div class="mystery-title">The Riemann Hypothesis</div>
+            <div class="mystery-text">
+                All non-trivial zeros of the Riemann zeta function have real part equal to ½.
+            </div>
+            <div class="mystery-prize">
+                One of seven Millennium Prize Problems. Prize: $1,000,000.<br>
+                Status: Unproved since 1859.
+            </div>
+        </div>
+
+        <div class="insight-card">
+            <div class="lbl">What this means simply</div>
+            <p>Riemann found a connection between prime numbers and a completely different area of mathematics — complex analysis. His hypothesis says that primes are <em>distributed as regularly as possible</em> given their constraints. If it's true, we understand primes deeply. If it's false — our entire picture of prime distribution is wrong.</p>
+        </div>
+
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px;">
+            <div class="canvas-label" style="margin-bottom:12px;">Zeroes computed so far (first 10)</div>
+            <div id="riemannZeroes" style="font-family:'Courier New',monospace;font-size:0.82em;color:var(--cyan);line-height:1.9;"></div>
+            <div style="font-size:0.75em;color:var(--muted);margin-top:10px;font-style:italic;font-family:'Crimson Pro',serif;">
+                Every one tested so far sits exactly on the critical line. Over 10 trillion zeros checked. Not one exception found.<br>
+                And still — no proof.
+            </div>
+        </div>
+
+        <div class="insight-card green-card">
+            <div class="lbl">💡 An invitation</div>
+            <p>You have now followed the prime story from a child's rectangle puzzle all the way to one of the greatest unsolved problems in mathematics. The journey from <em>"what is a prime?"</em> to <em>"why do primes fall where they do?"</em> is 2,500 years of human thought. And the question is still open. <strong>Maybe you'll be the one who closes it.</strong></p>
+        </div>
+
+        <button class="cta-btn green-btn" onclick="goToScreen(5)">✦ Act III Complete →</button>
+        <div class="bottom-pad"></div>
+    </section>
+
+    <!-- ══ SCREEN 5: COMPLETION ══ -->
+    <section class="screen" id="screen-5">
+        <div class="act-title">
+            <div class="act-label">Act III complete</div>
+            <div class="act-name">Structure in <em>chaos</em></div>
+        </div>
+
+        <div style="background:var(--bg2);border:1px solid rgba(167,139,250,0.15);border-radius:var(--radius);padding:24px;margin-bottom:20px;text-align:center;">
+            <div style="font-size:2.8em;margin-bottom:10px;">🌌</div>
+            <div style="font-family:'Crimson Pro',serif;font-size:1.15em;color:var(--violet);margin-bottom:6px;">
+                The primes thin out — but never vanish.
+            </div>
+            <div style="font-family:'Crimson Pro',serif;font-size:1.15em;color:var(--gold);margin-bottom:6px;">
+                They form diagonal lines in spirals nobody predicted.
+            </div>
+            <div style="font-family:'Crimson Pro',serif;font-size:1.15em;color:var(--cyan);">
+                A 15-year-old found their approximate rhythm.
+            </div>
+        </div>
+
+        <div class="insight-card">
+            <div class="lbl">💡 What you learned in Act III</div>
+            <p>Prime density follows <em>N / ln(N)</em> — the Prime Number Theorem. The Ulam spiral reveals unexpected diagonal structure. And the Riemann Hypothesis, connecting primes to complex analysis, remains the greatest open problem in mathematics.</p>
+        </div>
+
+        <div class="insight-card" style="border-left-color:var(--gold);">
+            <div class="lbl" style="color:var(--gold);">Coming in Act IV</div>
+            <p>Prime numbers keep your secrets. Every time you shop online, a mathematical trick using primes protects your data. You're going to <strong>build the lock yourself.</strong></p>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+            <button class="cta-btn" onclick="celebrateAct()">✦ On to Act IV →</button>
+            <button class="cta-btn"
+                style="background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;"
+                onclick="window.location.href='prime_journey_act2.html'">← Revisit Act II</button>
+        </div>
+        <div class="bottom-pad"></div>
+    </section>
+
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════════
+//  PRIME UTILITIES
+// ══════════════════════════════════════════════
+function sieve(n) {
+    const arr = new Uint8Array(n+1).fill(1);
+    arr[0]=arr[1]=0;
+    for(let i=2;i*i<=n;i++) if(arr[i]) for(let j=i*i;j<=n;j+=i) arr[j]=0;
+    return arr;
+}
+const MAX_N = 10000;
+const isPrime = sieve(MAX_N);
+
+function countPrimes(n) {
+    let c=0; for(let i=2;i<=n;i++) if(isPrime[i]) c++; return c;
+}
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+let currentScreen = 0;
+function goToScreen(n) {
+    document.getElementById(`screen-${currentScreen}`).classList.remove('active');
+    currentScreen = n;
+    document.getElementById(`screen-${n}`).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+    if(n===1) initNumberLine();
+    if(n===2) initUlam();
+    if(n===3) initDensity();
+    if(n===4) initRiemann();
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 1: NUMBER LINE
+// ══════════════════════════════════════════════
+function initNumberLine() { updateNumberLine(200); }
+
+function updateNumberLine(n) {
+    n = parseInt(n);
+    document.getElementById('nlVal').textContent = n;
+    const canvas = document.getElementById('numberLineCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.offsetWidth || 340;
+    canvas.width = W; canvas.height = 90;
+
+    ctx.fillStyle = '#0d0d24';
+    ctx.fillRect(0,0,W,90);
+
+    const pad = 14;
+    const dotY = 45;
+    const dotR = Math.max(2, Math.min(5, (W-pad*2)/n*0.4));
+
+    // Axis line
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad,dotY); ctx.lineTo(W-pad,dotY); ctx.stroke();
+
+    // Dots
+    for(let i=2;i<=n;i++) {
+        const x = pad + (i/n)*(W-pad*2);
+        if(isPrime[i]) {
+            ctx.beginPath(); ctx.arc(x, dotY-8, dotR+1, 0, Math.PI*2);
+            ctx.fillStyle = '#fbbf24';
+            ctx.shadowBlur = 4; ctx.shadowColor = '#fbbf24';
+            ctx.fill(); ctx.shadowBlur = 0;
+        } else {
+            ctx.beginPath(); ctx.arc(x, dotY+4, dotR*0.6, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            ctx.fill();
+        }
+    }
+
+    // Decade marks
+    for(let t=0;t<=n;t+=Math.floor(n/10)*1) {
+        if(t===0) continue;
+        const x = pad + (t/n)*(W-pad*2);
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.font = `${Math.max(8,Math.min(10,W/40))}px Courier New`;
+        ctx.textAlign = 'center';
+        ctx.fillText(t, x, dotY+22);
+    }
+
+    // Stats
+    const pc = countPrimes(n);
+    const density = (pc/n*100).toFixed(1);
+    const approx = (n/Math.log(n)).toFixed(0);
+    document.getElementById('nlStats').innerHTML = `
+        <div class="stat-box"><span class="val">${n}</span><span class="lbl">Range</span></div>
+        <div class="stat-box"><span class="val" style="color:var(--gold)">${pc}</span><span class="lbl">Primes</span></div>
+        <div class="stat-box"><span class="val">${density}%</span><span class="lbl">Density</span></div>
+    `;
+}
+
+let predictionMade = false;
+function choosePrediction(i) {
+    if(predictionMade) return;
+    predictionMade = true;
+    [0,1,2].forEach(j => {
+        const btn = document.getElementById(`pred${j}`);
+        if(j===2) btn.classList.add('correct'); // correct answer
+        else if(j===i && i!==2) btn.classList.add('partial');
+    });
+    const fb = document.getElementById('predFeedback');
+    fb.style.display = 'block';
+    const msgs = [
+        { lbl:'Not quite — but a fascinating idea', text:'If primes sped up, we\'d eventually find them almost everywhere. But the opposite happens — they spread further apart as numbers grow. The number line shows this clearly.' },
+        { lbl:'Close, but look more carefully', text:'At first glance the density seems roughly constant — but zoom out. Between 1 and 100, about 25% are prime. Between 900 and 1000, only 12%. They are thinning out.' },
+        { lbl:'💡 Exactly right', text:'Primes become less frequent as numbers grow. The gaps between consecutive primes tend to increase. This thinning follows a precise mathematical law — one a 15-year-old discovered by staring at tables.' },
+    ];
+    const m = msgs[i];
+    fb.innerHTML = `<div class="lbl">${m.lbl}</div><p>${m.text}</p>`;
+    fb.className = `insight-card ${i===2?'green-card':'gold-card'}`;
+    document.getElementById('s1NextBtn').disabled = false;
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 2: ULAM SPIRAL
+// ══════════════════════════════════════════════
+let ulamBuilt = false, ulamRunning = false, ulamTimer = null;
+let ulamCurrent = 1, ulamSize = 41; // odd number
+let showDiags = true;
+let ulamGrid = null;
+
+function initUlam() {
+    ulamBuilt = false; ulamRunning = false; ulamCurrent = 1;
+    clearTimeout(ulamTimer);
+    const canvas = document.getElementById('ulamCanvas');
+    const side = Math.min(canvas.offsetWidth || 320, 340);
+    canvas.width = side; canvas.height = side;
+    ulamSize = Math.floor(side/8)*2-1; // fit cells
+    if(ulamSize < 11) ulamSize = 11;
+    ulamGrid = new Array(ulamSize*ulamSize).fill(0);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0d0d24'; ctx.fillRect(0,0,side,side);
+
+    // Touch/mouse tooltip
+    canvas.onmousemove = canvas.ontouchmove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const cellSize = canvas.width / ulamSize;
+        const col = Math.floor(x / cellSize);
+        const row = Math.floor(y / cellSize);
+        const n = ulamGrid[row * ulamSize + col];
+        const tip = document.getElementById('ulamTooltip');
+        if(n > 0) {
+            tip.style.display = 'block';
+            tip.style.left = `${x+10}px`;
+            tip.style.top = `${y-20}px`;
+            tip.textContent = `${n} — ${isPrime[n]?'prime ⭐':'composite'}`;
+        } else tip.style.display='none';
+    };
+    canvas.onmouseleave = () => document.getElementById('ulamTooltip').style.display='none';
+}
+
+function getUlamCoord(n, size) {
+    // Spiral mapping: start at centre, go right, up, left, down
+    const cx = Math.floor(size/2), cy = Math.floor(size/2);
+    if(n===1) return {x:cx, y:cy};
+    let x=cx,y=cy,dx=1,dy=0,step=1,stepCount=0,turns=0;
+    for(let i=1;i<n;i++) {
+        x+=dx; y+=dy; stepCount++;
+        if(stepCount===step) {
+            stepCount=0; [dx,dy]=[-dy,dx]; turns++;
+            if(turns%2===0) step++;
+        }
+    }
+    return {x,y};
+}
+
+// Pre-compute all spiral positions
+function buildUlamMap(size) {
+    const map = [];
+    let x=0,y=0,dx=1,dy=0,step=1,stepCount=0,turns=0;
+    const cx=Math.floor(size/2), cy=Math.floor(size/2);
+    const total = size*size;
+    map.push({x:cx, y:cy}); // n=1
+    for(let i=2;i<=total;i++) {
+        x+=dx; y+=dy; stepCount++;
+        if(stepCount===step) { stepCount=0; [dx,dy]=[-dy,dx]; turns++; if(turns%2===0) step++; }
+        map.push({x:cx+x, y:cy+y});
+    }
+    return map;
+}
+
+let ulamMap = null;
+let ulamInterval = null;
+
+function toggleUlamBuild() {
+    if(!ulamMap) {
+        ulamMap = buildUlamMap(ulamSize);
+        ulamCurrent = 0;
+    }
+    if(ulamRunning) {
+        ulamRunning = false;
+        clearInterval(ulamInterval);
+        document.getElementById('ulamBuildBtn').textContent = '▶ Resume';
+    } else {
+        ulamRunning = true;
+        document.getElementById('ulamBuildBtn').textContent = '⏸ Pause';
+        const total = ulamSize*ulamSize;
+        ulamInterval = setInterval(() => {
+            if(!ulamRunning || ulamCurrent >= total) {
+                clearInterval(ulamInterval); ulamRunning = false;
+                document.getElementById('ulamBuildBtn').textContent = '▶ Rebuilt';
+                finishUlam();
+                return;
+            }
+            const speed = parseInt(document.getElementById('ulamSpeed').value);
+            const batch = Math.max(1, Math.floor(speed * speed * 2));
+            const canvas = document.getElementById('ulamCanvas');
+            const ctx = canvas.getContext('2d');
+            const cellSize = canvas.width / ulamSize;
+
+            for(let b=0; b<batch && ulamCurrent<total; b++) {
+                const n = ulamCurrent + 1;
+                const pos = ulamMap[ulamCurrent];
+                if(pos.x>=0 && pos.x<ulamSize && pos.y>=0 && pos.y<ulamSize) {
+                    ulamGrid[pos.y*ulamSize + pos.x] = n;
+                    const px = pos.x*cellSize, py = pos.y*cellSize;
+                    if(isPrime[n] && n<=MAX_N) {
+                        ctx.fillStyle = '#fbbf24';
+                        ctx.shadowBlur = 3; ctx.shadowColor='#fbbf24';
+                        ctx.fillRect(px+0.5, py+0.5, cellSize-1, cellSize-1);
+                        ctx.shadowBlur=0;
+                    } else {
+                        ctx.fillStyle = 'rgba(255,255,255,0.035)';
+                        ctx.fillRect(px+0.5, py+0.5, cellSize-1, cellSize-1);
+                    }
+                }
+                ulamCurrent++;
+            }
+        }, 16);
+    }
+}
+
+function finishUlam() {
+    if(showDiags) drawDiagonals();
+    setTimeout(() => {
+        document.getElementById('ulamInsight').style.display='block';
+        document.getElementById('ulamQuestion').style.display='block';
+    }, 400);
+}
+
+function drawDiagonals() {
+    const canvas = document.getElementById('ulamCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = 'rgba(34,211,238,0.15)';
+    ctx.lineWidth = 1;
+    const W = canvas.width, H = canvas.height;
+    // Main diagonals
+    for(let i=-W; i<W; i+=12) {
+        ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i+H,H); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i-H,H); ctx.stroke();
+    }
+}
+
+function toggleDiagonals() {
+    showDiags = !showDiags;
+    const btn = document.getElementById('diagonalBtn');
+    btn.classList.toggle('active-btn', showDiags);
+    btn.textContent = showDiags ? 'Hide diagonals' : 'Show diagonals';
+    // Redraw
+    if(ulamCurrent >= ulamSize*ulamSize) {
+        if(!showDiags) {
+            // Redraw without diagonals
+            const canvas = document.getElementById('ulamCanvas');
+            const ctx = canvas.getContext('2d');
+            const cellSize = canvas.width/ulamSize;
+            ctx.fillStyle='#0d0d24'; ctx.fillRect(0,0,canvas.width,canvas.height);
+            for(let i=0;i<ulamGrid.length;i++) {
+                const n=ulamGrid[i]; if(!n) continue;
+                const row=Math.floor(i/ulamSize), col=i%ulamSize;
+                if(isPrime[n]&&n<=MAX_N) {
+                    ctx.fillStyle='#fbbf24'; ctx.shadowBlur=3; ctx.shadowColor='#fbbf24';
+                    ctx.fillRect(col*cellSize+0.5,row*cellSize+0.5,cellSize-1,cellSize-1); ctx.shadowBlur=0;
+                } else {
+                    ctx.fillStyle='rgba(255,255,255,0.035)';
+                    ctx.fillRect(col*cellSize+0.5,row*cellSize+0.5,cellSize-1,cellSize-1);
+                }
+            }
+        } else {
+            drawDiagonals();
+        }
+    }
+}
+
+function resetUlam() {
+    clearInterval(ulamInterval); ulamRunning=false; ulamMap=null; ulamCurrent=0;
+    document.getElementById('ulamBuildBtn').textContent='▶ Build spiral';
+    document.getElementById('ulamInsight').style.display='none';
+    document.getElementById('ulamQuestion').style.display='none';
+    document.getElementById('s2NextBtn').disabled=true;
+    initUlam();
+}
+
+function answerUlam(i) {
+    document.querySelectorAll('#ulamQuestion .predict-btn').forEach((b,j) => {
+        if(j===1) b.classList.add('correct');
+        else if(j===i&&i!==1) b.classList.add('partial');
+    });
+    document.getElementById('s2NextBtn').disabled=false;
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 3: DENSITY / PNT
+// ══════════════════════════════════════════════
+function initDensity() {
+    // Build PNT table
+    const rows = [100,1000,10000,100000];
+    const tbody = document.getElementById('pntTable');
+    tbody.innerHTML = '';
+    rows.forEach(n => {
+        const actual = countPrimes(n);
+        const estimate = Math.round(n/Math.log(n));
+        const err = Math.abs(actual-estimate)/actual*100;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${n.toLocaleString()}</td>
+            <td class="actual">${actual.toLocaleString()}</td>
+            <td class="estimate">${estimate.toLocaleString()}</td>
+            <td class="error">${err.toFixed(1)}%</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // Draw density chart
+    drawDensityChart();
+}
+
+function drawDensityChart() {
+    const canvas = document.getElementById('densityCanvas');
+    const W = canvas.offsetWidth||320; canvas.width=W; canvas.height=200;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle='#0d0d24'; ctx.fillRect(0,0,W,200);
+
+    const pad = {l:40,r:16,t:16,b:30};
+    const cW=W-pad.l-pad.r, cH=200-pad.t-pad.b;
+    const maxN=10000;
+    const maxY=1300;
+
+    // Grid
+    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+    for(let i=0;i<=4;i++) {
+        const y=pad.t+i/4*cH;
+        ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(W-pad.r,y); ctx.stroke();
+        ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.font='9px Courier New'; ctx.textAlign='right';
+        ctx.fillText(Math.round(maxY*(1-i/4)), pad.l-4, y+3);
+    }
+
+    // Actual primes
+    ctx.beginPath(); ctx.strokeStyle='#fbbf24'; ctx.lineWidth=1.5;
+    for(let n=100;n<=maxN;n+=100) {
+        const x=pad.l+(n/maxN)*cW;
+        const y=pad.t+(1-countPrimes(n)/maxY)*cH;
+        n===100?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+
+    // Gauss estimate
+    ctx.beginPath(); ctx.strokeStyle='rgba(34,211,238,0.7)'; ctx.lineWidth=1.5;
+    ctx.setLineDash([4,3]);
+    for(let n=100;n<=maxN;n+=100) {
+        const x=pad.l+(n/maxN)*cW;
+        const y=pad.t+(1-(n/Math.log(n))/maxY)*cH;
+        n===100?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+
+    // Legend
+    ctx.fillStyle='#fbbf24'; ctx.fillRect(pad.l,185,12,3);
+    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.font='9px Nunito,sans-serif';
+    ctx.textAlign='left'; ctx.fillText('Actual primes π(N)',pad.l+16,188);
+    ctx.fillStyle='rgba(34,211,238,0.7)'; ctx.fillRect(pad.l+120,185,12,3);
+    ctx.fillStyle='rgba(255,255,255,0.5)'; ctx.fillText('N / ln(N)',pad.l+136,188);
+
+    // x-axis labels
+    ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.textAlign='center';
+    [2000,4000,6000,8000,10000].forEach(v => {
+        const x=pad.l+(v/maxN)*cW;
+        ctx.fillText(v.toLocaleString(), x, 200-5);
+    });
+}
+
+// ══════════════════════════════════════════════
+//  SCREEN 4: RIEMANN
+// ══════════════════════════════════════════════
+function initRiemann() {
+    // Known Riemann zeros (imaginary parts of non-trivial zeros)
+    const zeros = [14.1347, 21.0220, 25.0109, 30.4249, 32.9351,
+                   37.5862, 40.9187, 43.3271, 48.0052, 49.7738];
+    const container = document.getElementById('riemannZeroes');
+    container.innerHTML = zeros.map((z,i) =>
+        `<div style="color:${i%2===0?'var(--cyan)':'var(--violet)'}">
+            ζ(½ + ${z.toFixed(4)}i) = 0 &nbsp;
+            <span style="color:rgba(255,255,255,0.15)">← on the critical line ✓</span>
+        </div>`
+    ).join('');
+}
+
+// ══════════════════════════════════════════════
+//  CELEBRATION
+// ══════════════════════════════════════════════
+function celebrateAct() {
+    launchConfetti();
+    setTimeout(() => { alert("Act IV coming soon: Your Secret and Mine — RSA encryption and how prime numbers protect the internet."); }, 700);
+}
+
+// ══════════════════════════════════════════════
+//  CONFETTI
+// ══════════════════════════════════════════════
+const cc=document.getElementById('confetti');
+const cx2=cc.getContext('2d');
+let parts=[], afr=null;
+function launchConfetti(){
+    cc.width=window.innerWidth; cc.height=window.innerHeight; parts=[];
+    for(let i=0;i<90;i++) parts.push({
+        x:Math.random()*cc.width, y:-20-Math.random()*80,
+        vx:(Math.random()-.5)*5, vy:2+Math.random()*5,
+        color:['#fbbf24','#10b981','#a78bfa','#22d3ee','#f472b6'][Math.floor(Math.random()*5)],
+        size:5+Math.random()*8, rot:Math.random()*Math.PI*2, vr:(Math.random()-.5)*0.25, life:1
+    });
+    if(afr) cancelAnimationFrame(afr); animC();
+    setTimeout(()=>{parts=[];},3500);
+}
+function animC(){
+    cx2.clearRect(0,0,cc.width,cc.height);
+    parts=parts.filter(p=>p.life>.01);
+    parts.forEach(p=>{
+        p.x+=p.vx; p.y+=p.vy; p.vy+=.1; p.rot+=p.vr; p.life-=.012;
+        cx2.save(); cx2.globalAlpha=p.life; cx2.translate(p.x,p.y); cx2.rotate(p.rot);
+        cx2.fillStyle=p.color; cx2.fillRect(-p.size/2,-p.size/2,p.size,p.size*.6); cx2.restore();
+    });
+    if(parts.length>0) afr=requestAnimationFrame(animC); else afr=null;
+}
+
+// Star background
+(function(){
+    const cv=document.createElement('canvas');
+    document.getElementById('nebula').appendChild(cv);
+    cv.style.cssText='position:absolute;inset:0;width:100%;height:100%;';
+    function draw(){
+        cv.width=window.innerWidth; cv.height=window.innerHeight;
+        const c=cv.getContext('2d');
+        for(let i=0;i<140;i++){
+            c.beginPath(); c.arc(Math.random()*cv.width,Math.random()*cv.height,Math.random()*1.3,0,Math.PI*2);
+            c.fillStyle=`rgba(255,255,255,${.06+Math.random()*.25})`; c.fill();
+        }
+    }
+    window.addEventListener('resize',draw); draw();
+})();
+
+// Init screen 1 on load
+window.addEventListener('load', () => setTimeout(() => {
+    const canvas = document.getElementById('numberLineCanvas');
+    if(canvas && currentScreen===1) updateNumberLine(200);
+},100));
+</script>
+</body>
+</html>

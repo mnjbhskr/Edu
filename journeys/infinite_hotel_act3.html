@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050510">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Infinite Hotel — Act III</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+        :root {
+            --bg:#050510; --bg2:#090920; --bg3:#0e0e2a;
+            --indigo:#818cf8; --indigo-dim:rgba(129,140,248,0.12);
+            --teal:#2dd4bf; --teal-dim:rgba(45,212,191,0.1);
+            --silver:#e2e8f0; --silver-dim:rgba(226,232,240,0.08);
+            --gold:#fbbf24; --gold-dim:rgba(251,191,36,0.12);
+            --rose:#fb7185; --rose-dim:rgba(251,113,133,0.1);
+            --muted:#4a5080; --text:#c8d0f0;
+            --border:rgba(129,140,248,0.12); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(5,5,16,0.92);
+            backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--rose);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--teal);}
+        .dot.active{background:var(--rose);box-shadow:0 0 10px var(--rose);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 6px var(--rose)}50%{box-shadow:0 0 18px var(--rose)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--rose);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--rose);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#c0c8e8;}
+        .narrator p em{color:var(--rose);font-style:italic;}
+        .narrator p strong{color:var(--silver);font-weight:600;}
+        .narrator.gold{border-left-color:var(--gold);} .narrator.gold::before{color:var(--gold);}
+        .narrator.teal{border-left-color:var(--teal);} .narrator.teal::before{color:var(--teal);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--silver);}
+        .act-name em{color:var(--rose);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--rose),#e11d48);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#fff;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 24px rgba(251,113,133,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(251,113,133,0.4);}
+        .cta-btn:disabled{opacity:0.35;transform:none;box-shadow:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(251,113,133,0.15);border-left:3px solid var(--rose);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--rose);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#9098c0;}
+        .insight p em{color:var(--rose);font-style:normal;font-weight:600;}
+        .insight.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);}
+        .insight.gold .lbl{color:var(--gold);}
+        .insight.teal{border-left-color:var(--teal);border-color:rgba(45,212,191,0.15);}
+        .insight.teal .lbl{color:var(--teal);}
+
+        /* ── The Decimal List ── */
+        .decimal-list{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px;margin-bottom:14px;}
+        .list-row{display:flex;align-items:center;gap:8px;padding:8px 0;
+            border-bottom:1px solid rgba(255,255,255,0.04);}
+        .list-row:last-child{border-bottom:none;}
+        .row-num{font-family:'DM Sans',monospace;font-size:0.78em;color:var(--muted);min-width:28px;}
+        .row-prefix{font-family:'Share Tech Mono',monospace;font-size:0.9em;color:var(--silver);}
+        .digit-cells{display:flex;gap:3px;}
+        .digit-cell{width:28px;height:32px;border-radius:6px;background:rgba(255,255,255,0.04);
+            border:1.5px solid rgba(255,255,255,0.06);
+            display:flex;align-items:center;justify-content:center;
+            font-family:'Share Tech Mono',monospace;font-size:0.88em;font-weight:700;color:#6080b0;
+            transition:all 0.3s;}
+        .digit-cell.diagonal{background:var(--rose-dim);border-color:rgba(251,113,133,0.5);color:var(--rose);}
+        .digit-cell.changed{background:rgba(251,191,36,0.15);border-color:rgba(251,191,36,0.5);color:var(--gold);
+            animation:pop 0.4s ease;}
+        @keyframes pop{0%{transform:scale(0.7)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
+
+        /* ── Diagonal number builder ── */
+        .diagonal-builder{background:var(--bg2);border:1px solid rgba(251,113,133,0.2);
+            border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+        .diag-label{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--rose);margin-bottom:10px;}
+        .diag-num{font-family:'Share Tech Mono',monospace;font-size:clamp(1.2em,5vw,1.6em);
+            color:var(--gold);letter-spacing:3px;min-height:36px;word-break:break-all;}
+        .diag-explain{font-family:'Lora',serif;font-size:0.88em;color:var(--muted);
+            margin-top:8px;font-style:italic;line-height:1.5;}
+
+        /* ── Step controls ── */
+        .step-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+        .step-btn{padding:10px 16px;border-radius:12px;background:var(--bg3);
+            border:1.5px solid var(--border);color:var(--muted);
+            font-family:'DM Sans',sans-serif;font-size:0.88em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;flex:1;}
+        .step-btn:hover{border-color:var(--rose);color:var(--rose);background:var(--rose-dim);}
+        .step-btn.primary{background:var(--rose-dim);border-color:var(--rose);color:var(--rose);}
+        .step-btn:disabled{opacity:0.3;cursor:default;}
+
+        /* ── Reveal moment ── */
+        .reveal-moment{background:linear-gradient(135deg,rgba(251,113,133,0.1),rgba(129,140,248,0.06));
+            border:1px solid rgba(251,113,133,0.3);border-radius:var(--radius);
+            padding:22px;margin-bottom:16px;text-align:center;}
+        .reveal-eq{font-family:'Share Tech Mono',monospace;font-size:clamp(0.82em,3.5vw,1.1em);
+            color:var(--silver);margin-bottom:10px;word-break:break-all;line-height:2;}
+        .reveal-eq .missing{color:var(--gold);font-weight:700;}
+        .reveal-title{font-family:'Lora',serif;font-size:1.1em;color:var(--rose);margin-bottom:6px;}
+        .reveal-sub{font-family:'Lora',serif;font-size:0.9em;color:var(--muted);font-style:italic;line-height:1.6;}
+
+        .complete-badge{background:linear-gradient(135deg,rgba(251,113,133,0.1),rgba(129,140,248,0.06));
+            border:1px solid rgba(251,113,133,0.2);border-radius:var(--radius);
+            padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--rose);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--teal);}
+        .learn-box.notice .learn-title{color:var(--gold);}
+        .learn-box.why .learn-title{color:var(--rose,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--teal);color:var(--teal);}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act III of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div>
+        <div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: OPENING -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Infinite Hotel · Act III</div>
+      <div class="act-name">The <em>Diagonal</em> Argument</div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;">
+      <div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">↗️</div>
+    </div>
+    <div class="narrator">
+      <p>You can list the whole numbers. You can list the fractions. It starts to feel like you can list <em>anything</em> infinite.</p>
+      <p style="margin-top:10px">Now: can you list every decimal number between 0 and 1?</p>
+      <p style="margin-top:10px">Numbers like 0.5, 0.333..., 0.14159..., 0.72638495...<br>Numbers with infinitely many digits after the decimal point.</p>
+      <p style="margin-top:10px">In 1891, Cantor proved — with a single, devastating argument — that <em>you cannot.</em> No list can contain them all. Not even an infinite list.</p>
+    </div>
+    <div class="insight">
+      <div class="lbl">Try This</div>
+      <p>Suppose someone claimed they had listed every decimal between 0 and 1. Before seeing the proof, try to imagine: could you somehow construct a number that is <em>not</em> on their list? How?</p>
+    </div>
+    <div class="insight teal">
+      <div class="lbl">What To Notice</div>
+      <p>In Act II, listing the fractions was possible because we had a systematic grid pattern. Decimals have infinitely many digits — there is no obvious grid. The structure of the problem is fundamentally different.</p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">Why It Matters</div>
+      <p>This proof — the diagonal argument — is considered one of the most beautiful and important in all of mathematics. It shows that <em>not all infinities are the same</em>, and the technique appears throughout logic, computer science, and philosophy.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">See the argument →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: BUILD THE LIST + DIAGONAL -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">The proof</div>
+      <div class="act-name">Build a list. <em>Any</em> list.</div>
+    </div>
+    <div class="narrator">
+      <p>Here is someone's attempt at a complete list of decimals between 0 and 1. Each number has 8 digits shown.</p>
+      <p style="margin-top:8px">We are going to construct a new number — digit by digit — that <em>is not on this list.</em></p>
+    </div>
+
+    <div class="decimal-list" id="decimalList"></div>
+
+    <div class="diagonal-builder">
+      <div class="diag-label">The diagonal number — building it now</div>
+      <div style="font-family:'Lora',serif;font-size:0.88em;color:var(--muted);margin-bottom:10px;font-style:italic;" id="diagRule">
+        We take the 1st digit of number 1, the 2nd digit of number 2, and so on — the <em>diagonal</em>.
+        Then we change each digit by +1 (wrapping 9→0).
+      </div>
+      <div class="diag-num" id="diagNum">0. _ _ _ _ _ _ _ _</div>
+      <div class="diag-explain" id="diagExplain">Tap "Next digit" to reveal the diagonal number step by step.</div>
+    </div>
+
+    <div class="step-row">
+      <button class="step-btn primary" onclick="nextDiagDigit()" id="btnNextDigit">Next digit →</button>
+      <button class="step-btn" onclick="autoRunDiag()" id="btnAutoRun">Auto-run</button>
+      <button class="step-btn" onclick="resetDiag()" id="btnReset">Reset</button>
+    </div>
+
+    <div id="revealSection" style="display:none;">
+      <div class="reveal-moment">
+        <div class="reveal-title">The number we built is not on the list</div>
+        <div class="reveal-eq" id="revealEq"></div>
+        <div class="reveal-sub" id="revealSub"></div>
+      </div>
+    </div>
+
+    <div id="diagInsight" style="display:none;">
+      <div class="insight">
+        <div class="lbl">Try This</div>
+        <p>Try changing the rule — instead of +1, what if you added +2 to each diagonal digit? You would get a different missing number, but the logic is identical. Any systematic change that avoids matching produces a number not on the list.</p>
+      </div>
+      <div class="insight teal">
+        <div class="lbl">What To Notice</div>
+        <p>Our new number differs from row 1 in its 1st digit. Differs from row 2 in its 2nd digit. Differs from row n in its nth digit. So it cannot be anywhere on the list — <em>it disagrees with every single entry at the diagonal position.</em></p>
+      </div>
+      <div class="insight gold">
+        <div class="lbl">Why It Matters</div>
+        <p>This is not about one particular list being incomplete. The argument works for <em>any</em> list whatsoever. No matter how cleverly you arrange the decimals, the diagonal always produces a missing number. The decimals are fundamentally uncountable.</p>
+      </div>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>What this means →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: THE SHOCK -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">The consequence</div>
+      <div class="act-name">A <em>bigger</em> infinity</div>
+    </div>
+    <div class="narrator gold">
+      <p>The fractions are countably infinite — size ℵ₀.</p>
+      <p style="margin-top:10px">The decimals between 0 and 1 cannot be listed. They are <em>uncountably infinite.</em> A genuinely larger infinity.</p>
+      <p style="margin-top:10px">These two infinite sets are <strong>not the same size.</strong></p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid rgba(251,113,133,0.2);border-radius:var(--radius);padding:22px;margin-bottom:16px;text-align:center;">
+      <div style="font-family:'DM Sans',monospace;font-size:clamp(1.1em,4.5vw,1.5em);font-weight:700;line-height:2.2;color:var(--silver);">
+        <div><span style="color:var(--teal);">ℵ₀</span> = size of whole numbers, fractions</div>
+        <div style="font-size:1.5em;color:var(--border);">‹</div>
+        <div><span style="color:var(--rose);">𝔠</span> = size of decimals (the continuum)</div>
+      </div>
+      <div style="font-family:'Lora',serif;font-size:0.9em;color:var(--muted);margin-top:10px;font-style:italic;">
+        𝔠 is strictly larger than ℵ₀. Some infinities are genuinely bigger than others.
+      </div>
+    </div>
+
+    <!-- Analogy for younger readers -->
+    <div class="narrator teal">
+      <p>Think of it this way. The whole numbers are like a long queue — however long it is, there's always a "next person." You can always point to the 1st, the 2nd, the 47th.</p>
+      <p style="margin-top:10px">The decimals are like a cloud of dust — so densely packed, in every direction, that you can't even begin to put them in a queue. <em>There's no "first" decimal after 0.</em></p>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">Try This</div>
+      <p>Try to think of a way around the diagonal argument. Could you somehow include the diagonal number on your list in advance? (Hint: if you did, the diagonal would just produce a <em>different</em> missing number. You can never escape.)</p>
+    </div>
+    <div class="insight teal">
+      <div class="lbl">What To Notice</div>
+      <p>Before 1891, mathematicians assumed infinity was just... infinity. One thing. Cantor proved it comes in <em>different sizes</em> — and that there are actually infinitely many different sizes of infinity.</p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">Why It Matters</div>
+      <p>Cantor did not discover this — he <em>proved</em> it. Rigorously. With no assumptions beyond logic. The same diagonal technique reappears in Gödel's incompleteness theorems and Turing's halting problem. You have just learned one of the most powerful ideas in all of mathematics.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)">✦ Act III Complete →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: COMPLETE -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">Act III complete</div>
+      <div class="act-name">The diagonal <em>revealed</em></div>
+    </div>
+    <div class="complete-badge">
+      <span class="badge-icon">↗️</span>
+      <div class="badge-title">You witnessed the most beautiful proof in mathematics</div>
+      <div class="badge-sub">The diagonal argument. One page. No equations. Absolutely devastating.<br>Some infinities are bigger than others — and Cantor proved it.</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">💡 What you learned</div>
+      <p>To show a list is incomplete, construct a number that differs from row n in position n — the diagonal. This number cannot be anywhere on the list. Therefore no list of decimals is complete. The decimals are <em>uncountably infinite</em> — strictly larger than ℵ₀.</p>
+    </div>
+    <div class="insight gold" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act IV — The Sizes of Infinity</div>
+      <p>If ℵ₀ and 𝔠 are two different sizes of infinity — are there more? Can we always find a bigger infinity? And is there anything <em>between</em> ℵ₀ and 𝔠? Cantor spent years trying to answer that last question. The answer turned out to be more shocking than any of his earlier discoveries.</p>
+    </div>
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Write down any list of decimal numbers between 0 and 1. Now construct a new number by changing the first digit of the first number, the second digit of the second, and so on. Is your new number on the list?</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>No matter how you arrange your list, the diagonal construction always produces a number that differs from every entry. This means the real numbers cannot be listed — they are uncountably infinite.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>Cantor's diagonal argument proves there are different sizes of infinity. The reals are strictly 'larger' than the naturals. This single proof changed mathematics forever and opened the door to set theory.</p>
+    </div>
+    <button class="reset-btn" onclick="window.location.reload()">Reset</button>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px;">
+      <button class="cta-btn" onclick="celebrate()">✦ On to Act IV →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='infinite_hotel_act2.html'">← Revisit Act II</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+
+// The fixed list of decimals — designed so diagonal is interesting
+const LIST = [
+  [1,4,1,5,9,2,6,5], // 0.14159265 (π-3)
+  [5,0,0,0,0,0,0,0], // 0.50000000
+  [3,3,3,3,3,3,3,3], // 0.33333333 (1/3)
+  [7,0,7,1,0,6,7,8], // 0.70710678 (√2/2 - ish)
+  [2,0,0,0,0,0,0,0], // 0.20000000
+  [6,1,8,0,3,3,9,8], // 0.61803398 (φ-1)
+  [9,0,9,0,9,0,9,0], // 0.90909090
+  [1,2,3,4,5,6,7,8], // 0.12345678
+];
+const DIGITS_SHOWN = 8;
+let diagStep = 0;
+let diagDigits = [];
+let autoTimer = null;
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n; document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1) buildDiagScene();
+}
+
+function buildDiagScene(){
+  diagStep=0; diagDigits=[];
+  if(autoTimer){clearInterval(autoTimer);autoTimer=null;}
+  document.getElementById('s1Next').disabled=true;
+  document.getElementById('diagInsight').style.display='none';
+  document.getElementById('revealSection').style.display='none';
+  document.getElementById('btnNextDigit').disabled=false;
+  document.getElementById('btnAutoRun').disabled=false;
+
+  const list=document.getElementById('decimalList');
+  list.innerHTML='';
+  LIST.forEach((digits,i)=>{
+    const row=document.createElement('div');
+    row.className='list-row';
+    row.innerHTML=`<div class="row-num">${i+1}.</div>
+      <div class="row-prefix">0.</div>
+      <div class="digit-cells" id="drow-${i}"></div>`;
+    list.appendChild(row);
+    const cells=row.querySelector(`#drow-${i}`);
+    digits.forEach((d,j)=>{
+      const cell=document.createElement('div');
+      cell.className='digit-cell';
+      cell.id=`dc-${i}-${j}`;
+      cell.textContent=d;
+      cells.appendChild(cell);
+    });
+  });
+  updateDiagDisplay();
+}
+
+function updateDiagDisplay(){
+  const diag=document.getElementById('diagNum');
+  let display='0. ';
+  for(let i=0;i<DIGITS_SHOWN;i++){
+    display += i<diagDigits.length ? diagDigits[i] : '_';
+    if(i<DIGITS_SHOWN-1) display += ' ';
+  }
+  diag.textContent=display;
+}
+
+function nextDiagDigit(){
+  if(diagStep>=DIGITS_SHOWN){
+    showReveal(); return;
+  }
+  const i=diagStep;
+  const originalDigit=LIST[i][i];
+  const newDigit=(originalDigit+1)%10;
+  diagDigits.push(newDigit);
+
+  // Highlight diagonal cell
+  const cell=document.getElementById(`dc-${i}-${i}`);
+  if(cell) cell.className='digit-cell diagonal';
+
+  // Show new digit in builder
+  updateDiagDisplay();
+
+  // Show explanation
+  document.getElementById('diagExplain').innerHTML=
+    `Row ${i+1}, position ${i+1}: digit is <span style="color:var(--rose)">${originalDigit}</span>. We change it to <span style="color:var(--gold)">${newDigit}</span> (+1). Our new number now differs from row ${i+1} at this position.`;
+
+  diagStep++;
+  if(diagStep===DIGITS_SHOWN){
+    document.getElementById('btnNextDigit').textContent='See the result →';
+  }
+}
+
+function showReveal(){
+  if(autoTimer){clearInterval(autoTimer);autoTimer=null;}
+  document.getElementById('btnNextDigit').disabled=true;
+  document.getElementById('btnAutoRun').disabled=true;
+
+  // Change diagonal cells to "changed" style
+  for(let i=0;i<DIGITS_SHOWN;i++){
+    const cell=document.getElementById(`dc-${i}-${i}`);
+    if(cell) cell.className='digit-cell changed';
+  }
+
+  const ourNum='0.'+diagDigits.join('');
+  const revealSection=document.getElementById('revealSection');
+  revealSection.style.display='block';
+
+  let eqHtml='Our diagonal number: <span class="missing">'+ourNum+'...</span><br><br>';
+  LIST.forEach((digits,i)=>{
+    const original=digits[i];
+    const ours=diagDigits[i];
+    eqHtml+=`Row ${i+1}: 0.${digits.join('')}... differs at position ${i+1} (<span style="color:var(--rose)">${original}</span> ≠ <span style="color:var(--gold)">${ours}</span>)<br>`;
+  });
+  document.getElementById('revealEq').innerHTML=eqHtml;
+  document.getElementById('revealSub').textContent=
+    'Our number cannot be row 1 (wrong digit 1). Cannot be row 2 (wrong digit 2). Cannot be any row n (wrong digit n). It is genuinely missing from this list. From every list.';
+
+  document.getElementById('diagInsight').style.display='block';
+  document.getElementById('s1Next').disabled=false;
+  launchMiniConfetti();
+}
+
+function autoRunDiag(){
+  document.getElementById('btnAutoRun').disabled=true;
+  autoTimer=setInterval(()=>{
+    if(diagStep<DIGITS_SHOWN){
+      nextDiagDigit();
+    } else {
+      clearInterval(autoTimer); autoTimer=null;
+      showReveal();
+    }
+  },500);
+}
+
+function resetDiag(){
+  if(autoTimer){clearInterval(autoTimer);autoTimer=null;}
+  buildDiagScene();
+}
+
+function celebrate(){
+  launchConfetti();
+  setTimeout(()=>window.location.href='infinite_hotel_act4.html',900);
+}
+
+// Cosmos
+(function(){
+  const cv=document.getElementById('cosmos');
+  function draw(){
+    cv.width=innerWidth;cv.height=innerHeight;
+    const ctx=cv.getContext('2d');
+    const g=ctx.createRadialGradient(innerWidth*.5,innerHeight*.5,0,innerWidth*.5,innerHeight*.5,innerWidth);
+    g.addColorStop(0,'rgba(251,113,133,0.04)');g.addColorStop(0.5,'rgba(129,140,248,0.02)');g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);
+    for(let i=0;i<200;i++){
+      const x=Math.random()*cv.width,y=Math.random()*cv.height,r=Math.random()*1.5,a=0.04+Math.random()*0.3;
+      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(200,210,255,${a})`;ctx.fill();
+    }
+  }
+  window.addEventListener('resize',draw);draw();
+})();
+
+const cc=document.getElementById('confetti'),cxc=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<90;i++) parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*5,vy:2+Math.random()*4,
+    c:['#fb7185','#818cf8','#fbbf24','#2dd4bf'][Math.floor(Math.random()*4)],
+    s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},3500);
+}
+function launchMiniConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;
+  for(let i=0;i<22;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.4,
+    vx:(Math.random()-.5)*7,vy:-(3+Math.random()*5),
+    c:['#fb7185','#fbbf24'][Math.floor(Math.random()*2)],
+    s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!afr)animC();
+}
+function animC(){
+  cxc.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;
+    cxc.save();cxc.globalAlpha=p.l;cxc.translate(p.x,p.y);cxc.rotate(p.r);
+    cxc.fillStyle=p.c;cxc.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cxc.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0d0a06">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Clock That Never Stops — Act V</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#0d0a06; --bg2:#14100a; --bg3:#1c160e;
+            --amber:#f59e0b; --amber-dim:rgba(245,158,11,0.12);
+            --teal:#14b8a6; --teal-dim:rgba(20,184,166,0.12);
+            --rose:#fb7185; --rose-dim:rgba(251,113,133,0.12);
+            --violet:#a78bfa; --violet-dim:rgba(167,139,250,0.12);
+            --gold:#fbbf24; --gold-dim:rgba(251,191,36,0.12);
+            --cream:#fef3c7; --text:#e8dcc8; --muted:#7a6a52;
+            --border:rgba(251,191,36,0.12); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(13,10,6,0.92);
+            backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--gold);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--teal);}
+        .dot.active{background:var(--gold);box-shadow:0 0 10px var(--gold);animation:dotPulse 2s ease infinite;}
+        @keyframes dotPulse{0%,100%{box-shadow:0 0 6px var(--gold)}50%{box-shadow:0 0 18px var(--gold)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.55s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--gold);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--gold);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.82;color:#d4c4a8;}
+        .narrator p em{color:var(--gold);font-style:italic;}
+        .narrator p strong{color:var(--cream);font-weight:600;}
+        .narrator.violet{border-left-color:var(--violet);} .narrator.violet::before{color:var(--violet);}
+        .narrator.teal{border-left-color:var(--teal);} .narrator.teal::before{color:var(--teal);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--gold);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--gold),#d97706);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#0d0a06;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 24px rgba(251,191,36,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(251,191,36,0.45);}
+        .cta-btn:disabled{opacity:0.35;transform:none;box-shadow:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(251,191,36,0.15);border-left:3px solid var(--gold);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#b8a888;}
+        .insight p em{color:var(--gold);font-style:normal;font-weight:600;}
+        .insight.teal{border-left-color:var(--teal);border-color:rgba(20,184,166,0.15);}
+        .insight.teal .lbl{color:var(--teal);}
+        .insight.violet{border-left-color:var(--violet);border-color:rgba(167,139,250,0.15);}
+        .insight.violet .lbl{color:var(--violet);}
+
+        /* ── Axiom cards ── */
+        .axiom-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:18px;margin-bottom:12px;transition:all 0.3s;cursor:pointer;touch-action:manipulation;}
+        .axiom-card:hover{border-color:rgba(251,191,36,0.3);}
+        .axiom-card.verified{border-color:rgba(20,184,166,0.4);background:rgba(20,184,166,0.04);}
+        .axiom-header{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+        .axiom-icon{font-size:1.6em;flex-shrink:0;}
+        .axiom-name{font-family:'Lora',serif;font-size:1.05em;font-weight:600;color:var(--cream);}
+        .axiom-check{margin-left:auto;font-size:1.2em;opacity:0;transition:opacity 0.3s;}
+        .axiom-card.verified .axiom-check{opacity:1;}
+        .axiom-body{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;color:#a09070;}
+        .axiom-body em{color:var(--gold);}
+        .axiom-demo{background:var(--bg3);border-radius:10px;padding:12px;margin-top:10px;
+            font-family:'DM Sans',monospace;font-size:0.85em;color:#8a7a5a;line-height:1.8;
+            display:none;}
+        .axiom-card.open .axiom-demo{display:block;}
+        .axiom-result{color:var(--teal);font-weight:700;}
+        .axiom-tap-hint{font-size:0.72em;color:var(--muted);font-style:italic;font-family:'Lora',serif;
+            text-align:right;margin-top:4px;}
+
+        /* ── Same-structure comparison ── */
+        .struct-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+        @media(max-width:380px){.struct-grid{grid-template-columns:1fr;}}
+        .struct-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:14px;text-align:center;transition:border-color 0.2s;cursor:pointer;}
+        .struct-card:hover{border-color:rgba(251,191,36,0.3);}
+        .struct-card.active{border-color:rgba(251,191,36,0.5);background:var(--gold-dim);}
+        .struct-icon{font-size:2em;margin-bottom:6px;display:block;}
+        .struct-name{font-family:'Lora',serif;font-size:0.95em;font-weight:600;color:var(--cream);margin-bottom:4px;}
+        .struct-sub{font-size:0.78em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.4;}
+
+        /* Struct detail box */
+        .struct-detail{background:var(--bg2);border:1px solid rgba(251,191,36,0.15);
+            border-radius:var(--radius);padding:16px;margin-bottom:14px;
+            font-family:'Lora',serif;font-size:0.95em;line-height:1.75;color:#b0a080;
+            animation:fadeUp 0.3s ease both;}
+        .struct-detail strong{color:var(--gold);}
+        .struct-detail em{color:var(--teal);}
+
+        /* ── Journey map ── */
+        .journey-act{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:14px;margin-bottom:8px;display:flex;gap:14px;align-items:flex-start;
+            animation:fadeUp 0.4s ease both;}
+        .ja-icon{font-size:1.8em;flex-shrink:0;}
+        .ja-body{flex:1;}
+        .ja-act{font-size:0.65em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:3px;}
+        .ja-title{font-family:'Lora',serif;font-size:1em;font-weight:600;color:var(--cream);margin-bottom:3px;}
+        .ja-thread{font-family:'Lora',serif;font-size:0.88em;color:#8a7a5a;line-height:1.5;font-style:italic;}
+
+        /* ── Final badge ── */
+        .final-badge{background:linear-gradient(135deg,rgba(251,191,36,0.12),rgba(20,184,166,0.06),rgba(167,139,250,0.06));
+            border:1px solid rgba(251,191,36,0.25);border-radius:var(--radius);
+            padding:28px 20px;margin:20px 0;text-align:center;}
+        .final-star{font-size:4em;display:block;margin-bottom:12px;animation:spin 8s linear infinite;}
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        .final-title{font-family:'Lora',serif;font-size:1.4em;color:var(--gold);margin-bottom:8px;}
+        .final-sub{font-family:'Lora',serif;font-size:0.95em;color:#a09070;line-height:1.8;font-style:italic;}
+
+        /* Next journeys */
+        .next-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:14px 16px;margin-bottom:8px;display:flex;gap:14px;align-items:center;
+            transition:border-color 0.2s;}
+        .next-card:hover{border-color:rgba(251,191,36,0.25);}
+        .next-icon{font-size:1.8em;flex-shrink:0;}
+        .next-title{font-family:'Lora',serif;font-size:0.95em;font-weight:600;color:var(--cream);margin-bottom:2px;}
+        .next-sub{font-size:0.78em;color:var(--muted);font-style:italic;font-family:'Lora',serif;}
+        .next-tag{font-size:0.65em;background:var(--gold-dim);border:1px solid rgba(251,191,36,0.2);
+            color:var(--gold);border-radius:20px;padding:2px 8px;margin-left:auto;white-space:nowrap;flex-shrink:0;}
+
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--amber);}
+        .learn-box.notice .learn-title{color:var(--teal);}
+        .learn-box.why .learn-title{color:var(--rose,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--gold);color:var(--gold);}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act V of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div>
+        <div class="dot done"></div><div class="dot done"></div>
+        <div class="dot active"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: OPENING -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Clock That Never Stops · Act V</div>
+      <div class="act-name">The <em>Group</em></div>
+    </div>
+    <div style="text-align:center;margin:8px 0 20px;">
+      <div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">✦</div>
+    </div>
+    <div class="narrator">
+      <p>Look back at everything you've discovered.</p>
+      <p style="margin-top:10px">Clock numbers that wrap. Days that cycle. Multiplication tables with complete cycles. Caesar shifts that chain together. All of them share a hidden shape — a mathematical structure called a <em>group.</em></p>
+      <p style="margin-top:10px">A group is not a thing. It is a <strong>pattern of behaviour.</strong> Four simple rules — and when something obeys them, it unlocks all the theorems of group theory at once.</p>
+    </div>
+    <div class="insight violet">
+      <div class="lbl">Why this matters</div>
+      <p>Group theory is the mathematics of symmetry. It was used to classify every possible crystal structure. To prove which equations can be solved. To understand why the electron has spin ½. It begins here — with a clock.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Discover the four rules →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: THE AXIOMS -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Four rules</div>
+      <div class="act-name">The <em>axioms</em> of a group</div>
+    </div>
+    <div class="narrator">
+      <p>Our clock: numbers 0–4, addition mod 5. Tap each rule to verify it holds — and to see <em>why</em> it matters.</p>
+    </div>
+
+    <div id="axiomCards"></div>
+    <div style="text-align:center;">
+      <button class="reset-btn" onclick="buildAxioms()">Reset axioms</button>
+    </div>
+
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Tap each of the four axiom cards below — Closure, Associativity, Identity, and Inverse. Read the example calculation in each, then verify it mentally on the mod-5 clock.</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>Every axiom holds. Closure: 3+4 mod 5 = 2, still in the set. Identity: adding 0 changes nothing. Inverses: 3+2 = 0 mod 5, so 2 and 3 are partners. All four rules check out.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>These four axioms define a group — the most fundamental algebraic structure in mathematics. Once you verify them, every theorem of group theory automatically applies. Clock arithmetic mod 5 is not just arithmetic — it is an algebraic structure with deep consequences.</p>
+    </div>
+
+    <div class="insight" id="axiomComplete" style="display:none;">
+      <div class="lbl">✓ All four axioms verified</div>
+      <p>Clock arithmetic mod 5 is a group. We just proved it — not by authority, but by checking. Every consequence of group theory now applies to our little clock.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>The same shape, everywhere →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: SAME STRUCTURE EVERYWHERE -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">Universality</div>
+      <div class="act-name">One pattern, <em>many</em> faces</div>
+    </div>
+    <div class="narrator teal">
+      <p>The same four axioms are satisfied by things that look nothing like a clock. Tap each to see how the group rules apply.</p>
+    </div>
+
+    <div class="struct-grid" id="structGrid"></div>
+    <div id="structDetail" style="display:none;"></div>
+
+    <div class="insight" id="structInsight" style="display:none;">
+      <div class="lbl">💡 The remarkable thing</div>
+      <p>These look completely different — clocks, symmetry, numbers, letters. But they're all groups. A theorem proved about <em>any</em> group applies to all of them simultaneously. That's the power of abstraction: one proof, infinite applications.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)" id="s2Next">Meet the man who discovered this →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: GALOIS -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">The story</div>
+      <div class="act-name">Évariste <em>Galois</em></div>
+    </div>
+    <div class="narrator violet">
+      <p>In 1832, a 20-year-old French mathematician was killed in a duel.</p>
+      <p style="margin-top:10px">The night before, knowing he might die, Évariste Galois wrote furiously — filling pages with mathematics he feared would be lost. He asked his friend to send the work to the great mathematicians of the day.</p>
+      <p style="margin-top:10px">Those pages contained the seed of group theory.</p>
+    </div>
+
+    <!-- Timeline -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:16px;" id="galoisTimeline"></div>
+
+    <!-- The question Galois answered -->
+    <div style="background:var(--bg2);border:1px solid rgba(251,191,36,0.15);border-radius:var(--radius);padding:18px;margin-bottom:16px;">
+      <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:10px;">The question he answered</div>
+      <div style="font-family:'Lora',serif;font-size:1em;line-height:1.8;color:#c0b090;">
+        For centuries, mathematicians had formulas to solve equations of degree 2, 3, and 4.<br><br>
+        Everyone assumed a formula for degree 5 (like x⁵ + x + 1 = 0) existed but hadn't been found yet.<br><br>
+        Galois proved — using groups — that <em style="color:var(--gold)">no such formula exists</em>. Some equations are genuinely unsolvable by any formula, no matter how clever.<br><br>
+        He didn't just answer the question. He invented the language needed to ask it properly.
+      </div>
+    </div>
+
+    <div class="insight teal">
+      <div class="lbl">💡 What this means for you</div>
+      <p>The clock you explored in Act I, the calendar in Act II, the multiplication patterns in Act III — they all live inside group theory. You've been doing mathematics that connects to one of the most beautiful discoveries of the 19th century. And it all started with: <em>what happens after 12?</em></p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(4)">Complete the journey →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 4: FULL CIRCLE -->
+  <section class="screen" id="screen-4">
+    <div class="act-title">
+      <div class="act-label">The complete journey</div>
+      <div class="act-name">From clock to <em>infinity</em></div>
+    </div>
+
+    <div id="journeyMap"></div>
+
+    <div class="final-badge">
+      <span class="final-star">✦</span>
+      <div class="final-title">The Clock That Never Stops — Complete</div>
+      <div class="final-sub">
+        You followed one idea from a clock face to abstract algebra.<br>
+        Every step was reachable. Every idea built on the last.<br>
+        <br>
+        The mathematics of groups connects clocks to crystals to quantum physics.<br>
+        <em>You are standing at the edge of one of the deepest ideas in all of mathematics.</em>
+      </div>
+    </div>
+
+    <div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;text-align:center;">Where would you like to go next?</div>
+    <div id="nextJourneys"></div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+      <button class="cta-btn" onclick="grandFinale()">✦ Celebrate the journey</button>
+      <button class="cta-btn ghost" onclick="window.location.href='clock_journey_act1.html'">← Start from the beginning</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+let axiomsVerified=new Set();
+let structsExplored=new Set();
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n; document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1)buildAxioms();
+  if(n===2)buildStructures();
+  if(n===3)buildGalois();
+  if(n===4)buildFullCircle();
+}
+
+// ── Screen 1: Axioms ──
+const axioms=[
+  {
+    icon:'🔒', name:'Closure',
+    body:'Combining any two elements gives another element <em>still in the group.</em> On our clock (mod 5): the result is always 0–4. You can\'t escape.',
+    demo:`3 + 4 mod 5 = <span class="axiom-result">2</span>  ✓ still in {0,1,2,3,4}
+2 + 2 mod 5 = <span class="axiom-result">4</span>  ✓ still in {0,1,2,3,4}
+4 + 4 mod 5 = <span class="axiom-result">3</span>  ✓ still in {0,1,2,3,4}`
+  },
+  {
+    icon:'🤝', name:'Associativity',
+    body:'The order you bracket doesn\'t matter: <em>(a + b) + c = a + (b + c).</em> Grouping is flexible.',
+    demo:`(2 + 3) + 4 = 5 + 4 = 9 mod 5 = <span class="axiom-result">4</span>
+ 2 + (3 + 4) = 2 + 7 = 9 mod 5 = <span class="axiom-result">4</span>  ✓ same answer`
+  },
+  {
+    icon:'🎯', name:'Identity element',
+    body:'There\'s one special element that changes nothing. <em>Adding 0</em> to any clock number leaves it unchanged. 0 is the identity.',
+    demo:`3 + 0 mod 5 = <span class="axiom-result">3</span>  ✓ unchanged
+0 + 4 mod 5 = <span class="axiom-result">4</span>  ✓ unchanged
+0 + 0 mod 5 = <span class="axiom-result">0</span>  ✓ unchanged`
+  },
+  {
+    icon:'↩️', name:'Inverse elements',
+    body:'Every element has a partner — an <em>inverse</em> — that combines with it to give the identity. On mod 5: the inverse of 3 is 2, because 3+2=5≡0.',
+    demo:`3 + 2 mod 5 = <span class="axiom-result">0</span>  ✓ (identity)
+4 + 1 mod 5 = <span class="axiom-result">0</span>  ✓ (identity)
+1 + 4 mod 5 = <span class="axiom-result">0</span>  ✓ (identity)`
+  }
+];
+
+function buildAxioms(){
+  axiomsVerified.clear();
+  document.getElementById('s1Next').disabled=true;
+  document.getElementById('axiomComplete').style.display='none';
+  const container=document.getElementById('axiomCards');
+  container.innerHTML='';
+  axioms.forEach((ax,i)=>{
+    const card=document.createElement('div');
+    card.className='axiom-card';
+    card.style.animationDelay=`${i*0.1}s`;
+    card.innerHTML=`
+      <div class="axiom-header">
+        <div class="axiom-icon">${ax.icon}</div>
+        <div class="axiom-name">${ax.name}</div>
+        <div class="axiom-check">✓</div>
+      </div>
+      <div class="axiom-body">${ax.body}</div>
+      <div class="axiom-demo">${ax.demo}</div>
+      <div class="axiom-tap-hint">tap to verify →</div>
+    `;
+    card.onclick=()=>verifyAxiom(i,card);
+    container.appendChild(card);
+  });
+}
+
+function verifyAxiom(i,card){
+  card.classList.toggle('open');
+  if(!axiomsVerified.has(i)){
+    axiomsVerified.add(i);
+    card.classList.add('verified');
+    card.querySelector('.axiom-tap-hint').textContent='verified ✓';
+    launchMiniConfetti();
+    if(axiomsVerified.size===4){
+      document.getElementById('axiomComplete').style.display='block';
+      document.getElementById('s1Next').disabled=false;
+    }
+  }
+}
+
+// ── Screen 2: Structures ──
+const structures=[
+  {
+    icon:'🕐', name:'Clock arithmetic',
+    sub:'mod 5 addition',
+    detail:`The <strong>clock group</strong> is our starting point. Elements: {0,1,2,3,4}. Operation: addition mod 5. Identity: 0. Inverse of 3: 2 (since 3+2=0 mod 5). <em>Five elements arranged in a perfect cycle.</em>`
+  },
+  {
+    icon:'🔲', name:'Symmetries of a square',
+    sub:'rotations and reflections',
+    detail:`A square can be rotated by 0°, 90°, 180°, 270° — and reflected across 4 axes. That's <strong>8 symmetries</strong>. Composing two symmetries gives another. The identity is "do nothing". Every symmetry has an inverse. <em>This group is called D₄.</em>`
+  },
+  {
+    icon:'⊕', name:'Even and odd numbers',
+    sub:'addition of parities',
+    detail:`Just two elements: {even, odd}. Operation: adding parities (even+even=even, odd+odd=even, even+odd=odd). Identity: even. Inverse of odd: odd. <em>The simplest group — only 2 elements. Called ℤ₂.</em>`
+  },
+  {
+    icon:'🔤', name:'Caesar shifts',
+    sub:'mod 26 addition',
+    detail:`The 26 possible Caesar shifts form a group. Combining two shifts gives another shift (closure). Shift 0 is the identity. The inverse of shift k is shift 26−k. <em>The exact same structure as a 26-hour clock.</em>`
+  }
+];
+
+function buildStructures(){
+  structsExplored.clear();
+  document.getElementById('structInsight').style.display='none';
+  const grid=document.getElementById('structGrid');
+  grid.innerHTML='';
+  structures.forEach((s,i)=>{
+    const card=document.createElement('div');
+    card.className='struct-card';
+    card.innerHTML=`<span class="struct-icon">${s.icon}</span>
+      <div class="struct-name">${s.name}</div>
+      <div class="struct-sub">${s.sub}</div>`;
+    card.onclick=()=>showStruct(i,card);
+    grid.appendChild(card);
+  });
+}
+
+function showStruct(i,card){
+  document.querySelectorAll('.struct-card').forEach(c=>c.classList.remove('active'));
+  card.classList.add('active');
+  structsExplored.add(i);
+  const s=structures[i];
+  const detail=document.getElementById('structDetail');
+  detail.style.display='block';
+  detail.className='struct-detail';
+  detail.innerHTML=`<div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:8px;">${s.icon} ${s.name}</div>${s.detail}`;
+  if(structsExplored.size>=3){
+    document.getElementById('structInsight').style.display='block';
+  }
+}
+
+// ── Screen 3: Galois ──
+const galoisEvents=[
+  {year:'1811',text:'Évariste Galois born in Bourg-la-Reine, France. Remarkable mathematical mind — mastering in hours what others took years to learn.'},
+  {year:'1828',text:'Age 17. Enters the École Normale. Begins working on the theory of polynomial equations — a problem that had defeated mathematicians for centuries.'},
+  {year:'1829',text:'Submits revolutionary papers to the French Academy of Sciences. They are lost, misunderstood, or rejected. Twice.'},
+  {year:'1830',text:'Age 19. Arrested twice for political activities. Continues mathematics in prison.'},
+  {year:'1832 (night before)',text:'Challenged to a duel. Spends the night writing mathematics, annotating papers with urgent notes. Writes to a friend: "I have not time."'},
+  {year:'1832 (morning)',text:'Age 20. Killed in the duel. His papers survive.'},
+  {year:'1846',text:'His work is finally published — 14 years after his death. Mathematicians realise he had invented an entirely new branch of mathematics.'},
+  {year:'Today',text:'Galois theory and group theory are foundational to modern mathematics, physics, chemistry, and cryptography. His ideas outlived him by centuries.'},
+];
+
+function buildGalois(){
+  const tl=document.getElementById('galoisTimeline');
+  tl.innerHTML='<div style="font-size:0.7em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:14px;">A life in mathematics</div>';
+  galoisEvents.forEach((ev,i)=>{
+    const div=document.createElement('div');
+    div.style.cssText=`display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);animation:fadeUp 0.4s ease ${i*0.08}s both;`;
+    if(i===galoisEvents.length-1)div.style.borderBottom='none';
+    const highlight=ev.year.includes('night')||ev.year.includes('morning');
+    div.innerHTML=`
+      <div style="font-family:'DM Sans',monospace;font-size:0.75em;font-weight:700;
+        color:${highlight?'var(--rose)':'var(--muted)'};min-width:72px;padding-top:2px;flex-shrink:0;">${ev.year}</div>
+      <div style="font-family:'Lora',serif;font-size:0.9em;line-height:1.6;
+        color:${highlight?'#d4c4a8':'#8a7a5a'};">${ev.text}</div>`;
+    tl.appendChild(div);
+  });
+}
+
+// ── Screen 4: Full circle ──
+const journeyActs=[
+  {icon:'🕐',act:'Act I',title:'The Clock Wraps',thread:'A clock resets at 12. That\'s mod arithmetic. Numbers can wrap around — and that one idea opens everything.',col:'var(--amber)'},
+  {icon:'📅',act:'Act II',title:'The Calendar',thread:'Weeks wrap at 7. Months at 12. Leap years use mod 4, 100, 400. The calendar is pure modular arithmetic.',col:'var(--teal)'},
+  {icon:'🔄',act:'Act III',title:'The Pattern',thread:'Multiply on a clock — and prime-sized clocks give complete cycles. No gaps. Composite clocks leave holes.',col:'var(--rose)'},
+  {icon:'🔐',act:'Act IV',title:'The Code',thread:'Caesar shifts letters mod 26. Easy to encrypt, trivially cracked. Real codes need much harder problems — like prime factoring.',col:'var(--violet)'},
+  {icon:'✦', act:'Act V', title:'The Group',thread:'Everything shares four axioms: closure, associativity, identity, inverse. One pattern. Infinite applications. This is where mathematics lives.',col:'var(--gold)'},
+];
+
+const nextJourneyData=[
+  {icon:'∞',title:'Infinity & Cantor',sub:'Some infinities are bigger than others. Cantor proved it — and nearly lost his mind doing so.',tag:'Coming soon'},
+  {icon:'🎲',title:'Probability & Bayes',sub:'How to update your beliefs when new evidence arrives. The mathematics of learning.',tag:'Coming soon'},
+  {icon:'🌊',title:'Calculus',sub:'How things change — the mathematics underneath all physics, finance and engineering.',tag:'Coming soon'},
+  {icon:'🔺',title:'Non-Euclidean Geometry',sub:'What happens when parallel lines meet? A whole universe of curved space awaits.',tag:'Coming soon'},
+];
+
+function buildFullCircle(){
+  const map=document.getElementById('journeyMap');
+  map.innerHTML='';
+  journeyActs.forEach((act,i)=>{
+    const div=document.createElement('div');
+    div.className='journey-act';
+    div.style.animationDelay=`${i*0.1}s`;
+    div.style.borderLeftColor=act.col; div.style.borderLeftWidth='3px';
+    div.innerHTML=`<div class="ja-icon">${act.icon}</div>
+      <div class="ja-body">
+        <div class="ja-act">${act.act}</div>
+        <div class="ja-title" style="color:${act.col}">${act.title}</div>
+        <div class="ja-thread">${act.thread}</div>
+      </div>`;
+    map.appendChild(div);
+  });
+
+  const nj=document.getElementById('nextJourneys');
+  nj.innerHTML='';
+  nextJourneyData.forEach(j=>{
+    const div=document.createElement('div');
+    div.className='next-card';
+    div.innerHTML=`<div class="next-icon">${j.icon}</div>
+      <div style="flex:1;">
+        <div class="next-title">${j.title}</div>
+        <div class="next-sub">${j.sub}</div>
+      </div>
+      <div class="next-tag">${j.tag}</div>`;
+    nj.appendChild(div);
+  });
+}
+
+function grandFinale(){
+  launchConfetti();
+}
+
+// ── Cosmos background ──
+(function(){
+  const cv=document.getElementById('cosmos');
+  function draw(){
+    cv.width=innerWidth; cv.height=innerHeight;
+    const ctx=cv.getContext('2d');
+    // Subtle multi-colour gradient
+    const g=ctx.createRadialGradient(innerWidth*.3,innerHeight*.2,0,innerWidth*.3,innerHeight*.2,innerWidth*.7);
+    g.addColorStop(0,'rgba(251,191,36,0.04)');
+    g.addColorStop(0.4,'rgba(167,139,250,0.02)');
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.fillRect(0,0,cv.width,cv.height);
+    for(let i=0;i<180;i++){
+      const x=Math.random()*cv.width,y=Math.random()*cv.height;
+      const r=Math.random()*1.4,a=0.05+Math.random()*0.3;
+      ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+      const tints=['255,255,255','220,200,255','255,230,150'];
+      ctx.fillStyle=`rgba(${tints[Math.floor(Math.random()*tints.length)]},${a})`; ctx.fill();
+    }
+  }
+  window.addEventListener('resize',draw); draw();
+})();
+
+// Confetti
+const cc=document.getElementById('confetti'),cx=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<120;i++) parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*6,vy:2+Math.random()*5,
+    c:['#fbbf24','#f59e0b','#14b8a6','#a78bfa','#fb7185','#34d399'][Math.floor(Math.random()*6)],
+    s:5+Math.random()*8,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.25,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},4000);
+}
+function launchMiniConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;
+  for(let i=0;i<20;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*250,y:innerHeight*.4,
+    vx:(Math.random()-.5)*8,vy:-(3+Math.random()*6),
+    c:['#fbbf24','#14b8a6'][Math.floor(Math.random()*2)],
+    s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!afr)animC();
+}
+function animC(){
+  cx.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.011;
+    cx.save();cx.globalAlpha=p.l;cx.translate(p.x,p.y);cx.rotate(p.r);
+    cx.fillStyle=p.c;cx.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cx.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;
+}
+</script>
+</body>
+</html>

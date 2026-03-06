@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backpropagation | mathsedu.org</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+:root{--bg:#050814;--bg2:#0a0f1e;--bg3:#0f1628;--vio:#8b5cf6;--vio-d:rgba(139,92,246,0.12);--cyan:#22d3ee;--amber:#f59e0b;--emerald:#10b981;--coral:#f43f5e;--silver:#e2e8f0;--text:#94a3b8;--text2:#cbd5e1;--muted:#334155;--border:rgba(139,92,246,0.15);--radius:14px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;}
+canvas#bgc{position:fixed;inset:0;z-index:0;opacity:.4;}
+.page{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:0 24px 80px;}
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0 16px;border-bottom:1px solid var(--border);margin-bottom:48px;}
+.nav-logo{font-family:'Lora',serif;font-size:1.1em;color:var(--muted);}.nav-logo span{color:var(--vio);font-style:italic;}
+.nav-ch{font-size:.72em;text-transform:uppercase;letter-spacing:2px;color:var(--coral);}
+.hero{margin-bottom:56px;}
+.ch-tag{display:inline-block;font-size:.68em;text-transform:uppercase;letter-spacing:3px;color:var(--coral);border:1px solid rgba(244,63,94,.3);border-radius:20px;padding:4px 14px;margin-bottom:18px;}
+h1{font-family:'Lora',serif;font-size:clamp(2.2em,5vw,3.2em);font-weight:400;color:var(--silver);line-height:1.2;margin-bottom:16px;}
+h1 em{color:var(--coral);font-style:italic;}
+.hero-sub{font-family:'Lora',serif;font-size:1.15em;color:#4a6080;line-height:1.9;max-width:680px;}
+h2{font-family:'Lora',serif;font-size:1.55em;font-weight:400;color:var(--silver);margin:48px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+h3{font-family:'Lora',serif;font-size:1.1em;font-weight:600;color:var(--text2);margin:28px 0 10px;}
+p{line-height:1.85;color:var(--text);margin-bottom:16px;font-size:.97em;}
+p strong{color:var(--text2);}p em{color:var(--coral);font-style:italic;}
+.callout{border-left:3px solid var(--coral);background:rgba(244,63,94,.08);border-radius:0 var(--radius) var(--radius) 0;padding:16px 20px;margin:24px 0;}
+.callout.vio{border-left-color:var(--vio);background:var(--vio-d);}
+.callout.emerald{border-left-color:var(--emerald);background:rgba(16,185,129,.08);}
+.callout.amber{border-left-color:var(--amber);background:rgba(245,158,11,.08);}
+.callout-lbl{font-size:.66em;text-transform:uppercase;letter-spacing:2px;color:var(--coral);margin-bottom:6px;}
+.callout.vio .callout-lbl{color:var(--vio);}.callout.emerald .callout-lbl{color:var(--emerald);}.callout.amber .callout-lbl{color:var(--amber);}
+.callout p{margin:0;font-family:'Lora',serif;font-size:.96em;color:#2a4060;line-height:1.75;}
+.callout p strong{color:var(--silver);}
+.math-block{font-family:'JetBrains Mono',monospace;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin:16px 0;font-size:.88em;color:var(--cyan);line-height:1.8;white-space:pre;}
+.ibox{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin:32px 0;}
+.ibox-lbl{font-size:.68em;text-transform:uppercase;letter-spacing:2px;color:var(--coral);margin-bottom:14px;}
+canvas.vis{display:block;border-radius:8px;background:var(--bg3);width:100%;}
+button{border:none;border-radius:8px;padding:8px 18px;font-family:'Inter',sans-serif;font-size:.82em;font-weight:500;cursor:pointer;transition:all .2s;}
+.bp{background:linear-gradient(135deg,var(--coral),#be185d);color:#fff;}
+.bp:hover{transform:translateY(-1px);}
+.bs{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.ctrl{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center;}
+.ctrl label{font-size:.8em;color:var(--muted);}
+input[type=range]{flex:1;min-width:100px;accent-color:var(--coral);}
+.vbadge{font-family:'JetBrains Mono',monospace;font-size:.8em;color:var(--cyan);background:var(--bg3);padding:3px 9px;border-radius:6px;min-width:56px;text-align:center;}
+.stage-info{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-top:12px;font-family:'JetBrains Mono',monospace;font-size:.8em;color:var(--text2);min-height:52px;line-height:1.7;}
+.conn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin:20px 0;}
+.conn-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-decoration:none;transition:all .2s;display:block;}
+.conn-card:hover{border-color:rgba(244,63,94,.4);transform:translateY(-2px);}
+.cc-tag{font-size:.6em;text-transform:uppercase;letter-spacing:2px;color:var(--coral);margin-bottom:5px;}
+.cc-title{font-size:.88em;font-weight:600;color:var(--silver);margin-bottom:3px;}
+.cc-desc{font-size:.74em;color:var(--muted);line-height:1.5;}
+.learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin:24px 0;}
+.learn-box .learn-title{font-size:.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+.learn-box .learn-title.try{color:var(--cyan);}
+.learn-box .learn-title.notice{color:var(--amber);}
+.learn-box .learn-title.why{color:var(--emerald);}
+.learn-box ul{margin:0;padding-left:18px;font-size:.88em;line-height:1.8;color:var(--text2);}
+.learn-box ul li{margin-bottom:4px;}
+</style>
+</head>
+<body>
+<canvas id="bgc"></canvas>
+<div class="page">
+<nav>
+  <div class="nav-logo">mathsedu<span>.org</span></div>
+  <div class="nav-ch">Chapter 11 · Mathematics of Intelligence</div>
+</nav>
+<div class="hero">
+  <div class="ch-tag">Ch. 11 · Foundations · Page 4 of 15</div>
+  <h1>Back&shy;<em>propagation</em></h1>
+  <p class="hero-sub">The chain rule at scale — how gradients flow backward through billions of operations to teach a neural network what to change.</p>
+</div>
+
+<h2>The Problem of Credit Assignment</h2>
+<p>A neural network makes a prediction. The prediction is wrong. <strong>Which parameters caused the error — and by how much?</strong> This is the credit assignment problem, and it is one of the oldest challenges in machine learning.</p>
+<p>With millions of parameters all contributing to an output, how do you know which ones to adjust, and in which direction? The answer is backpropagation — the systematic application of the chain rule of calculus to compute every gradient simultaneously in a single backward pass through the network.</p>
+
+<div class="callout">
+  <div class="callout-lbl">History — Rediscovered Three Times</div>
+  <p>Backpropagation was independently discovered by Seppo Linnainmaa (1970), Paul Werbos (1974), and Rumelhart, Hinton & Williams (1986). The 1986 paper, <em>Learning representations by back-propagating errors</em>, demonstrated it working on practical problems and launched the first neural network renaissance. The mathematics had waited twelve years for the hardware to catch up.</p>
+</div>
+
+<h2>The Intuition: Wiggle and Observe</h2>
+<p>Before diving into the chain rule, consider a simpler idea. You have a weight in your network. You want to know: <strong>if I change this weight by a tiny amount, how does the error change?</strong></p>
+<p>You could literally try it — nudge the weight up by 0.001, recompute the output, measure the new error. The difference tells you the gradient for that one weight. But with millions of weights, this brute-force approach is far too slow. Backpropagation computes all gradients at once, in a single backward sweep.</p>
+
+<div class="callout vio">
+  <div class="callout-lbl">The Core Idea — Simplified</div>
+  <p><strong>Change a weight slightly. Observe the effect on the error.</strong> If the error goes up, the weight should decrease. If the error goes down, the weight should increase. The gradient tells you both the direction and the magnitude. Backpropagation is the efficient algorithm for computing this gradient for every weight simultaneously.</p>
+</div>
+
+<h2>The Chain Rule — Foundation of Everything</h2>
+<p>If f(g(x)) is a composition of two functions, the derivative of the composition is:</p>
+
+<div class="math-block">Chain rule:   d/dx [f(g(x))]  =  f'(g(x)) * g'(x)
+
+In other words: the derivative of a composed function is the product of
+the derivatives of each component, evaluated at the right place.
+
+For a chain of 3 functions:   L = f(g(h(x)))
+  dL/dx = dL/df * df/dg * dg/dh * dh/dx
+
+Neural networks are just very long chains. Backpropagation is just the
+chain rule applied systematically, layer by layer, from output to input.</div>
+
+<h2>Animated Error Flow</h2>
+<p>The key to understanding backpropagation is watching error flow backward through the network. The output layer computes the error. Then, layer by layer, that error signal propagates backward — each layer learning how much it contributed to the mistake.</p>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — Error Flowing Backward</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">Watch error (red) flow from the output backward through the network. Each arrow shows the gradient magnitude. Thicker, brighter arrows mean larger gradients — those weights will change more during the update.</p>
+  <canvas id="flowCanvas" class="vis" height="400"></canvas>
+  <div class="ctrl">
+    <button class="bp" id="flowFwdBtn" onclick="startFlowForward()">Forward Pass</button>
+    <button class="bp" id="flowBwdBtn" onclick="startFlowBackward()" style="display:none;">Backward Pass (Error Flow)</button>
+    <button class="bp" id="flowUpdBtn" onclick="startFlowUpdate()" style="display:none;">Update Weights</button>
+    <button class="bs" onclick="resetFlow()">Reset</button>
+  </div>
+  <div class="stage-info" id="flowInfo">Press "Forward Pass" to send input through the network. Then watch error flow backward.</div>
+</div>
+
+<div class="learn-box">
+  <div class="learn-title try">Try This</div>
+  <ul>
+    <li>Press "Forward Pass" to watch values propagate left to right through the network.</li>
+    <li>Press "Backward Pass" to watch error flow right to left — notice the colour-coded arrows.</li>
+    <li>Press "Update Weights" to see which weights change the most (thicker connections = larger updates).</li>
+    <li>Reset and run again — the updated weights produce a different (better) output.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title notice">What To Notice</div>
+  <ul>
+    <li>Error flows backward: from output to hidden layer to input. This is why it is called "back"-propagation.</li>
+    <li>Arrow brightness and thickness indicate gradient magnitude — some weights matter more than others.</li>
+    <li>Weights with large gradients (bright red arrows) will change the most. Weights with small gradients barely move.</li>
+    <li>After the update, the network's prediction moves closer to the target.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title why">Why It Matters</div>
+  <ul>
+    <li>Backpropagation makes learning possible. Without it, we would need to test each weight individually — impossibly slow for millions of parameters.</li>
+    <li>It computes all gradients in one pass, making it only ~2x the cost of a forward pass.</li>
+    <li>Every modern AI system — GPT, DALL-E, AlphaFold — learns through backpropagation.</li>
+  </ul>
+</div>
+
+<h2>The Wiggle Test</h2>
+<p>To build deeper intuition, try adjusting a single weight and watch how the output error changes. This is the essence of what backpropagation computes — but for all weights at once.</p>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — Wiggle a Weight, Observe the Error</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">A tiny network: input -> weight -> output. Drag the weight slider to see how the output and error change. The slope of the error curve at your current position IS the gradient.</p>
+  <canvas id="wiggleCanvas" class="vis" height="260"></canvas>
+  <div class="ctrl">
+    <label>Weight w</label>
+    <input type="range" id="wiggleSlider" min="-200" max="200" value="50" oninput="drawWiggle()">
+    <span class="vbadge" id="wiggleVal">w = 0.50</span>
+    <button class="bs" onclick="document.getElementById('wiggleSlider').value=50;drawWiggle();">Reset</button>
+  </div>
+</div>
+
+<div class="learn-box">
+  <div class="learn-title try">Try This</div>
+  <ul>
+    <li>Move the weight slider slowly from left to right. Watch the error curve — find the minimum.</li>
+    <li>Notice that the gradient (shown as a tangent line) is steep when far from the minimum and flat at the minimum.</li>
+    <li>The gradient tells you both the direction (left or right) and the magnitude (how far) to move.</li>
+  </ul>
+</div>
+
+<h2>The Computation Graph</h2>
+<p>Any computation can be represented as a <em>directed acyclic graph</em> (DAG) where nodes are operations and edges are the flow of values. Forward propagation traverses this graph from inputs to outputs. Backpropagation traverses it in reverse, computing gradients at each node using the chain rule.</p>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — Forward & Backward Pass</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">A simple two-layer network. Press Forward to see values propagate. Press Backward to see gradients flow back. Step through to understand each operation.</p>
+  <canvas id="cgCanvas" class="vis" height="380"></canvas>
+  <div class="ctrl">
+    <button class="bp" id="fwdBtn" onclick="runForward()">Forward pass</button>
+    <button class="bp" id="bwdBtn" onclick="runBackward()" style="display:none;">Backward pass</button>
+    <button class="bs" onclick="resetGraph()">Reset</button>
+    <button class="bs" id="stepBtn" onclick="stepGraph()" style="display:none;">Step</button>
+  </div>
+  <div class="stage-info" id="stageInfo">Press "Forward pass" to propagate inputs through the network.</div>
+</div>
+
+<div class="learn-box">
+  <div class="learn-title try">Try This</div>
+  <ul>
+    <li>Step through the forward pass node by node. Watch values flow left to right.</li>
+    <li>Then step through the backward pass. Watch gradients flow right to left.</li>
+    <li>Notice how each backward step uses the chain rule: multiply the incoming gradient by the local derivative.</li>
+  </ul>
+</div>
+
+<h2>Simplified View of the Algorithm</h2>
+<div class="math-block">The intuition (no matrices needed):
+
+1. FORWARD: Send input through the network, computing output at each layer.
+   Store all intermediate values (you will need them).
+
+2. COMPUTE ERROR: Compare output to target. How wrong are we?
+
+3. BACKWARD: For each layer, from last to first:
+   - "How much did THIS layer contribute to the error?"
+   - Answer: multiply incoming error by local derivative
+   - Pass the result to the previous layer
+
+4. UPDATE: For each weight:
+   weight = weight - learning_rate * gradient
+   (Nudge each weight in the direction that reduces error)</div>
+
+<h3>Why the Forward Pass Must Store Everything</h3>
+<p>Notice that the backward pass uses intermediate values computed during the forward pass. This is why training a large model requires much more memory than running inference. During training, you must keep every intermediate activation in memory until its gradient has been computed.</p>
+<p>For GPT-3 with 96 layers, this requires storing activations for every layer, for every token in the batch. At a batch size of 1 million tokens, this amounts to hundreds of gigabytes of activations — before even storing the parameters.</p>
+
+<div class="callout amber">
+  <div class="callout-lbl">Gradient checkpointing</div>
+  <p>To reduce memory, <strong>gradient checkpointing</strong> recomputes intermediate activations during the backward pass rather than storing them. This trades compute for memory: the forward pass is run twice, but activation memory drops from O(depth) to O(sqrt(depth)). Used in training the largest models.</p>
+</div>
+
+<h2>Vanishing and Exploding Gradients</h2>
+<p>The chain rule multiplies many derivatives together. If each derivative is less than 1 (as with the sigmoid activation, which saturates), the product shrinks exponentially with depth. <strong>Vanishing gradients</strong> mean early layers receive almost no learning signal — the gradient that reaches layer 1 of a 100-layer network may be 10^-30 times the gradient at layer 100.</p>
+<p>Conversely, if derivatives are large, the product explodes. <strong>Exploding gradients</strong> cause parameter updates so large the network destabilises. The solution: gradient clipping (cap the gradient norm) and careful architecture choices (residual connections, normalisation layers).</p>
+
+<div class="math-block">Sigmoid derivative: sigmoid'(x) = sigmoid(x)(1-sigmoid(x)) &lt;= 0.25
+
+For a 10-layer network with sigmoid activations:
+  gradient at layer 0 ~ 0.25^10 ~ 9.5 x 10^-7   -- essentially zero
+
+ReLU derivative: max(0,x)' = 0 if x&lt;0, else 1
+  Gradients pass through unchanged (if x>0) -> no vanishing
+  But "dead ReLU": if x&lt;0, gradient = 0, neuron stops learning
+
+Solution: Residual connections (ResNet, 2015):
+  y = F(x) + x      -- identity shortcut
+  dy/dx = dF/dx + 1  -- gradient always has +1, never vanishes</div>
+
+<div class="callout emerald">
+  <div class="callout-lbl">Why modern networks are deep but trainable</div>
+  <p>Residual connections (He et al., 2015) solved the vanishing gradient problem for very deep networks. By adding an identity shortcut around each block, gradients always have a direct path to early layers. ResNet-152 (152 layers) trained successfully where earlier 20-layer networks had failed. Every modern large model uses residual connections.</p>
+</div>
+
+<h2>Connected Mathematics</h2>
+<div class="conn-grid">
+  <a href="derivatives.html" class="conn-card">
+    <div class="cc-tag">Ch. 6 · Calculus</div>
+    <div class="cc-title">Derivatives</div>
+    <div class="cc-desc">The chain rule is the foundation. Partial derivatives in multiple variables.</div>
+  </a>
+  <a href="gradient_descent.html" class="conn-card">
+    <div class="cc-tag">Ch. 11 · AI · Page 3</div>
+    <div class="cc-title">Gradient Descent</div>
+    <div class="cc-desc">Backpropagation computes the gradient. Gradient descent uses it to update parameters.</div>
+  </a>
+  <a href="linear_transformations.html" class="conn-card">
+    <div class="cc-tag">Ch. 7 · Linear Algebra</div>
+    <div class="cc-title">Linear Transformations</div>
+    <div class="cc-desc">Each layer is a linear map. Matrix calculus governs how gradients flow through it.</div>
+  </a>
+  <a href="attention_mechanism.html" class="conn-card">
+    <div class="cc-tag">Ch. 11 · AI · Page 5</div>
+    <div class="cc-title">Attention Mechanism</div>
+    <div class="cc-desc">Backpropagation through attention requires differentiating the softmax operation.</div>
+  </a>
+</div>
+</div>
+
+<script>
+const bgc=document.getElementById('bgc'),bx=bgc.getContext('2d');
+bgc.width=innerWidth;bgc.height=innerHeight;
+const pts=Array.from({length:55},()=>({x:Math.random()*bgc.width,y:Math.random()*bgc.height,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25}));
+function animBg(){bx.clearRect(0,0,bgc.width,bgc.height);pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=bgc.width;if(p.x>bgc.width)p.x=0;if(p.y<0)p.y=bgc.height;if(p.y>bgc.height)p.y=0;bx.beginPath();bx.arc(p.x,p.y,1.2,0,Math.PI*2);bx.fillStyle='rgba(244,63,94,.4)';bx.fill();});requestAnimationFrame(animBg);}
+animBg();
+
+// ============ ANIMATED ERROR FLOW ============
+const flc=document.getElementById('flowCanvas'),flx=flc.getContext('2d');
+let flW,flH,flowPhase='idle',flowStep=0,flowAnimId=null;
+
+// Network structure: 2 inputs, 3 hidden, 1 output
+const FL_NET={
+  layers:[[{v:0.8},{v:-0.5}],[{v:0},{v:0},{v:0}],[{v:0}]],
+  weights:[
+    // input->hidden (2x3)
+    [[0.4,0.3,-0.2],[-0.3,0.5,0.1]],
+    // hidden->output (3x1)
+    [[0.6],[-0.4],[0.3]]
+  ],
+  biases:[[0.1,-0.1,0.05],[0.0]],
+  target:0.7,
+  // Computed during forward
+  activations:[[],[],[]],
+  gradients:[[],[],[]],
+  weightGrads:[[],[]],
+};
+
+function relu(x){return Math.max(0,x);}
+function sigmoid(x){return 1/(1+Math.exp(-x));}
+
+function flowForward(){
+  const net=FL_NET;
+  net.activations[0]=net.layers[0].map(n=>n.v);
+  // hidden layer
+  for(let j=0;j<3;j++){
+    let sum=net.biases[0][j];
+    for(let i=0;i<2;i++) sum+=net.activations[0][i]*net.weights[0][i][j];
+    net.layers[1][j].v=relu(sum);
+    net.activations[1][j]=net.layers[1][j].v;
+  }
+  // output
+  let sum=net.biases[1][0];
+  for(let j=0;j<3;j++) sum+=net.activations[1][j]*net.weights[1][j][0];
+  net.layers[2][0].v=sigmoid(sum);
+  net.activations[2][0]=net.layers[2][0].v;
+}
+
+function flowBackward(){
+  const net=FL_NET;
+  const yhat=net.activations[2][0];
+  const y=net.target;
+  // output gradient
+  const dL_dyhat=-(y/yhat-(1-y)/(1-yhat));
+  const dL_dz2=dL_dyhat*yhat*(1-yhat);
+  net.gradients[2]=[dL_dz2];
+  // hidden gradients
+  net.gradients[1]=[];
+  net.weightGrads[1]=[];
+  for(let j=0;j<3;j++){
+    const dL_da=dL_dz2*net.weights[1][j][0];
+    const dL_dz=net.activations[1][j]>0?dL_da:0;
+    net.gradients[1][j]=dL_dz;
+    net.weightGrads[1].push(dL_dz2*net.activations[1][j]);
+  }
+  // input gradients
+  net.gradients[0]=[];
+  net.weightGrads[0]=[];
+  for(let i=0;i<2;i++){
+    let g=0;
+    net.weightGrads[0][i]=[];
+    for(let j=0;j<3;j++){
+      g+=net.gradients[1][j]*net.weights[0][i][j];
+      net.weightGrads[0][i][j]=net.gradients[1][j]*net.activations[0][i];
+    }
+    net.gradients[0][i]=g;
+  }
+}
+
+let flowFwdProgress=0,flowBwdProgress=0,flowUpdProgress=0;
+
+function drawFlow(){
+  flW=flc.offsetWidth||700;flc.width=flW;flH=flc.offsetHeight||400;flc.height=flH;
+  flx.fillStyle='#0a0f1e';flx.fillRect(0,0,flW,flH);
+  const net=FL_NET;
+  // Node positions
+  const layerX=[0.12,0.45,0.82];
+  const layerNodes=[2,3,1];
+  const nodePos=[];
+  for(let l=0;l<3;l++){
+    nodePos[l]=[];
+    const n=layerNodes[l];
+    for(let i=0;i<n;i++){
+      const spacing=Math.min(90,flH/(n+1));
+      const y0=flH/2-(n-1)*spacing/2;
+      nodePos[l][i]={x:layerX[l]*flW,y:y0+i*spacing};
+    }
+  }
+  // Draw connections
+  for(let l=0;l<2;l++){
+    for(let i=0;i<layerNodes[l];i++){
+      for(let j=0;j<layerNodes[l+1];j++){
+        const from=nodePos[l][i],to=nodePos[l+1][j];
+        let lineW=1,lineCol='rgba(139,92,246,.2)';
+        // Forward: blue pulses
+        if(flowPhase==='forward'||flowPhase==='forward-done'||flowPhase==='backward'||flowPhase==='backward-done'||flowPhase==='update'){
+          lineCol='rgba(34,211,238,.25)';lineW=1.5;
+        }
+        // Backward: colour by gradient magnitude
+        if((flowPhase==='backward'||flowPhase==='backward-done'||flowPhase==='update')&&net.weightGrads[l]&&net.weightGrads[l].length>0){
+          let gVal=0;
+          if(l===0&&net.weightGrads[0][i])gVal=Math.abs(net.weightGrads[0][i][j]);
+          else if(l===1)gVal=Math.abs(net.weightGrads[1][i]);
+          const intensity=Math.min(1,gVal*3);
+          lineCol=`rgba(244,63,94,${0.2+intensity*0.8})`;
+          lineW=1+intensity*4;
+        }
+        flx.beginPath();flx.moveTo(from.x,from.y);flx.lineTo(to.x,to.y);
+        flx.strokeStyle=lineCol;flx.lineWidth=lineW;flx.stroke();
+        // Backward arrows
+        if((flowPhase==='backward'||flowPhase==='backward-done')&&net.weightGrads[l]&&net.weightGrads[l].length>0){
+          let gVal=0;
+          if(l===0&&net.weightGrads[0][i])gVal=Math.abs(net.weightGrads[0][i][j]);
+          else if(l===1)gVal=Math.abs(net.weightGrads[1][i]);
+          if(gVal>0.01){
+            const mx=(from.x+to.x)/2,my=(from.y+to.y)/2;
+            const ang=Math.atan2(from.y-to.y,from.x-to.x);
+            const aLen=8+gVal*10;
+            flx.beginPath();flx.moveTo(mx,my);
+            flx.lineTo(mx-aLen*Math.cos(ang-.4),my-aLen*Math.sin(ang-.4));
+            flx.lineTo(mx-aLen*Math.cos(ang+.4),my-aLen*Math.sin(ang+.4));
+            flx.fillStyle='rgba(244,63,94,.7)';flx.fill();
+          }
+        }
+      }
+    }
+  }
+  // Draw nodes
+  const layerLabels=['INPUT','HIDDEN (ReLU)','OUTPUT'];
+  const layerColors=['#22d3ee','#8b5cf6','#10b981'];
+  for(let l=0;l<3;l++){
+    for(let i=0;i<layerNodes[l];i++){
+      const p=nodePos[l][i];
+      const r=22;
+      let fillCol='rgba(15,22,40,.9)',strokeCol='rgba(139,92,246,.3)';
+      const isActive=(flowPhase==='forward-done'||flowPhase==='backward'||flowPhase==='backward-done'||flowPhase==='update');
+      const hasGrad=(flowPhase==='backward-done'||flowPhase==='update')&&net.gradients[l]&&net.gradients[l].length>0;
+      if(isActive){strokeCol=layerColors[l];fillCol=layerColors[l]+'22';}
+      if(hasGrad){
+        const gMag=Math.min(1,Math.abs(net.gradients[l][i])*3);
+        strokeCol=`rgba(244,63,94,${0.3+gMag*0.7})`;fillCol=`rgba(244,63,94,${0.05+gMag*0.15})`;
+      }
+      flx.beginPath();flx.arc(p.x,p.y,r,0,Math.PI*2);flx.fillStyle=fillCol;flx.fill();
+      flx.strokeStyle=strokeCol;flx.lineWidth=2;flx.stroke();
+      // Value
+      flx.fillStyle='rgba(255,255,255,.8)';flx.font='11px JetBrains Mono';flx.textAlign='center';
+      if(isActive) flx.fillText(net.layers[l][i].v.toFixed(3),p.x,p.y+4);
+      // Gradient
+      if(hasGrad&&net.gradients[l][i]!==undefined){
+        flx.fillStyle='rgba(244,63,94,.8)';flx.font='9px JetBrains Mono';
+        flx.fillText('g:'+net.gradients[l][i].toFixed(3),p.x,p.y+16);
+      }
+    }
+    // Layer label
+    flx.fillStyle='rgba(255,255,255,.3)';flx.font='10px Inter';flx.textAlign='center';
+    flx.fillText(layerLabels[l],layerX[l]*flW,20);
+  }
+  // Error/target display
+  if(flowPhase!=='idle'){
+    const yhat=net.activations[2][0]||0;
+    const err=-(net.target*Math.log(yhat+1e-9)+(1-net.target)*Math.log(1-yhat+1e-9));
+    flx.fillStyle='rgba(16,185,129,.6)';flx.font='11px JetBrains Mono';flx.textAlign='left';
+    flx.fillText('target = '+net.target.toFixed(1)+'   output = '+yhat.toFixed(4)+'   error = '+err.toFixed(4),10,flH-10);
+  }
+  // Phase indicator
+  const phaseLabels={idle:'Ready',forward:'Forward pass...',['forward-done']:'Forward complete',backward:'Error flowing backward...',['backward-done']:'Gradients computed',update:'Weights updated!'};
+  flx.fillStyle='rgba(244,63,94,.5)';flx.font='11px Inter';flx.textAlign='right';
+  flx.fillText(phaseLabels[flowPhase]||'',flW-10,flH-10);
+}
+
+function startFlowForward(){
+  flowPhase='forward';flowStep=0;
+  document.getElementById('flowFwdBtn').style.display='none';
+  document.getElementById('flowBwdBtn').style.display='none';
+  document.getElementById('flowUpdBtn').style.display='none';
+  document.getElementById('flowInfo').textContent='Computing forward pass: input values propagate through the network...';
+  flowForward();
+  // Animate briefly then show done
+  let f=0;
+  function anim(){
+    if(f>30){
+      flowPhase='forward-done';
+      document.getElementById('flowBwdBtn').style.display='';
+      document.getElementById('flowInfo').textContent='Forward pass complete. Output = '+FL_NET.activations[2][0].toFixed(4)+', Target = '+FL_NET.target+'. Now press "Backward Pass" to see error flow back.';
+      drawFlow();return;
+    }
+    f++;drawFlow();requestAnimationFrame(anim);
+  }
+  anim();
+}
+function startFlowBackward(){
+  flowPhase='backward';
+  document.getElementById('flowBwdBtn').style.display='none';
+  document.getElementById('flowInfo').innerHTML='<span style="color:var(--coral)">Error flows backward:</span> Computing gradients for each weight...';
+  flowBackward();
+  let f=0;
+  function anim(){
+    if(f>50){
+      flowPhase='backward-done';
+      document.getElementById('flowUpdBtn').style.display='';
+      document.getElementById('flowInfo').innerHTML='<span style="color:var(--coral)">Gradients computed.</span> Red arrow thickness = gradient magnitude. Press "Update Weights" to apply.';
+      drawFlow();return;
+    }
+    f++;drawFlow();requestAnimationFrame(anim);
+  }
+  anim();
+}
+function startFlowUpdate(){
+  document.getElementById('flowUpdBtn').style.display='none';
+  const net=FL_NET;const eta=0.3;
+  // Update weights
+  for(let i=0;i<2;i++)for(let j=0;j<3;j++){
+    if(net.weightGrads[0][i])net.weights[0][i][j]-=eta*net.weightGrads[0][i][j];
+  }
+  for(let j=0;j<3;j++)net.weights[1][j][0]-=eta*net.weightGrads[1][j];
+  // Re-forward
+  flowForward();
+  flowPhase='update';
+  const yhat=net.activations[2][0];
+  const err=-(net.target*Math.log(yhat+1e-9)+(1-net.target)*Math.log(1-yhat+1e-9));
+  document.getElementById('flowInfo').innerHTML='<span style="color:var(--emerald)">Weights updated!</span> New output = '+yhat.toFixed(4)+' (closer to target '+net.target+'). Error reduced to '+err.toFixed(4)+'.';
+  drawFlow();
+}
+function resetFlow(){
+  cancelAnimationFrame(flowAnimId);
+  flowPhase='idle';flowStep=0;
+  FL_NET.weights=[[[0.4,0.3,-0.2],[-0.3,0.5,0.1]],[[0.6],[-0.4],[0.3]]];
+  FL_NET.biases=[[0.1,-0.1,0.05],[0.0]];
+  FL_NET.layers[0][0].v=0.8;FL_NET.layers[0][1].v=-0.5;
+  FL_NET.layers[1].forEach(n=>n.v=0);FL_NET.layers[2][0].v=0;
+  FL_NET.gradients=[[],[],[]];FL_NET.weightGrads=[[],[]];
+  document.getElementById('flowFwdBtn').style.display='';
+  document.getElementById('flowBwdBtn').style.display='none';
+  document.getElementById('flowUpdBtn').style.display='none';
+  document.getElementById('flowInfo').textContent='Press "Forward Pass" to send input through the network. Then watch error flow backward.';
+  drawFlow();
+}
+window.addEventListener('resize',drawFlow);drawFlow();
+
+// ============ WIGGLE TEST ============
+const wgc=document.getElementById('wiggleCanvas'),wgx=wgc.getContext('2d');
+function drawWiggle(){
+  const W=wgc.offsetWidth||700;wgc.width=W;const H=wgc.offsetHeight||260;wgc.height=H;
+  wgx.fillStyle='#0a0f1e';wgx.fillRect(0,0,W,H);
+  const pad=40;
+  const w=parseInt(document.getElementById('wiggleSlider').value)/100;
+  document.getElementById('wiggleVal').textContent='w = '+w.toFixed(2);
+  // Network: input=1.5, weight=w, output=sigmoid(w*1.5), target=0.7
+  const inp=1.5,target=0.7;
+  function err(ww){const o=sigmoid(ww*inp);return -(target*Math.log(o+1e-9)+(1-target)*Math.log(1-o+1e-9));}
+  // Draw error curve
+  let minE=Infinity,maxE=-Infinity;
+  for(let px=0;px<W;px++){const ww=(px/W)*4-2;const e=err(ww);if(e<minE)minE=e;if(e>maxE)maxE=e;}
+  maxE=Math.min(maxE,5);const range=maxE-minE||1;
+  function toY(e){return H-pad-((Math.min(e,maxE)-minE)/range)*(H-2*pad);}
+  // Curve
+  wgx.beginPath();
+  for(let px=0;px<W;px++){const ww=(px/W)*4-2;const y=toY(err(ww));if(px===0)wgx.moveTo(px,y);else wgx.lineTo(px,y);}
+  wgx.strokeStyle='rgba(139,92,246,.6)';wgx.lineWidth=2;wgx.stroke();
+  // Current position
+  const curE=err(w);const curPx=((w+2)/4)*W;const curY=toY(curE);
+  wgx.beginPath();wgx.arc(curPx,curY,8,0,Math.PI*2);wgx.fillStyle='#f43f5e';wgx.fill();
+  // Gradient (tangent line)
+  const h=0.001;const grad=(err(w+h)-err(w-h))/(2*h);
+  const tLen=60;
+  wgx.beginPath();wgx.moveTo(curPx-tLen,curY+grad*tLen*(W/4));wgx.lineTo(curPx+tLen,curY-grad*tLen*(W/4));
+  wgx.strokeStyle='rgba(245,158,11,.7)';wgx.lineWidth=2;wgx.setLineDash([4,3]);wgx.stroke();wgx.setLineDash([]);
+  // Labels
+  const output=sigmoid(w*inp);
+  wgx.fillStyle='rgba(255,255,255,.6)';wgx.font='11px JetBrains Mono';wgx.textAlign='left';
+  wgx.fillText('output = sigmoid('+w.toFixed(2)+' x 1.5) = '+output.toFixed(4),10,20);
+  wgx.fillText('error = '+curE.toFixed(4)+'   gradient = '+grad.toFixed(4),10,36);
+  wgx.fillStyle='rgba(245,158,11,.6)';wgx.fillText('-- tangent (gradient)',10,52);
+  // Arrow showing gradient direction
+  if(Math.abs(grad)>0.01){
+    const dir=grad>0?-1:1;
+    wgx.beginPath();wgx.moveTo(curPx,curY+20);wgx.lineTo(curPx+dir*30,curY+20);
+    wgx.strokeStyle='rgba(16,185,129,.8)';wgx.lineWidth=2;wgx.stroke();
+    wgx.beginPath();wgx.moveTo(curPx+dir*30,curY+20);
+    wgx.lineTo(curPx+dir*30-dir*6,curY+16);wgx.lineTo(curPx+dir*30-dir*6,curY+24);
+    wgx.fillStyle='rgba(16,185,129,.8)';wgx.fill();
+    wgx.fillStyle='rgba(16,185,129,.6)';wgx.font='10px Inter';wgx.textAlign='center';
+    wgx.fillText('move this way',curPx+dir*30,curY+36);
+  }
+  // Axis labels
+  wgx.fillStyle='rgba(255,255,255,.3)';wgx.font='10px Inter';wgx.textAlign='center';
+  wgx.fillText('Weight w',W/2,H-4);wgx.textAlign='left';wgx.fillText('Error',4,pad-4);
+}
+drawWiggle();
+window.addEventListener('resize',drawWiggle);
+
+// ============ COMPUTATION GRAPH ============
+const cgc=document.getElementById('cgCanvas'),cgx=cgc.getContext('2d');
+let cgW,cgH,phase='idle',fwdStep=0,bwdStep=0;
+
+const x1=1.5,x2=-0.8,W_net=[[[0.4,-0.3],[0.2,0.5]],[[0.6,-0.4]]],b=[[0.1,-0.1],[0.0]];
+let fwdVals={},bwdVals={};
+
+function computeForward(){
+  fwdVals.x=[x1,x2];
+  fwdVals.z1=[W_net[0][0][0]*x1+W_net[0][0][1]*x2+b[0][0], W_net[0][1][0]*x1+W_net[0][1][1]*x2+b[0][1]];
+  fwdVals.a1=fwdVals.z1.map(v=>Math.max(0,v));
+  fwdVals.z2=[W_net[1][0][0]*fwdVals.a1[0]+W_net[1][0][1]*fwdVals.a1[1]+b[1][0]];
+  fwdVals.yhat=sigmoid(fwdVals.z2[0]);
+  fwdVals.loss=-(0.7*Math.log(fwdVals.yhat)+(1-0.7)*Math.log(1-fwdVals.yhat));
+}
+computeForward();
+
+function computeBackward(){
+  const y=0.7;
+  bwdVals.dL_dyhat=-(y/fwdVals.yhat-(1-y)/(1-fwdVals.yhat));
+  bwdVals.dL_dz2=bwdVals.dL_dyhat*fwdVals.yhat*(1-fwdVals.yhat);
+  bwdVals.dL_da1=[bwdVals.dL_dz2*W_net[1][0][0],bwdVals.dL_dz2*W_net[1][0][1]];
+  bwdVals.dL_dz1=bwdVals.dL_da1.map((g,i)=>fwdVals.z1[i]>0?g:0);
+}
+
+const NODES={
+  x1:{x:.1,y:.35,label:'x1',val:()=>fwdVals.x?fwdVals.x[0].toFixed(2):'-',col:'#22d3ee'},
+  x2:{x:.1,y:.65,label:'x2',val:()=>fwdVals.x?fwdVals.x[1].toFixed(2):'-',col:'#22d3ee'},
+  z11:{x:.32,y:.25,label:'z1a',val:()=>fwdVals.z1?fwdVals.z1[0].toFixed(3):'-',col:'#8b5cf6'},
+  z12:{x:.32,y:.65,label:'z1b',val:()=>fwdVals.z1?fwdVals.z1[1].toFixed(3):'-',col:'#8b5cf6'},
+  a11:{x:.52,y:.25,label:'a1a',val:()=>fwdVals.a1?fwdVals.a1[0].toFixed(3):'-',col:'#f59e0b'},
+  a12:{x:.52,y:.65,label:'a1b',val:()=>fwdVals.a1?fwdVals.a1[1].toFixed(3):'-',col:'#f59e0b'},
+  z2:{x:.72,y:.45,label:'z2',val:()=>fwdVals.z2?fwdVals.z2[0].toFixed(3):'-',col:'#8b5cf6'},
+  yhat:{x:.88,y:.45,label:'y',val:()=>fwdVals.yhat?fwdVals.yhat.toFixed(3):'-',col:'#10b981'},
+};
+const EDGES=[['x1','z11'],['x1','z12'],['x2','z11'],['x2','z12'],['z11','a11'],['z12','a12'],['a11','z2'],['a12','z2'],['z2','yhat']];
+const FWD_STAGES=['x1','x2','z11','z12','a11','a12','z2','yhat'];
+let litNodes=new Set(),litEdges=new Set(),gradNodes=new Set();
+
+function drawGraph(){
+  cgW=cgc.offsetWidth||700;cgc.width=cgW;cgH=cgc.offsetHeight||380;cgc.height=cgH;
+  cgx.fillStyle='#0a0f1e';cgx.fillRect(0,0,cgW,cgH);
+  EDGES.forEach(([s,e],i)=>{
+    const sn=NODES[s],en=NODES[e];const isLit=litEdges.has(i);
+    cgx.beginPath();cgx.moveTo(sn.x*cgW,sn.y*cgH);cgx.lineTo(en.x*cgW,en.y*cgH);
+    cgx.strokeStyle=isLit?'rgba(245,158,11,.8)':'rgba(139,92,246,.18)';
+    cgx.lineWidth=isLit?2.5:1;cgx.stroke();
+    if(phase==='bwd'&&isLit){
+      const mx=(sn.x+en.x)/2*cgW,my=(sn.y+en.y)/2*cgH;
+      cgx.fillStyle='rgba(244,63,94,.8)';cgx.font='12px Inter';cgx.fillText('<-',mx-6,my-4);
+    }
+  });
+  Object.entries(NODES).forEach(([k,n])=>{
+    const isLit=litNodes.has(k),isGrad=gradNodes.has(k);const r=22;
+    cgx.beginPath();cgx.arc(n.x*cgW,n.y*cgH,r,0,Math.PI*2);
+    cgx.fillStyle=isGrad?'rgba(244,63,94,.2)':isLit?n.col+'22':'rgba(15,22,40,.9)';
+    cgx.fill();cgx.strokeStyle=isGrad?'#f43f5e':isLit?n.col:'rgba(139,92,246,.3)';
+    cgx.lineWidth=isLit||isGrad?2.5:1;cgx.stroke();
+    cgx.fillStyle=isGrad?'#f43f5e':isLit?n.col:'rgba(139,92,246,.5)';
+    cgx.font='bold 13px Inter';cgx.textAlign='center';
+    cgx.fillText(n.label,n.x*cgW,n.y*cgH-5);
+    if(isLit||isGrad){cgx.fillStyle='rgba(255,255,255,.7)';cgx.font='10px JetBrains Mono';cgx.fillText(n.val(),n.x*cgW,n.y*cgH+10);}
+  });
+  cgx.fillStyle='rgba(94,234,212,.4)';cgx.font='11px Inter';cgx.textAlign='left';
+  cgx.fillText('INPUT',4,15);cgx.fillText('HIDDEN (ReLU)',cgW*.3-20,15);cgx.fillText('OUTPUT',cgW*.85-20,15);
+  if(fwdVals.yhat&&phase!=='idle'){
+    cgx.fillStyle='rgba(16,185,129,.7)';cgx.font='12px JetBrains Mono';
+    cgx.fillText('target y = 0.7   loss L = '+fwdVals.loss.toFixed(4),cgW*.1,cgH-10);
+  }
+}
+
+const STAGE_INFO_FN=()=>[
+  'x1, x2 are the inputs: x1=1.5, x2=-0.8',
+  'Computing z1a = 0.4*1.5 + (-0.3*(-0.8)) + 0.1 = '+fwdVals.z1[0].toFixed(3),
+  'Computing z1b = 0.2*1.5 + 0.5*(-0.8) + (-0.1) = '+fwdVals.z1[1].toFixed(3),
+  'ReLU: a1a = max(0, z1a) = '+fwdVals.a1[0].toFixed(3),
+  'ReLU: a1b = max(0, z1b) = '+fwdVals.a1[1].toFixed(3),
+  'Output: z2 = 0.6*a1a + (-0.4)*a1b + 0 = '+fwdVals.z2[0].toFixed(3),
+  'Output: y = sigmoid(z2) = '+fwdVals.yhat.toFixed(3)+'  |  Loss = '+fwdVals.loss.toFixed(4)
+];
+
+function resetGraph(){phase='idle';fwdStep=0;bwdStep=0;litNodes=new Set();litEdges=new Set();gradNodes=new Set();
+  document.getElementById('fwdBtn').style.display='';
+  document.getElementById('bwdBtn').style.display='none';
+  document.getElementById('stepBtn').style.display='none';
+  document.getElementById('stageInfo').textContent='Press "Forward pass" to propagate inputs through the network.';
+  drawGraph();}
+function runForward(){
+  phase='fwd';fwdStep=0;litNodes=new Set();litEdges=new Set();
+  document.getElementById('fwdBtn').style.display='none';
+  document.getElementById('stepBtn').style.display='';
+  document.getElementById('stepBtn').textContent='Step ->';
+  stepGraph();
+}
+function stepGraph(){
+  if(phase==='fwd'){
+    const stageInfo=STAGE_INFO_FN();
+    const node=FWD_STAGES[fwdStep];if(!node)return;
+    litNodes.add(node);
+    EDGES.forEach(([s,e],i)=>{if(e===node&&litNodes.has(s))litEdges.add(i);});
+    document.getElementById('stageInfo').textContent=stageInfo[fwdStep]||'';
+    fwdStep++;drawGraph();
+    if(fwdStep>=FWD_STAGES.length){
+      document.getElementById('stepBtn').style.display='none';
+      document.getElementById('bwdBtn').style.display='';
+      document.getElementById('stageInfo').textContent='Forward pass complete. Loss = '+fwdVals.loss.toFixed(4)+'. Now press Backward to compute gradients.';
+    }
+  }else if(phase==='bwd'){
+    computeBackward();
+    const bwdOrder=['yhat','z2','a11','a12','z11','z12','x1','x2'];
+    const bwdInfo=[
+      'dL/dy = -(y/y_hat - (1-y)/(1-y_hat)) = '+bwdVals.dL_dyhat.toFixed(4),
+      'dL/dz2 = dL/dy * y_hat*(1-y_hat) = '+bwdVals.dL_dz2.toFixed(4),
+      'dL/da1a = dL/dz2 * W_21 = '+bwdVals.dL_da1[0].toFixed(4),
+      'dL/da1b = dL/dz2 * W_22 = '+bwdVals.dL_da1[1].toFixed(4),
+      'dL/dz1a = dL/da1a * ReLU\'(z1a) = '+bwdVals.dL_dz1[0].toFixed(4),
+      'dL/dz1b = dL/da1b * ReLU\'(z1b) = '+bwdVals.dL_dz1[1].toFixed(4),
+      'Gradient reaches input x1 — backpropagation complete!',
+      'All gradients computed. Update: theta <- theta - eta*nabla L'
+    ];
+    if(bwdStep<bwdOrder.length){
+      gradNodes.add(bwdOrder[bwdStep]);
+      document.getElementById('stageInfo').innerHTML='<span style="color:var(--coral)"><- Backward: </span>'+bwdInfo[bwdStep];
+      bwdStep++;drawGraph();
+    }
+  }
+}
+function runBackward(){
+  phase='bwd';bwdStep=0;gradNodes=new Set();
+  document.getElementById('bwdBtn').style.display='none';
+  document.getElementById('stepBtn').style.display='';
+  document.getElementById('stepBtn').textContent='Step <- (backward)';
+  document.getElementById('stageInfo').textContent='Starting backward pass — gradients will flow right to left...';
+}
+window.addEventListener('resize',drawGraph);drawGraph();
+</script>
+</body>
+</html>
