@@ -33,14 +33,14 @@ export const BRAND = {
     },
 
     stats: {
-        liveTopics: 140,
+        liveTopics: 142,
         journeys: 11,
         chapters: 19,
         journeyActs: 44,
     },
 
     differentiators: [
-        "140 interactive visualisations, completely free",
+        "142 interactive visualisations, completely free",
         "No login, no ads, no tracking",
         "Self-contained HTML — works offline",
         "From basic logic to quantum physics and AI",

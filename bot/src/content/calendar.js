@@ -36,7 +36,7 @@ export class ContentCalendar {
         const plan = await this.getCurrentPlan();
         if (!plan) return null;
 
-        const today = new Date().toLocaleDateString("en-US", { weekday: "lowercase" });
+        const today = new Date().toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
         return plan.posts.find(p =>
             p.platform === platform &&
             !plan.posted.includes(p.day + "-" + p.platform) &&

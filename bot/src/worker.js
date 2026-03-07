@@ -165,7 +165,7 @@ async function handleContentGeneration(agent, calendar, tracker) {
 
     const content = await agent.generateWeeklyContent(analyticsContext);
 
-    const weekKey = new Date().toISOString().slice(0, 10);
+    const weekKey = calendar._weekKey();
     await calendar.saveWeeklyPlan(weekKey, content.posts);
 
     return { action: "generated", posts: content.posts.length, weekKey };
