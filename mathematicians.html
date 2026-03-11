@@ -21,7 +21,7 @@
     <style>
         * {
             margin: 0;
-            padding: 0;
+            padding: 0
             box-sizing: border-box;
         }
 
@@ -650,7 +650,31 @@
             try {
                 const response = await fetch('data/mathematicians.json');
                 if (!response.ok) throw new Error('Failed to load data');
-                allMathematicians = await response.json();
+                rawData = await response.text();
+                // Handle potentially broken JSON (extract valid array portion)
+                let parsedData;
+                try {
+                    parsedData = JSON.parse(rawData);
+                } catch(e) {
+                    // If JSON is broken, extract valid array portion
+                    let depth = 0, endPos = -1;
+                    for (let i = 0; i < rawData.length; i++) {
+                        if (rawData[i] === '[') depth++;
+                        if (rawData[i] === ']') { depth--; if (depth === 0) { endPos = i + 1; break; } }
+                    }
+                    if (endPos > 0) parsedData = JSON.parse(rawData.substring(0, endPos));
+                    else throw new Error('Invalid JSON data');
+                }
+                // Handle both array and dict formats
+                allMathematicians = Array.isArray(parsedData)
+                    ? parsedData
+                    : Object.entries(parsedData).map(([key, val]) => ({
+                        id: key,
+                        name: val.displayName || key,
+                        birthYear: val.born,
+                        deathYear: val.died,
+                        ...val
+                    }));
                 filteredMathematicians = [...allMathematicians];
                 setupEventListeners();
                 render();
