@@ -355,47 +355,125 @@
         .timeline-container {
             display: none;
             position: relative;
-            height: 500px;
             margin: 20px 0;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            overflow: hidden;
         }
 
         .timeline-container.active {
             display: block;
         }
 
-        #timeline-canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
+        .timeline-era-section {
+            position: relative;
+            padding: 24px 0 8px;
         }
 
-        .timeline-controls {
-            position: absolute;
-            bottom: 12px;
-            right: 12px;
-            display: flex;
-            gap: 8px;
-            z-index: 10;
-        }
-
-        .zoom-btn {
-            padding: 6px 12px;
-            background: rgba(96, 165, 250, 0.2);
-            border: 1px solid rgba(96, 165, 250, 0.4);
-            color: #60a5fa;
+        .timeline-era-label {
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 6px 14px;
             border-radius: 3px;
-            cursor: pointer;
-            font-size: 0.85em;
-            transition: all 0.2s;
+            display: inline-block;
+            margin-bottom: 16px;
+            margin-left: 44px;
         }
 
-        .zoom-btn:hover {
-            background: rgba(96, 165, 250, 0.3);
-            border-color: rgba(96, 165, 250, 0.6);
+        .timeline-line {
+            position: absolute;
+            left: 28px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            border-radius: 2px;
+        }
+
+        .timeline-entry {
+            position: relative;
+            padding: 10px 0 10px 60px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-radius: 6px;
+            margin: 0 -8px;
+            padding-right: 8px;
+        }
+
+        .timeline-entry:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .timeline-dot {
+            position: absolute;
+            left: 22px;
+            top: 16px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #0a0a1a;
+            z-index: 2;
+        }
+
+        .timeline-entry-name {
+            font-size: 1.05em;
+            font-weight: 600;
+            color: #f0f0f0;
+        }
+
+        .timeline-entry-dates {
+            font-size: 0.85em;
+            color: #a0a0b8;
+            margin-left: 8px;
+        }
+
+        .timeline-entry-summary {
+            font-size: 0.85em;
+            color: #808098;
+            margin-top: 4px;
+            line-height: 1.5;
+        }
+
+        .timeline-entry-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 6px;
+        }
+
+        .timeline-entry-fields .tag {
+            font-size: 0.7em;
+            padding: 2px 6px;
+        }
+
+        .timeline-entry.expanded {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 8px;
+        }
+
+        .timeline-entry .card-expanded-content {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .timeline-entry:not(.expanded) .card-expanded-content {
+            display: none;
+        }
+
+        .timeline-present-marker {
+            text-align: center;
+            font-size: 0.8em;
+            color: #606078;
+            padding: 16px 0 8px;
+            font-style: italic;
+        }
+
+        .timeline-ancient-marker {
+            text-align: center;
+            font-size: 0.8em;
+            color: #606078;
+            padding: 8px 0 16px;
+            font-style: italic;
         }
 
         .group-view {
@@ -592,13 +670,7 @@
             </div>
 
             <div id="grid-view" class="gallery-grid"></div>
-            <div id="timeline-view" class="timeline-container">
-                <canvas id="timeline-canvas"></canvas>
-                <div class="timeline-controls">
-                    <button class="zoom-btn" id="zoom-in">+ Zoom</button>
-                    <button class="zoom-btn" id="zoom-out">− Zoom</button>
-                </div>
-            </div>
+            <div id="timeline-view" class="timeline-container"></div>
             <div id="group-view" class="group-view"></div>
 
             <div id="no-results" class="no-results" style="display: none;">
@@ -635,13 +707,6 @@
         let filteredMathematicians = [];
         let currentView = 'grid';
         let expandedCardId = null;
-        let timelineState = {
-            scrollOffset: 0,
-            zoomLevel: 1,
-            minYear: -600,
-            maxYear: 2026
-        };
-
         const loadingEl = document.getElementById('loading');
         const gridViewEl = document.getElementById('grid-view');
         const timelineViewEl = document.getElementById('timeline-view');
@@ -710,16 +775,6 @@
                 btn.addEventListener('click', (e) => {
                     switchView(e.target.dataset.view);
                 });
-            });
-
-            document.getElementById('zoom-in').addEventListener('click', () => {
-                timelineState.zoomLevel = Math.min(timelineState.zoomLevel + 0.2, 3);
-                renderTimeline();
-            });
-
-            document.getElementById('zoom-out').addEventListener('click', () => {
-                timelineState.zoomLevel = Math.max(timelineState.zoomLevel - 0.2, 0.5);
-                renderTimeline();
             });
         }
 
@@ -865,170 +920,99 @@
         }
 
         function renderTimeline() {
-            const canvas = document.getElementById('timeline-canvas');
-            const ctx = canvas.getContext('2d');
+            const container = document.getElementById('timeline-view');
 
-            const rect = canvas.parentElement.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
-
-            const canvasWidth = canvas.width;
-            const canvasHeight = canvas.height;
-
-            ctx.fillStyle = '#0a0a1a';
-            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-            const yearRange = timelineState.maxYear - timelineState.minYear;
-            const pixelsPerYear = (canvasWidth - 80) / (yearRange / timelineState.zoomLevel);
-            const startX = 40 + timelineState.scrollOffset;
-
-            const eraRanges = [
-                { name: 'Ancient', min: -600, max: 500, colour: eraColours.ancient },
-                { name: 'Medieval', min: 500, max: 1400, colour: eraColours.medieval },
-                { name: 'Renaissance', min: 1400, max: 1600, colour: eraColours.renaissance },
-                { name: 'Enlightenment', min: 1600, max: 1800, colour: eraColours.enlightenment },
-                { name: '19th Century', min: 1800, max: 1900, colour: eraColours.nineteenth },
-                { name: 'Modern', min: 1900, max: 1945, colour: eraColours.modern },
-                { name: 'Contemporary', min: 1945, max: 2026, colour: eraColours.contemporary }
+            const eraOrder = [
+                { key: 'contemporary', name: 'Contemporary', range: '1945–present' },
+                { key: 'modern', name: 'Modern', range: '1900–1945' },
+                { key: 'nineteenth', name: '19th Century', range: '1800–1900' },
+                { key: 'enlightenment', name: 'Enlightenment', range: '1650–1800' },
+                { key: 'renaissance', name: 'Renaissance', range: '1400–1650' },
+                { key: 'medieval', name: 'Medieval', range: '500–1400' },
+                { key: 'ancient', name: 'Ancient', range: 'before 500 AD' }
             ];
 
-            eraRanges.forEach(era => {
-                const eraStartX = startX + (era.min - timelineState.minYear) * pixelsPerYear;
-                const eraWidth = (era.max - era.min) * pixelsPerYear;
-                ctx.fillStyle = era.colour;
-                ctx.globalAlpha = 0.15;
-                ctx.fillRect(eraStartX, 0, eraWidth, canvasHeight);
-                ctx.globalAlpha = 1;
+            // Sort mathematicians by birth year descending (most recent first = top)
+            const sorted = [...filteredMathematicians].sort((a, b) => b.birthYear - a.birthYear);
+
+            // Group by era
+            const byEra = {};
+            sorted.forEach(m => {
+                const era = m.era || 'ancient';
+                if (!byEra[era]) byEra[era] = [];
+                byEra[era].push(m);
             });
 
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(startX, canvasHeight / 2);
-            ctx.lineTo(startX + yearRange * pixelsPerYear, canvasHeight / 2);
-            ctx.stroke();
+            let html = '<div class="timeline-present-marker">&#9650; Present day</div>';
 
-            const dotRadius = 6;
-            const verticalSpacing = 40;
-            let yPositions = {};
+            eraOrder.forEach(era => {
+                const mathematicians = byEra[era.key];
+                if (!mathematicians || mathematicians.length === 0) return;
 
-            filteredMathematicians.forEach(m => {
-                const x = startX + (m.birthYear - timelineState.minYear) * pixelsPerYear;
+                const colour = eraColours[era.key] || '#60a5fa';
 
-                if (x < 0 || x > canvasWidth) return;
+                html += `<div class="timeline-era-section">`;
+                html += `<div class="timeline-line" style="background: ${colour};"></div>`;
+                html += `<div class="timeline-era-label" style="background: ${colour}22; color: ${colour}; border: 1px solid ${colour}44;">${era.name} <span style="opacity: 0.7; font-weight: 400;">${era.range}</span></div>`;
 
-                let y = canvasHeight / 2;
-                if (!yPositions[m.id]) {
-                    let row = 0;
-                    let overlaps = true;
-                    while (overlaps) {
-                        y = canvasHeight / 2 + (row % 2 === 0 ? 1 : -1) * Math.ceil(row / 2) * verticalSpacing;
-                        overlaps = Object.values(yPositions).some(pos => Math.abs(pos - y) < verticalSpacing);
-                        row++;
-                    }
-                    yPositions[m.id] = y;
-                } else {
-                    y = yPositions[m.id];
-                }
+                mathematicians.forEach(m => {
+                    const isExpanded = expandedCardId === m.id;
+                    const dates = m.dates || (m.birthYear === m.deathYear ? `${m.birthYear}` : `${m.birthYear}–${m.deathYear || 'present'}`);
+                    const expandedHtml = isExpanded ? `
+                        <div class="card-expanded-content" style="display:block">
+                            <div class="remarkable-fact">${m.remarkableFact || ''}</div>
+                            <div class="pages-list">
+                                <div class="pages-title">Their mathematics on this site:</div>
+                                <ul>
+                                    ${(m.pagesReferenced || []).map(page =>
+                                        '<li><a href="' + page.url + '">' + page.title + '</a></li>'
+                                    ).join('')}
+                                </ul>
+                            </div>
+                            ${(m.connections || []).length > 0 ? '<div class="connections-title">Connected to:</div><div class="connections-list">' +
+                                m.connections.map(connId => {
+                                    const conn = allMathematicians.find(x => x.id === connId);
+                                    return conn ? '<button class="connection-btn" onclick="event.stopPropagation(); timelineScrollTo(\'' + connId + '\')">' + conn.name + '</button>' : '';
+                                }).join('') + '</div>' : ''}
+                        </div>` : '';
 
-                const eraColour = eraColours[m.era] || '#60a5fa';
-                ctx.fillStyle = eraColour;
-                ctx.beginPath();
-                ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
-                ctx.fill();
+                    html += `
+                        <div class="timeline-entry ${isExpanded ? 'expanded' : ''}" data-id="${m.id}" onclick="toggleTimelineEntry('${m.id}')">
+                            <div class="timeline-dot" style="background: ${colour};"></div>
+                            <div>
+                                <span class="timeline-entry-name">${m.name}</span>
+                                <span class="timeline-entry-dates">${dates}</span>
+                            </div>
+                            <div class="timeline-entry-summary">${m.summary || ''}</div>
+                            <div class="timeline-entry-fields">
+                                ${m.fields.map(f => '<span class="tag">' + f + '</span>').join('')}
+                            </div>
+                            ${expandedHtml}
+                        </div>`;
+                });
 
-                ctx.strokeStyle = '#0a0a1a';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                canvas.dataset[`m${m.id}`] = JSON.stringify({ x, y, dotRadius, m });
+                html += `</div>`;
             });
 
-            ctx.fillStyle = '#606078';
-            ctx.font = '12px Georgia, serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(`${timelineState.minYear} BC/AD`, startX, canvasHeight - 15);
-            ctx.fillText(`${timelineState.maxYear}`, startX + yearRange * pixelsPerYear, canvasHeight - 15);
+            html += '<div class="timeline-ancient-marker">&#9660; Ancient times</div>';
 
-            canvas.addEventListener('click', (e) => handleTimelineClick(e, canvas, yPositions));
+            container.innerHTML = html;
         }
 
-        function handleTimelineClick(e, canvas, yPositions) {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            let clicked = null;
-            for (let [id, pos] of Object.entries(yPositions)) {
-                const m = allMathematicians.find(m => m.id === id);
-                if (!m) continue;
-
-                const yearRange = timelineState.maxYear - timelineState.minYear;
-                const pixelsPerYear = (canvas.width - 80) / (yearRange / timelineState.zoomLevel);
-                const startX = 40 + timelineState.scrollOffset;
-                const dotX = startX + (m.birthYear - timelineState.minYear) * pixelsPerYear;
-
-                const dist = Math.sqrt((x - dotX) ** 2 + (y - pos) ** 2);
-                if (dist <= 10) {
-                    clicked = m.id;
-                    break;
-                }
-            }
-
-            if (clicked) {
-                expandedCardId = expandedCardId === clicked ? null : clicked;
-                showTimelineCard(clicked);
+        function toggleTimelineEntry(id) {
+            expandedCardId = expandedCardId === id ? null : id;
+            renderTimeline();
+            if (expandedCardId) {
+                const el = document.querySelector(`.timeline-entry[data-id="${id}"]`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
         }
 
-        function showTimelineCard(mathId) {
-            const m = allMathematicians.find(x => x.id === mathId);
-            if (!m) return;
-
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0, 0, 0, 0.8);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 1000;
-                padding: 20px;
-            `;
-
-            const eraColour = eraColours[m.era] || '#60a5fa';
-            const tagsHtml = m.fields.map(f => `<span class="tag">${f}</span>`).join('');
-
-            const content = document.createElement('div');
-            content.style.cssText = `
-                background: #0a0a1a;
-                border: 1px solid rgba(96, 165, 250, 0.3);
-                border-radius: 8px;
-                padding: 28px;
-                max-width: 500px;
-                max-height: 80vh;
-                overflow-y: auto;
-                border-left: 4px solid ${eraColour};
-            `;
-            content.innerHTML = `
-                <h3 style="font-size: 1.3em; margin-bottom: 8px; color: #f0f0f0;">${m.name}</h3>
-                <div style="font-size: 0.9em; color: #a0a0b8; margin-bottom: 6px;">${m.birthYear === m.deathYear ? m.birthYear : `${m.birthYear}–${m.deathYear}`}</div>
-                <div style="font-size: 0.85em; color: #808092; margin-bottom: 12px;">${m.nationality}</div>
-                <div style="margin-bottom: 14px;">${tagsHtml}</div>
-                <div style="font-size: 0.95em; color: #c0c0d8; margin-bottom: 16px; line-height: 1.6;">${m.summary}</div>
-                <div style="font-style: italic; color: #b0b0c8; margin-bottom: 16px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">${m.remarkableFact}</div>
-                <button onclick="this.parentElement.parentElement.remove()" style="padding: 8px 16px; background: #60a5fa; color: #0a0a1a; border: none; border-radius: 4px; cursor: pointer; font-family: Georgia, serif; width: 100%;">Close</button>
-            `;
-
-            modal.appendChild(content);
-            document.body.appendChild(modal);
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) modal.remove();
-            });
+        function timelineScrollTo(id) {
+            expandedCardId = id;
+            renderTimeline();
+            const el = document.querySelector(`.timeline-entry[data-id="${id}"]`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         function renderGroup() {
