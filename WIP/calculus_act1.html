@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#020818">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Shape of Change — Act I</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#020818; --bg2:#050d28; --bg3:#091436;
+            --blue:#3b82f6; --blue-dim:rgba(59,130,246,0.12);
+            --cyan:#06b6d4; --cyan-dim:rgba(6,182,212,0.12);
+            --coral:#f97316; --coral-dim:rgba(249,115,22,0.1);
+            --gold:#fbbf24; --gold-dim:rgba(251,191,36,0.1);
+            --cream:#e8f4ff; --text:#a8c4e8; --muted:#2a4060;
+            --border:rgba(59,130,246,0.14); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #chalkboard{position:fixed;inset:0;z-index:0;pointer-events:none;
+            background:radial-gradient(ellipse at 35% 45%,rgba(59,130,246,0.07) 0%,transparent 55%),
+                        radial-gradient(ellipse at 72% 25%,rgba(6,182,212,0.04) 0%,transparent 45%),var(--bg);}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(2,8,24,0.93);
+            backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--cyan);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--cyan);}
+        .dot.active{background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 6px var(--cyan)}50%{box-shadow:0 0 18px var(--cyan)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--cyan);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--cyan);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#a8c0e0;}
+        .narrator p em{color:var(--cyan);font-style:italic;}
+        .narrator p strong{color:var(--cream);font-weight:600;}
+        .narrator.coral{border-left-color:var(--coral);} .narrator.coral::before{color:var(--coral);}
+        .narrator.gold{border-left-color:var(--gold);} .narrator.gold::before{color:var(--gold);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--cyan);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--cyan),#0891b2);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#020818;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 24px rgba(6,182,212,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(6,182,212,0.45);}
+        .cta-btn:disabled{opacity:0.35;transform:none;box-shadow:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(6,182,212,0.15);border-left:3px solid var(--cyan);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#6080a0;}
+        .insight p em{color:var(--cyan);font-style:normal;font-weight:600;}
+        .insight.coral{border-left-color:var(--coral);border-color:rgba(249,115,22,0.15);}
+        .insight.coral .lbl{color:var(--coral);}
+        .insight.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);}
+        .insight.gold .lbl{color:var(--gold);}
+
+        /* ── Canvas area ── */
+        .canvas-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:4px;margin-bottom:14px;overflow:hidden;position:relative;}
+        canvas{display:block;width:100%;touch-action:none;}
+
+        /* ── Interval table ── */
+        .interval-table{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px;margin-bottom:14px;}
+        .itbl-label{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px;}
+        .itbl-row{display:flex;align-items:center;gap:10px;padding:9px 0;
+            border-bottom:1px solid rgba(255,255,255,0.04);font-family:'DM Sans',monospace;font-size:0.88em;}
+        .itbl-row:last-child{border-bottom:none;}
+        .itbl-h{color:var(--muted);flex:1;}
+        .itbl-slope{color:var(--cyan);font-weight:700;min-width:80px;}
+        .itbl-note{color:var(--muted);font-size:0.82em;font-style:italic;}
+        .itbl-row.highlight{background:rgba(6,182,212,0.06);border-radius:8px;padding:9px 8px;}
+        .itbl-row.highlight .itbl-slope{color:var(--gold);}
+
+        /* ── Slope display ── */
+        .slope-display{background:linear-gradient(135deg,rgba(6,182,212,0.08),rgba(59,130,246,0.05));
+            border:1px solid rgba(6,182,212,0.2);border-radius:var(--radius);
+            padding:18px;margin-bottom:14px;text-align:center;}
+        .slope-num{font-family:'DM Sans',monospace;font-size:clamp(2em,8vw,3em);font-weight:700;color:var(--cyan);}
+        .slope-label{font-family:'Lora',serif;font-size:0.88em;color:var(--muted);margin-top:4px;font-style:italic;}
+
+        /* ── Step buttons ── */
+        .step-row{display:flex;gap:8px;justify-content:center;margin-bottom:14px;flex-wrap:wrap;}
+        .step-btn{padding:10px 16px;border-radius:12px;background:var(--bg3);
+            border:1.5px solid var(--border);color:var(--muted);
+            font-family:'DM Sans',sans-serif;font-size:0.88em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;}
+        .step-btn:hover{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim);}
+        .step-btn.active{background:var(--cyan-dim);border-color:var(--cyan);color:var(--cyan);}
+
+        /* complete */
+        .complete-badge{background:linear-gradient(135deg,rgba(6,182,212,0.1),rgba(59,130,246,0.06));
+            border:1px solid rgba(6,182,212,0.2);border-radius:var(--radius);
+            padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--cyan);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--gold,#f59e0b);}
+        .learn-box.notice .learn-title{color:var(--cyan,#06b6d4);}
+        .learn-box.why .learn-title{color:var(--coral,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--gold);color:var(--gold);}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div id="chalkboard"></div>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act I of V</div>
+      <div class="progress-dots">
+        <div class="dot active"></div>
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: OPENING -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Shape of Change · Act I</div>
+      <div class="act-name">The <em>Speed</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;">
+      <div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">🚗</div>
+    </div>
+    <div class="narrator">
+      <p>A car sets off. Its position at any moment is given by a curve — <em>t²</em> metres after <em>t</em> seconds.</p>
+      <p style="margin-top:10px">At <strong>t = 3 seconds</strong>, the car is at position 9. At <strong>t = 4 seconds</strong>, it's at position 16.</p>
+      <p style="margin-top:10px">Average speed over that second: 7 metres per second. Fine.</p>
+      <p style="margin-top:10px">But what is the speed <em>at exactly t = 3?</em> Not over an interval. Not an average. <strong>Instantaneously.</strong></p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">The question that created calculus</div>
+      <p>This question troubled mathematicians for centuries. The problem: speed requires a distance <em>divided</em> by a time. But an instant has no duration. 0 ÷ 0. Meaningless — until Newton and Leibniz, independently, found the answer in 1666 and 1675.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Measure the speed →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: SHRINKING INTERVALS -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">The limit</div>
+      <div class="act-name">Getting <em>closer</em></div>
+    </div>
+    <div class="narrator">
+      <p>We can't measure speed at a single instant. But we can measure it over a <em>very small</em> interval. Let's see what happens as the interval shrinks.</p>
+    </div>
+
+    <div class="interval-table">
+      <div class="itbl-label">Position = t² — Average speed near t = 3</div>
+      <div id="intervalRows"></div>
+    </div>
+
+    <div class="slope-display" id="slopeDisplay">
+      <div class="slope-num" id="slopeNum">?</div>
+      <div class="slope-label" id="slopeLabel">Tap an interval to see the average speed</div>
+    </div>
+
+    <div class="step-row" id="intervalBtns"></div>
+
+    <div class="insight" id="limitInsight" style="display:none;">
+      <div class="lbl">💡 The numbers are converging</div>
+      <p>As h → 0, the average speed approaches exactly <em>6</em>. Not approximately 6 — the limit is precisely 6. This is the instantaneous speed at t = 3. This is the <em>derivative</em>. We write: d(t²)/dt = 2t, so at t = 3, the derivative = 6.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>See it on a graph →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: SECANT TO TANGENT -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">The geometry</div>
+      <div class="act-name">Secant becomes <em>tangent</em></div>
+    </div>
+    <div class="narrator coral">
+      <p>The average speed is the slope of a line joining two points on the curve — called a <em>secant line.</em></p>
+      <p style="margin-top:8px">As the second point moves toward the first, the secant line rotates — until at the limit, it <em>just touches</em> the curve. That line is the <strong>tangent.</strong> Its slope is the derivative.</p>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="calcCanvas" height="280"></canvas>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px;flex-wrap:wrap;">
+      <div style="font-size:0.82em;color:var(--muted);font-family:'DM Sans',monospace;padding:6px 12px;
+          background:var(--bg2);border:1px solid var(--border);border-radius:8px;">
+        h = <span id="hVal" style="color:var(--cyan);font-weight:700;">2.0</span>
+      </div>
+      <div style="font-size:0.82em;color:var(--muted);font-family:'DM Sans',monospace;padding:6px 12px;
+          background:var(--bg2);border:1px solid var(--border);border-radius:8px;">
+        slope = <span id="slopeVal" style="color:var(--cyan);font-weight:700;">?</span>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <button class="step-btn active" onclick="setH(2)" id="hBtn2">h = 2</button>
+      <button class="step-btn" onclick="setH(1)" id="hBtn1">h = 1</button>
+      <button class="step-btn" onclick="setH(0.5)" id="hBtn05">h = 0.5</button>
+      <button class="step-btn" onclick="setH(0.1)" id="hBtn01">h = 0.1</button>
+      <button class="step-btn" onclick="setH(0.01)" id="hBtn001">h = 0.01</button>
+      <button class="step-btn" onclick="setH(0)" id="hBtn0">h → 0</button>
+    </div>
+
+    <div class="insight" id="tangentInsight" style="display:none;">
+      <div class="lbl">💡 The tangent line</div>
+      <p>When h → 0, the secant line becomes the tangent — touching the curve at exactly one point. Its slope is <em>exactly 6</em> at t = 3. Not an approximation. The derivative is defined as this limit: the exact slope of the tangent. <strong>f'(3) = lim[h→0] (f(3+h) − f(3))/h = 6.</strong></p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)" id="s2Next" disabled>What does this mean? →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: THE MEANING -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">The derivative</div>
+      <div class="act-name">The <em>instantaneous</em> rate of change</div>
+    </div>
+    <div class="narrator gold">
+      <p>You've just invented the derivative — the same way Newton did in a plague year, 1666, when Cambridge closed and he went home to think.</p>
+      <p style="margin-top:10px">The derivative of f at x is the <em>slope of the tangent line</em> at that point. It measures how fast f is changing at exactly that moment.</p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid rgba(6,182,212,0.2);border-radius:var(--radius);padding:20px;margin-bottom:14px;text-align:center;">
+      <div style="font-family:'DM Sans',monospace;font-size:clamp(1em,4.5vw,1.4em);font-weight:700;color:var(--cream);line-height:2.4;">
+        f'(x) = lim<sub style="font-size:0.7em;">h→0</sub> <span style="color:var(--cyan);">[f(x+h) − f(x)] / h</span>
+      </div>
+      <div style="font-family:'Lora',serif;font-size:0.88em;color:var(--muted);margin-top:8px;font-style:italic;">
+        The limit of the average rate of change as the interval shrinks to zero
+      </div>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;">
+      <div class="itbl-label">What the derivative tells you</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <span style="font-size:1.4em;flex-shrink:0;">🚗</span>
+          <div><div style="font-family:'Lora',serif;font-size:0.95em;color:var(--cream);">Position → derivative → velocity</div>
+          <div style="font-size:0.82em;color:var(--muted);font-style:italic;">How fast position is changing</div></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <span style="font-size:1.4em;flex-shrink:0;">💹</span>
+          <div><div style="font-family:'Lora',serif;font-size:0.95em;color:var(--cream);">Revenue → derivative → marginal revenue</div>
+          <div style="font-size:0.82em;color:var(--muted);font-style:italic;">How much the next unit adds</div></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <span style="font-size:1.4em;flex-shrink:0;">🌡️</span>
+          <div><div style="font-family:'Lora',serif;font-size:0.95em;color:var(--cream);">Temperature → derivative → rate of heating</div>
+          <div style="font-size:0.82em;color:var(--muted);font-style:italic;">How fast it's warming</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight coral">
+      <div class="lbl">💡 The same idea, everywhere</div>
+      <p>Whenever anything changes — position, price, temperature, population — the derivative measures <em>how fast</em> it changes at any instant. This is the most-used concept in all of applied mathematics.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(4)">✦ Act I Complete →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 4: COMPLETE -->
+  <section class="screen" id="screen-4">
+    <div class="act-title">
+      <div class="act-label">Act I complete</div>
+      <div class="act-name">The <em>derivative</em></div>
+    </div>
+    <div class="complete-badge">
+      <span class="badge-icon">🚗</span>
+      <div class="badge-title">You invented calculus — the same way Newton did</div>
+      <div class="badge-sub">The derivative: the limit of the average rate of change.<br>The slope of the tangent. The instantaneous speed.</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">💡 What you learned</div>
+      <p>The derivative f'(x) is the limit as h→0 of [f(x+h)−f(x)]/h. It measures the instantaneous rate of change. Geometrically: the slope of the tangent line. Every time we shrink the interval to zero, we go from approximate to exact. <em>That limit is calculus.</em></p>
+    </div>
+    <div class="insight gold" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act II — The Rules</div>
+      <p>Do we have to go through the limit process every single time? Newton and Leibniz found shortcuts — patterns that let you differentiate any function instantly. You'll discover the power rule yourself, before being told it exists.</p>
+    </div>
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Drag the point along the curve and watch the tangent line. Where is the slope steepest? Where is it zero? Where does it become negative?</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>The tangent line's slope at each point IS the derivative. Where the slope is zero, the function has a maximum or minimum. The derivative captures the instantaneous rate of change — something Newton and Leibniz formalised independently in the 1680s.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>Derivatives are the mathematical language of change. Every time you check a speedometer, optimise a portfolio, or model population growth, you are reading a derivative.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="cta-btn" onclick="celebrate()">✦ On to Act II →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='uncertainty_act1.html'">← The Art of Uncertainty</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+let currentH=2;
+let animFrame=null;
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n; document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1)buildIntervalTable();
+  if(n===2){initCanvas();setH(2);}
+}
+
+// ── Screen 1: Interval table ──
+const intervals=[
+  {h:2, label:'h = 2 (3 to 5)', pos0:9, pos1:25},
+  {h:1, label:'h = 1 (3 to 4)', pos0:9, pos1:16},
+  {h:0.5, label:'h = 0.5 (3 to 3.5)', pos0:9, pos1:12.25},
+  {h:0.1, label:'h = 0.1 (3 to 3.1)', pos0:9, pos1:9.61},
+  {h:0.01, label:'h = 0.01', pos0:9, pos1:9.0601},
+  {h:0.001, label:'h = 0.001', pos0:9, pos1:9.006001},
+];
+
+let revealedCount=0;
+
+function buildIntervalTable(){
+  revealedCount=0;
+  const rows=document.getElementById('intervalRows');
+  rows.innerHTML='';
+  intervals.forEach((iv,i)=>{
+    const slope=(iv.pos1-iv.pos0)/iv.h;
+    const row=document.createElement('div');
+    row.className='itbl-row'; row.id=`irow-${i}`;
+    row.innerHTML=`<div class="itbl-h">${iv.label}</div>
+      <div class="itbl-slope" id="islope-${i}">—</div>
+      <div class="itbl-note" id="inote-${i}"></div>`;
+    rows.appendChild(row);
+  });
+
+  // Build buttons
+  const btns=document.getElementById('intervalBtns');
+  btns.innerHTML='';
+  const b=document.createElement('button');
+  b.className='step-btn active';
+  b.textContent='Reveal next →';
+  b.onclick=revealNext;
+  btns.appendChild(b);
+  const ba=document.createElement('button');
+  ba.className='step-btn';
+  ba.textContent='Show all';
+  ba.onclick=showAll;
+  btns.appendChild(ba);
+
+  document.getElementById('limitInsight').style.display='none';
+  document.getElementById('s1Next').disabled=true;
+  document.getElementById('slopeNum').textContent='?';
+  document.getElementById('slopeLabel').textContent='Tap an interval to see the average speed';
+}
+
+function revealNext(){
+  if(revealedCount>=intervals.length)return;
+  revealInterval(revealedCount);
+  revealedCount++;
+  if(revealedCount>=intervals.length) finishTable();
+}
+
+function showAll(){
+  for(let i=revealedCount;i<intervals.length;i++) revealInterval(i);
+  revealedCount=intervals.length;
+  finishTable();
+}
+
+function revealInterval(i){
+  const iv=intervals[i];
+  const slope=(iv.pos1-iv.pos0)/iv.h;
+  const el=document.getElementById(`islope-${i}`);
+  const note=document.getElementById(`inote-${i}`);
+  el.textContent=slope.toFixed(4);
+  el.style.color='var(--cyan)';
+  if(i===intervals.length-1){
+    note.textContent='→ approaching 6';
+    document.getElementById(`irow-${i}`).classList.add('highlight');
+  }
+  document.getElementById('slopeNum').textContent=slope.toFixed(4);
+  document.getElementById('slopeLabel').textContent=`Average speed over h = ${iv.h}: converging toward 6`;
+  launchMiniConfetti();
+}
+
+function finishTable(){
+  document.getElementById('slopeNum').textContent='6';
+  document.getElementById('slopeNum').style.color='var(--gold)';
+  document.getElementById('slopeLabel').textContent='Limit as h→0: exactly 6. This IS the derivative.';
+  document.getElementById('limitInsight').style.display='block';
+  document.getElementById('s1Next').disabled=false;
+}
+
+// ── Screen 2: Canvas ──
+let cv, ctx, W, H_cv;
+const X0=3; // point we're differentiating
+
+function f(t){return t*t;}
+
+function initCanvas(){
+  cv=document.getElementById('calcCanvas');
+  resizeCanvas();
+  window.addEventListener('resize',resizeCanvas);
+  drawCanvas();
+}
+
+function resizeCanvas(){
+  W=cv.parentElement.clientWidth-8;
+  H_cv=280;
+  cv.width=W; cv.height=H_cv;
+}
+
+// Map math coords to canvas
+const XMIN=0, XMAX=6, YMIN=0, YMAX=36;
+function mx(x){return (x-XMIN)/(XMAX-XMIN)*W;}
+function my(y){return H_cv-(y-YMIN)/(YMAX-YMIN)*H_cv;}
+
+function drawCanvas(){
+  if(!cv)return;
+  ctx.clearRect(0,0,W,H_cv);
+
+  // Axes
+  ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(mx(0),my(0));ctx.lineTo(mx(XMAX),my(0));ctx.stroke();
+  ctx.beginPath();ctx.moveTo(mx(0),my(0));ctx.lineTo(mx(0),my(YMAX));ctx.stroke();
+
+  // Axis labels
+  ctx.fillStyle='rgba(255,255,255,0.2)';ctx.font='10px DM Sans';
+  for(let x=1;x<=5;x++){ctx.fillText(x,mx(x)-3,my(0)+12);}
+  for(let y=9;y<=27;y+=9){ctx.fillText(y,mx(0)+4,my(y)+4);}
+
+  // Curve: t²
+  ctx.strokeStyle='rgba(59,130,246,0.7)';ctx.lineWidth=2.5;
+  ctx.beginPath();
+  for(let t=XMIN;t<=XMAX;t+=0.05){
+    const xp=mx(t),yp=my(f(t));
+    t===XMIN?ctx.moveTo(xp,yp):ctx.lineTo(xp,yp);
+  }
+  ctx.stroke();
+
+  // Point at x=3
+  ctx.fillStyle='var(--blue)';
+  ctx.beginPath();ctx.arc(mx(X0),my(f(X0)),5,0,Math.PI*2);ctx.fill();
+
+  if(currentH===0){
+    // Tangent line
+    const slope=2*X0; // exact derivative of x²
+    const y1=f(X0)+slope*(XMIN-X0);
+    const y2=f(X0)+slope*(XMAX-X0);
+    ctx.strokeStyle='rgba(251,191,36,0.9)';ctx.lineWidth=2.5;
+    ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(mx(XMIN),my(y1));ctx.lineTo(mx(XMAX),my(y2));ctx.stroke();
+    // Point
+    ctx.fillStyle='var(--gold)';
+    ctx.beginPath();ctx.arc(mx(X0),my(f(X0)),6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.8)';ctx.font='bold 11px DM Sans';
+    ctx.fillText('slope = 6 (tangent)',mx(X0)+10,my(f(X0))-10);
+  } else {
+    // Secant line
+    const X1=X0+currentH;
+    const slope=(f(X1)-f(X0))/currentH;
+    // Extend line across canvas
+    const y_at_xmin=f(X0)+slope*(XMIN-X0);
+    const y_at_xmax=f(X0)+slope*(XMAX-X0);
+    ctx.strokeStyle='rgba(6,182,212,0.8)';ctx.lineWidth=2;
+    ctx.setLineDash([5,4]);
+    ctx.beginPath();ctx.moveTo(mx(XMIN),my(y_at_xmin));ctx.lineTo(mx(XMAX),my(y_at_xmax));ctx.stroke();
+    ctx.setLineDash([]);
+    // Second point
+    ctx.fillStyle='rgba(6,182,212,0.9)';
+    ctx.beginPath();ctx.arc(mx(X1),my(f(X1)),5,0,Math.PI*2);ctx.fill();
+    // Slope label
+    ctx.fillStyle='rgba(6,182,212,0.9)';ctx.font='bold 11px DM Sans';
+    ctx.fillText(`slope ≈ ${slope.toFixed(3)}`,mx(2),my(20));
+    // Interval bracket
+    ctx.strokeStyle='rgba(249,115,22,0.5)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(mx(X0),my(f(X0)));ctx.lineTo(mx(X1),my(f(X0)));ctx.lineTo(mx(X1),my(f(X1)));ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(249,115,22,0.7)';ctx.font='10px DM Sans';
+    ctx.fillText(`h=${currentH}`,mx(X0+(X1-X0)/2)-8,my(f(X0))+12);
+  }
+}
+
+function setH(h){
+  currentH=h;
+  // Update display
+  document.getElementById('hVal').textContent=h===0?'→ 0':h;
+  const slope=h===0?6:(f(X0+h)-f(X0))/h;
+  document.getElementById('slopeVal').textContent=h===0?'6 (exact!)':slope.toFixed(4);
+  // Button states
+  ['2','1','05','01','001','0'].forEach(id=>{
+    const b=document.getElementById(`hBtn${id}`);
+    if(b) b.className='step-btn';
+  });
+  const idMap={2:'2',1:'1',0.5:'05',0.1:'01',0.01:'001',0:'0'};
+  const btn=document.getElementById(`hBtn${idMap[h]}`);
+  if(btn) btn.className='step-btn active';
+
+  // Draw
+  if(!ctx) ctx=cv.getContext('2d');
+  drawCanvas();
+
+  if(h===0){
+    document.getElementById('tangentInsight').style.display='block';
+    document.getElementById('s2Next').disabled=false;
+    launchMiniConfetti();
+  }
+}
+
+function celebrate(){
+  launchConfetti();
+  setTimeout(()=>window.location.href='calculus_act2.html',900);
+}
+
+// Confetti
+const cc=document.getElementById('confetti'),cxc=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<90;i++) parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*5,vy:2+Math.random()*4,
+    c:['#06b6d4','#3b82f6','#fbbf24','#f97316','#e8f4ff'][Math.floor(Math.random()*5)],
+    s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},3500);
+}
+function launchMiniConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;
+  for(let i=0;i<18;i++) parts.push({x:innerWidth/2+(Math.random()-.5)*200,y:innerHeight*.45,
+    vx:(Math.random()-.5)*7,vy:-(3+Math.random()*5),
+    c:['#06b6d4','#fbbf24'][Math.floor(Math.random()*2)],s:4+Math.random()*5,r:0,vr:(Math.random()-.5)*.3,l:1});
+  if(!afr)animC();
+}
+function animC(){
+  cxc.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;
+    cxc.save();cxc.globalAlpha=p.l;cxc.translate(p.x,p.y);cxc.rotate(p.r);
+    cxc.fillStyle=p.c;cxc.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cxc.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;
+}
+
+// Init canvas context early
+window.addEventListener('load',()=>{cv=document.getElementById('calcCanvas');ctx=cv.getContext('2d');});
+</script>
+</body>
+</html>

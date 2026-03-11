@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#020818">
+    <title>The Shape of Change — Act III</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#020818;--bg2:#050d28;--bg3:#091436;
+            --blue:#3b82f6;--blue-dim:rgba(59,130,246,0.12);
+            --cyan:#06b6d4;--cyan-dim:rgba(6,182,212,0.12);
+            --coral:#f97316;--coral-dim:rgba(249,115,22,0.1);
+            --gold:#fbbf24;--gold-dim:rgba(251,191,36,0.1);
+            --em:#10b981;--em-dim:rgba(16,185,129,0.1);
+            --cream:#e8f4ff;--text:#a8c4e8;--muted:#2a4060;
+            --border:rgba(59,130,246,0.14);--radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #bg{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,rgba(16,185,129,0.04) 0%,transparent 60%),var(--bg);}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;border-bottom:1px solid var(--border);background:rgba(2,8,24,0.93);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--em);font-style:normal;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--cyan);}
+        .dot.active{background:var(--em);box-shadow:0 0 10px var(--em);animation:p 2s ease infinite;}
+        @keyframes p{0%,100%{box-shadow:0 0 6px var(--em)}50%{box-shadow:0 0 18px var(--em)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--em);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);padding:0 6px;color:var(--em);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#a8c0e0;}
+        .narrator p em{color:var(--em);font-style:italic;}
+        .narrator p strong{color:var(--cream);}
+        .narrator.coral{border-left-color:var(--coral);} .narrator.coral::before{color:var(--coral);}
+        .narrator.gold{border-left-color:var(--gold);} .narrator.gold::before{color:var(--gold);}
+        .narrator.blue{border-left-color:var(--blue);} .narrator.blue::before{color:var(--blue);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+        .act-name em{color:var(--em);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;background:linear-gradient(135deg,var(--em),#059669);border:none;border-radius:50px;padding:15px 30px;font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;color:#020818;cursor:pointer;transition:all 0.25s;touch-action:manipulation;box-shadow:0 4px 24px rgba(16,185,129,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);}
+        .cta-btn:disabled{opacity:0.35;transform:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(16,185,129,0.15);border-left:3px solid var(--em);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--em);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#6080a0;}
+        .insight p em{color:var(--em);font-style:normal;font-weight:600;}
+        .insight.coral{border-left-color:var(--coral);border-color:rgba(249,115,22,0.15);} .insight.coral .lbl{color:var(--coral);}
+        .insight.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);} .insight.gold .lbl{color:var(--gold);}
+        .insight.blue{border-left-color:var(--blue);border-color:rgba(59,130,246,0.15);} .insight.blue .lbl{color:var(--blue);}
+
+        /* Canvas */
+        .cv-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:4px;margin-bottom:14px;overflow:hidden;}
+        canvas{display:block;width:100%;}
+
+        /* Slider */
+        .n-slider-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+        .n-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+        input[type=range]{flex:1;accent-color:var(--em);}
+        .n-val{font-family:'DM Sans',monospace;font-size:1.3em;font-weight:700;color:var(--em);min-width:40px;}
+        .stats-row{display:flex;gap:10px;flex-wrap:wrap;}
+        .stat-box{flex:1;min-width:80px;padding:10px;border-radius:12px;border:1.5px solid;text-align:center;}
+        .stat-num{font-family:'DM Sans',monospace;font-size:1.4em;font-weight:700;display:block;margin-bottom:2px;}
+        .stat-lab{font-size:0.68em;text-transform:uppercase;letter-spacing:1px;color:var(--muted);}
+
+        /* complete */
+        .complete-badge{background:linear-gradient(135deg,rgba(16,185,129,0.1),rgba(6,182,212,0.05));border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--em);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--gold,#f59e0b);}
+        .learn-box.notice .learn-title{color:var(--em,#10b981);}
+        .learn-box.why .learn-title{color:var(--coral,#fb7185);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--gold);color:var(--gold);}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div id="bg"></div>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div style="font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Act III of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot active"></div>
+        <div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0 -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Shape of Change · Act III</div>
+      <div class="act-name">The <em>Area</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;"><div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">▦</div></div>
+    <div class="narrator">
+      <p>Same car, different question. The speedometer shows the speed at every moment. You want to know the <em>total distance</em> travelled.</p>
+      <p style="margin-top:10px">Speed × time = distance — but only if the speed is constant. If it's changing every second, how do you add it all up?</p>
+      <p style="margin-top:10px">You slice the journey into tiny pieces. In each tiny piece, the speed is <em>nearly</em> constant. Multiply speed × time for each slice. Add them all. <strong>As the slices get thinner, the sum becomes exact.</strong></p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">The same idea as the derivative</div>
+      <p>In Act I, we shrank a time interval to find the instantaneous rate of change. Here, we shrink many intervals — and sum them — to find the total accumulation. Two sides of the same coin.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Slice the journey →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: RIEMANN SUMS -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Riemann sums</div>
+      <div class="act-name">Rectangles to <em>exact area</em></div>
+    </div>
+    <div class="narrator">
+      <p>Speed curve: v(t) = t (linearly increasing). We want the distance from t = 0 to t = 4.</p>
+      <p style="margin-top:6px">Drag the slider to increase the number of rectangles. Watch the approximation converge to the exact area.</p>
+    </div>
+
+    <div class="cv-wrap">
+      <canvas id="riemannCanvas" height="240"></canvas>
+    </div>
+
+    <div class="n-slider-wrap">
+      <div class="n-row">
+        <span style="font-size:0.82em;color:var(--muted);">Fewer</span>
+        <input type="range" id="nSlider" min="1" max="200" value="4" oninput="updateRiemann()">
+        <span style="font-size:0.82em;color:var(--muted);">More</span>
+        <span class="n-val" id="nVal">4</span>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box" style="border-color:rgba(16,185,129,0.3);">
+          <span class="stat-num" style="color:var(--em);" id="approxArea">?</span>
+          <div class="stat-lab">Approx area</div>
+        </div>
+        <div class="stat-box" style="border-color:rgba(251,191,36,0.3);">
+          <span class="stat-num" style="color:var(--gold);" id="exactArea">8.000</span>
+          <div class="stat-lab">Exact area</div>
+        </div>
+        <div class="stat-box" style="border-color:rgba(249,115,22,0.3);">
+          <span class="stat-num" style="color:var(--coral);" id="errorPct">?</span>
+          <div class="stat-lab">Error</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight" id="riemannInsight" style="display:none;">
+      <div class="lbl">💡 The integral is the limit of a sum</div>
+      <p>With 200 rectangles the error is less than 1%. With infinitely many — the limit — it becomes exactly 8. This limit is written: <em>∫₀⁴ t dt = 8</em>. The integral sign ∫ is a stretched S — for "Sum". It is the sum of infinitely many infinitely thin slices.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>The integral notation →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: NOTATION -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">The notation</div>
+      <div class="act-name">∫ — just a <em>stretched S</em></div>
+    </div>
+    <div class="narrator coral">
+      <p>The integral looks intimidating. It isn't. Every symbol has a simple meaning.</p>
+    </div>
+
+    <div style="background:var(--bg2);border:1px solid rgba(16,185,129,0.2);border-radius:var(--radius);padding:22px;margin-bottom:14px;text-align:center;">
+      <div style="font-family:'DM Sans',monospace;font-size:clamp(1.3em,6vw,2em);font-weight:700;color:var(--cream);line-height:1.6;">
+        <span style="color:var(--em);font-size:1.4em;">∫</span><sub style="font-size:0.5em;color:var(--muted);">a</sub><sup style="font-size:0.5em;color:var(--muted);">b</sup>
+        <span style="color:var(--coral);">f(x)</span>
+        <span style="color:var(--gold);">dx</span>
+      </div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px;text-align:left;">
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:8px;background:rgba(16,185,129,0.05);border-radius:10px;">
+          <span style="font-family:'DM Sans',monospace;font-size:1.4em;color:var(--em);font-weight:700;min-width:30px;">∫</span>
+          <div><div style="font-family:'Lora',serif;font-size:0.95em;color:var(--cream);">"Sum" — stretched S (Leibniz, 1675)</div>
+          <div style="font-size:0.8em;color:var(--muted);font-style:italic;">Adds up infinitely many infinitely thin slices</div></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:8px;background:rgba(249,115,22,0.05);border-radius:10px;">
+          <span style="font-family:'DM Sans',monospace;font-size:1.2em;color:var(--coral);font-weight:700;min-width:30px;">f(x)</span>
+          <div><div style="font-family:'Lora',serif;font-size:0.95em;color:var(--cream);">The height of each slice</div>
+          <div style="font-size:0.8em;color:var(--muted);font-style:italic;">The function value at that point</div></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:8px;background:rgba(251,191,36,0.05);border-radius:10px;">
+          <span style="font-family:'DM Sans',monospace;font-size:1.2em;color:var(--gold);font-weight:700;min-width:30px;">dx</span>
+          <div><div style="font-family:'Lora',serif;font-size:0.95em;color:var(--cream);">The infinitesimal width of each slice</div>
+          <div style="font-size:0.8em;color:var(--muted);font-style:italic;">"With respect to x" — the limit of Δx → 0</div></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-start;padding:8px;background:rgba(255,255,255,0.02);border-radius:10px;">
+          <span style="font-family:'DM Sans',monospace;font-size:1em;color:var(--muted);font-weight:700;min-width:30px;">a,b</span>
+          <div><div style="font-family:'Lora',serif;font-size:0.95em;color:var(--cream);">The limits — where the integration starts and ends</div>
+          <div style="font-size:0.8em;color:var(--muted);font-style:italic;">∫₀⁴ means from x=0 to x=4</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">💡 One formula, endless uses</div>
+      <p>Area under a speed curve = distance. Area under a force curve = work. Area under a probability curve = likelihood. The integral computes <em>any accumulation</em> — total quantity, total effect, total probability. One idea, infinite applications.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)">✦ Act III Complete →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: COMPLETE -->
+  <section class="screen" id="screen-3">
+    <div class="act-title"><div class="act-label">Act III complete</div><div class="act-name">The <em>integral</em></div></div>
+    <div class="complete-badge">
+      <span class="badge-icon">▦</span>
+      <div class="badge-title">The sum of infinitely many infinitely thin slices</div>
+      <div class="badge-sub">∫f(x)dx — the area under the curve.<br>The limit of Riemann sums.</div>
+    </div>
+    <div class="insight" style="margin-bottom:14px;">
+      <div class="lbl">💡 What you learned</div>
+      <p>The integral ∫f(x)dx is the limit of a Riemann sum — adding up f(x)·Δx over narrower and narrower rectangles. As Δx→0, the sum becomes exact. The ∫ symbol is a stretched S for "Sum". dx is the infinitesimal width. <em>Slicing infinitely thin gives infinite precision.</em></p>
+    </div>
+    <div class="insight gold" style="margin-bottom:20px;">
+      <div class="lbl">Coming in Act IV — The Revelation</div>
+      <p>Two ideas, built separately over three acts. The derivative: how fast something changes. The integral: how much it accumulates. Are these connected? The answer is the most beautiful theorem in all of calculus — and perhaps in all of mathematics.</p>
+    </div>
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Add more rectangles under the curve. What happens to the approximation as the number of rectangles increases?</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>As rectangles get narrower, the Riemann sum converges to the exact area. This is the definite integral. The Fundamental Theorem of Calculus connects this area to the antiderivative — differentiation in reverse.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>Integration lets us compute total quantities from rates: distance from speed, work from force, probability from density. It is the inverse of differentiation, and together they form the two pillars of calculus.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="cta-btn" onclick="celebrate()">✦ On to Act IV →</button>
+      <button class="cta-btn ghost" onclick="window.location.href='calculus_act2.html'">← Revisit Act II</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+let curScreen=0;
+let rCv,rCtx,rW=300,rH=240;
+const EXACT=8; // ∫₀⁴ t dt = 8
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n; document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1){initRiemann();updateRiemann();}
+}
+
+function initRiemann(){
+  rCv=document.getElementById('riemannCanvas');
+  rW=rCv.parentElement.clientWidth-8; rCv.width=rW; rCv.height=rH;
+  rCtx=rCv.getContext('2d');
+}
+
+function updateRiemann(){
+  const n=parseInt(document.getElementById('nSlider').value);
+  document.getElementById('nVal').textContent=n;
+  const approx=computeRiemann(n);
+  document.getElementById('approxArea').textContent=approx.toFixed(3);
+  const err=Math.abs((approx-EXACT)/EXACT*100);
+  document.getElementById('errorPct').textContent=err<0.1?'< 0.1%':err.toFixed(1)+'%';
+  drawRiemann(n,approx);
+  if(n>=100){
+    document.getElementById('riemannInsight').style.display='block';
+    document.getElementById('s1Next').disabled=false;
+  }
+}
+
+function computeRiemann(n){
+  const a=0,b=4,dx=(b-a)/n;
+  let sum=0;
+  for(let i=0;i<n;i++) sum+=(a+i*dx)*dx; // left Riemann, f(t)=t
+  return sum;
+}
+
+function drawRiemann(n,approx){
+  if(!rCtx)return;
+  const XMIN=0,XMAX=4,YMIN=0,YMAX=4.5;
+  const mx=x=>(x-XMIN)/(XMAX-XMIN)*rW;
+  const my=y=>rH-(y-YMIN)/(YMAX-YMIN)*rH;
+  rCtx.clearRect(0,0,rW,rH);
+  // Grid
+  rCtx.strokeStyle='rgba(255,255,255,0.04)';rCtx.lineWidth=1;
+  for(let y=1;y<=4;y++){rCtx.beginPath();rCtx.moveTo(0,my(y));rCtx.lineTo(rW,my(y));rCtx.stroke();}
+  // Rectangles
+  const a=0,b=4,dx=(b-a)/n;
+  rCtx.fillStyle='rgba(16,185,129,0.25)';
+  rCtx.strokeStyle='rgba(16,185,129,0.5)';
+  rCtx.lineWidth=n<20?1.5:0.5;
+  for(let i=0;i<n;i++){
+    const x=a+i*dx;
+    const h=x; // f(t)=t
+    rCtx.fillRect(mx(x),my(h),Math.max(1,mx(x+dx)-mx(x)-1),my(0)-my(h));
+    if(n<30) rCtx.strokeRect(mx(x),my(h),Math.max(1,mx(x+dx)-mx(x)-1),my(0)-my(h));
+  }
+  // True curve
+  rCtx.strokeStyle='rgba(6,182,212,0.9)';rCtx.lineWidth=2.5;
+  rCtx.beginPath();
+  for(let t=XMIN;t<=XMAX;t+=0.05){t===XMIN?rCtx.moveTo(mx(t),my(t)):rCtx.lineTo(mx(t),my(t));}
+  rCtx.stroke();
+  // Axes
+  rCtx.strokeStyle='rgba(255,255,255,0.15)';rCtx.lineWidth=1;
+  rCtx.beginPath();rCtx.moveTo(0,my(0));rCtx.lineTo(rW,my(0));rCtx.stroke();
+  rCtx.beginPath();rCtx.moveTo(mx(0),0);rCtx.lineTo(mx(0),rH);rCtx.stroke();
+  // Labels
+  rCtx.fillStyle='rgba(255,255,255,0.3)';rCtx.font='10px DM Sans';
+  [1,2,3,4].forEach(x=>rCtx.fillText(x,mx(x)-3,my(0)+12));
+  [1,2,3,4].forEach(y=>rCtx.fillText(y,mx(0)+4,my(y)+4));
+  rCtx.fillStyle='rgba(6,182,212,0.8)';rCtx.font='bold 10px DM Sans';
+  rCtx.fillText('v(t) = t',mx(3.5),my(3.2));
+}
+
+function celebrate(){launchConfetti();setTimeout(()=>window.location.href='calculus_act4.html',900);}
+
+const cc=document.getElementById('confetti'),cxc=cc.getContext('2d');
+let parts=[],afr=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;parts=[];
+  for(let i=0;i<90;i++) parts.push({x:Math.random()*cc.width,y:-20,vx:(Math.random()-.5)*5,vy:2+Math.random()*4,c:['#10b981','#06b6d4','#fbbf24','#f97316'][Math.floor(Math.random()*4)],s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-.5)*.2,l:1});
+  if(afr)cancelAnimationFrame(afr);animC();setTimeout(()=>{parts=[];},3500);
+}
+function animC(){
+  cxc.clearRect(0,0,cc.width,cc.height);parts=parts.filter(p=>p.l>.01);
+  parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.r+=p.vr;p.l-=.012;cxc.save();cxc.globalAlpha=p.l;cxc.translate(p.x,p.y);cxc.rotate(p.r);cxc.fillStyle=p.c;cxc.fillRect(-p.s/2,-p.s/2,p.s,p.s*.6);cxc.restore();});
+  if(parts.length>0)afr=requestAnimationFrame(animC);else afr=null;
+}
+</script>
+</body>
+</html>
