@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematics of Flight: Act 3 — Stability and Centre of Gravity</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&family=Crimson+Pro:ital@1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #07101a;
+            --bg2: #0c1528;
+            --bg3: #111a30;
+            --accent: #60a5fa;
+            --accent-dim: rgba(96,165,250,0.15);
+            --secondary: #34d399;
+            --green: #10b981;
+            --cyan: #22d3ee;
+            --gold: #fbbf24;
+            --text: #e2e2f0;
+            --muted: #7070a0;
+            --panel: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.07);
+            --radius: 18px;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Nunito', sans-serif;
+            font-weight: 400;
+            font-size: 16px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        header {
+            position: sticky;
+            top: 0;
+            background: linear-gradient(180deg, var(--bg) 0%, rgba(7,16,26,0.95) 100%);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .progress-dots {
+            display: flex;
+            gap: 8px;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .dot.active {
+            background: var(--accent);
+            width: 24px;
+            border-radius: 5px;
+        }
+        .dot:hover {
+            background: var(--accent-dim);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px 40px;
+        }
+        .screens-container {
+            position: relative;
+            min-height: 600px;
+        }
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            pointer-events: none;
+            animation: fadeUp 0.6s ease;
+        }
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            position: static;
+            animation: fadeUp 0.6s ease;
+        }
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .narrator {
+            border-left: 4px solid var(--accent);
+            padding: 20px;
+            background: var(--panel);
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin: 20px 0;
+            font-style: italic;
+            color: var(--text);
+        }
+        h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+        h2 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--secondary);
+        }
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--accent);
+        }
+        p {
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+        .math-block {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            color: var(--gold);
+            text-align: center;
+        }
+        canvas {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            margin: 20px 0;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: 'Nunito', sans-serif;
+        }
+        button:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(96, 165, 250, 0.3);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .slider-group {
+            margin: 20px 0;
+            background: var(--panel);
+            padding: 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            -webkit-appearance: none;
+            margin: 8px 0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 30px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+        .back-link:hover {
+            color: var(--accent);
+        }
+        footer {
+            text-align: center;
+            padding: 28px 20px 18px;
+            color: #505068;
+            font-size: 0.72em;
+            line-height: 1.7;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 30px;
+        }
+        footer a {
+            color: #606078;
+            text-decoration: none;
+        }
+        footer a:hover {
+            color: var(--accent);
+        }
+        .insight {
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin: 20px 0;
+            color: var(--accent);
+            font-size: 14px;
+        }
+        .content-block {
+            margin: 30px 0;
+        }
+        .control-panel {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .control-btn {
+            padding: 8px 16px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .control-btn:hover {
+            background: var(--border);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .control-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--bg);
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/journeys/flight_act3.html">
+  <meta name="description" content="Learn about Flight Act3 in Mathematics Education">
+  </head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="header-title">Mathematics of Flight</div>
+            <div class="progress-dots">
+                <div class="dot" onclick="goToAct(1)"></div>
+                <div class="dot" onclick="goToAct(2)"></div>
+                <div class="dot active" onclick="goToAct(3)"></div>
+                <div class="dot" onclick="goToAct(4)"></div>
+                <div class="dot" onclick="goToAct(5)"></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Journeys</a>
+
+        <div class="screens-container">
+            <!-- Screen 1: The Falling Problem -->
+            <section class="screen active">
+                <h1>Stability and Centre of Gravity</h1>
+                <div class="narrator">
+                    <p>An aircraft is always trying to fall out of the sky. Gravity pulls it down relentlessly. The mathematics of stability determine whether it survives this constant assault.</p>
+                </div>
+                <div class="content-block">
+                    <p>Lift and weight must balance. But that's not enough. A pencil balanced on its point is technically in equilibrium—until the slightest breeze disturbs it. Then it tumbles.</p>
+                    <p>An aircraft must be stable. Not just momentarily balanced, but naturally resistant to disturbances. When a gust of wind pitches the nose up, the aircraft must automatically correct itself. When banking into a turn, it must want to return to level flight.</p>
+                    <p>This stability comes from careful positioning of two invisible points: the centre of gravity (where all the aircraft's weight acts) and the centre of pressure (where all the aerodynamic forces act).</p>
+                    <p>The relationship between these two points determines whether an aircraft is stable, neutral, or dangerously unstable.</p>
+                </div>
+                <div class="insight">
+                    <strong>Key Principle:</strong> Stability isn't optional. An unstable aircraft cannot be flown—it requires constant pilot intervention and ultimately crashes.
+                </div>
+                <div class="controls">
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 2: CG vs CP -->
+            <section class="screen">
+                <h2>Centre of Gravity vs Centre of Pressure</h2>
+                <div class="narrator">
+                    <p>The distance between these two points is the margin of safety. Move them the wrong way, and the aircraft becomes uncontrollable.</p>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Centre of Gravity Position</span>
+                        <span id="cg-value">50%</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px;">Move CG forward → more stable but harder to turn; Backward → more agile but less stable</div>
+                    <input type="range" id="cg-slider" min="30" max="70" value="50" step="1" oninput="updateCG(this.value)">
+                </div>
+                <canvas id="canvas-cg" width="800" height="400"></canvas>
+                <p style="margin-top: 20px;">The diagram shows an aircraft from the side. The coloured circles mark:</p>
+                <ul style="margin-left: 20px; margin-bottom: 16px;">
+                    <li><span style="color: var(--cyan);">●</span> <strong>Centre of Pressure (CP):</strong> Where the wing's lift acts. Fixed for a given angle of attack.</li>
+                    <li><span style="color: var(--gold);">●</span> <strong>Centre of Gravity (CG):</strong> Where the aircraft's weight acts. Engineers position this carefully.</li>
+                </ul>
+                <p><strong>Stability Rule:</strong> If CG is <em>ahead of</em> CP (towards the nose), the aircraft is stable. If CG is <em>behind</em> CP (towards the tail), it's unstable.</p>
+                <div class="insight">
+                    <strong>Why?</strong> If the nose pitches up by accident, speed drops, lift drops, and the moment (torque) tips the nose back down. Stable equilibrium—the aircraft self-corrects.
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 3: Three Axes of Rotation -->
+            <section class="screen">
+                <h2>Pitch, Roll, and Yaw</h2>
+                <div class="narrator">
+                    <p>An aircraft doesn't just fall straight. It can rotate about three different axes. Each requires its own control surface.</p>
+                </div>
+                <div class="control-panel">
+                    <button class="control-btn active" onclick="selectAxis(0)">Pitch</button>
+                    <button class="control-btn" onclick="selectAxis(1)">Roll</button>
+                    <button class="control-btn" onclick="selectAxis(2)">Yaw</button>
+                </div>
+                <canvas id="canvas-axes" width="800" height="450"></canvas>
+                <p style="margin-top: 20px;" id="axis-description">
+                    <strong>Pitch:</strong> Nose up/down rotation. Controlled by the elevator (a hinged surface on the horizontal tail). Moving the control column forward pitches the nose down; back pitches it up.
+                </p>
+                <div class="insight" id="axis-insight">
+                    <strong>Control Surface:</strong> Elevator on the tail. The area and moment arm must be precisely calculated to counteract pitch instability.
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 4: The Stability Paradox -->
+            <section class="screen">
+                <h2>The Stability Paradox</h2>
+                <div class="narrator">
+                    <p>Fighter jets deliberately violate the stability rules. They're unstable—yet somehow safer than ever. Mathematics explains the paradox.</p>
+                </div>
+                <div class="content-block">
+                    <p>An inherently stable aircraft is easy to fly but sluggish. Moving the control stick produces small, slow changes. For a commercial airliner, this is perfect—you want a stable platform that naturally wants to maintain level flight.</p>
+                    <p>But a fighter pilot needs instantaneous response. They want to bank hard, pitch aggressively, and execute manoeuvres that would tear apart a civilian aircraft. An inherently stable design is a handicap.</p>
+                    <p>So military engineers make jets deliberately unstable. The centre of gravity is positioned <em>behind</em> the centre of pressure—exactly the configuration that should be uncontrollable.</p>
+                    <p>Yet modern fighter jets like the F-16 are incredibly agile and safe to fly. How?</p>
+                    <p style="margin-top: 20px;"><strong>The answer: Computers.</strong></p>
+                    <p>A computer onboard the aircraft measures acceleration, rotation rate, altitude, and airspeed thousands of times per second. Using control theory (which we'll explore in Act 4), the computer constantly adjusts the control surfaces to maintain flight. The pilot doesn't directly control the surfaces; they tell the computer what manoeuvre they want, and the computer makes thousands of tiny corrections to make it happen.</p>
+                    <p>This is called <strong>fly-by-wire</strong> control. The mathematics of feedback and stability move from the physics of the wing to the realm of electronic control systems.</p>
+                </div>
+                <div class="insight">
+                    <strong>Insight:</strong> By delegating stability to a computer, engineers gained enormous performance. Mathematics made extreme behaviour both safe and possible.
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="goToAct(4)">Act 4: Control Theory →</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <footer>
+        <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+        <div style="margin-top:6px">
+            <a href="../terms.html">Terms of Use</a>
+            &nbsp;&middot;&nbsp;
+            <a href="../intellectual-property.html">Intellectual Property</a>
+            &nbsp;&middot;&nbsp;
+            <a href="../privacy.html">Privacy Policy</a>
+        </div>
+    </footer>
+
+    <script>
+        let currentScreen = 0;
+        let currentAxis = 0;
+        const screens = document.querySelectorAll('.screen');
+        const dots = document.querySelectorAll('.dot');
+
+        function showScreen(n) {
+            screens.forEach(s => s.classList.remove('active'));
+            screens[n].classList.add('active');
+            currentScreen = n;
+        }
+
+        function nextScreen() {
+            if (currentScreen < screens.length - 1) {
+                showScreen(currentScreen + 1);
+            }
+        }
+
+        function prevScreen() {
+            if (currentScreen > 0) {
+                showScreen(currentScreen - 1);
+            }
+        }
+
+        function goToAct(act) {
+            const acts = ['flight_act1.html', 'flight_act2.html', 'flight_act3.html', 'flight_act4.html', 'flight_act5.html'];
+            window.location.href = acts[act - 1];
+        }
+
+        function updateCG(value) {
+            const pct = parseFloat(value);
+            document.getElementById('cg-value').textContent = pct.toFixed(0) + '%';
+            drawCG();
+        }
+
+        function drawCG() {
+            const canvas = document.getElementById('canvas-cg');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#07101a';
+            ctx.fillRect(0, 0, w, h);
+
+            const fuselageX = 150;
+            const fuselageY = h / 2;
+            const fuselageLength = 400;
+            const fuselageHeight = 40;
+
+            // Draw fuselage
+            ctx.fillStyle = '#60a5fa';
+            ctx.beginPath();
+            ctx.moveTo(fuselageX, fuselageY);
+            ctx.lineTo(fuselageX + fuselageLength, fuselageY - fuselageHeight / 2);
+            ctx.lineTo(fuselageX + fuselageLength, fuselageY + fuselageHeight / 2);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw wings
+            ctx.fillStyle = '#60a5fa';
+            const wingBaseX = fuselageX + fuselageLength / 2;
+            ctx.fillRect(wingBaseX - 80, fuselageY - 8, 160, 16);
+
+            // Draw tail
+            const tailX = fuselageX + fuselageLength;
+            ctx.fillRect(tailX - 30, fuselageY - 6, 30, 12);
+
+            // Centre of Pressure (fixed)
+            const cpX = fuselageX + fuselageLength * 0.45;
+            const cpY = fuselageY - 60;
+            ctx.fillStyle = '#22d3ee';
+            ctx.beginPath();
+            ctx.arc(cpX, cpY, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.font = '12px Nunito';
+            ctx.fillStyle = '#22d3ee';
+            ctx.textAlign = 'center';
+            ctx.fillText('CP', cpX, cpY + 25);
+
+            // Centre of Gravity (movable)
+            const cgValue = parseFloat(document.getElementById('cg-slider').value);
+            const cgX = fuselageX + fuselageLength * (cgValue / 100);
+            const cgY = fuselageY + 60;
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(cgX, cgY, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillText('CG', cgX, cgY + 25);
+
+            // Draw moment lines
+            ctx.strokeStyle = cgX < cpX ? '#34d399' : '#ef4444';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(cgX, fuselageY);
+            ctx.lineTo(cpX, fuselageY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Status text
+            ctx.font = 'bold 14px Nunito';
+            ctx.textAlign = 'left';
+            if (cgX < cpX) {
+                ctx.fillStyle = '#34d399';
+                ctx.fillText('✓ STABLE (CG ahead of CP)', 40, 40);
+                ctx.font = '12px Nunito';
+                ctx.fillStyle = '#7070a0';
+                ctx.fillText('Nose-up disturbance → speed drops → lift drops → nose drops back', 40, 65);
+            } else if (cgX === cpX) {
+                ctx.fillStyle = '#fbbf24';
+                ctx.fillText('◎ NEUTRAL (CG at CP)', 40, 40);
+            } else {
+                ctx.fillStyle = '#ef4444';
+                ctx.fillText('✗ UNSTABLE (CG behind CP)', 40, 40);
+                ctx.font = '12px Nunito';
+                ctx.fillStyle = '#7070a0';
+                ctx.fillText('Nose-up disturbance → speed drops → nose rises more (divergence!)', 40, 65);
+            }
+        }
+
+        function selectAxis(axis) {
+            currentAxis = axis;
+            const buttons = document.querySelectorAll('.control-btn');
+            buttons.forEach((btn, idx) => {
+                btn.classList.toggle('active', idx === axis);
+            });
+
+            const descriptions = [
+                '<strong>Pitch:</strong> Nose up/down rotation. Controlled by the elevator (a hinged surface on the horizontal tail). Moving the control column forward pitches the nose down; back pitches it up.',
+                '<strong>Roll:</strong> Wing rotation (banking left or right). Controlled by ailerons (hinged surfaces on the wings). Pushing the stick left lowers the left aileron and raises the right, tilting the plane left.',
+                '<strong>Yaw:</strong> Nose left/right rotation (nose rotates horizontally). Controlled by the rudder (a hinged surface on the vertical tail). Pushing the left pedal yaws the nose left; right pedal yaws it right.'
+            ];
+
+            const insights = [
+                '<strong>Control Surface:</strong> Elevator on the tail. The area and moment arm must be precisely calculated to counteract pitch instability.',
+                '<strong>Control Surfaces:</strong> Ailerons on the wings. They create differential lift to roll the aircraft. More area = faster roll rate.',
+                '<strong>Control Surface:</strong> Rudder on the vertical tail. Mainly prevents the nose from slipping sideways. Pilots rarely use it in modern fly-by-wire aircraft—the computer handles it automatically.'
+            ];
+
+            document.getElementById('axis-description').innerHTML = descriptions[axis];
+            document.getElementById('axis-insight').innerHTML = insights[axis];
+            drawAxes();
+        }
+
+        function drawAxes() {
+            const canvas = document.getElementById('canvas-axes');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#07101a';
+            ctx.fillRect(0, 0, w, h);
+
+            if (currentAxis === 0) {
+                // Pitch (front view with pitch rotation)
+                drawPitchView(ctx, w, h);
+            } else if (currentAxis === 1) {
+                // Roll (front view with roll rotation)
+                drawRollView(ctx, w, h);
+            } else {
+                // Yaw (top view)
+                drawYawView(ctx, w, h);
+            }
+        }
+
+        function drawPitchView(ctx, w, h) {
+            const centerX = w / 2;
+            const centerY = h / 2;
+
+            // Draw aircraft from front
+            ctx.fillStyle = '#60a5fa';
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, 30, 80, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw wings
+            ctx.fillRect(centerX - 150, centerY - 10, 300, 20);
+
+            // Draw cockpit
+            ctx.fillStyle = '#22d3ee';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY - 60, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pitch rotation visualization (nose angle)
+            const time = Date.now() / 1000;
+            const angle = Math.sin(time) * 0.3; // Oscillating pitch
+
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(angle);
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, -70);
+            ctx.lineTo(0, 70);
+            ctx.stroke();
+            ctx.restore();
+
+            // Elevator arrows
+            ctx.font = '12px Nunito';
+            ctx.fillStyle = '#fbbf24';
+            ctx.textAlign = 'center';
+            ctx.fillText('↑ Elevator ↓', centerX, h - 40);
+
+            // Pitch axis
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = '#34d399';
+            ctx.fillText('Pitch Axis (Lateral Axis)', centerX, 50);
+        }
+
+        function drawRollView(ctx, w, h) {
+            const centerX = w / 2;
+            const centerY = h / 2;
+
+            // Draw aircraft from front
+            ctx.fillStyle = '#60a5fa';
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, 30, 80, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            const time = Date.now() / 1000;
+            const angle = Math.sin(time * 1.2) * 0.4; // Rolling motion
+
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(angle);
+
+            // Draw wings
+            ctx.fillStyle = '#60a5fa';
+            ctx.fillRect(-150, -12, 300, 24);
+
+            // Draw cockpit
+            ctx.fillStyle = '#22d3ee';
+            ctx.beginPath();
+            ctx.arc(0, -60, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+
+            // Aileron arrows
+            ctx.font = '12px Nunito';
+            ctx.fillStyle = '#fbbf24';
+            ctx.textAlign = 'center';
+            ctx.fillText('↙ Ailerons ↗', centerX, h - 40);
+
+            // Roll axis
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = '#34d399';
+            ctx.fillText('Roll Axis (Longitudinal Axis)', centerX, 50);
+        }
+
+        function drawYawView(ctx, w, h) {
+            const centerX = w / 2;
+            const centerY = h / 2;
+
+            // Top-down view
+            ctx.fillStyle = '#60a5fa';
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - 100);
+            ctx.lineTo(centerX + 40, centerY + 60);
+            ctx.lineTo(centerX, centerY + 80);
+            ctx.lineTo(centerX - 40, centerY + 60);
+            ctx.closePath();
+            ctx.fill();
+
+            // Wings (top view)
+            ctx.fillRect(centerX - 100, centerY - 10, 200, 20);
+
+            // Yaw rotation
+            const time = Date.now() / 1000;
+            const angle = Math.sin(time * 0.8) * 0.35;
+
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(angle);
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -100);
+            ctx.stroke();
+            ctx.restore();
+
+            // Rudder
+            ctx.font = '12px Nunito';
+            ctx.fillStyle = '#fbbf24';
+            ctx.textAlign = 'center';
+            ctx.fillText('← Rudder →', centerX, h - 40);
+
+            // Yaw axis
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 80, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = '#34d399';
+            ctx.fillText('Yaw Axis (Vertical Axis)', centerX, 50);
+        }
+
+        // Initialize
+        showScreen(0);
+        setTimeout(() => {
+            drawCG();
+            drawAxes();
+            setInterval(() => {
+                if (currentScreen === 2) drawAxes();
+            }, 50);
+        }, 100);
+    </script>
+</body>
+</html>

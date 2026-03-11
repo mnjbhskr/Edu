@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#070a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Mathematics of Propulsion — Act III</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Crimson+Pro:ital@0;1&display=swap');
+
+        :root {
+            --bg: #070a1a;
+            --bg2: #0e0e28;
+            --bg3: #151530;
+            --accent: #fb923c;
+            --accent-dim: rgba(251,146,60,0.15);
+            --secondary: #f472b6;
+            --green: #10b981;
+            --cyan: #22d3ee;
+            --gold: #fbbf24;
+            --text: #e2e2f0;
+            --muted: #7070a0;
+            --panel: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.07);
+            --radius: 18px;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Nunito', sans-serif;
+            overflow-x: hidden;
+        }
+
+        #stars {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background: radial-gradient(ellipse at 20% 30%, rgba(251,146,60,0.04) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 70%, rgba(34,211,238,0.03) 0%, transparent 60%),
+                        var(--bg);
+        }
+
+        #app {
+            position: relative; z-index: 1;
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+        }
+
+        .app-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(7,10,26,0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            position: sticky; top: 0; z-index: 10;
+        }
+        .header-logo {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.1em; font-style: italic; color: var(--muted);
+            letter-spacing: 0.5px;
+        }
+        .header-logo span { color: var(--accent); font-style: normal; }
+        .progress-dots {
+            display: flex; gap: 6px; align-items: center;
+        }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--border); transition: all 0.4s ease;
+        }
+        .dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+        .dot.done { background: var(--green); }
+
+        .screen {
+            display: none; flex-direction: column;
+            flex: 1; padding: 24px 20px 100px;
+            animation: fadeUp 0.5s ease both;
+        }
+        .screen.active { display: flex; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .narrator {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        .narrator::before {
+            content: '✦';
+            position: absolute; top: -10px; left: 18px;
+            background: var(--bg2); padding: 0 6px;
+            color: var(--accent); font-size: 0.8em;
+        }
+        .narrator p {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.15em; line-height: 1.75;
+            color: #c8c8e8;
+        }
+        .narrator p em { color: var(--accent); font-style: italic; }
+        .narrator p strong { color: #fff; font-weight: 400; }
+
+        .act-title {
+            text-align: center; margin-bottom: 20px;
+        }
+        .act-label {
+            font-size: 0.7em; text-transform: uppercase;
+            letter-spacing: 3px; color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .act-name {
+            font-family: 'Crimson Pro', serif;
+            font-size: clamp(1.6em, 6vw, 2.2em);
+            font-weight: 300; color: #fff;
+            letter-spacing: 0.5px;
+        }
+        .act-name em { color: var(--accent); font-style: italic; }
+
+        canvas {
+            display: block; margin: 0 auto; border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: linear-gradient(to bottom, rgba(15,20,40,0.9), rgba(10,10,20,0.95));
+            width: 100%; max-width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .insight {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-bottom: 20px;
+        }
+        .insight .lbl {
+            font-size: 0.72em; text-transform: uppercase;
+            letter-spacing: 2px; color: var(--muted);
+            margin-bottom: 8px; font-weight: 600;
+        }
+        .insight p {
+            font-family: 'Crimson Pro', serif;
+            font-size: 0.95em; line-height: 1.75;
+            color: #a8a8d0;
+        }
+        .insight strong { color: var(--accent); }
+
+        .slider-container {
+            margin: 20px 0;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+        }
+        .slider-label {
+            font-size: 0.8em; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--muted);
+            margin-bottom: 10px; display: block;
+        }
+        .slider-input {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--accent-dim);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .slider-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent);
+        }
+        .slider-input::-moz-range-thumb {
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px var(--accent);
+        }
+        .slider-value {
+            margin-top: 10px;
+            font-family: 'Crimson Pro', serif;
+            font-size: 1em;
+            color: var(--accent);
+            text-align: center;
+        }
+
+        .energy-bars {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .bar-row {
+            margin-bottom: 16px;
+        }
+        .bar-row:last-child { margin-bottom: 0; }
+        .bar-label {
+            font-size: 0.8em; color: var(--muted); margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .bar-container {
+            display: flex; gap: 8px; height: 28px; background: var(--bg3);
+            border-radius: 8px; overflow: hidden; border: 1px solid var(--border);
+        }
+        .bar-segment {
+            height: 100%; display: flex; align-items: center;
+            justify-content: center; font-size: 0.75em; font-weight: 600;
+            color: #070a1a;
+        }
+
+        .button-group {
+            display: flex; gap: 10px; flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .button-group button {
+            flex: 1; min-width: 100px;
+            background: var(--bg3);
+            border: 1.5px solid var(--border);
+            border-radius: 40px;
+            padding: 10px 16px;
+            color: var(--muted);
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.88em; font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .button-group button:hover, .button-group button.active {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        .cta-btn {
+            width: 100%; max-width: 400px;
+            margin: 0 auto;
+            display: block;
+            background: linear-gradient(135deg, var(--accent), #f97316);
+            border: none; border-radius: 50px;
+            padding: 16px 32px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.05em; font-weight: 800;
+            color: #070a1a;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            touch-action: manipulation;
+            box-shadow: 0 4px 24px rgba(251,146,60,0.25);
+        }
+        .cta-btn:hover, .cta-btn:active {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(251,146,60,0.35);
+        }
+
+        #confetti {
+            position: fixed; inset: 0; z-index: 50; pointer-events: none;
+        }
+
+        .bottom-pad { height: 20px; }
+
+        a[href="../index.html"] {
+            position: fixed; top: 12px; left: 16px;
+            color: var(--muted); text-decoration: none;
+            font-size: 0.85em; z-index: 1000;
+            font-family: 'Crimson Pro', serif; font-style: italic;
+        }
+
+        footer {
+            text-align: center;
+            padding: 28px 20px 18px;
+            color: #505068;
+            font-size: 0.72em;
+            line-height: 1.7;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 30px;
+        }
+        footer a {
+            color: #606078;
+            text-decoration: none;
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/journeys/propulsion_act3.html">
+  <meta name="description" content="Learn about Propulsion Act3 in Mathematics Education">
+  </head>
+<body>
+<a href="../index.html">← mathsedu.org</a>
+<canvas id="confetti"></canvas>
+<div id="stars"></div>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-dots">
+        <div class="dot done"></div>
+        <div class="dot done"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: GRAVITY WELL -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">Mathematics of Propulsion · Act III</div>
+      <div class="act-name">Escaping <em>Earth</em></div>
+    </div>
+    <div style="text-align:center;margin:0 0 20px;">
+      <div style="font-size:4.5em;display:inline-block;">🌍</div>
+    </div>
+    <div class="narrator">
+      <p>Earth holds you in a gravity well.</p>
+      <p style="margin-top:10px">Gravity doesn't pull on you with constant force. It's the <em>geometry</em> of spacetime itself. Every kilogramme of mass warps spacetime around it, creating a potential energy landscape.</p>
+      <p style="margin-top:10px">To escape Earth entirely — to reach a place where Earth's gravity is zero — you must gain enough kinetic energy to climb out of this well. The required speed is <em>escape velocity</em>.</p>
+      <p style="margin-top:10px">For Earth, it's about 11.2 kilometres per second. Nothing can go faster than light. And yet objects can achieve escape velocity. That's what makes spaceflight possible.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Derive escape velocity →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: ESCAPE VELOCITY EXPLORER -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Energy Conservation</div>
+      <div class="act-name">The Escape <em>Speed</em></div>
+    </div>
+    <div class="narrator">
+      <p>Escape velocity: <strong>v_esc = √(2GM/r)</strong></p>
+      <p style="margin-top:10px">Where G is the gravitational constant, M is the body's mass, and r is the radius. For Earth: 11.2 km/s. For the Moon: 2.4 km/s. For Jupiter: 60 km/s.</p>
+      <p style="margin-top:10px">Explore how escape velocity changes with planetary mass and radius.</p>
+    </div>
+
+    <canvas id="wellCanvas" width="400" height="280" style="max-height:280px;"></canvas>
+
+    <div class="button-group">
+      <button class="active" onclick="setPlanet('earth')">Earth</button>
+      <button onclick="setPlanet('moon')">Moon</button>
+      <button onclick="setPlanet('mars')">Mars</button>
+      <button onclick="setPlanet('jupiter')">Jupiter</button>
+    </div>
+
+    <div class="slider-container">
+      <label class="slider-label" id="massLabel">Planetary mass multiplier</label>
+      <input type="range" id="massSlider" class="slider-input" min="0.1" max="3" step="0.1" value="1" oninput="updateWell()">
+      <div class="slider-value">
+        v_esc = <strong id="escapeSpdValue">11.2</strong> km/s
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">Why escape velocity matters</div>
+      <p>Any object moving at or faster than escape velocity will eventually reach infinity with zero velocity (or faster). Anything slower will fall back down. This is the boundary between ballistic trajectories (falling) and escape trajectories.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)">Orbits and velocity →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: ORBIT SIMULATOR -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">Orbital Mechanics</div>
+      <div class="act-name">The <em>Vis-Viva</em> Equation</div>
+    </div>
+    <div class="narrator">
+      <p>The vis-viva equation (a beautiful Latin phrase: "living force") describes velocity at any point in an orbit:</p>
+      <p style="margin-top:10px"><strong>v² = GM(2/r − 1/a)</strong></p>
+      <p style="margin-top:10px">where r is your distance from the centre and a is the semi-major axis of your orbit. Adjust the velocity slider to see different orbital shapes appear.</p>
+    </div>
+
+    <canvas id="orbitCanvas" width="400" height="350" style="max-height:350px;"></canvas>
+
+    <div class="slider-container">
+      <label class="slider-label">Velocity at current altitude (km/s)</label>
+      <input type="range" id="orbitVel" class="slider-input" min="5" max="15" step="0.5" value="7.8" oninput="updateOrbit()">
+      <div class="slider-value" id="orbitLabel">
+        v = <strong id="orbVelValue">7.8</strong> km/s
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">The orbit types</div>
+      <p>Too slow: the craft falls back to Earth (0–7.8 km/s). Circular orbit: 7.8 km/s, the craft never falls. Elliptical: 7.8–11.2 km/s, the craft reaches a higher point. Parabolic and hyperbolic (11.2+ km/s) lead to escape.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)">Energy and speed →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: ENERGY PARADOX -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">Conservation of Energy</div>
+      <div class="act-name">Speed and <em>Altitude</em></div>
+    </div>
+    <div class="narrator">
+      <p>Here's a counter-intuitive truth: <em>to reach a higher orbit, you speed up.</em></p>
+      <p style="margin-top:10px">But then, once you're in the higher orbit, you move <em>slower</em> than before. You gain altitude by speeding up. You maintain altitude by slowing down.</p>
+      <p style="margin-top:10px">This is why orbital manoeuvres are so elegant. A small burn at the right time creates a huge change in orbit. This is the <em>vis-viva equation</em> at work.</p>
+    </div>
+
+    <div class="energy-bars">
+      <div class="bar-row">
+        <div class="bar-label">Low Earth Orbit (7.8 km/s)</div>
+        <div class="bar-container">
+          <div class="bar-segment" style="flex:7;background:rgba(34,211,238,0.6);">KE</div>
+          <div class="bar-segment" style="flex:3;background:rgba(251,146,60,0.6);">PE</div>
+        </div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">High elliptical orbit (10.5 km/s)</div>
+        <div class="bar-container">
+          <div class="bar-segment" style="flex:4;background:rgba(34,211,238,0.6);">KE</div>
+          <div class="bar-segment" style="flex:6;background:rgba(251,146,60,0.6);">PE</div>
+        </div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Escape (11.2 km/s)</div>
+        <div class="bar-container">
+          <div class="bar-segment" style="flex:5;background:rgba(34,211,238,0.6);">KE</div>
+          <div class="bar-segment" style="flex:5;background:rgba(251,146,60,0.6);">PE</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">Why this matters</div>
+      <p>Total mechanical energy (KE + PE) is conserved. At higher altitudes, PE increases but KE must decrease to keep the total constant. So you move slower in higher orbits. To get there, you need a <em>Hohmann transfer</em> — the subject of Act IV.</p>
+    </div>
+
+    <button class="cta-btn" onclick="celebrate()">✦ To Act IV →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <footer>
+    <div>&copy; 2025–2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="../terms.html">Terms of Use</a>
+        &nbsp;&middot;&nbsp;
+        <a href="../intellectual-property.html">Intellectual Property</a>
+        &nbsp;&middot;&nbsp;
+        <a href="../privacy.html">Privacy Policy</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+let currentScreen = 0;
+let currentPlanet = 'earth';
+
+const planets = {
+  earth: { mass: 1, radius: 1, name: 'Earth', esc: 11.2 },
+  moon: { mass: 0.012, radius: 0.27, name: 'Moon', esc: 2.4 },
+  mars: { mass: 0.107, radius: 0.532, name: 'Mars', esc: 5.0 },
+  jupiter: { mass: 318, radius: 11.21, name: 'Jupiter', esc: 60.0 }
+};
+
+function goToScreen(n) {
+  document.getElementById(`screen-${currentScreen}`).classList.remove('active');
+  currentScreen = n;
+  document.getElementById(`screen-${currentScreen}`).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function celebrate() {
+  launchConfetti();
+  setTimeout(() => window.location.href = 'propulsion_act4.html', 900);
+}
+
+function setPlanet(name) {
+  currentPlanet = name;
+  document.querySelectorAll('.button-group button').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('massSlider').value = 1;
+  updateWell();
+}
+
+function updateWell() {
+  const mass = parseFloat(document.getElementById('massSlider').value);
+  const planet = planets[currentPlanet];
+  const relEsc = planet.esc * Math.sqrt(mass);
+  document.getElementById('escapeSpdValue').textContent = relEsc.toFixed(1);
+  drawWell(relEsc);
+}
+
+// ── Gravity well visualization ──
+function drawWell(escapeVel) {
+  const cv = document.getElementById('wellCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const centerX = w / 2;
+  const centerY = h - 60;
+
+  // Draw the well (parabolic shape)
+  ctx.fillStyle = 'rgba(251,146,60,0.15)';
+  ctx.beginPath();
+  ctx.moveTo(20, centerY);
+  for (let x = 20; x <= w - 20; x += 2) {
+    const dist = Math.abs(x - centerX);
+    const y = centerY - (dist * dist) / 200;
+    ctx.lineTo(x, y);
+  }
+  ctx.lineTo(w - 20, centerY);
+  ctx.closePath();
+  ctx.fill();
+
+  // Outline
+  ctx.strokeStyle = 'rgba(251,146,60,0.5)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(20, centerY);
+  for (let x = 20; x <= w - 20; x += 2) {
+    const dist = Math.abs(x - centerX);
+    const y = centerY - (dist * dist) / 200;
+    ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Planet at centre
+  ctx.fillStyle = 'rgba(34,211,238,0.8)';
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Escape velocity indicator (orbit at the top)
+  const escapeY = centerY - 150;
+  ctx.strokeStyle = 'rgba(251,146,60,0.6)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, 150, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Label
+  ctx.fillStyle = '#c8c8e8';
+  ctx.font = 'bold 12px Nunito';
+  ctx.textAlign = 'center';
+  ctx.fillText(`Escape: ${escapeVel.toFixed(1)} km/s`, w / 2, 25);
+
+  ctx.font = '11px Crimson Pro';
+  ctx.fillStyle = '#7070a0';
+  ctx.fillText('v_esc = √(2GM/r)', w / 2, h - 10);
+}
+
+// ── Orbit visualization ──
+function drawOrbit() {
+  const cv = document.getElementById('orbitCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const earthX = w / 2;
+  const earthY = h / 2;
+  const baseRadius = 40;
+
+  // Earth
+  ctx.fillStyle = 'rgba(34,211,238,0.8)';
+  ctx.beginPath();
+  ctx.arc(earthX, earthY, baseRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(34,211,238,0.5)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  ctx.arc(earthX, earthY, baseRadius + 30, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const vel = parseFloat(document.getElementById('orbitVel').value);
+  let orbitType = '';
+  let color = '';
+  let radius = 0;
+
+  if (vel < 7.8) {
+    orbitType = 'Ballistic\n(falls to Earth)';
+    color = 'rgba(244,63,94,0.5)';
+    radius = baseRadius + 10 + (vel - 5) * 5;
+  } else if (Math.abs(vel - 7.8) < 0.2) {
+    orbitType = 'Circular\nLEO';
+    color = 'rgba(16,185,129,0.5)';
+    radius = baseRadius + 30;
+  } else if (vel < 11.2) {
+    orbitType = 'Elliptical\n(reaches higher)';
+    color = 'rgba(251,146,60,0.5)';
+    radius = baseRadius + 30 + (vel - 7.8) * 15;
+  } else {
+    orbitType = 'Hyperbolic\n(escapes)';
+    color = 'rgba(168,85,247,0.5)';
+    radius = baseRadius + 30 + (vel - 7.8) * 15;
+  }
+
+  // Orbit shape
+  if (vel < 11.2) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.ellipse(earthX, earthY, radius, radius * 0.6, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    // Hyperbolic approximation
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(earthX, earthY, radius, -Math.PI / 6, Math.PI / 6);
+    ctx.stroke();
+  }
+
+  // Spacecraft
+  const angle = Date.now() / 5000;
+  const scX = earthX + radius * Math.cos(angle);
+  const scY = earthY + radius * 0.6 * Math.sin(angle);
+
+  ctx.fillStyle = 'rgba(251,146,60,0.9)';
+  ctx.beginPath();
+  ctx.arc(scX, scY, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Label
+  ctx.fillStyle = '#c8c8e8';
+  ctx.font = 'bold 11px Nunito';
+  ctx.textAlign = 'center';
+  ctx.fillText(orbitType, w - 60, h - 30);
+
+  ctx.font = '10px Crimson Pro';
+  ctx.fillStyle = '#7070a0';
+  ctx.fillText('v² = GM(2/r − 1/a)', w / 2, h - 10);
+
+  requestAnimationFrame(drawOrbit);
+}
+
+function updateOrbit() {
+  const vel = parseFloat(document.getElementById('orbitVel').value);
+  let msg = '';
+  if (vel < 7.8) msg = 'Falls back to Earth';
+  else if (vel < 7.9) msg = 'Circular orbit (LEO)';
+  else if (vel < 11.2) msg = 'Elliptical orbit';
+  else msg = 'Hyperbolic (escape)';
+  document.getElementById('orbitLabel').textContent = `v = ${vel.toFixed(1)} km/s — ${msg}`;
+}
+
+// ── Confetti ──
+const cc = document.getElementById('confetti');
+const cxc = cc.getContext('2d');
+let parts = [];
+
+function launchConfetti() {
+  cc.width = innerWidth;
+  cc.height = innerHeight;
+  parts = [];
+  for (let i = 0; i < 90; i++) {
+    parts.push({
+      x: Math.random() * cc.width,
+      y: -20,
+      vx: (Math.random() - 0.5) * 5,
+      vy: 2 + Math.random() * 4,
+      c: ['#fb923c', '#22d3ee', '#fbbf24', '#f472b6', '#10b981'][Math.floor(Math.random() * 5)],
+      s: 5 + Math.random() * 7,
+      r: Math.random() * Math.PI * 2,
+      vr: (Math.random() - 0.5) * 0.2,
+      l: 1
+    });
+  }
+  animateConfetti();
+  setTimeout(() => { parts = []; }, 3500);
+}
+
+function animateConfetti() {
+  cxc.clearRect(0, 0, cc.width, cc.height);
+  parts = parts.filter(p => p.l > 0.01);
+  parts.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.1;
+    p.r += p.vr;
+    p.l -= 0.012;
+    cxc.save();
+    cxc.globalAlpha = p.l;
+    cxc.translate(p.x, p.y);
+    cxc.rotate(p.r);
+    cxc.fillStyle = p.c;
+    cxc.fillRect(-p.s/2, -p.s/2, p.s, p.s * 0.6);
+    cxc.restore();
+  });
+  if (parts.length > 0) requestAnimationFrame(animateConfetti);
+}
+
+window.addEventListener('load', () => {
+  drawWell(11.2);
+  updateOrbit();
+  drawOrbit();
+});
+</script>
+</body>
+</html>

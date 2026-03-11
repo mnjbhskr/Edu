@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Streaming Works: Huffman Coding, Compression & Error Correction</title>
+    <meta name="description" content="Interactive exploration of streaming technology: Shannon entropy, Huffman coding, data compression, and error-correcting codes that power Netflix and Spotify.">
+    <meta property="og:title" content="How Streaming Works">
+    <meta property="og:description" content="Interactive exploration of streaming technology: Shannon entropy, Huffman coding, data compression, and error-correcting codes that power Netflix and Spotify.">
+    <meta property="og:url" content="https://mathsedu.org/streaming.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="How Streaming Works">
+    <meta name="twitter:description" content="Interactive exploration of streaming technology: Shannon entropy, Huffman coding, data compression, and error-correcting codes.">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "LearningResource",
+        "name": "How Streaming Works",
+        "description": "Interactive exploration of streaming technology: Shannon entropy, Huffman coding, data compression, and error-correcting codes that power Netflix and Spotify.",
+        "url": "https://mathsedu.org/streaming.html",
+        "educationalLevel": "Advanced",
+        "difficultyLevel": 3,
+        "inLanguage": "en-GB",
+        "isPartOf": {
+            "@type": "Course",
+            "name": "The Mathematics Behind the Internet"
+        },
+        "author": {
+            "@type": "Organization",
+            "name": "mathsedu.org"
+        },
+        "datePublished": "2025-01-01",
+        "dateModified": "2026-03-11"
+    }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a1a;
+            color: #e0e0e0;
+            font-family: Georgia, serif;
+            line-height: 1.6;
+            font-size: 1em;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .back {
+            display: inline-block;
+            margin-bottom: 30px;
+            color: #22d3ee;
+            text-decoration: none;
+            font-size: 0.95em;
+            transition: color 0.2s;
+        }
+
+        .back:hover {
+            color: #66e6ff;
+        }
+
+        h1 {
+            font-size: 2.4em;
+            margin-bottom: 8px;
+            font-weight: 400;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            color: #b0b0c4;
+            margin-bottom: 32px;
+            font-style: italic;
+        }
+
+        .narrative {
+            border-left: 4px solid #22d3ee;
+            padding: 20px 24px;
+            background: rgba(34, 211, 238, 0.04);
+            margin-bottom: 40px;
+            border-radius: 2px;
+        }
+
+        .narrative p {
+            margin-bottom: 12px;
+        }
+
+        .section {
+            margin-bottom: 50px;
+        }
+
+        .section h2 {
+            font-size: 1.6em;
+            margin-bottom: 20px;
+            font-weight: 400;
+            color: #d4d4e8;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .insight-box {
+            border-left: 4px solid #d4af37;
+            padding: 16px 20px;
+            background: rgba(212, 175, 55, 0.04);
+            margin: 20px 0;
+            border-radius: 2px;
+        }
+
+        .insight-box strong {
+            color: #e8d9a8;
+        }
+
+        .explain {
+            margin: 16px 0;
+        }
+
+        .explain-name {
+            font-weight: 600;
+            color: #22d3ee;
+            font-size: 0.95em;
+            margin-bottom: 6px;
+        }
+
+        .explain-text {
+            color: #c0c0d0;
+            font-size: 0.95em;
+            margin-bottom: 8px;
+        }
+
+        .formula-block {
+            background: rgba(34, 211, 238, 0.07);
+            border: 1px solid rgba(34, 211, 238, 0.15);
+            padding: 14px 16px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            color: #22d3ee;
+            margin: 16px 0;
+            overflow-x: auto;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+
+        .slider-row label {
+            font-size: 0.95em;
+            color: #c0c0d0;
+            min-width: 120px;
+        }
+
+        .slider-row input[type=range] {
+            flex: 1;
+            min-width: 150px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider-row input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #22d3ee;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .slider-row input[type=range]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #22d3ee;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .val {
+            font-family: 'Courier New', monospace;
+            color: #22d3ee;
+            font-weight: 600;
+            min-width: 50px;
+            font-size: 0.95em;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            color: #b0b0c4;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            font-size: 0.92em;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.07);
+            color: #e0e0ef;
+        }
+
+        .btn.active {
+            background: rgba(34, 211, 238, 0.13);
+            border-color: rgba(34, 211, 238, 0.4);
+            color: #22d3ee;
+        }
+
+        .canvas-wrap {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 20px 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .status {
+            background: rgba(34, 211, 238, 0.08);
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            padding: 12px 16px;
+            border-radius: 4px;
+            color: #22d3ee;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            margin: 16px 0;
+            word-break: break-all;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .input-group label {
+            font-size: 0.95em;
+            color: #c0c0d0;
+        }
+
+        .input-group input,
+        .input-group textarea {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            color: #e0e0e0;
+            padding: 10px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .input-group textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus {
+            outline: none;
+            border-color: rgba(34, 211, 238, 0.5);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 640px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .section h2 {
+                font-size: 1.3em;
+            }
+
+            .slider-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .slider-row label {
+                min-width: unset;
+            }
+        }
+
+        footer {
+            text-align: center;
+            padding: 28px 20px 18px;
+            color: #505068;
+            font-size: 0.72em;
+            line-height: 1.7;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            margin-top: 30px;
+        }
+
+        footer a {
+            color: #606078;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: #707088;
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/streaming.html">
+  </head>
+<body>
+    <div class="container">
+        <a class="back" href="index.html">&larr; Back to Index</a>
+    <nav class="breadcrumb" style="font-size:0.82em;color:#707088;margin:6px 0 18px">
+    <a href="index.html" style="color:#707088;text-decoration:none">Home</a>
+    <span style="margin:0 6px">&rsaquo;</span>
+    <span style="color:#b0b0c0">How Streaming Works</span>
+</nav><h1>How Streaming Works</h1>
+        <p class="subtitle">The mathematics of video, music, and data over imperfect networks &mdash; from entropy to error correction</p>
+
+        <div class="narrative">
+            <p>Imagine watching Netflix on a train with spotty WiFi, or listening to Spotify on the London Underground. How does your device deliver smooth, high-quality video or music despite dropped packets, electrical interference, and bandwidth constraints? The answer lies at the intersection of three mathematical fields: <strong>information theory</strong>, <strong>data compression</strong>, and <strong>error correction</strong>.</p>
+            <p>When you stream a film, the data travels as packets over imperfect networks. Along the way, some bits may flip due to interference. The sender compresses the data using Huffman coding to save bandwidth, breaks it into small chunks, adds error-correcting codes like Hamming codes to fix corrupted bits, and sends it all across the internet. The receiver reconstructs everything perfectly.</p>
+            <p>This journey is governed by elegant mathematics discovered in the 1940s by Claude Shannon, David Huffman, and others—ideas so powerful they're used in every streaming service, satellite communication, and data storage system in the world.</p>
+        </div>
+
+        <!-- SECTION 1: INFORMATION THEORY & ENTROPY -->
+        <div class="section">
+            <h2>1. Information Theory & Entropy</h2>
+
+            <div class="panel">
+                <div class="explain">
+                    <div class="explain-name">Shannon's Insight</div>
+                    <div class="explain-text">In 1948, Claude Shannon revolutionised our understanding of information. He asked: how many bits do you need to transmit a message? The answer depends not on the alphabet size, but on how <em>surprising</em> each symbol is. If you're sending English text, the letter 'e' is common and carries little surprise—it needs fewer bits. The letter 'z' is rare and surprising—it needs more bits.</div>
+                </div>
+
+                <div class="insight-box">
+                    <strong>Shannon's Entropy Formula:</strong><br>
+                    H = −Σ p(x) log₂ p(x)<br>
+                    where p(x) is the probability of symbol x and the sum is over all symbols. H is measured in bits and represents the average information (or uncertainty) per symbol.
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="input-group">
+                    <label for="entropyInput">Enter text to analyse:</label>
+                    <textarea id="entropyInput" placeholder="Type any text...">The quick brown fox jumps over the lazy dog</textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn" onclick="calculateEntropy()">Calculate Entropy</button>
+                    <button class="btn" onclick="entropyPreset('english')">English Text</button>
+                    <button class="btn" onclick="entropyPreset('repetitive')">Repetitive</button>
+                </div>
+
+                <div id="entropyOutput"></div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: HUFFMAN CODING -->
+        <div class="section">
+            <h2>2. Huffman Coding</h2>
+
+            <div class="panel">
+                <div class="explain">
+                    <div class="explain-name">Variable-Length Encoding</div>
+                    <div class="explain-text">David Huffman discovered an optimal algorithm for assigning variable-length binary codes to symbols based on their frequency. Common symbols get short codes (e.g., 'e' → "0"), rare symbols get longer codes (e.g., 'z' → "10110"). The algorithm builds a binary tree bottom-up, repeatedly merging the two smallest-frequency nodes until one tree remains.</div>
+                </div>
+
+                <div class="insight-box">
+                    <strong>Why It Works:</strong> Huffman coding achieves compression ratios close to Shannon entropy—it's theoretically optimal for single-symbol encoding. It's used in JPEG, PNG, MP3, ZIP, and countless other formats.
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="input-group">
+                    <label for="huffmanInput">Enter text to encode:</label>
+                    <textarea id="huffmanInput" placeholder="Type any text...">hello world</textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn" onclick="buildHuffmanTree()">Build Huffman Tree</button>
+                    <button class="btn" onclick="huffmanPreset('short')">Short Text</button>
+                    <button class="btn" onclick="huffmanPreset('book')">Longer Text</button>
+                </div>
+
+                <div class="canvas-wrap">
+                    <canvas id="huffmanCanvas" width="900" height="450"></canvas>
+                </div>
+
+                <div id="huffmanStats"></div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: RUN-LENGTH & LZ77 COMPRESSION -->
+        <div class="section">
+            <h2>3. Beyond Huffman: Run-Length and Pattern Matching</h2>
+
+            <div class="panel">
+                <div class="explain">
+                    <div class="explain-name">Run-Length Encoding (RLE)</div>
+                    <div class="explain-text">Before Huffman, a simpler method existed: if you see the same symbol repeated, replace it with the symbol and a count. For example, "AAABBA" becomes "3A2B1A". This is highly effective for images with large solid regions.</div>
+                </div>
+
+                <div class="explain">
+                    <div class="explain-name">LZ77 and Sliding Windows</div>
+                    <div class="explain-text">The LZ77 algorithm (used in DEFLATE, which powers ZIP and gzip) uses a sliding window to find repeated patterns anywhere in the recent history. When a pattern matches, it's encoded as a reference (offset, length) instead of literal bytes. This combines compression of both runs and repeated phrases.</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="input-group">
+                    <label for="rleInput">Binary string for RLE:</label>
+                    <textarea id="rleInput" placeholder="e.g., 11111000011001111">11111000011001111</textarea>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn" onclick="demonstrateRLE()">Compress with RLE</button>
+                </div>
+
+                <div id="rleOutput"></div>
+
+                <div class="canvas-wrap" style="margin-top: 20px;">
+                    <canvas id="lz77Canvas" width="900" height="300"></canvas>
+                </div>
+
+                <div id="lz77Output"></div>
+            </div>
+        </div>
+
+        <!-- SECTION 4: ERROR-CORRECTING CODES -->
+        <div class="section">
+            <h2>4. Error-Correcting Codes: Hamming(7,4)</h2>
+
+            <div class="panel">
+                <div class="explain">
+                    <div class="explain-name">The Problem: Noise</div>
+                    <div class="explain-text">During transmission over radio, copper cables, or optical fibres, bits occasionally flip due to electromagnetic interference, thermal noise, or cosmic rays. Without error correction, a single bit flip corrupts the entire message. We need redundancy—sending extra bits that allow the receiver to detect and correct errors.</div>
+                </div>
+
+                <div class="insight-box">
+                    <strong>Hamming(7,4) Code:</strong> Takes 4 data bits and adds 3 parity bits to create 7 total bits. This can correct 1 bit error. The redundancy (3/7 ≈ 43%) is a trade-off between reliability and bandwidth.
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="input-group">
+                    <label for="hammingInput">Enter 4 data bits:</label>
+                    <input type="text" id="hammingInput" placeholder="e.g., 1011" maxlength="4">
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn" onclick="computeHamming()">Compute Hamming Code</button>
+                    <button class="btn" onclick="randomHammingBits()">Random Bits</button>
+                </div>
+
+                <div id="hammingDisplay"></div>
+
+                <div class="canvas-wrap">
+                    <canvas id="hammingCanvas" width="900" height="400"></canvas>
+                </div>
+
+                <div id="hammingAnalysis"></div>
+
+                <div style="margin-top: 20px;">
+                    <label style="display: block; margin-bottom: 10px; color: #c0c0d0;">Introduce an error (flip a bit):</label>
+                    <div class="slider-row">
+                        <label>Error position (1–7):</label>
+                        <input type="range" id="errorPos" min="0" max="7" value="0" onchange="updateErrorCorr()">
+                        <span class="val"><span id="errorPosVal">None</span></span>
+                    </div>
+                    <button class="btn" onclick="detectAndCorrect()">Detect & Correct</button>
+                </div>
+
+                <div id="errorOutput"></div>
+            </div>
+        </div>
+
+        <!-- SECTION 5: PUTTING IT TOGETHER -->
+        <div class="section">
+            <h2>5. Putting It All Together: How Netflix Streams</h2>
+
+            <div class="panel">
+                <div class="explain">
+                    <div class="explain-name">The Full Pipeline</div>
+                    <div class="explain-text">When you press play on Netflix, here's what happens mathematically:</div>
+                </div>
+
+                <div style="margin: 20px 0; line-height: 2;">
+                    <div style="display: flex; align-items: center; margin: 15px 0;">
+                        <span style="font-size: 1.3em; color: #22d3ee; min-width: 40px;"><strong>1</strong></span>
+                        <span style="flex: 1;"><strong style="color: #d4d4e8;">Video Compression:</strong> Raw video frames are compressed using codecs like H.264 or H.265. Each frame is broken into blocks, and spatial and temporal redundancy is exploited using discrete cosine transforms (DCT) and motion estimation.</span>
+                    </div>
+                    <div style="display: flex; align-items: center; margin: 15px 0;">
+                        <span style="font-size: 1.3em; color: #22d3ee; min-width: 40px;"><strong>2</strong></span>
+                        <span style="flex: 1;"><strong style="color: #d4d4e8;">Entropy Encoding:</strong> The compressed bit stream is further compressed using Huffman coding or arithmetic coding to achieve near-Shannon entropy.</span>
+                    </div>
+                    <div style="display: flex; align-items: center; margin: 15px 0;">
+                        <span style="font-size: 1.3em; color: #22d3ee; min-width: 40px;"><strong>3</strong></span>
+                        <span style="flex: 1;"><strong style="color: #d4d4e8;">Packetisation:</strong> The stream is divided into chunks (packets), typically 1500 bytes. This makes transmission resilient: if one packet is lost, only a small piece is affected.</span>
+                    </div>
+                    <div style="display: flex; align-items: center; margin: 15px 0;">
+                        <span style="font-size: 1.3em; color: #22d3ee; min-width: 40px;"><strong>4</strong></span>
+                        <span style="flex: 1;"><strong style="color: #d4d4e8;">Error Correction:</strong> Each packet is wrapped in a Reed-Solomon code (a generalisation of Hamming codes). A video frame might have 100 data packets and 20 parity packets; the receiver can reconstruct the frame even if up to 20 packets are lost.</span>
+                    </div>
+                    <div style="display: flex; align-items: center; margin: 15px 0;">
+                        <span style="font-size: 1.3em; color: #22d3ee; min-width: 40px;"><strong>5</strong></span>
+                        <span style="flex: 1;"><strong style="color: #d4d4e8;">Transmission:</strong> Packets are sent via the Internet using UDP (fast but unreliable) or TCP (slower but guaranteed). Netflix adapts the compression ratio in real-time based on measured bandwidth.</span>
+                    </div>
+                    <div style="display: flex; align-items: center; margin: 15px 0;">
+                        <span style="font-size: 1.3em; color: #22d3ee; min-width: 40px;"><strong>6</strong></span>
+                        <span style="flex: 1;"><strong style="color: #d4d4e8;">Decoding:</strong> The receiver uses the error-correcting code to reconstruct packets, then decompresses the stream, and finally decodes the video frames for display.</span>
+                    </div>
+                </div>
+
+                <div class="insight-box">
+                    <strong>The Mathematical Trade-off:</strong> Every design choice is a compromise. Aggressive compression (close to Shannon entropy) means less bandwidth but higher latency and quality loss. More parity bits protect against errors but waste bandwidth. Netflix uses machine learning to adapt to your network in milliseconds.
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="explain">
+                    <div class="explain-name">Why This All Matters</div>
+                    <div class="explain-text">Information theory, Huffman coding, and error-correcting codes are not theoretical curiosities—they're the mathematical foundations of modern communication. Without Shannon's entropy, we wouldn't know the theoretical limits of compression. Without Huffman codes, video files would be 2–3 times larger. Without error correction, transmitted data would be corrupted constantly. Together, they enable the digital age.</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="terms.html" style="color:#606078;text-decoration:none">Terms of Use</a>
+        &nbsp;&middot;&nbsp;
+        <a href="intellectual-property.html" style="color:#606078;text-decoration:none">Intellectual Property</a>
+        &nbsp;&middot;&nbsp;
+        <a href="privacy.html" style="color:#606078;text-decoration:none">Privacy Policy</a>
+    </div>
+</footer>
+
+    <script>
+        // ===== ENTROPY CALCULATION =====
+        function calculateEntropy() {
+            const text = document.getElementById('entropyInput').value;
+            if (!text) {
+                alert('Please enter some text.');
+                return;
+            }
+
+            // Count frequencies
+            const freq = {};
+            for (const ch of text) {
+                freq[ch] = (freq[ch] || 0) + 1;
+            }
+
+            // Compute entropy
+            let entropy = 0;
+            for (const count of Object.values(freq)) {
+                const p = count / text.length;
+                entropy -= p * Math.log2(p);
+            }
+
+            // Compute minimum bits needed
+            const minBits = Math.ceil(entropy * text.length);
+
+            // Build frequency table
+            let table = '<h3 style="color: #d4d4e8; margin-top: 20px; margin-bottom: 12px;">Character Frequencies</h3>';
+            table += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px;">';
+
+            const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+            for (const [ch, count] of sorted.slice(0, 20)) {
+                const p = (count / text.length * 100).toFixed(1);
+                const display = ch === ' ' ? '(space)' : ch;
+                table += `<div style="background: rgba(34,211,238,0.08); padding: 8px; border-radius: 4px; font-size: 0.85em;"><strong>${display}</strong>: ${count} (${p}%)</div>`;
+            }
+            table += '</div>';
+
+            const output = `
+                <div class="status">
+                    <strong>Unique symbols:</strong> ${Object.keys(freq).length}<br>
+                    <strong>Shannon entropy H:</strong> ${entropy.toFixed(4)} bits/symbol<br>
+                    <strong>Total text length:</strong> ${text.length} symbols<br>
+                    <strong>Theoretical minimum:</strong> ${minBits} bits (vs ${text.length * 8} bits fixed-length)<br>
+                    <strong>Compression ratio:</strong> ${(minBits / (text.length * 8) * 100).toFixed(1)}%
+                </div>
+                ${table}
+            `;
+            document.getElementById('entropyOutput').innerHTML = output;
+        }
+
+        function entropyPreset(type) {
+            let text = '';
+            if (type === 'english') {
+                text = 'The theory of communication developed by Claude Shannon in 1948 showed that information is fundamentally tied to uncertainty. The more certain you are about what the next symbol will be, the less information it carries. Conversely, rare and surprising events carry more information. This insight led to the concept of entropy, which measures the average information content.';
+            } else if (type === 'repetitive') {
+                text = 'AAAAAABBBBBBCCCCCCAAAAABBBBBBCCCCCCAAAAABBBBBBCCCCCC';
+            }
+            document.getElementById('entropyInput').value = text;
+            calculateEntropy();
+        }
+
+        // ===== HUFFMAN TREE BUILDING =====
+        class HuffmanNode {
+            constructor(symbol = null, freq = 0, left = null, right = null) {
+                this.symbol = symbol;
+                this.freq = freq;
+                this.left = left;
+                this.right = right;
+            }
+        }
+
+        function buildHuffmanTree() {
+            const text = document.getElementById('huffmanInput').value;
+            if (!text) {
+                alert('Please enter some text.');
+                return;
+            }
+
+            // Count frequencies
+            const freq = {};
+            for (const ch of text) {
+                freq[ch] = (freq[ch] || 0) + 1;
+            }
+
+            // Build Huffman tree
+            let nodes = [];
+            for (const [symbol, count] of Object.entries(freq)) {
+                nodes.push(new HuffmanNode(symbol, count));
+            }
+
+            // If only one unique symbol
+            if (nodes.length === 1) {
+                nodes[0].left = new HuffmanNode('', 0);
+                nodes.push(nodes[0].left);
+            }
+
+            while (nodes.length > 1) {
+                nodes.sort((a, b) => a.freq - b.freq);
+                const left = nodes.shift();
+                const right = nodes.shift();
+                const parent = new HuffmanNode(null, left.freq + right.freq, left, right);
+                nodes.push(parent);
+            }
+
+            const root = nodes[0];
+
+            // Generate codes
+            const codes = {};
+            function generateCodes(node, code = '') {
+                if (node.symbol !== null) {
+                    codes[node.symbol] = code || '0';
+                } else {
+                    if (node.left) generateCodes(node.left, code + '0');
+                    if (node.right) generateCodes(node.right, code + '1');
+                }
+            }
+            generateCodes(root);
+
+            // Encode text
+            let encoded = '';
+            for (const ch of text) {
+                encoded += codes[ch];
+            }
+
+            // Draw tree
+            const canvas = document.getElementById('huffmanCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const positions = {};
+            let nodeId = 0;
+
+            function drawTree(node, x, y, offsetX) {
+                if (!node) return;
+
+                node.id = nodeId++;
+
+                if (node.left) {
+                    ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    const childX = x - offsetX;
+                    const childY = y + 60;
+                    ctx.lineTo(childX, childY);
+                    ctx.stroke();
+                    drawTree(node.left, childX, childY, offsetX / 2);
+                }
+
+                if (node.right) {
+                    ctx.strokeStyle = 'rgba(34, 211, 238, 0.4)';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    const childX = x + offsetX;
+                    const childY = y + 60;
+                    ctx.lineTo(childX, childY);
+                    ctx.stroke();
+                    drawTree(node.right, childX, childY, offsetX / 2);
+                }
+
+                // Draw node
+                ctx.fillStyle = node.symbol !== null ? 'rgba(34, 211, 238, 0.6)' : 'rgba(212, 175, 55, 0.4)';
+                ctx.beginPath();
+                ctx.arc(x, y, node.symbol !== null ? 18 : 20, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#0a0a1a';
+                ctx.font = 'bold 12px Georgia';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                if (node.symbol !== null) {
+                    const display = node.symbol === ' ' ? '␣' : node.symbol;
+                    ctx.fillText(display, x, y - 8);
+                    ctx.font = '10px Georgia';
+                    ctx.fillText(node.freq, x, y + 8);
+                } else {
+                    ctx.fillText(node.freq, x, y);
+                }
+            }
+
+            drawTree(root, canvas.width / 2, 30, 120);
+
+            // Display codes and stats
+            let codesHTML = '<h3 style="color: #d4d4e8; margin-top: 20px; margin-bottom: 12px;">Huffman Codes</h3>';
+            codesHTML += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px;">';
+
+            const sortedCodes = Object.entries(codes).sort((a, b) => a[1].length - b[1].length);
+            for (const [symbol, code] of sortedCodes) {
+                const display = symbol === ' ' ? '(space)' : symbol;
+                codesHTML += `<div style="background: rgba(34,211,238,0.08); padding: 8px; border-radius: 4px; font-size: 0.85em;"><strong>${display}</strong>: <code>${code}</code></div>`;
+            }
+            codesHTML += '</div>';
+
+            const fixedBits = text.length * 8;
+            const huffmanBits = encoded.length;
+            const ratio = (huffmanBits / fixedBits * 100).toFixed(1);
+
+            const stats = `
+                <div class="status">
+                    <strong>Original (8 bits per char):</strong> ${fixedBits} bits<br>
+                    <strong>Huffman encoded:</strong> ${huffmanBits} bits<br>
+                    <strong>Compression ratio:</strong> ${ratio}%<br>
+                    <strong>Bits saved:</strong> ${fixedBits - huffmanBits} bits
+                </div>
+                ${codesHTML}
+            `;
+
+            document.getElementById('huffmanStats').innerHTML = stats;
+        }
+
+        function huffmanPreset(type) {
+            let text = '';
+            if (type === 'short') {
+                text = 'hello world';
+            } else if (type === 'book') {
+                text = 'Once upon a time in a far away kingdom, there lived a young prince who dreamed of adventure. Every day he would walk through the castle gardens and wonder about the world beyond the high stone walls. One fateful morning, a mysterious traveller arrived with tales of distant lands and ancient treasures. The prince\'s heart filled with longing to explore these wonders himself.';
+            }
+            document.getElementById('huffmanInput').value = text;
+            buildHuffmanTree();
+        }
+
+        // ===== RUN-LENGTH ENCODING =====
+        function demonstrateRLE() {
+            const input = document.getElementById('rleInput').value.trim();
+            if (!input) {
+                alert('Please enter a binary string.');
+                return;
+            }
+
+            // Validate
+            if (!/^[01]+$/.test(input)) {
+                alert('Please enter only 0s and 1s.');
+                return;
+            }
+
+            let encoded = '';
+            let count = 1;
+            for (let i = 0; i < input.length; i++) {
+                if (i + 1 < input.length && input[i] === input[i + 1]) {
+                    count++;
+                } else {
+                    encoded += count + input[i];
+                    count = 1;
+                }
+            }
+
+            const ratio = (encoded.length / input.length * 100).toFixed(1);
+
+            const output = `
+                <div class="status">
+                    <strong>Original:</strong> ${input} (${input.length} chars)<br>
+                    <strong>Encoded:</strong> ${encoded} (${encoded.length} chars)<br>
+                    <strong>Compression ratio:</strong> ${ratio}%
+                </div>
+                <div style="margin-top: 12px;">
+                    <strong style="color: #d4d4e8;">How it works:</strong><br>
+                    <code style="color: #22d3ee; font-size: 0.9em;">3</code> ones = "3", <code style="color: #22d3ee; font-size: 0.9em;">3</code> zeros = "03", etc.<br>
+                    Best for: images with large solid regions, faxes, medical scans.
+                </div>
+            `;
+            document.getElementById('rleOutput').innerHTML = output;
+        }
+
+        // ===== LZ77 VISUALIZATION =====
+        function demonstrateLZ77() {
+            const canvas = document.getElementById('lz77Canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const text = 'ABCABCABCXYZABCABC';
+            const windowSize = 8;
+
+            // Draw example
+            ctx.fillStyle = '#e0e0e0';
+            ctx.font = 'bold 14px Georgia';
+            ctx.fillText('LZ77 Sliding Window Example:', 20, 30);
+
+            ctx.font = '12px Courier New';
+            ctx.fillStyle = '#22d3ee';
+            ctx.fillText('Text: ' + text, 20, 60);
+
+            // Draw window at position 11 (after "ABCABCABC", finding "ABC")
+            const pos = 11;
+            ctx.strokeStyle = 'rgba(212, 175, 55, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(20 + pos * 8, 75, windowSize * 8, 30);
+
+            ctx.fillStyle = '#d4af37';
+            ctx.fillText('← Lookahead buffer (finds "ABC" in history)', 120, 110);
+
+            // Show matches
+            ctx.fillStyle = '#b0b0c4';
+            ctx.font = '11px Georgia';
+            ctx.fillText('Match found: "ABC" at offset 8, length 3 → encode as (8, 3) instead of literal "ABC"', 20, 150);
+            ctx.fillText('This saves 3 bytes by replacing with 2 numbers.', 20, 170);
+
+            ctx.fillStyle = '#22d3ee';
+            ctx.font = 'bold 12px Georgia';
+            ctx.fillText('Compression Method:', 20, 210);
+
+            ctx.font = '11px Georgia';
+            ctx.fillStyle = '#c0c0d0';
+            ctx.fillText('• Search history for longest match', 40, 235);
+            ctx.fillText('• Encode as (offset, length)', 40, 255);
+            ctx.fillText('• Works great for text, images with patterns', 40, 275);
+
+            document.getElementById('lz77Output').innerHTML = '<div class="status"><strong>LZ77 is the basis of ZIP, gzip, and DEFLATE compression.</strong> Used everywhere in practice.</div>';
+        }
+
+        // Run LZ77 demo on load
+        window.addEventListener('load', demonstrateLZ77);
+
+        // ===== HAMMING CODE =====
+        function computeHamming() {
+            const input = document.getElementById('hammingInput').value.trim();
+            if (input.length !== 4 || !/^[01]{4}$/.test(input)) {
+                alert('Please enter exactly 4 bits (0s and 1s).');
+                return;
+            }
+
+            const d1 = parseInt(input[0]);
+            const d2 = parseInt(input[1]);
+            const d3 = parseInt(input[2]);
+            const d4 = parseInt(input[3]);
+
+            // Compute parity bits p1, p2, p4
+            // p1 protects positions 1,3,5,7 (binary: bit 0 is set)
+            // p2 protects positions 2,3,6,7 (binary: bit 1 is set)
+            // p4 protects positions 4,5,6,7 (binary: bit 2 is set)
+            // Positions: p1(1), p2(2), d1(3), p4(4), d2(5), d3(6), d4(7)
+
+            const p1 = d1 ^ d2 ^ d4; // positions 3, 5, 7
+            const p2 = d1 ^ d3 ^ d4; // positions 3, 6, 7
+            const p4 = d2 ^ d3 ^ d4; // positions 5, 6, 7
+
+            const code = [p1, p2, d1, p4, d2, d3, d4];
+
+            // Store for later error correction
+            window.hammingData = {
+                data: [d1, d2, d3, d4],
+                parity: [p1, p2, p4],
+                code: code,
+                input: input
+            };
+
+            // Display
+            const display = `
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #d4d4e8; margin-bottom: 12px;">Hamming(7,4) Encoding</h3>
+                    <div class="explain">
+                        <div class="explain-name">Data bits (d₁ d₂ d₃ d₄):</div>
+                        <div class="explain-text">${input} → ${[d1, d2, d3, d4].join(' ')}</div>
+                    </div>
+                    <div class="explain">
+                        <div class="explain-name">Parity bits computed:</div>
+                        <div class="explain-text">
+                            p₁ = d₁ ⊕ d₂ ⊕ d₄ = ${d1} ⊕ ${d2} ⊕ ${d4} = <strong>${p1}</strong><br>
+                            p₂ = d₁ ⊕ d₃ ⊕ d₄ = ${d1} ⊕ ${d3} ⊕ ${d4} = <strong>${p2}</strong><br>
+                            p₄ = d₂ ⊕ d₃ ⊕ d₄ = ${d2} ⊕ ${d3} ⊕ ${d4} = <strong>${p4}</strong>
+                        </div>
+                    </div>
+                    <div class="formula-block">
+                        Codeword: p₁ p₂ d₁ p₄ d₂ d₃ d₄<br>
+                        Position: 1  2  3  4  5  6  7<br>
+                        Value:    ${code.join('  ')}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('hammingDisplay').innerHTML = display;
+
+            // Draw parity matrix
+            drawHammingMatrix(code);
+        }
+
+        function drawHammingMatrix(code) {
+            const canvas = document.getElementById('hammingCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#e0e0e0';
+            ctx.font = 'bold 14px Georgia';
+            ctx.fillText('Parity Check Matrix (H)', 20, 30);
+
+            // Parity check matrix for Hamming(7,4)
+            const matrix = [
+                [1, 0, 1, 0, 1, 0, 1],
+                [0, 1, 1, 0, 0, 1, 1],
+                [0, 0, 0, 1, 1, 1, 1]
+            ];
+
+            ctx.font = '12px Courier New';
+            ctx.fillStyle = '#22d3ee';
+            ctx.fillText('Position:  1  2  3  4  5  6  7', 40, 65);
+
+            let y = 95;
+            const labels = ['p₁ checks:', 'p₂ checks:', 'p₄ checks:'];
+
+            for (let i = 0; i < 3; i++) {
+                ctx.fillStyle = '#d4d4e8';
+                ctx.font = 'bold 12px Georgia';
+                ctx.fillText(labels[i], 40, y);
+
+                ctx.font = '14px Courier New';
+                for (let j = 0; j < 7; j++) {
+                    ctx.fillStyle = matrix[i][j] === 1 ? '#22d3ee' : '#505068';
+                    ctx.fillText(matrix[i][j], 130 + j * 30, y);
+                }
+                y += 30;
+            }
+
+            // Show codeword below
+            ctx.fillStyle = '#22d3ee';
+            ctx.font = 'bold 12px Georgia';
+            ctx.fillText('Codeword:', 40, y + 15);
+
+            ctx.font = '14px Courier New';
+            for (let j = 0; j < 7; j++) {
+                ctx.fillStyle = '#22d3ee';
+                ctx.fillText(code[j], 130 + j * 30, y + 15);
+            }
+
+            ctx.fillStyle = '#d4af37';
+            ctx.font = '11px Georgia';
+            ctx.fillText('Each parity bit checks specific positions based on binary representation.', 40, y + 50);
+        }
+
+        function updateErrorCorr() {
+            const pos = parseInt(document.getElementById('errorPos').value);
+            if (pos === 0) {
+                document.getElementById('errorPosVal').textContent = 'None';
+            } else {
+                document.getElementById('errorPosVal').textContent = pos;
+            }
+        }
+
+        function detectAndCorrect() {
+            if (!window.hammingData) {
+                alert('Please compute a Hamming code first.');
+                return;
+            }
+
+            let errorPos = parseInt(document.getElementById('errorPos').value);
+            const original = window.hammingData.code.slice();
+
+            // Apply error
+            let corrupted = original.slice();
+            if (errorPos > 0 && errorPos <= 7) {
+                corrupted[errorPos - 1] ^= 1; // Flip the bit
+            }
+
+            // Compute syndrome
+            const s1 = corrupted[0] ^ corrupted[2] ^ corrupted[4] ^ corrupted[6]; // p1, d1, d2, d4
+            const s2 = corrupted[1] ^ corrupted[2] ^ corrupted[5] ^ corrupted[6]; // p2, d1, d3, d4
+            const s4 = corrupted[3] ^ corrupted[4] ^ corrupted[5] ^ corrupted[6]; // p4, d2, d3, d4
+
+            const syndrome = s4 * 4 + s2 * 2 + s1;
+
+            // Correct
+            let corrected = corrupted.slice();
+            if (syndrome > 0) {
+                corrected[syndrome - 1] ^= 1;
+            }
+
+            const output = `
+                <div style="margin-top: 20px;">
+                    <h3 style="color: #d4d4e8; margin-bottom: 12px;">Error Detection & Correction</h3>
+
+                    <div class="panel" style="background: rgba(34, 211, 238, 0.05);">
+                        <div class="explain">
+                            <div class="explain-name">Original codeword:</div>
+                            <div class="status" style="margin: 8px 0;">${original.join(' ')}</div>
+                        </div>
+                        ${errorPos > 0 ? `
+                        <div class="explain">
+                            <div class="explain-name">After error (bit ${errorPos} flipped):</div>
+                            <div class="status" style="margin: 8px 0; background: rgba(212, 175, 55, 0.1); border-color: rgba(212, 175, 55, 0.4);">${corrupted.join(' ')}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="panel" style="background: rgba(212, 175, 55, 0.05);">
+                        <div class="explain">
+                            <div class="explain-name">Syndrome calculation:</div>
+                            <div class="explain-text">
+                                s₁ = p₁ ⊕ d₁ ⊕ d₂ ⊕ d₄ = <strong>${s1}</strong><br>
+                                s₂ = p₂ ⊕ d₁ ⊕ d₃ ⊕ d₄ = <strong>${s2}</strong><br>
+                                s₄ = p₄ ⊕ d₂ ⊕ d₃ ⊕ d₄ = <strong>${s4}</strong>
+                            </div>
+                        </div>
+                        <div class="explain">
+                            <div class="explain-name">Syndrome (error position):</div>
+                            <div class="status" style="margin: 8px 0; color: ${syndrome === 0 ? '#22d3ee' : '#d4af37'};">${syndrome === 0 ? 'No error detected (0)' : 'Error at position ' + syndrome}</div>
+                        </div>
+                    </div>
+
+                    ${errorPos > 0 ? `
+                    <div class="panel" style="background: rgba(34, 211, 238, 0.05);">
+                        <div class="explain">
+                            <div class="explain-name">Corrected codeword:</div>
+                            <div class="status" style="margin: 8px 0;">${corrected.join(' ')}</div>
+                        </div>
+                        <div class="explain">
+                            <div class="explain-name">Verification:</div>
+                            <div class="explain-text" style="color: #22d3ee;">✓ Matches original! Single-bit error successfully detected and corrected.</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            document.getElementById('errorOutput').innerHTML = output;
+        }
+
+        function randomHammingBits() {
+            const bits = Array.from({ length: 4 }, () => Math.floor(Math.random() * 2)).join('');
+            document.getElementById('hammingInput').value = bits;
+            computeHamming();
+        }
+
+    </script><script src="js/mathematician-cards.js" defer></script>
+</body>
+</html>

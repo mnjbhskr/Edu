@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematics of Flight: Act 1 — Why Do Wings Work?</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&family=Crimson+Pro:ital@1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #07101a;
+            --bg2: #0c1528;
+            --bg3: #111a30;
+            --accent: #60a5fa;
+            --accent-dim: rgba(96,165,250,0.15);
+            --secondary: #34d399;
+            --green: #10b981;
+            --cyan: #22d3ee;
+            --gold: #fbbf24;
+            --text: #e2e2f0;
+            --muted: #7070a0;
+            --panel: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.07);
+            --radius: 18px;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Nunito', sans-serif;
+            font-weight: 400;
+            font-size: 16px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        header {
+            position: sticky;
+            top: 0;
+            background: linear-gradient(180deg, var(--bg) 0%, rgba(7,16,26,0.95) 100%);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .progress-dots {
+            display: flex;
+            gap: 8px;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .dot.active {
+            background: var(--accent);
+            width: 24px;
+            border-radius: 5px;
+        }
+        .dot:hover {
+            background: var(--accent-dim);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px 40px;
+        }
+        .screens-container {
+            position: relative;
+            min-height: 600px;
+        }
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            pointer-events: none;
+            animation: fadeUp 0.6s ease;
+        }
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            position: static;
+            animation: fadeUp 0.6s ease;
+        }
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .narrator {
+            border-left: 4px solid var(--accent);
+            padding: 20px;
+            background: var(--panel);
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin: 20px 0;
+            font-style: italic;
+            color: var(--text);
+        }
+        h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+        h2 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--secondary);
+        }
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--accent);
+        }
+        p {
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+        .math-block {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            color: var(--gold);
+            text-align: center;
+        }
+        canvas {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            margin: 20px 0;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            justify-content: center;
+        }
+        button {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: 'Nunito', sans-serif;
+        }
+        button:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(96, 165, 250, 0.3);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .slider-group {
+            margin: 20px 0;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+        }
+        .nav-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover {
+            color: var(--secondary);
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 30px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+        .back-link:hover {
+            color: var(--accent);
+        }
+        footer {
+            text-align: center;
+            padding: 28px 20px 18px;
+            color: #505068;
+            font-size: 0.72em;
+            line-height: 1.7;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 30px;
+        }
+        footer a {
+            color: #606078;
+            text-decoration: none;
+        }
+        footer a:hover {
+            color: var(--accent);
+        }
+        .insight {
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin: 20px 0;
+            color: var(--accent);
+            font-size: 14px;
+        }
+        .content-block {
+            margin: 30px 0;
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/journeys/flight_act1.html">
+  <meta name="description" content="Learn about Flight Act1 in Mathematics Education">
+  </head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="header-title">Mathematics of Flight</div>
+            <div class="progress-dots">
+                <div class="dot active" onclick="goToAct(1)"></div>
+                <div class="dot" onclick="goToAct(2)"></div>
+                <div class="dot" onclick="goToAct(3)"></div>
+                <div class="dot" onclick="goToAct(4)"></div>
+                <div class="dot" onclick="goToAct(5)"></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Journeys</a>
+
+        <div class="screens-container">
+            <!-- Screen 1: Opening -->
+            <section class="screen active">
+                <h1>Why Do Wings Work?</h1>
+                <div class="narrator">
+                    <p>A Boeing 747 weighs 400 tonnes. That's the mass of 2,000 elephants. Yet it soars into the sky on wings of aluminium. How is this possible?</p>
+                </div>
+                <div class="content-block">
+                    <p>When you first think about flight, it seems impossible. An object that weighs hundreds of tonnes, composed mostly of metal, somehow defies gravity and stays aloft. The answer isn't magic—it's mathematics.</p>
+                    <p>For centuries, humans watched birds and wondered. Then, in 1738, a Swiss mathematician named Daniel Bernoulli discovered a principle hidden in moving fluids. That principle, combined with Newton's laws of motion and a deeper understanding of how air flows, became the foundation of aerodynamics.</p>
+                    <p>In this journey, we'll explore the mathematics that makes flight work. We'll discover how pressure differences create lift, how stability keeps aircraft flying, and how control systems guide them safely. By the end, you'll understand why a Boeing 747 doesn't fall out of the sky—and you'll appreciate the elegant mathematics that engineers use to keep it there.</p>
+                </div>
+                <div class="insight">
+                    <strong>Key Insight:</strong> Flight is not defiance of physics; it's the perfect application of it.
+                </div>
+                <div class="controls">
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 2: Bernoulli's Equation -->
+            <section class="screen">
+                <h2>Bernoulli's Principle</h2>
+                <div class="narrator">
+                    <p>The faster a fluid moves, the lower its pressure. This simple law unlocks the secret of lift.</p>
+                </div>
+                <div class="math-block">
+                    P + ½ρv² + ρgh = constant
+                </div>
+                <p><strong>Bernoulli's Equation</strong> tells us that the total energy in a moving fluid is conserved. The terms represent:</p>
+                <ul style="margin-left: 20px; margin-bottom: 16px;">
+                    <li><strong>P:</strong> Pressure</li>
+                    <li><strong>ρv²/2:</strong> Dynamic pressure (kinetic energy of motion)</li>
+                    <li><strong>ρgh:</strong> Hydrostatic pressure (gravitational potential energy)</li>
+                </ul>
+                <p>When air flows faster over the curved top surface of a wing, its pressure drops. Simultaneously, air moving slower under the wing maintains higher pressure. This pressure difference pushes the wing upward—that's <strong>lift</strong>.</p>
+                <canvas id="canvas-bernoulli" width="800" height="400"></canvas>
+                <div class="insight">
+                    <strong>Why it matters:</strong> The pressure difference between top and bottom surfaces of a wing can generate tremendous lifting force from fast-moving air.
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 3: Angle of Attack -->
+            <section class="screen">
+                <h2>Angle of Attack and Stall</h2>
+                <div class="narrator">
+                    <p>Tilt the wing too much, and the flow separates catastrophically. The safe zone is narrow.</p>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Angle of Attack (α)</span>
+                        <span id="aoa-value">8°</span>
+                    </div>
+                    <input type="range" id="aoa-slider" min="0" max="25" value="8" step="0.5" oninput="updateAOA(this.value)">
+                </div>
+                <canvas id="canvas-aoa" width="800" height="400"></canvas>
+                <p style="margin-top: 20px;">
+                    As you increase the angle of attack, lift increases smoothly. Air flows smoothly over the curved wing surface. But around 15°, something dramatic happens—the flow <strong>separates</strong> from the wing. Turbulent eddies form, pressure collapses, and lift plummets. The wing <strong>stalls</strong>.
+                </p>
+                <div class="insight">
+                    <strong>Stall:</strong> A loss of lift caused by flow separation, not lack of speed. The mathematics of smooth flow breaks down when the wing tilts too steeply.
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 4: Nature's Wisdom -->
+            <section class="screen">
+                <h2>Nature Discovered It First</h2>
+                <div class="narrator">
+                    <p>Birds have been flying for 150 million years. They solved these equations long before humans wrote them down.</p>
+                </div>
+                <div class="content-block">
+                    <p>A soaring eagle, a diving swallow, a hovering hummingbird—they all obey Bernoulli's equation and the laws of aerodynamics. They don't need calculus; their bodies are shaped by millions of years of evolution to embody aerodynamic perfection.</p>
+                    <p>The mathematics we've just explored—Bernoulli's principle, the relationship between pressure and flow, the stall phenomenon—these aren't human inventions. We discovered them by watching nature and measuring what happens in the air.</p>
+                    <p>Mathematics is the language in which nature writes. Flight was possible long before Newton or Bernoulli lived. But once they and their successors translated the physics into equations, humans could do something birds cannot: design aircraft that fly faster, higher, and more efficiently than any living creature.</p>
+                    <p>In the next act, we'll learn the master equation that brings all these ideas together: the formula that determines exactly how much lift a wing generates.</p>
+                </div>
+                <div class="insight">
+                    <strong>Reflection:</strong> Mathematics doesn't create reality; it describes it. The reality of flight existed for millions of years before we had equations.
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="goToAct(2)">Act 2: The Lift Equation →</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <footer>
+        <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+        <div style="margin-top:6px">
+            <a href="../terms.html">Terms of Use</a>
+            &nbsp;&middot;&nbsp;
+            <a href="../intellectual-property.html">Intellectual Property</a>
+            &nbsp;&middot;&nbsp;
+            <a href="../privacy.html">Privacy Policy</a>
+        </div>
+    </footer>
+
+    <script>
+        let currentScreen = 0;
+        const screens = document.querySelectorAll('.screen');
+        const dots = document.querySelectorAll('.dot');
+
+        function showScreen(n) {
+            screens.forEach(s => s.classList.remove('active'));
+            screens[n].classList.add('active');
+            currentScreen = n;
+        }
+
+        function nextScreen() {
+            if (currentScreen < screens.length - 1) {
+                showScreen(currentScreen + 1);
+            }
+        }
+
+        function prevScreen() {
+            if (currentScreen > 0) {
+                showScreen(currentScreen - 1);
+            }
+        }
+
+        function goToAct(act) {
+            const acts = ['flight_act1.html', 'flight_act2.html', 'flight_act3.html', 'flight_act4.html', 'flight_act5.html'];
+            window.location.href = acts[act - 1];
+        }
+
+        // Bernoulli Canvas
+        function drawBernoulli() {
+            const canvas = document.getElementById('canvas-bernoulli');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#07101a';
+            ctx.fillRect(0, 0, w, h);
+
+            // Wing profile
+            const wingX = 100;
+            const wingY = h / 2;
+            const wingLength = 300;
+            const wingHeight = 60;
+
+            ctx.fillStyle = '#60a5fa';
+            ctx.beginPath();
+            ctx.moveTo(wingX, wingY);
+            for (let i = 0; i <= wingLength; i += 10) {
+                const t = i / wingLength;
+                const curvature = Math.sin(t * Math.PI) * wingHeight;
+                ctx.lineTo(wingX + i, wingY - curvature);
+            }
+            ctx.lineTo(wingX + wingLength, wingY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Streamlines over wing (low pressure - blue)
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 5; i++) {
+                const startY = wingY - wingHeight - 40 - i * 15;
+                ctx.beginPath();
+                ctx.moveTo(wingX - 80, startY);
+                for (let x = wingX - 80; x < wingX + wingLength + 80; x += 10) {
+                    const t = (x - wingX) / wingLength;
+                    if (t >= 0 && t <= 1) {
+                        const disturbance = Math.sin(t * Math.PI) * 20;
+                        ctx.lineTo(x, startY + disturbance);
+                    } else {
+                        ctx.lineTo(x, startY);
+                    }
+                }
+                ctx.stroke();
+            }
+
+            // Streamlines under wing (higher pressure - red)
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 3; i++) {
+                const startY = wingY + 40 + i * 15;
+                ctx.beginPath();
+                ctx.moveTo(wingX - 80, startY);
+                for (let x = wingX - 80; x < wingX + wingLength + 80; x += 10) {
+                    const t = (x - wingX) / wingLength;
+                    if (t >= 0 && t <= 1) {
+                        const disturbance = -Math.sin(t * Math.PI) * 8;
+                        ctx.lineTo(x, startY + disturbance);
+                    } else {
+                        ctx.lineTo(x, startY);
+                    }
+                }
+                ctx.stroke();
+            }
+
+            // Pressure map
+            ctx.font = 'bold 14px Nunito';
+            ctx.fillStyle = '#22d3ee';
+            ctx.textAlign = 'center';
+            ctx.fillText('Low Pressure', wingX + wingLength / 2, wingY - wingHeight - 80);
+
+            ctx.fillStyle = '#ef4444';
+            ctx.fillText('Higher Pressure', wingX + wingLength / 2, wingY + wingHeight + 80);
+
+            // Lift arrow
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(wingX + wingLength / 2, wingY + 40);
+            ctx.lineTo(wingX + wingLength / 2, wingY - 80);
+            ctx.stroke();
+            ctx.fillStyle = '#34d399';
+            ctx.beginPath();
+            ctx.moveTo(wingX + wingLength / 2 - 10, wingY - 60);
+            ctx.lineTo(wingX + wingLength / 2, wingY - 80);
+            ctx.lineTo(wingX + wingLength / 2 + 10, wingY - 60);
+            ctx.closePath();
+            ctx.fill();
+            ctx.font = 'bold 16px Nunito';
+            ctx.fillText('LIFT', wingX + wingLength / 2 + 50, wingY - 40);
+        }
+
+        let aoaAngle = 8;
+        function updateAOA(value) {
+            aoaAngle = parseFloat(value);
+            document.getElementById('aoa-value').textContent = aoaAngle.toFixed(1) + '°';
+            drawAOA();
+        }
+
+        function drawAOA() {
+            const canvas = document.getElementById('canvas-aoa');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#07101a';
+            ctx.fillRect(0, 0, w, h);
+
+            const centerX = w / 2;
+            const centerY = h / 2;
+            const wingLength = 200;
+            const wingHeight = 40;
+
+            // Transform and draw wing
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(aoaAngle * Math.PI / 180);
+
+            ctx.fillStyle = '#60a5fa';
+            ctx.beginPath();
+            ctx.moveTo(-wingLength / 2, 0);
+            for (let i = -wingLength / 2; i <= wingLength / 2; i += 5) {
+                const t = (i + wingLength / 2) / wingLength;
+                const curvature = Math.sin(t * Math.PI) * wingHeight;
+                ctx.lineTo(i, -curvature);
+            }
+            ctx.lineTo(wingLength / 2, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw streamlines
+            if (aoaAngle < 15) {
+                ctx.strokeStyle = '#22d3ee';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 6; i++) {
+                    const startY = -wingHeight - 60 - i * 20;
+                    ctx.beginPath();
+                    ctx.moveTo(-wingLength / 2 - 40, startY);
+                    for (let x = -wingLength / 2 - 40; x <= wingLength / 2 + 40; x += 5) {
+                        const t = (x + wingLength / 2) / wingLength;
+                        if (t >= 0 && t <= 1) {
+                            const disturbance = Math.sin(t * Math.PI) * 15;
+                            ctx.lineTo(x, startY + disturbance);
+                        } else {
+                            ctx.lineTo(x, startY);
+                        }
+                    }
+                    ctx.stroke();
+                }
+            } else {
+                // Stall visualization - turbulent flow
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 40; i++) {
+                    const x = Math.random() * wingLength - wingLength / 2;
+                    const y = (Math.random() - 0.5) * 100 - wingHeight - 30;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 3 + Math.random() * 2, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.restore();
+
+            // Reference lines and angles
+            ctx.strokeStyle = '#7070a0';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(centerX - 150, centerY);
+            ctx.lineTo(centerX + 150, centerY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Angle arc
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 60, 0, aoaAngle * Math.PI / 180);
+            ctx.stroke();
+
+            ctx.font = 'bold 14px Nunito';
+            ctx.fillStyle = '#fbbf24';
+            ctx.textAlign = 'center';
+            ctx.fillText(aoaAngle.toFixed(1) + '°', centerX + 80, centerY - 10);
+
+            // Status text
+            ctx.font = '14px Nunito';
+            ctx.fillStyle = aoaAngle < 15 ? '#34d399' : '#ef4444';
+            ctx.textAlign = 'left';
+            ctx.fillText(aoaAngle < 15 ? '✓ Normal Flight' : '✗ STALL', 20, 30);
+        }
+
+        // Initialize
+        showScreen(0);
+        setTimeout(() => {
+            drawBernoulli();
+            drawAOA();
+        }, 100);
+    </script>
+</body>
+</html>

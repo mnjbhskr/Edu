@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematics of Flight: Act 5 — The Envelope</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&family=Crimson+Pro:ital@1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #07101a;
+            --bg2: #0c1528;
+            --bg3: #111a30;
+            --accent: #60a5fa;
+            --accent-dim: rgba(96,165,250,0.15);
+            --secondary: #34d399;
+            --green: #10b981;
+            --cyan: #22d3ee;
+            --gold: #fbbf24;
+            --text: #e2e2f0;
+            --muted: #7070a0;
+            --panel: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.07);
+            --radius: 18px;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Nunito', sans-serif;
+            font-weight: 400;
+            font-size: 16px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        header {
+            position: sticky;
+            top: 0;
+            background: linear-gradient(180deg, var(--bg) 0%, rgba(7,16,26,0.95) 100%);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .progress-dots {
+            display: flex;
+            gap: 8px;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .dot.active {
+            background: var(--accent);
+            width: 24px;
+            border-radius: 5px;
+        }
+        .dot:hover {
+            background: var(--accent-dim);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px 40px;
+        }
+        .screens-container {
+            position: relative;
+            min-height: 600px;
+        }
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            pointer-events: none;
+            animation: fadeUp 0.6s ease;
+        }
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            position: static;
+            animation: fadeUp 0.6s ease;
+        }
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .narrator {
+            border-left: 4px solid var(--accent);
+            padding: 20px;
+            background: var(--panel);
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin: 20px 0;
+            font-style: italic;
+            color: var(--text);
+        }
+        h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+        h2 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--secondary);
+        }
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--accent);
+        }
+        p {
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+        .math-block {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            color: var(--gold);
+            text-align: center;
+        }
+        canvas {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            margin: 20px 0;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: 'Nunito', sans-serif;
+        }
+        button:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(96, 165, 250, 0.3);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .slider-group {
+            margin: 20px 0;
+            background: var(--panel);
+            padding: 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            -webkit-appearance: none;
+            margin: 8px 0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 30px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+        .back-link:hover {
+            color: var(--accent);
+        }
+        footer {
+            text-align: center;
+            padding: 28px 20px 18px;
+            color: #505068;
+            font-size: 0.72em;
+            line-height: 1.7;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 30px;
+        }
+        footer a {
+            color: #606078;
+            text-decoration: none;
+        }
+        footer a:hover {
+            color: var(--accent);
+        }
+        .insight {
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin: 20px 0;
+            color: var(--accent);
+            font-size: 14px;
+        }
+        .content-block {
+            margin: 30px 0;
+        }
+        .celebration {
+            text-align: center;
+            font-size: 24px;
+            margin: 40px 0;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .aircraft-box {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px;
+            margin: 8px 0;
+            text-align: center;
+        }
+        .aircraft-name {
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        .aircraft-specs {
+            font-size: 12px;
+            color: var(--muted);
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/journeys/flight_act5.html">
+  <meta name="description" content="Learn about Flight Act5 in Mathematics Education">
+  </head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="header-title">Mathematics of Flight</div>
+            <div class="progress-dots">
+                <div class="dot" onclick="goToAct(1)"></div>
+                <div class="dot" onclick="goToAct(2)"></div>
+                <div class="dot" onclick="goToAct(3)"></div>
+                <div class="dot" onclick="goToAct(4)"></div>
+                <div class="dot active" onclick="goToAct(5)"></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Journeys</a>
+
+        <div class="screens-container">
+            <!-- Screen 1: Introduction -->
+            <section class="screen active">
+                <h1>The Flight Envelope</h1>
+                <div class="narrator">
+                    <p>Every aircraft has a flight envelope—a region of speed and altitude where it can safely fly. Step outside it, and the aircraft becomes uncontrollable. The envelope is the boundary between flight and disaster.</p>
+                </div>
+                <div class="content-block">
+                    <p>An aircraft cannot fly at arbitrary speeds and altitudes. There are hard physical limits defined by the aircraft's design, the laws of aerodynamics, and the properties of the air itself.</p>
+                    <p>Pilots must understand these limits intimately. Every commercial aviation accident has at its root a violation of the flight envelope: flying too slow (stall), too fast (structural failure), too high (insufficient oxygen/engine power), or at the wrong combination of speed and altitude.</p>
+                    <p>The flight envelope is typically visualized as a V-n diagram: velocity on one axis, altitude (or load factor) on the other. Two curves define the boundaries—one sets the minimum speed (stall), the other sets the maximum speed (structural limit or Mach limit).</p>
+                    <p>Within the envelope: safe. Outside: danger.</p>
+                </div>
+                <div class="insight">
+                    <strong>Key Principle:</strong> The flight envelope is not an approximation or guideline—it's the mathematical definition of what the aircraft can do.
+                </div>
+                <div class="controls">
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 2: Interactive Flight Envelope -->
+            <section class="screen">
+                <h2>The V-n Diagram</h2>
+                <div class="narrator">
+                    <p>Adjust the altitude slider and watch how the safe speed range narrows. At high altitude, the envelope becomes a thin wedge. Pilots call it "coffin corner"—the point where the safe speed range disappears.</p>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Altitude</span>
+                        <span id="alt-value">10,000 ft</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px;">0 ft (sea level) → 40,000 ft (cruise altitude)</div>
+                    <input type="range" id="alt-slider" min="0" max="40000" value="10000" step="1000" oninput="updateEnvelope()">
+                </div>
+                <canvas id="canvas-envelope" width="800" height="480"></canvas>
+                <p style="margin-top: 20px;">The diagram shows:</p>
+                <ul style="margin-left: 20px; margin-bottom: 16px;">
+                    <li><span style="color: #ef4444;">—</span> <strong>Stall speed boundary:</strong> Minimum speed to maintain lift. Increases with altitude (thinner air).</li>
+                    <li><span style="color: #22d3ee;">—</span> <strong>Maximum speed boundary:</strong> Limited by structural strength or Mach number. Often decreases with altitude.</li>
+                    <li><span style="color: #34d399;">█ Green zone:</span> Safe operating envelope.</li>
+                    <li><span style="color: #ef4444;">█ Red zones:</span> Unsafe. Stall, structural failure, or speed of sound.</li>
+                </ul>
+                <h3 style="margin-top: 30px;">Real Aircraft Envelopes</h3>
+                <div class="aircraft-box">
+                    <div class="aircraft-name">Cessna 172 (Trainer)</div>
+                    <div class="aircraft-specs">Max altitude: 14,000 ft | Speed range: 35–160 mph</div>
+                </div>
+                <div class="aircraft-box">
+                    <div class="aircraft-name">Boeing 737 (Commercial)</div>
+                    <div class="aircraft-specs">Max altitude: 41,000 ft | Speed range: 180–490 mph</div>
+                </div>
+                <div class="aircraft-box">
+                    <div class="aircraft-name">Concorde (Supersonic)</div>
+                    <div class="aircraft-specs">Max altitude: 59,000 ft | Speed range: 200–1,350 mph (Mach 2.04)</div>
+                </div>
+                <div class="aircraft-box">
+                    <div class="aircraft-name">U-2 Spy Plane (Extreme Altitude)</div>
+                    <div class="aircraft-specs">Max altitude: 70,000 ft | Speed range: 80–460 mph</div>
+                </div>
+                <div class="insight">
+                    <strong>Coffin Corner:</strong> At very high altitudes, stall speed and maximum speed converge. For a U-2 at 70,000 ft, the safe speed range might only be 5 mph wide. One misstep causes either a stall or structural failure.
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 3: Reflection and Conclusion -->
+            <section class="screen">
+                <h2>The Mathematics of Balance</h2>
+                <div class="narrator">
+                    <p>From pressure differences to control laws, from stability margins to flight envelopes—all of it descends from a few mathematical truths. The physics of flight is constrained, beautiful, and utterly unforgiving.</p>
+                </div>
+                <div class="content-block">
+                    <p>In this journey, we've explored the mathematics that keeps aircraft in the air. Let's reflect on what we've learned:</p>
+                    <p><strong>Act 1: Why Do Wings Work?</strong> We discovered Bernoulli's principle—faster flow means lower pressure, and pressure difference creates lift. We learned that stall is not lack of speed; it's flow separation, a failure of the smooth mathematics to hold.</p>
+                    <p><strong>Act 2: The Lift Equation.</strong> Through dimensional analysis, we determined that lift must be L = ½ρv²SC<sub>L</sub>. Four variables, one formula. Speed matters most—doubling velocity quadruples lift. We saw how Reynolds number changes everything at different scales.</p>
+                    <p><strong>Act 3: Stability and Control.</strong> The position of the centre of gravity relative to centre of pressure determines stability. Engineers can make aircraft deliberately unstable by moving the CG aft—but only if computers manage the flight.</p>
+                    <p><strong>Act 4: Control Theory.</strong> The PID controller—P, I, D terms—embodies the principle of feedback. By measuring the present state and correcting toward the desired state, a computer can fly unstable aircraft and land stable ones with precision humans cannot achieve.</p>
+                    <p><strong>Act 5: The Envelope.</strong> Every aircraft has boundaries. Step outside them and physics will punish you. These boundaries are not guidelines—they are mathematical limits etched into the aircraft's design.</p>
+                    <p style="margin-top: 30px;">The mathematics of flight is the mathematics of <strong>balance</strong>:</p>
+                    <ul style="margin-left: 20px; margin-bottom: 16px;">
+                        <li>Balance lift against weight</li>
+                        <li>Balance drag against thrust</li>
+                        <li>Balance stability against manoeuvrability</li>
+                        <li>Balance robustness against efficiency</li>
+                    </ul>
+                    <p>Every time you board an aircraft—whether a Cessna, a 737, or an Airbus A380—you are trusting that the engineers got this balance right. You're trusting equations. You're trusting mathematics.</p>
+                    <p style="margin-top: 30px;">And, statistically speaking, you should. Aviation is the safest form of long-distance transport. Not because of luck, but because of mathematics.</p>
+                </div>
+                <div class="celebration">
+                    ✨ You have completed the Mathematics of Flight ✨
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="returnHome()">Return to Journeys Home</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <footer>
+        <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+        <div style="margin-top:6px">
+            <a href="../terms.html">Terms of Use</a>
+            &nbsp;&middot;&nbsp;
+            <a href="../intellectual-property.html">Intellectual Property</a>
+            &nbsp;&middot;&nbsp;
+            <a href="../privacy.html">Privacy Policy</a>
+        </div>
+    </footer>
+
+    <script>
+        let currentScreen = 0;
+        const screens = document.querySelectorAll('.screen');
+
+        function showScreen(n) {
+            screens.forEach(s => s.classList.remove('active'));
+            screens[n].classList.add('active');
+            currentScreen = n;
+        }
+
+        function nextScreen() {
+            if (currentScreen < screens.length - 1) {
+                showScreen(currentScreen + 1);
+            }
+        }
+
+        function prevScreen() {
+            if (currentScreen > 0) {
+                showScreen(currentScreen - 1);
+            }
+        }
+
+        function goToAct(act) {
+            const acts = ['flight_act1.html', 'flight_act2.html', 'flight_act3.html', 'flight_act4.html', 'flight_act5.html'];
+            window.location.href = acts[act - 1];
+        }
+
+        function returnHome() {
+            window.location.href = '../index.html';
+        }
+
+        function updateEnvelope() {
+            const alt = parseFloat(document.getElementById('alt-slider').value);
+            const altFt = Math.round(alt);
+            const altKm = (alt * 0.0003048).toFixed(2);
+            document.getElementById('alt-value').textContent = altFt.toLocaleString() + ' ft (' + altKm + ' km)';
+            drawEnvelope();
+        }
+
+        function drawEnvelope() {
+            const canvas = document.getElementById('canvas-envelope');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#07101a';
+            ctx.fillRect(0, 0, w, h);
+
+            const alt = parseFloat(document.getElementById('alt-slider').value);
+            const altRatio = alt / 40000; // 0 to 1
+
+            const padding = 60;
+            const plotW = w - 2 * padding;
+            const plotH = h - 2 * padding;
+
+            // Stall speed increases with altitude (less air density means need higher speed)
+            const stallSpeedBase = 100; // mph at sea level
+            const stallSpeed = stallSpeedBase * Math.sqrt(1 / (1 - altRatio * 0.7));
+
+            // Max speed decreases with altitude or Mach limit
+            const maxSpeedBase = 490; // mph at sea level
+            const machLimit = 450; // approximately M0.75 at altitude
+            const maxSpeed = Math.max(
+                maxSpeedBase * (1 - altRatio * 0.7),
+                machLimit
+            );
+
+            // Draw stall boundary (left, increases with altitude)
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i <= 100; i++) {
+                const a = (i / 100) * 40000;
+                const aRatio = a / 40000;
+                const stall = stallSpeedBase * Math.sqrt(1 / (1 - aRatio * 0.7));
+                const speedPct = stall / 500; // 500 mph scale
+                const x = padding + speedPct * plotW;
+                const y = h - padding - (a / 40000) * plotH;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Draw max speed boundary (right, decreases with altitude)
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i <= 100; i++) {
+                const a = (i / 100) * 40000;
+                const aRatio = a / 40000;
+                const ms = Math.max(
+                    maxSpeedBase * (1 - aRatio * 0.7),
+                    machLimit
+                );
+                const speedPct = ms / 500;
+                const x = padding + speedPct * plotW;
+                const y = h - padding - (a / 40000) * plotH;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Fill safe envelope
+            ctx.fillStyle = 'rgba(52, 211, 153, 0.15)';
+            ctx.beginPath();
+            for (let i = 0; i <= 100; i++) {
+                const a = (i / 100) * 40000;
+                const aRatio = a / 40000;
+                const stall = stallSpeedBase * Math.sqrt(1 / (1 - aRatio * 0.7));
+                const speedPct = stall / 500;
+                const x = padding + speedPct * plotW;
+                const y = h - padding - (a / 40000) * plotH;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            for (let i = 100; i >= 0; i--) {
+                const a = (i / 100) * 40000;
+                const aRatio = a / 40000;
+                const ms = Math.max(
+                    maxSpeedBase * (1 - aRatio * 0.7),
+                    machLimit
+                );
+                const speedPct = ms / 500;
+                const x = padding + speedPct * plotW;
+                const y = h - padding - (a / 40000) * plotH;
+                ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Mark current altitude
+            const currentAltY = h - padding - altRatio * plotH;
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(padding, currentAltY);
+            ctx.lineTo(w - padding, currentAltY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Current stall and max speed at this altitude
+            const currentStall = stallSpeed;
+            const currentMax = maxSpeed;
+            const stallPct = currentStall / 500;
+            const maxPct = currentMax / 500;
+            const stallX = padding + stallPct * plotW;
+            const maxX = padding + maxPct * plotW;
+
+            // Markers at current altitude
+            ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(stallX, currentAltY, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#22d3ee';
+            ctx.beginPath();
+            ctx.arc(maxX, currentAltY, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Speed range annotation
+            ctx.font = 'bold 12px Nunito';
+            ctx.fillStyle = '#34d399';
+            ctx.textAlign = 'center';
+            const centerSpeedX = (stallX + maxX) / 2;
+            ctx.fillText('Safe speed range: ' + Math.round(currentStall) + '–' + Math.round(currentMax) + ' mph', centerSpeedX, currentAltY - 15);
+
+            // Axes
+            ctx.strokeStyle = '#7070a0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, h - padding);
+            ctx.lineTo(w - padding, h - padding);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, h - padding);
+            ctx.stroke();
+
+            // Axis labels
+            ctx.font = '12px Nunito';
+            ctx.fillStyle = '#7070a0';
+            ctx.textAlign = 'center';
+            ctx.fillText('Speed (mph)', w / 2, h - 10);
+
+            ctx.save();
+            ctx.translate(15, h / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.fillText('Altitude (feet)', 0, 0);
+            ctx.restore();
+
+            // Tick marks
+            ctx.font = '10px Nunito';
+            for (let i = 0; i <= 5; i++) {
+                const x = padding + (i / 5) * plotW;
+                ctx.beginPath();
+                ctx.moveTo(x, h - padding);
+                ctx.lineTo(x, h - padding + 5);
+                ctx.stroke();
+                ctx.textAlign = 'center';
+                ctx.fillText((i * 100) + '', x, h - padding + 15);
+            }
+
+            for (let i = 0; i <= 5; i++) {
+                const y = h - padding - (i / 5) * plotH;
+                ctx.beginPath();
+                ctx.moveTo(padding - 5, y);
+                ctx.lineTo(padding, y);
+                ctx.stroke();
+                ctx.textAlign = 'right';
+                ctx.fillText((i * 8000).toLocaleString(), padding - 10, y + 4);
+            }
+        }
+
+        showScreen(0);
+        setTimeout(() => {
+            drawEnvelope();
+        }, 100);
+    </script>
+</body>
+</html>

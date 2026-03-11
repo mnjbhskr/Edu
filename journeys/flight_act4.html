@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematics of Flight: Act 4 — Control Theory and Feedback</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&family=Crimson+Pro:ital@1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #07101a;
+            --bg2: #0c1528;
+            --bg3: #111a30;
+            --accent: #60a5fa;
+            --accent-dim: rgba(96,165,250,0.15);
+            --secondary: #34d399;
+            --green: #10b981;
+            --cyan: #22d3ee;
+            --gold: #fbbf24;
+            --text: #e2e2f0;
+            --muted: #7070a0;
+            --panel: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.07);
+            --radius: 18px;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Nunito', sans-serif;
+            font-weight: 400;
+            font-size: 16px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        header {
+            position: sticky;
+            top: 0;
+            background: linear-gradient(180deg, var(--bg) 0%, rgba(7,16,26,0.95) 100%);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .progress-dots {
+            display: flex;
+            gap: 8px;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .dot.active {
+            background: var(--accent);
+            width: 24px;
+            border-radius: 5px;
+        }
+        .dot:hover {
+            background: var(--accent-dim);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px 40px;
+        }
+        .screens-container {
+            position: relative;
+            min-height: 600px;
+        }
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            pointer-events: none;
+            animation: fadeUp 0.6s ease;
+        }
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            position: static;
+            animation: fadeUp 0.6s ease;
+        }
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .narrator {
+            border-left: 4px solid var(--accent);
+            padding: 20px;
+            background: var(--panel);
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin: 20px 0;
+            font-style: italic;
+            color: var(--text);
+        }
+        h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+        h2 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--secondary);
+        }
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--accent);
+        }
+        p {
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+        .math-block {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            color: var(--gold);
+            text-align: center;
+        }
+        canvas {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            margin: 20px 0;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: 'Nunito', sans-serif;
+        }
+        button:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(96, 165, 250, 0.3);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .slider-group {
+            margin: 20px 0;
+            background: var(--panel);
+            padding: 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            -webkit-appearance: none;
+            margin: 8px 0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 30px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+        .back-link:hover {
+            color: var(--accent);
+        }
+        footer {
+            text-align: center;
+            padding: 28px 20px 18px;
+            color: #505068;
+            font-size: 0.72em;
+            line-height: 1.7;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 30px;
+        }
+        footer a {
+            color: #606078;
+            text-decoration: none;
+        }
+        footer a:hover {
+            color: var(--accent);
+        }
+        .insight {
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin: 20px 0;
+            color: var(--accent);
+            font-size: 14px;
+        }
+        .content-block {
+            margin: 30px 0;
+        }
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .metric {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            font-size: 12px;
+        }
+        .metric-label {
+            color: var(--muted);
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+        .metric-value {
+            color: var(--secondary);
+            font-weight: 700;
+            font-size: 14px;
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/journeys/flight_act4.html">
+  <meta name="description" content="Learn about Flight Act4 in Mathematics Education">
+  </head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="header-title">Mathematics of Flight</div>
+            <div class="progress-dots">
+                <div class="dot" onclick="goToAct(1)"></div>
+                <div class="dot" onclick="goToAct(2)"></div>
+                <div class="dot" onclick="goToAct(3)"></div>
+                <div class="dot active" onclick="goToAct(4)"></div>
+                <div class="dot" onclick="goToAct(5)"></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Journeys</a>
+
+        <div class="screens-container">
+            <!-- Screen 1: Feedback Control -->
+            <section class="screen active">
+                <h1>Control Theory and Feedback</h1>
+                <div class="narrator">
+                    <p>A modern aircraft makes thousands of corrections per second. It's not the pilot—it's mathematics watching, thinking, and acting faster than human reflexes could ever manage.</p>
+                </div>
+                <div class="content-block">
+                    <p>In the 1960s, aircraft autopilots were simple mechanical devices. A gyroscope sensed rotation, and springs pulled the control surfaces back to level. Primitive, but it worked—for straight, level flight.</p>
+                    <p>Modern aircraft use computers running sophisticated control algorithms based on feedback control theory. These systems maintain altitude in turbulence, execute approaches in fog where pilots can't see the runway, and manage inherently unstable platforms like fighter jets.</p>
+                    <p>The key insight is this: instead of trying to predict exactly what will happen, a control system measures the current state (altitude, heading, pitch, roll, speed) and adjusts the control surfaces to move towards the desired state.</p>
+                    <p>This is <strong>feedback control</strong>. The system compares where it is to where it should be, measures the error, and corrects it. The correction algorithm is mathematics.</p>
+                </div>
+                <div class="insight">
+                    <strong>The Power of Feedback:</strong> Even if the aircraft model is imperfect or conditions change unexpectedly, a properly tuned feedback system adapts and maintains control.
+                </div>
+                <div class="controls">
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 2: PID Controller -->
+            <section class="screen">
+                <h2>The PID Controller</h2>
+                <div class="narrator">
+                    <p>Three terms, three tuning knobs, one universal principle. The PID controller is the most important algorithm in flight control.</p>
+                </div>
+                <p>The PID controller computes a control signal based on three components:</p>
+                <div class="math-block">
+                    u = K<sub>P</sub>·e + K<sub>I</sub>·∫e·dt + K<sub>D</sub>·de/dt
+                </div>
+                <ul style="margin-left: 20px; margin-bottom: 16px;">
+                    <li><strong>P (Proportional):</strong> Responds to current error. If altitude is 10 m below target, adjust. Proportional gain K<sub>P</sub> determines response strength.</li>
+                    <li><strong>I (Integral):</strong> Responds to accumulated error. If the system is consistently slightly low over time, add extra correction. Removes steady-state bias.</li>
+                    <li><strong>D (Derivative):</strong> Responds to rate of error change. If altitude is falling rapidly, predict it will get worse and correct aggressively. Prevents overshoot.</li>
+                </ul>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>P Gain (K<sub>P</sub>)</span>
+                        <span id="kp-value">1.0</span>
+                    </div>
+                    <input type="range" id="kp-slider" min="0" max="3" value="1.0" step="0.1" oninput="simulatePID()">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>I Gain (K<sub>I</sub>)</span>
+                        <span id="ki-value">0.2</span>
+                    </div>
+                    <input type="range" id="ki-slider" min="0" max="1" value="0.2" step="0.05" oninput="simulatePID()">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>D Gain (K<sub>D</sub>)</span>
+                        <span id="kd-value">0.5</span>
+                    </div>
+                    <input type="range" id="kd-slider" min="0" max="2" value="0.5" step="0.1" oninput="simulatePID()">
+                </div>
+                <canvas id="canvas-pid" width="800" height="400"></canvas>
+                <div class="metrics-row">
+                    <div class="metric">
+                        <div class="metric-label">Rise Time</div>
+                        <div class="metric-value" id="rise-time">2.1s</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Overshoot</div>
+                        <div class="metric-value" id="overshoot">15%</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Settling Time</div>
+                        <div class="metric-value" id="settling-time">4.2s</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Stability</div>
+                        <div class="metric-value" id="stability">Good</div>
+                    </div>
+                </div>
+                <div class="insight">
+                    <strong>Tuning Trade-offs:</strong> More P = faster but oscillatory. More D = smoother but sluggish. Optimal tuning balances all three.
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 3: Challenge Mode -->
+            <section class="screen">
+                <h2>Landing Challenge</h2>
+                <div class="narrator">
+                    <p>Your turn. Land the aircraft smoothly. Too aggressive = bounce. Too gentle = too slow. Tune the PID gains to find the balance.</p>
+                </div>
+                <p>The aircraft must descend to the runway (altitude = 0 m) and hold steady. You have 60 seconds. The smoother the descent, the better your score.</p>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>P Gain</span>
+                        <span id="cp-value">1.5</span>
+                    </div>
+                    <input type="range" id="cp-slider" min="0" max="3" value="1.5" step="0.1" oninput="updateChallenge()">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>I Gain</span>
+                        <span id="ci-value">0.1</span>
+                    </div>
+                    <input type="range" id="ci-slider" min="0" max="1" value="0.1" step="0.05" oninput="updateChallenge()">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>D Gain</span>
+                        <span id="cd-value">0.8</span>
+                    </div>
+                    <input type="range" id="cd-slider" min="0" max="2" value="0.8" step="0.1" oninput="updateChallenge()">
+                </div>
+                <canvas id="canvas-landing" width="800" height="420"></canvas>
+                <div style="margin-top: 20px; text-align: center;">
+                    <p>
+                        <strong>Current Score:</strong> <span id="score-value" style="color: var(--secondary); font-size: 18px; font-weight: 700;">0</span>
+                    </p>
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 4: Manual vs Computer -->
+            <section class="screen">
+                <h2>Fly-by-Wire: Humans vs Computers</h2>
+                <div class="narrator">
+                    <p>Watch what happens when a pilot tries to land manually versus when a computer does it. The difference is dramatic.</p>
+                </div>
+                <p>The left side shows a human pilot's input—slightly jerky, over-correcting, creating oscillations. The right side shows a computer executing an optimal PID trajectory—smooth, efficient, precise.</p>
+                <canvas id="canvas-comparison" width="800" height="400"></canvas>
+                <div class="content-block" style="margin-top: 30px;">
+                    <p>This is why modern large aircraft are "fly-by-wire"—the pilots don't directly move the control surfaces. Instead, they tell the computer what manoeuvre they want, and the computer executes it with mathematics.</p>
+                    <p>Benefits include:</p>
+                    <ul style="margin-left: 20px; margin-bottom: 16px;">
+                        <li><strong>Smoothness:</strong> Passengers experience less turbulence stress</li>
+                        <li><strong>Efficiency:</strong> Optimal control saves fuel</li>
+                        <li><strong>Safety:</strong> The computer prevents dangerous manoeuvres (overspeed, stall protection)</li>
+                        <li><strong>Stability:</strong> Inherently unstable aircraft (like fighters) become flyable</li>
+                    </ul>
+                    <p>In an Airbus A320 or Boeing 787, if you try to command an impossible manoeuvre, the flight control computer won't let you. It uses mathematics to protect you from yourself.</p>
+                </div>
+                <div class="insight">
+                    <strong>The Mathematics of Safety:</strong> Control theory transformed aviation from dangerous guesswork into a precise, predictable science.
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="goToAct(5)">Act 5: The Envelope →</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <footer>
+        <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+        <div style="margin-top:6px">
+            <a href="../terms.html">Terms of Use</a>
+            &nbsp;&middot;&nbsp;
+            <a href="../intellectual-property.html">Intellectual Property</a>
+            &nbsp;&middot;&nbsp;
+            <a href="../privacy.html">Privacy Policy</a>
+        </div>
+    </footer>
+
+    <script>
+        let currentScreen = 0;
+        let pidHistory = [];
+        let landingHistory = [];
+        let landingTime = 0;
+        const screens = document.querySelectorAll('.screen');
+
+        function showScreen(n) {
+            screens.forEach(s => s.classList.remove('active'));
+            screens[n].classList.add('active');
+            currentScreen = n;
+            if (n === 2) startLandingSimulation();
+        }
+
+        function nextScreen() {
+            if (currentScreen < screens.length - 1) {
+                showScreen(currentScreen + 1);
+            }
+        }
+
+        function prevScreen() {
+            if (currentScreen > 0) {
+                showScreen(currentScreen - 1);
+            }
+        }
+
+        function goToAct(act) {
+            const acts = ['flight_act1.html', 'flight_act2.html', 'flight_act3.html', 'flight_act4.html', 'flight_act5.html'];
+            window.location.href = acts[act - 1];
+        }
+
+        // PID Simulation
+        function simulatePID() {
+            const kp = parseFloat(document.getElementById('kp-slider').value);
+            const ki = parseFloat(document.getElementById('ki-slider').value);
+            const kd = parseFloat(document.getElementById('kd-slider').value);
+
+            document.getElementById('kp-value').textContent = kp.toFixed(1);
+            document.getElementById('ki-value').textContent = ki.toFixed(2);
+            document.getElementById('kd-value').textContent = kd.toFixed(1);
+
+            // Simulate step response
+            pidHistory = [];
+            let altitude = 0;
+            let velocity = 0;
+            let integralError = 0;
+            let lastError = 0;
+            const targetAltitude = 100;
+
+            for (let t = 0; t < 100; t++) {
+                const error = targetAltitude - altitude;
+                const deriv = error - lastError;
+                integralError += error;
+
+                const control = kp * error + ki * integralError + kd * deriv;
+
+                velocity += control * 0.1;
+                velocity *= 0.95; // Damping
+
+                altitude += velocity;
+                altitude = Math.max(0, Math.min(150, altitude));
+
+                pidHistory.push({
+                    t: t,
+                    altitude: altitude,
+                    target: targetAltitude,
+                    control: control
+                });
+
+                lastError = error;
+            }
+
+            // Calculate metrics
+            const peak = Math.max(...pidHistory.map(p => p.altitude));
+            const overshoot = ((peak - targetAltitude) / targetAltitude) * 100;
+            let settlingTime = pidHistory.length;
+            for (let i = pidHistory.length - 1; i >= 0; i--) {
+                if (Math.abs(pidHistory[i].altitude - targetAltitude) > 2) {
+                    settlingTime = i;
+                    break;
+                }
+            }
+            const riseTime = pidHistory.findIndex(p => p.altitude > targetAltitude * 0.9);
+
+            document.getElementById('rise-time').textContent = (riseTime * 0.1).toFixed(1) + 's';
+            document.getElementById('overshoot').textContent = Math.max(0, overshoot.toFixed(1)) + '%';
+            document.getElementById('settling-time').textContent = (settlingTime * 0.1).toFixed(1) + 's';
+            const isStable = overshoot < 20;
+            document.getElementById('stability').textContent = isStable ? 'Good' : 'Poor';
+            document.getElementById('stability').style.color = isStable ? 'var(--secondary)' : 'var(--accent)';
+
+            drawPIDCanvas();
+        }
+
+        function drawPIDCanvas() {
+            const canvas = document.getElementById('canvas-pid');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#07101a';
+            ctx.fillRect(0, 0, w, h);
+
+            if (pidHistory.length === 0) return;
+
+            const padding = 60;
+            const plotW = w - 2 * padding;
+            const plotH = h - 2 * padding;
+
+            const maxAlt = 150;
+            const xScale = plotW / pidHistory.length;
+            const yScale = plotH / maxAlt;
+
+            // Grid
+            ctx.strokeStyle = 'rgba(112, 112, 160, 0.2)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const y = padding + (i * plotH) / 10;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(w - padding, y);
+                ctx.stroke();
+            }
+
+            // Target line
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            const targetY = h - padding - 100 * yScale;
+            ctx.beginPath();
+            ctx.moveTo(padding, targetY);
+            ctx.lineTo(w - padding, targetY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Altitude response
+            ctx.strokeStyle = '#60a5fa';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < pidHistory.length; i++) {
+                const x = padding + i * xScale;
+                const y = h - padding - pidHistory[i].altitude * yScale;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Labels
+            ctx.font = 'bold 12px Nunito';
+            ctx.fillStyle = '#fbbf24';
+            ctx.textAlign = 'right';
+            ctx.fillText('Target Altitude', w - padding - 10, targetY - 10);
+
+            ctx.fillStyle = '#60a5fa';
+            ctx.fillText('Actual Altitude', w - padding - 10, h - padding - 30 * yScale);
+
+            // Axes
+            ctx.strokeStyle = '#7070a0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, h - padding);
+            ctx.lineTo(w - padding, h - padding);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, h - padding);
+            ctx.stroke();
+
+            ctx.font = '12px Nunito';
+            ctx.fillStyle = '#7070a0';
+            ctx.textAlign = 'center';
+            ctx.fillText('Time (seconds)', w / 2, h - 10);
+
+            ctx.save();
+            ctx.translate(15, h / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.fillText('Altitude (m)', 0, 0);
+            ctx.restore();
+        }
+
+        // Landing Challenge
+        let landingActive = false;
+        function startLandingSimulation() {
+            landingActive = true;
+            landingTime = 0;
+            landingHistory = [];
+            simulateLanding();
+        }
+
+        function updateChallenge() {
+            const cp = parseFloat(document.getElementById('cp-slider').value);
+            const ci = parseFloat(document.getElementById('ci-slider').value);
+            const cd = parseFloat(document.getElementById('cd-slider').value);
+
+            document.getElementById('cp-value').textContent = cp.toFixed(1);
+            document.getElementById('ci-value').textContent = ci.toFixed(2);
+            document.getElementById('cd-value').textContent = cd.toFixed(1);
+
+            simulateLanding();
+        }
+
+        function simulateLanding() {
+            const cp = parseFloat(document.getElementById('cp-slider').value);
+            const ci = parseFloat(document.getElementById('ci-slider').value);
+            const cd = parseFloat(document.getElementById('cd-slider').value);
+
+            landingHistory = [];
+            let alt = 1000;
+            let vel = 0;
+            let integralErr = 0;
+            let lastErr = 0;
+            let totalSmoothnessError = 0;
+            const targetDescentRate = -5; // m/s
+
+            for (let t = 0; t < 60; t++) {
+                const altError = Math.max(0, alt) - 0;
+                const velError = vel - targetDescentRate;
+
+                integralErr += velError;
+                const deriv = velError - lastErr;
+
+                const control = cp * velError + ci * integralErr + cd * deriv;
+                vel += control * 0.5;
+                vel = Math.max(-20, Math.min(10, vel));
+
+                alt += vel;
+                alt = Math.max(0, alt);
+
+                if (alt === 0) break;
+
+                const smoothness = Math.abs(control);
+                totalSmoothnessError += smoothness;
+
+                landingHistory.push({ t, alt, vel, control });
+                lastErr = velError;
+            }
+
+            const score = Math.max(0, 100 - totalSmoothnessError * 0.5);
+            document.getElementById('score-value').textContent = Math.round(score);
+
+            drawLandingCanvas();
+        }
+
+        function drawLandingCanvas() {
+            const canvas = document.getElementById('canvas-landing');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#07101a';
+            ctx.fillRect(0, 0, w, h);
+
+            if (landingHistory.length === 0) return;
+
+            const padding = 50;
+            const plotW = w - 2 * padding;
+            const plotH = h - 2 * padding - 80;
+
+            const maxAlt = 1000;
+            const xScale = plotW / 60;
+            const yScale = plotH / maxAlt;
+
+            // Runway
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(padding, h - padding - 30, plotW, 30);
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, h - padding - 30);
+            ctx.lineTo(w - padding, h - padding - 30);
+            ctx.stroke();
+
+            // Altitude trajectory
+            ctx.strokeStyle = '#60a5fa';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < landingHistory.length; i++) {
+                const x = padding + i * xScale;
+                const y = h - padding - 30 - landingHistory[i].alt * yScale;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Final position marker
+            if (landingHistory.length > 0) {
+                const lastPoint = landingHistory[landingHistory.length - 1];
+                const finalX = padding + landingHistory.length * xScale;
+                const finalY = h - padding - 30;
+
+                ctx.fillStyle = '#34d399';
+                ctx.beginPath();
+                ctx.arc(finalX, finalY, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.font = 'bold 12px Nunito';
+                ctx.fillStyle = '#34d399';
+                ctx.textAlign = 'center';
+                ctx.fillText('✓ Landed', finalX, finalY - 15);
+            }
+
+            // Axes
+            ctx.strokeStyle = '#7070a0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, h - padding - 30);
+            ctx.lineTo(w - padding, h - padding - 30);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, h - padding - 30);
+            ctx.stroke();
+
+            ctx.font = '12px Nunito';
+            ctx.fillStyle = '#7070a0';
+            ctx.textAlign = 'center';
+            ctx.fillText('Time (seconds)', w / 2, h - 10);
+
+            ctx.save();
+            ctx.translate(15, h / 2 - 40);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.fillText('Altitude (m)', 0, 0);
+            ctx.restore();
+        }
+
+        function drawComparisonCanvas() {
+            const canvas = document.getElementById('canvas-comparison');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#07101a';
+            ctx.fillRect(0, 0, w, h);
+
+            const padding = 50;
+            const midX = w / 2;
+            const plotW = (w - 3 * padding) / 2;
+            const plotH = h - 2 * padding;
+
+            // Left: Human pilot (jerky)
+            ctx.font = 'bold 14px Nunito';
+            ctx.fillStyle = '#ef4444';
+            ctx.textAlign = 'center';
+            ctx.fillText('Manual Pilot Input', padding + plotW / 2, 30);
+
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let t = 0; t < 100; t++) {
+                const x = padding + (t / 100) * plotW;
+                const y = h - padding - 50 - Math.sin(t * 0.2) * 30 - Math.random() * 15;
+                if (t === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Right: Computer control (smooth)
+            ctx.fillStyle = '#34d399';
+            ctx.textAlign = 'center';
+            ctx.fillText('Computer Control', midX + plotW / 2, 30);
+
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let t = 0; t < 100; t++) {
+                const x = midX + padding + (t / 100) * plotW;
+                const y = h - padding - 50 - Math.sin(t * 0.15) * 20;
+                if (t === 0) ctx.beginPath();
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Labels
+            ctx.font = '12px Nunito';
+            ctx.fillStyle = '#7070a0';
+            ctx.textAlign = 'center';
+            ctx.fillText('Oscillatory, requires', padding + plotW / 2, h - 15);
+            ctx.fillText('constant correction', padding + plotW / 2, h - 3);
+
+            ctx.fillText('Smooth, stable,', midX + padding + plotW / 2, h - 15);
+            ctx.fillText('minimal oscillation', midX + padding + plotW / 2, h - 3);
+        }
+
+        showScreen(0);
+        setTimeout(() => {
+            simulatePID();
+            drawComparisonCanvas();
+        }, 100);
+    </script>
+</body>
+</html>

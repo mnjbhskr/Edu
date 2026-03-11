@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spam Filters and Naive Bayes — A Visual Discovery of Mathematics</title>
+    <meta name="description" content="Explore Bayesian classification for email spam detection. Interactive visualisations of Bayes' theorem, word frequencies, and ROC curves.">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta property="og:title" content="Spam Filters and Naive Bayes — A Visual Discovery of Mathematics">
+    <meta property="og:description" content="Explore Bayesian classification for email spam detection. Interactive visualisations of Bayes' theorem, word frequencies, and ROC curves.">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Spam Filters and Naive Bayes">
+    <meta name="twitter:description" content="Explore Bayesian classification for email spam detection. Interactive visualisations of Bayes' theorem, word frequencies, and ROC curves.">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "LearningResource",
+        "name": "Spam Filters and Naive Bayes",
+        "description": "Explore Bayesian classification for email spam detection",
+        "educationalLevel": "Advanced",
+        "isPartOf": {
+            "@type": "Course",
+            "name": "The Mathematics Behind the Internet"
+        },
+        "inLanguage": "en-GB"
+    }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: #0a0a1a;
+            color: #e0e0e0;
+            font-family: Georgia, serif;
+            line-height: 1.7;
+            font-size: 1em;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 24px 28px 48px;
+        }
+
+        .back {
+            display: inline-block;
+            color: #22d3ee;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+            transition: all 0.2s;
+        }
+
+        .back:hover {
+            color: #e0e0e0;
+        }
+
+        h1 {
+            font-size: 2.2em;
+            margin: 20px 0 10px;
+            color: #e0e0e0;
+            font-weight: normal;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-style: italic;
+            color: #a0a0b8;
+            margin-bottom: 30px;
+            font-size: 1.05em;
+        }
+
+        .narrative {
+            border-left: 3px solid #22d3ee;
+            padding-left: 20px;
+            margin: 25px 0;
+            color: #c8c8d8;
+            line-height: 1.8;
+            font-style: italic;
+        }
+
+        h2 {
+            font-size: 1.6em;
+            margin: 35px 0 15px;
+            color: #22d3ee;
+            font-weight: normal;
+            border-bottom: 1px solid rgba(34, 211, 238, 0.2);
+            padding-bottom: 8px;
+        }
+
+        h3 {
+            font-size: 1.2em;
+            margin: 22px 0 12px;
+            color: #d0d0e0;
+            font-weight: normal;
+        }
+
+        p {
+            margin: 15px 0;
+            text-align: justify;
+        }
+
+        .formula-block {
+            background: rgba(34, 211, 238, 0.08);
+            border-left: 3px solid #22d3ee;
+            padding: 16px 18px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            line-height: 1.6;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(34, 211, 238, 0.15);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            color: #b0b0c4;
+            padding: 5px 13px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            font-size: 0.92em;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.07);
+            color: #e0e0ef;
+        }
+
+        .btn.active {
+            background: rgba(34, 211, 238, 0.13);
+            border-color: rgba(34, 211, 238, 0.4);
+            color: #22d3ee;
+        }
+
+        .insight-box {
+            background: rgba(34, 211, 238, 0.06);
+            border-left: 4px solid #22d3ee;
+            padding: 14px 16px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-size: 0.96em;
+            line-height: 1.7;
+        }
+
+        .explain {
+            margin: 12px 0;
+        }
+
+        .explain-name {
+            color: #22d3ee;
+            font-weight: bold;
+        }
+
+        .explain-text {
+            color: #b8b8cc;
+            font-size: 0.95em;
+            margin-left: 16px;
+            padding-left: 10px;
+            border-left: 2px solid rgba(34, 211, 238, 0.3);
+        }
+
+        .slider-row {
+            margin: 18px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .slider-row label {
+            font-size: 0.96em;
+            min-width: 150px;
+            color: #c8c8d8;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 5px;
+            border-radius: 5px;
+            background: rgba(34, 211, 238, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #22d3ee;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #22d3ee;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
+        }
+
+        .slider-value {
+            min-width: 60px;
+            text-align: right;
+            color: #22d3ee;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        canvas {
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            border-radius: 6px;
+            display: block;
+            margin: 20px 0;
+            background: rgba(34, 211, 238, 0.03);
+        }
+
+        .email-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(34, 211, 238, 0.08);
+            border: 1px solid rgba(34, 211, 238, 0.3);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: Georgia, serif;
+            font-size: 0.96em;
+            margin: 10px 0;
+        }
+
+        .email-input::placeholder {
+            color: #606078;
+        }
+
+        .result-box {
+            background: rgba(34, 211, 238, 0.06);
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            border-radius: 6px;
+            padding: 16px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.92em;
+            line-height: 1.6;
+        }
+
+        .result-line {
+            margin: 6px 0;
+        }
+
+        .word-freq-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 0.92em;
+        }
+
+        .word-freq-table thead {
+            border-bottom: 2px solid rgba(34, 211, 238, 0.3);
+        }
+
+        .word-freq-table th {
+            padding: 10px;
+            text-align: left;
+            color: #22d3ee;
+            font-weight: bold;
+            font-family: Georgia, serif;
+        }
+
+        .word-freq-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(34, 211, 238, 0.1);
+        }
+
+        .word-freq-table tr:hover {
+            background: rgba(34, 211, 238, 0.05);
+        }
+
+        .spammy {
+            color: #ff6b6b;
+        }
+
+        .hammy {
+            color: #51cf66;
+        }
+
+        .neutral {
+            color: #a0a0b8;
+        }
+
+        .confusion-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .confusion-cell {
+            background: rgba(34, 211, 238, 0.08);
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            border-radius: 6px;
+            padding: 14px;
+            text-align: center;
+        }
+
+        .confusion-label {
+            color: #22d3ee;
+            font-weight: bold;
+            font-size: 0.92em;
+            margin-bottom: 8px;
+        }
+
+        .confusion-value {
+            font-size: 1.4em;
+            color: #e0e0e0;
+            font-weight: bold;
+        }
+
+        .metric-row {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+
+        .metric-box {
+            flex: 1;
+            min-width: 150px;
+            background: rgba(34, 211, 238, 0.06);
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .metric-name {
+            color: #a0a0b8;
+            font-size: 0.85em;
+            margin-bottom: 6px;
+        }
+
+        .metric-value {
+            color: #22d3ee;
+            font-size: 1.8em;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+
+        footer {
+            text-align: center;
+            padding: 28px 20px 18px;
+            color: #505068;
+            font-size: 0.72em;
+            line-height: 1.7;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            margin-top: 30px;
+        }
+
+        footer a {
+            color: #606078;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        footer a:hover {
+            color: #22d3ee;
+        }
+
+        .difficulty {
+            display: inline-block;
+            background: rgba(34, 211, 238, 0.1);
+            border: 1px solid rgba(34, 211, 238, 0.3);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #22d3ee;
+            margin-bottom: 15px;
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/spam_filters.html">
+  </head>
+<body>
+    <div class="container">
+        <a class="back" href="index.html">&larr; Back to Index</a>
+    <nav class="breadcrumb" style="font-size:0.82em;color:#707088;margin:6px 0 18px">
+    <a href="index.html" style="color:#707088;text-decoration:none">Home</a>
+    <span style="margin:0 6px">&rsaquo;</span>
+    <span style="color:#b0b0c0">Spam Filters and Naive Bayes</span>
+</nav><div class="difficulty">Difficulty 3 (Advanced)</div>
+
+        <h1>Spam Filters and Naive Bayes</h1>
+        <p class="subtitle">How a 250-year-old theorem keeps your inbox clean &mdash; and why innocent words can make emails look guilty</p>
+
+        <div class="narrative">
+            Your inbox receives approximately 120 emails per day. Of these, 85% are spam. Yet you barely notice because a clever mathematical filter intercepts most of them before you ever see them. The secret? A theorem published in 1763 by Thomas Bayes. Bayesian classification treats spam filtering as a probability problem: given the words in an email, what is the probability that it is spam? The answer turns out to be remarkably powerful, and surprisingly simple.
+        </div>
+
+        <!-- Section 1: Bayes' Theorem -->
+        <h2>Section 1: Bayes' Theorem — A Quick Refresher</h2>
+
+        <p>At the heart of modern spam filtering lies a single equation. Bayes' theorem inverts conditional probabilities: instead of asking "What is the probability of seeing these words, given that an email is spam?", we ask "What is the probability that an email is spam, given that we see these words?"</p>
+
+        <div class="formula-block">
+P(A|B) = P(B|A) × P(A) / P(B)
+
+where:
+  A = the email is spam
+  B = we observe these words
+  P(A|B) = posterior probability (what we want)
+  P(B|A) = likelihood
+  P(A) = prior probability
+  P(B) = evidence (normaliser)
+        </div>
+
+        <p>Let us explore this with an interactive example. Imagine a medical test for a rare disease: 1% of the population has it, and the test is 99% accurate (correctly identifies 99% of sick people and 99% of healthy people). If you test positive, what is the probability you actually have the disease?</p>
+
+        <div class="panel">
+            <h3>Interactive: The Medical Test Paradox</h3>
+
+            <div class="slider-row">
+                <label>Disease prevalence:</label>
+                <input type="range" id="prevalence" min="0.1" max="10" step="0.1" value="1">
+                <span class="slider-value" id="prevalenceValue">1%</span>
+            </div>
+
+            <div class="slider-row">
+                <label>Test sensitivity (true positive rate):</label>
+                <input type="range" id="sensitivity" min="50" max="99.9" step="0.1" value="99">
+                <span class="slider-value" id="sensitivityValue">99%</span>
+            </div>
+
+            <div class="slider-row">
+                <label>Test specificity (true negative rate):</label>
+                <input type="range" id="specificity" min="50" max="99.9" step="0.1" value="99">
+                <span class="slider-value" id="specificityValue">99%</span>
+            </div>
+
+            <canvas id="bayesCanvas" width="920" height="350"></canvas>
+
+            <div class="result-box">
+                <div class="result-line"><span class="explain-name">Prior (prevalence):</span> <span id="priorResult">1%</span></div>
+                <div class="result-line"><span class="explain-name">Sensitivity:</span> <span id="sensitivityResult">99%</span></div>
+                <div class="result-line"><span class="explain-name">Specificity:</span> <span id="specificityResult">99%</span></div>
+                <div class="result-line"><span class="explain-name">Posterior (positive predictive value):</span> <span id="posteriorResult">50%</span></div>
+                <div class="result-line" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(34,211,238,0.2);">
+                    <span class="explain-name">Insight:</span> Even a 99% accurate test gives less than even odds when the condition is rare. This teaches us that base rate (prevalence) matters enormously.
+                </div>
+            </div>
+        </div>
+
+        <div class="insight-box">
+            <strong>Why this matters for spam:</strong> Most emails are not spam (base rate ~ 85% spam is high, but still). A classifier needs high specificity to avoid false positives, even if it seems very accurate.
+        </div>
+
+        <!-- Section 2: Bayes to Spam -->
+        <h2>Section 2: From Bayes to Spam — The Bag of Words</h2>
+
+        <p>A spam filter must answer a practical question: "Given this email's words, is it spam or legitimate (ham)?" We use Bayes' theorem, but adapt it for text:</p>
+
+        <div class="formula-block">
+P(spam | words) = P(words | spam) × P(spam) / P(words)
+
+The key insight: decompose the email into its words and compute:
+
+P(spam | w₁, w₂, …, wₙ) ∝ P(spam) × P(w₁|spam) × P(w₂|spam) × … × P(wₙ|spam)
+
+This product over all words is the foundation of Naive Bayes classification.
+        </div>
+
+        <h3>Training Phase: Learning Word Probabilities</h3>
+
+        <p>Before we can classify emails, we need training data. A filter learns by observing thousands of emails labelled as spam or legitimate. For each word, it computes:</p>
+
+        <div class="formula-block">
+P(word | spam) = count of word in spam emails / total words in spam
+P(word | ham) = count of word in legitimate emails / total words in legitimate emails
+        </div>
+
+        <p>Words like "buy", "free", "winner" appear frequently in spam. Words like "meeting", "report", "project" appear more often in legitimate mail.</p>
+
+        <div class="panel">
+            <h3>Interactive: Word Frequencies in Spam vs Ham</h3>
+
+            <p style="margin-bottom: 20px;">Below is a small training set of emails. Colour-coded words show which are more "spammy" (red) versus "hammy" (green).</p>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <h4 style="color: #ff6b6b; margin-bottom: 12px;">Spam Emails</h4>
+                    <div id="spamExamples" style="border: 1px solid rgba(255,107,107,0.3); border-radius: 6px; padding: 12px; background: rgba(255,107,107,0.04); font-size: 0.9em; line-height: 1.6;"></div>
+                </div>
+                <div>
+                    <h4 style="color: #51cf66; margin-bottom: 12px;">Legitimate Emails</h4>
+                    <div id="hamExamples" style="border: 1px solid rgba(81,207,102,0.3); border-radius: 6px; padding: 12px; background: rgba(81,207,102,0.04); font-size: 0.9em; line-height: 1.6;"></div>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 25px; margin-bottom: 12px;">Word Frequency Comparison</h4>
+
+            <table class="word-freq-table">
+                <thead>
+                    <tr>
+                        <th>Word</th>
+                        <th>P(word | spam)</th>
+                        <th>P(word | ham)</th>
+                        <th>Spam?</th>
+                    </tr>
+                </thead>
+                <tbody id="wordFreqTable">
+                </tbody>
+            </table>
+
+            <canvas id="wordFreqCanvas" width="920" height="300"></canvas>
+        </div>
+
+        <div class="insight-box">
+            Words like "claim", "prize", "urgent" skew heavily toward spam. Words like "meeting", "attached", "team" appear mostly in legitimate email. A filter looks for these patterns.
+        </div>
+
+        <!-- Section 3: The Naive Assumption -->
+        <h2>Section 3: The Naive Assumption</h2>
+
+        <p>The Naive Bayes classifier earns its name from a bold, almost certainly false assumption: <strong>given the class (spam or ham), all words are independent.</strong></p>
+
+        <p>In reality, words are correlated. If an email contains "buy", it is more likely to also contain "now". If it contains "meeting", it is more likely to contain "tomorrow". Yet Naive Bayes ignores these dependencies and treats each word's probability in isolation:</p>
+
+        <div class="formula-block">
+P(spam | w₁, …, wₙ) ∝ P(spam) × Π P(wᵢ | spam)
+
+The ∏ symbol (product) means we multiply all word probabilities together.
+        </div>
+
+        <h3>Why This Naive Assumption Works</h3>
+
+        <p>Despite its naivity, Naive Bayes works remarkably well in practice for two reasons:</p>
+
+        <ol style="margin-left: 20px; margin-top: 12px;">
+            <li style="margin: 10px 0;"><strong>Calibration:</strong> We do not need exact probabilities, only relative ordering. Even if assumptions are violated, the ordering of spam vs ham often remains correct.</li>
+            <li style="margin: 10px 0;"><strong>Computational simplicity:</strong> Independence assumptions allow us to factorise the joint distribution, making the classifier fast and scalable.</li>
+        </ol>
+
+        <div class="panel">
+            <h3>Interactive: Classify an Email</h3>
+
+            <p style="margin-bottom: 15px;">Type an email subject line. The classifier breaks it into words, looks up each word's spam/ham probability, and computes a final spam score.</p>
+
+            <textarea class="email-input" id="emailInput" placeholder="e.g., 'Claim your prize now!' or 'Meeting notes attached'"></textarea>
+
+            <div class="btn-row">
+                <button class="btn" id="classifyBtn">Classify Email</button>
+            </div>
+
+            <div id="classificationResult" style="display: none;">
+                <div class="result-box">
+                    <div class="result-line"><strong>Email:</strong> <em id="classifiedEmail"></em></div>
+                    <div class="result-line"><strong>Words found:</strong> <span id="wordsFound"></span></div>
+                    <hr style="border: none; border-top: 1px solid rgba(34,211,238,0.2); margin: 10px 0;">
+                    <div id="wordCalculations"></div>
+                    <hr style="border: none; border-top: 1px solid rgba(34,211,238,0.2); margin: 10px 0;">
+                    <div class="result-line" style="margin-top: 10px;">
+                        <strong>Log-probability (sum log P):</strong> <span id="logProb" style="font-family: 'Courier New', monospace;"></span>
+                    </div>
+                    <div class="result-line">
+                        <strong>Spam probability:</strong> <span id="spamProb" style="font-family: 'Courier New', monospace; color: #ff6b6b;"></span>
+                    </div>
+                    <div class="result-line">
+                        <strong>Classification:</strong> <span id="classification" style="font-weight: bold;"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Laplace Smoothing -->
+        <h2>Section 4: Laplace Smoothing — Handling Unknown Words</h2>
+
+        <p>Here lies a subtle trap: what if a word never appeared in the training data? Its probability is zero, which means P(word | spam) = 0. When we multiply probabilities, a single zero kills the entire product, and the email becomes unclassifiable.</p>
+
+        <div class="formula-block">
+Without smoothing:
+  P(word | spam) = count / total_words
+  Problem: if count = 0, then probability = 0 ✗
+
+With add-one smoothing (Laplace):
+  P(word | spam) = (count + 1) / (total_words + |vocabulary|)
+  Result: rare and unseen words get small but non-zero probability ✓
+        </div>
+
+        <p>This simple adjustment is called <strong>Laplace smoothing</strong> or <strong>add-one smoothing</strong>. It ensures that no word, no matter how rare or unseen, receives zero probability.</p>
+
+        <div class="panel">
+            <h3>Interactive: Smoothing Effect on Unknown Words</h3>
+
+            <p style="margin-bottom: 15px;">Type a word not in our training vocabulary. Watch how smoothing changes its computed probability.</p>
+
+            <div class="slider-row">
+                <label>Vocabulary size:</label>
+                <input type="range" id="vocabSize" min="100" max="5000" step="100" value="1500">
+                <span class="slider-value" id="vocabValue">1500</span>
+            </div>
+
+            <div class="slider-row">
+                <label>Total spam words seen:</label>
+                <input type="range" id="totalSpamWords" min="10000" max="500000" step="10000" value="50000">
+                <span class="slider-value" id="totalSpamValue">50,000</span>
+            </div>
+
+            <input type="text" class="email-input" id="unknownWord" placeholder="Type an unseen word (e.g., 'xyzphrase')">
+
+            <div class="btn-row">
+                <button class="btn" id="smoothingBtn">Calculate Probability</button>
+            </div>
+
+            <div id="smoothingResult" style="display: none;">
+                <div class="result-box">
+                    <div class="result-line"><strong>Word:</strong> <span id="smoothWord" style="font-family: 'Courier New', monospace;"></span></div>
+                    <div class="result-line" style="margin-top: 10px;">
+                        <strong>Without smoothing:</strong> P(word | spam) = 0 / 50,000 = <span style="color: #ff6b6b;">0.0000 ✗ (kills classification)</span>
+                    </div>
+                    <div class="result-line" style="margin-top: 10px;">
+                        <strong>With Laplace smoothing:</strong> P(word | spam) = (0 + 1) / (50,000 + <span id="vocabDisplay">1500</span>) = <span id="smoothProb" style="color: #51cf66; font-weight: bold;"></span> ✓
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="insight-box">
+            Laplace smoothing is a small adjustment that has a profound effect: it prevents the classifier from rejecting emails because they contain an unusual or unseen word.
+        </div>
+
+        <!-- Section 5: Evaluation -->
+        <h2>Section 5: Evaluating the Filter — Precision, Recall, and ROC Curves</h2>
+
+        <p>A spam filter must make a hard decision: is this email spam or ham? But underneath, the classifier computes a probability. We can tune where we draw the line (the threshold). This trade-off is crucial, because false positives and false negatives have different costs.</p>
+
+        <h3>Confusion Matrix</h3>
+
+        <p>When we apply a classifier to a test set, we get four outcomes:</p>
+
+        <div class="formula-block">
+True Positives (TP):     Spam email correctly classified as spam
+False Positives (FP):    Legitimate email wrongly classified as spam ← BAD!
+True Negatives (TN):     Legitimate email correctly classified as ham
+False Negatives (FN):    Spam email wrongly classified as ham ← MISSED!
+        </div>
+
+        <p>A false positive (marking a real email as spam) is often worse than a false negative (missing spam). Users notice when their email disappears; they rarely notice spam that slips through.</p>
+
+        <h3>Key Metrics</h3>
+
+        <div class="formula-block">
+Precision = TP / (TP + FP)
+  "Of the emails I flagged as spam, how many actually are?"
+
+Recall = TP / (TP + FN)
+  "Of all the spam emails, how many did I catch?"
+
+F₁ Score = 2 × (Precision × Recall) / (Precision + Recall)
+  Harmonic mean of precision and recall.
+        </div>
+
+        <div class="panel">
+            <h3>Interactive: ROC Curve and Threshold Trade-off</h3>
+
+            <p style="margin-bottom: 15px;">Adjust the classification threshold. As it changes, the confusion matrix and metrics update. Watch the trade-off between false positives and false negatives.</p>
+
+            <div class="slider-row">
+                <label>Classification threshold:</label>
+                <input type="range" id="threshold" min="0" max="100" step="1" value="50">
+                <span class="slider-value" id="thresholdValue">0.50</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+                <canvas id="rocCanvas" width="450" height="400"></canvas>
+                <div>
+                    <h4 style="margin-bottom: 15px;">Confusion Matrix</h4>
+                    <div class="confusion-grid">
+                        <div class="confusion-cell">
+                            <div class="confusion-label">True Positives</div>
+                            <div class="confusion-value" id="tp">120</div>
+                        </div>
+                        <div class="confusion-cell">
+                            <div class="confusion-label">False Positives</div>
+                            <div class="confusion-value" id="fp" style="color: #ff6b6b;">8</div>
+                        </div>
+                        <div class="confusion-cell">
+                            <div class="confusion-label">True Negatives</div>
+                            <div class="confusion-value" id="tn">250</div>
+                        </div>
+                        <div class="confusion-cell">
+                            <div class="confusion-label">False Negatives</div>
+                            <div class="confusion-value" id="fn" style="color: #ff6b6b;">22</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 20px; margin-bottom: 15px;">Performance Metrics</h4>
+                    <div class="metric-row">
+                        <div class="metric-box">
+                            <div class="metric-name">Precision</div>
+                            <div class="metric-value" id="precision">0.938</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-name">Recall</div>
+                            <div class="metric-value" id="recall">0.845</div>
+                        </div>
+                    </div>
+                    <div class="metric-row">
+                        <div class="metric-box" style="flex: 0 0 100%;">
+                            <div class="metric-name">F₁ Score</div>
+                            <div class="metric-value" id="f1">0.888</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <canvas id="rocCurveCanvas" width="920" height="350"></canvas>
+        </div>
+
+        <div class="insight-box">
+            <strong>The Cost Asymmetry:</strong> A low threshold catches more spam (high recall) but sends legitimate emails to spam (high false positives). A high threshold protects legitimate email but lets spam through. Most services choose a threshold that keeps false positives very low, accepting some missed spam.
+        </div>
+
+        <!-- Closing -->
+        <h2>Wrapping Up: Why Naive Bayes Still Dominates</h2>
+
+        <p>Despite its age (the theorem is from 1763) and its naive independence assumption, Bayesian spam filtering remains state-of-the-art in many contexts. Why?</p>
+
+        <ol style="margin-left: 20px; margin-top: 12px;">
+            <li style="margin: 10px 0;"><strong>Interpretability:</strong> You can see which words contribute to a spam score. This transparency is invaluable for debugging and trust.</li>
+            <li style="margin: 10px 0;"><strong>Speed:</strong> Bayesian filters are extremely fast. They scale to millions of emails with minimal computational overhead.</li>
+            <li style="margin: 10px 0;"><strong>Robustness:</strong> The model does not overfit. Even though the independence assumption is violated, the classifier generalises well.</li>
+            <li style="margin: 10px 0;"><strong>Adaptability:</strong> You can easily update probabilities as new spam patterns emerge. No need to retrain a complex neural network.</li>
+        </ol>
+
+        <p>Modern spam filters often combine Naive Bayes with other techniques (machine learning, reputation systems, content analysis), but the Bayesian foundation remains essential. Every time you clear a spam message from your inbox—or thankfully, never see it at all—you are witnessing probability theory at work.</p>
+
+        <div class="insight-box">
+            <strong>Historical note:</strong> Thomas Bayes was a Presbyterian minister who published his theorem posthumously in 1763. He never would have imagined it would one day protect billions of people from unwanted email. Mathematics is full of such surprises.
+        </div>
+    </div>
+
+    <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="terms.html" style="color:#606078;text-decoration:none">Terms of Use</a>
+        &nbsp;&middot;&nbsp;
+        <a href="intellectual-property.html" style="color:#606078;text-decoration:none">Intellectual Property</a>
+        &nbsp;&middot;&nbsp;
+        <a href="privacy.html" style="color:#606078;text-decoration:none">Privacy Policy</a>
+    </div>
+</footer>
+
+    <script>
+        // ============================================================
+        // SECTION 1: Bayes' Theorem Medical Test Visualisation
+        // ============================================================
+
+        const prevalenceSlider = document.getElementById('prevalence');
+        const sensitivitySlider = document.getElementById('sensitivity');
+        const specificitySlider = document.getElementById('specificity');
+        const bayesCanvas = document.getElementById('bayesCanvas');
+        const bayesCtx = bayesCanvas.getContext('2d');
+
+        function updateBayesViz() {
+            const prevalence = parseFloat(prevalenceSlider.value) / 100;
+            const sensitivity = parseFloat(sensitivitySlider.value) / 100;
+            const specificity = parseFloat(specificitySlider.value) / 100;
+
+            // Update display values
+            document.getElementById('prevalenceValue').textContent = prevalenceSlider.value + '%';
+            document.getElementById('sensitivityValue').textContent = sensitivitySlider.value + '%';
+            document.getElementById('specificityValue').textContent = specificitySlider.value + '%';
+
+            document.getElementById('priorResult').textContent = (prevalence * 100).toFixed(1) + '%';
+            document.getElementById('sensitivityResult').textContent = (sensitivity * 100).toFixed(1) + '%';
+            document.getElementById('specificityResult').textContent = (specificity * 100).toFixed(1) + '%';
+
+            // Bayes' theorem calculation
+            const tp = prevalence * sensitivity;
+            const fp = (1 - prevalence) * (1 - specificity);
+            const posterior = tp / (tp + fp);
+
+            document.getElementById('posteriorResult').textContent = (posterior * 100).toFixed(1) + '%';
+
+            // Visualise as area chart
+            bayesCtx.fillStyle = '#0a0a1a';
+            bayesCtx.fillRect(0, 0, bayesCanvas.width, bayesCanvas.height);
+
+            const margin = 40;
+            const width = bayesCanvas.width - 2 * margin;
+            const height = bayesCanvas.height - 2 * margin;
+
+            // Draw axes
+            bayesCtx.strokeStyle = 'rgba(34, 211, 238, 0.3)';
+            bayesCtx.lineWidth = 1;
+            bayesCtx.beginPath();
+            bayesCtx.moveTo(margin, margin);
+            bayesCtx.lineTo(margin, margin + height);
+            bayesCtx.lineTo(margin + width, margin + height);
+            bayesCtx.stroke();
+
+            // Draw grid and labels
+            bayesCtx.fillStyle = '#606078';
+            bayesCtx.font = '12px Georgia, serif';
+            bayesCtx.textAlign = 'center';
+            bayesCtx.fillText('10,000 population', bayesCanvas.width / 2, bayesCanvas.height - 10);
+
+            bayesCtx.save();
+            bayesCtx.translate(15, bayesCanvas.height / 2);
+            bayesCtx.rotate(-Math.PI / 2);
+            bayesCtx.textAlign = 'center';
+            bayesCtx.fillText('People', 0, 0);
+            bayesCtx.restore();
+
+            // Draw population breakdown as stacked rectangles
+            const totalPop = 10000;
+            const diseased = Math.floor(totalPop * prevalence);
+            const healthy = totalPop - diseased;
+
+            const diseaseWidth = (width * prevalence);
+            const healthyWidth = width - diseaseWidth;
+
+            // Diseased with positive test (TP)
+            const tpCount = Math.floor(diseased * sensitivity);
+            const fnCount = diseased - tpCount;
+
+            // Healthy with positive test (FP)
+            const fpCount = Math.floor(healthy * (1 - specificity));
+            const tnCount = healthy - fpCount;
+
+            const tpHeight = (height * tpCount) / totalPop;
+            const fnHeight = (height * fnCount) / totalPop;
+            const fpHeight = (height * fpCount) / totalPop;
+            const tnHeight = (height * tnCount) / totalPop;
+
+            // True Positives (diseased + positive) - bright cyan
+            bayesCtx.fillStyle = '#22d3ee';
+            bayesCtx.fillRect(margin, margin + height - tpHeight, diseaseWidth, tpHeight);
+
+            // False Negatives (diseased + negative) - darker cyan
+            bayesCtx.fillStyle = 'rgba(34, 211, 238, 0.3)';
+            bayesCtx.fillRect(margin, margin + height - tpHeight - fnHeight, diseaseWidth, fnHeight);
+
+            // False Positives (healthy + positive) - red
+            bayesCtx.fillStyle = 'rgba(255, 107, 107, 0.7)';
+            bayesCtx.fillRect(margin + diseaseWidth, margin + height - fpHeight, healthyWidth, fpHeight);
+
+            // True Negatives (healthy + negative) - grey
+            bayesCtx.fillStyle = 'rgba(80, 80, 120, 0.3)';
+            bayesCtx.fillRect(margin + diseaseWidth, margin + height - fpHeight - tnHeight, healthyWidth, tnHeight);
+
+            // Labels
+            bayesCtx.fillStyle = '#22d3ee';
+            bayesCtx.font = 'bold 13px Georgia, serif';
+            bayesCtx.textAlign = 'left';
+
+            const labelY = margin + 20;
+            bayesCtx.fillText('Test Result Breakdown:', margin, labelY);
+
+            bayesCtx.font = '12px Georgia, serif';
+            bayesCtx.fillStyle = '#22d3ee';
+            bayesCtx.fillText('TP (diseased + positive): ' + tpCount, margin, labelY + 25);
+
+            bayesCtx.fillStyle = 'rgba(255, 107, 107, 0.8)';
+            bayesCtx.fillText('FP (healthy + positive): ' + fpCount, margin, labelY + 45);
+
+            bayesCtx.fillStyle = '#606078';
+            bayesCtx.fillText('Total positive tests: ' + (tpCount + fpCount), margin, labelY + 65);
+
+            // Highlight the posterior probability
+            bayesCtx.fillStyle = '#22d3ee';
+            bayesCtx.font = 'bold 14px Georgia, serif';
+            const posteriorPercent = (posterior * 100).toFixed(1);
+            bayesCtx.fillText('P(disease | positive test) = ' + posteriorPercent + '%', margin, labelY + 90);
+
+            bayesCtx.fillStyle = '#a0a0b8';
+            bayesCtx.font = '11px Georgia, serif';
+            bayesCtx.fillText('Only ' + posteriorPercent + '% of positive tests are truly positive!', margin, labelY + 110);
+        }
+
+        prevalenceSlider.addEventListener('input', updateBayesViz);
+        sensitivitySlider.addEventListener('input', updateBayesViz);
+        specificitySlider.addEventListener('input', updateBayesViz);
+        updateBayesViz();
+
+        // ============================================================
+        // SECTION 2: Training Data and Word Frequencies
+        // ============================================================
+
+        const trainingSpam = [
+            "Free money click now",
+            "Claim your prize today",
+            "Buy cheap products online",
+            "Urgent action required immediately",
+            "Winner congratulations act now",
+            "Limited offer expires soon",
+            "Amazing deal just for you"
+        ];
+
+        const trainingHam = [
+            "Team meeting tomorrow at three",
+            "Please review the attached report",
+            "Dinner plans next weekend",
+            "Project deadline next Friday",
+            "Thank you for the update",
+            "Weekly progress report attached",
+            "Conference next month scheduled"
+        ];
+
+        // Word frequency tables
+        const wordFreqs = {};
+        const spamWords = {};
+        const hamWords = {};
+
+        function buildWordFrequencies() {
+            // Count word frequencies
+            trainingSpam.forEach(email => {
+                const words = email.toLowerCase().split(/\s+/);
+                words.forEach(word => {
+                    spamWords[word] = (spamWords[word] || 0) + 1;
+                    wordFreqs[word] = wordFreqs[word] || { spam: 0, ham: 0 };
+                    wordFreqs[word].spam += 1;
+                });
+            });
+
+            trainingHam.forEach(email => {
+                const words = email.toLowerCase().split(/\s+/);
+                words.forEach(word => {
+                    hamWords[word] = (hamWords[word] || 0) + 1;
+                    wordFreqs[word] = wordFreqs[word] || { spam: 0, ham: 0 };
+                    wordFreqs[word].ham += 1;
+                });
+            });
+        }
+
+        buildWordFrequencies();
+
+        // Display training examples
+        function displayTrainingData() {
+            const spamDiv = document.getElementById('spamExamples');
+            const hamDiv = document.getElementById('hamExamples');
+
+            spamDiv.innerHTML = trainingSpam.map(email => {
+                const words = email.toLowerCase().split(/\s+/);
+                const coloured = words.map(word => {
+                    const freq = wordFreqs[word];
+                    if (!freq) return word;
+
+                    const spamRatio = freq.spam / (freq.spam + freq.ham);
+                    if (spamRatio > 0.66) return '<span class="spammy">' + word + '</span>';
+                    if (spamRatio < 0.33) return '<span class="hammy">' + word + '</span>';
+                    return '<span class="neutral">' + word + '</span>';
+                }).join(' ');
+                return '<div style="margin: 8px 0;">' + coloured + '</div>';
+            }).join('');
+
+            hamDiv.innerHTML = trainingHam.map(email => {
+                const words = email.toLowerCase().split(/\s+/);
+                const coloured = words.map(word => {
+                    const freq = wordFreqs[word];
+                    if (!freq) return word;
+
+                    const spamRatio = freq.spam / (freq.spam + freq.ham);
+                    if (spamRatio > 0.66) return '<span class="spammy">' + word + '</span>';
+                    if (spamRatio < 0.33) return '<span class="hammy">' + word + '</span>';
+                    return '<span class="neutral">' + word + '</span>';
+                }).join(' ');
+                return '<div style="margin: 8px 0;">' + coloured + '</div>';
+            }).join('');
+        }
+
+        displayTrainingData();
+
+        // Display word frequency table
+        function displayWordFreqTable() {
+            const tbody = document.getElementById('wordFreqTable');
+
+            // Sort words by spamminess
+            const sortedWords = Object.keys(wordFreqs).sort((a, b) => {
+                const freqA = wordFreqs[a];
+                const freqB = wordFreqs[b];
+                const ratioA = freqA.spam / (freqA.spam + freqA.ham);
+                const ratioB = freqB.spam / (freqB.spam + freqB.ham);
+                return ratioB - ratioA;
+            });
+
+            tbody.innerHTML = sortedWords.map(word => {
+                const freq = wordFreqs[word];
+                const totalSpam = Object.values(wordFreqs).reduce((s, f) => s + f.spam, 0);
+                const totalHam = Object.values(wordFreqs).reduce((s, f) => s + f.ham, 0);
+
+                const pSpam = freq.spam / totalSpam;
+                const pHam = freq.ham / totalHam;
+
+                const spamRatio = freq.spam / (freq.spam + freq.ham);
+                let classification = 'Neutral';
+                let classification_class = 'neutral';
+                if (spamRatio > 0.66) {
+                    classification = 'Spammy';
+                    classification_class = 'spammy';
+                }
+                if (spamRatio < 0.33) {
+                    classification = 'Hammy';
+                    classification_class = 'hammy';
+                }
+
+                return `
+                    <tr>
+                        <td>${word}</td>
+                        <td>${pSpam.toFixed(4)}</td>
+                        <td>${pHam.toFixed(4)}</td>
+                        <td class="${classification_class}">${classification}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        displayWordFreqTable();
+
+        // Draw word frequency bar chart
+        function drawWordFreqChart() {
+            const canvas = document.getElementById('wordFreqCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const sortedWords = Object.keys(wordFreqs).sort((a, b) => {
+                const freqA = wordFreqs[a];
+                const freqB = wordFreqs[b];
+                const ratioA = freqA.spam / (freqA.spam + freqA.ham);
+                const ratioB = freqB.spam / (freqB.spam + freqB.ham);
+                return ratioB - ratioA;
+            }).slice(0, 10);
+
+            const margin = 40;
+            const barWidth = (canvas.width - 2 * margin) / sortedWords.length;
+            const maxHeight = canvas.height - 2 * margin;
+
+            // Draw axes
+            ctx.strokeStyle = 'rgba(34, 211, 238, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(margin, canvas.height - margin);
+            ctx.lineTo(canvas.width - margin, canvas.height - margin);
+            ctx.stroke();
+
+            // Draw bars
+            sortedWords.forEach((word, i) => {
+                const freq = wordFreqs[word];
+                const totalSpam = Object.values(wordFreqs).reduce((s, f) => s + f.spam, 0);
+                const totalHam = Object.values(wordFreqs).reduce((s, f) => s + f.ham, 0);
+
+                const pSpam = freq.spam / totalSpam;
+                const pHam = freq.ham / totalHam;
+
+                const x = margin + i * barWidth + barWidth / 4;
+                const spamHeight = (pSpam / Math.max(pSpam, pHam)) * (maxHeight * 0.4);
+                const hamHeight = (pHam / Math.max(pSpam, pHam)) * (maxHeight * 0.4);
+
+                // Spam bar (red)
+                ctx.fillStyle = '#ff6b6b';
+                ctx.fillRect(x, canvas.height - margin - spamHeight, barWidth / 2 - 2, spamHeight);
+
+                // Ham bar (green)
+                ctx.fillStyle = '#51cf66';
+                ctx.fillRect(x + barWidth / 2, canvas.height - margin - hamHeight, barWidth / 2 - 2, hamHeight);
+
+                // Label
+                ctx.fillStyle = '#a0a0b8';
+                ctx.font = '11px Georgia, serif';
+                ctx.textAlign = 'center';
+                ctx.save();
+                ctx.translate(x + barWidth / 2, canvas.height - margin + 20);
+                ctx.rotate(Math.PI / 6);
+                ctx.fillText(word, 0, 0);
+                ctx.restore();
+            });
+
+            // Legend
+            ctx.fillStyle = '#ff6b6b';
+            ctx.fillRect(canvas.width - 200, margin, 12, 12);
+            ctx.fillStyle = '#a0a0b8';
+            ctx.font = '12px Georgia, serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('P(word | spam)', canvas.width - 180, margin + 11);
+
+            ctx.fillStyle = '#51cf66';
+            ctx.fillRect(canvas.width - 200, margin + 25, 12, 12);
+            ctx.fillText('P(word | ham)', canvas.width - 180, margin + 36);
+        }
+
+        drawWordFreqChart();
+
+        // ============================================================
+        // SECTION 3: Email Classification
+        // ============================================================
+
+        const emailInput = document.getElementById('emailInput');
+        const classifyBtn = document.getElementById('classifyBtn');
+        const classificationResult = document.getElementById('classificationResult');
+
+        function computeWordProbabilities() {
+            const totalSpam = Object.values(wordFreqs).reduce((s, f) => s + f.spam, 0);
+            const totalHam = Object.values(wordFreqs).reduce((s, f) => s + f.ham, 0);
+
+            const probs = {};
+            Object.keys(wordFreqs).forEach(word => {
+                const freq = wordFreqs[word];
+                probs[word] = {
+                    spam: freq.spam / totalSpam,
+                    ham: freq.ham / totalHam
+                };
+            });
+
+            return probs;
+        }
+
+        const wordProbs = computeWordProbabilities();
+
+        // Prior probabilities
+        const priorSpam = trainingSpam.length / (trainingSpam.length + trainingHam.length);
+        const priorHam = 1 - priorSpam;
+
+        classifyBtn.addEventListener('click', function() {
+            const email = emailInput.value.toLowerCase();
+            if (!email.trim()) {
+                alert('Please enter an email subject line.');
+                return;
+            }
+
+            const words = email.split(/\s+/).filter(w => w.length > 0);
+
+            let logProbSpam = Math.log(priorSpam);
+            let logProbHam = Math.log(priorHam);
+
+            let wordCalcs = '';
+            let foundWords = [];
+
+            words.forEach(word => {
+                if (wordProbs[word]) {
+                    foundWords.push(word);
+                    const lpSpam = Math.log(wordProbs[word].spam);
+                    const lpHam = Math.log(wordProbs[word].ham);
+                    logProbSpam += lpSpam;
+                    logProbHam += lpHam;
+
+                    wordCalcs += `<div class="result-line">Word "<span style="color: #22d3ee;">${word}</span>": log P(spam)=${lpSpam.toFixed(4)}, log P(ham)=${lpHam.toFixed(4)}</div>`;
+                }
+            });
+
+            if (foundWords.length === 0) {
+                foundWords = ['(no words found in vocabulary)'];
+                wordCalcs = '<div class="result-line" style="color: #ff6b6b;">No training words recognised. Using prior probabilities only.</div>';
+            }
+
+            const spamProb = Math.exp(logProbSpam) / (Math.exp(logProbSpam) + Math.exp(logProbHam));
+
+            document.getElementById('classifiedEmail').textContent = email;
+            document.getElementById('wordsFound').textContent = foundWords.join(', ');
+            document.getElementById('wordCalculations').innerHTML = wordCalcs;
+            document.getElementById('logProb').textContent = logProbSpam.toFixed(4) + ' (spam) vs ' + logProbHam.toFixed(4) + ' (ham)';
+            document.getElementById('spamProb').textContent = (spamProb * 100).toFixed(2) + '%';
+
+            const classification = spamProb > 0.5 ? 'SPAM' : 'HAM (Legitimate)';
+            const classColor = spamProb > 0.5 ? '#ff6b6b' : '#51cf66';
+            document.getElementById('classification').innerHTML = '<span style="color: ' + classColor + ';">' + classification + '</span>';
+
+            classificationResult.style.display = 'block';
+            classificationResult.scrollIntoView({ behaviour: 'smooth' });
+        });
+
+        // ============================================================
+        // SECTION 4: Laplace Smoothing
+        // ============================================================
+
+        const vocabSlider = document.getElementById('vocabSize');
+        const totalSpamSlider = document.getElementById('totalSpamWords');
+        const unknownWordInput = document.getElementById('unknownWord');
+        const smoothingBtn = document.getElementById('smoothingBtn');
+        const smoothingResult = document.getElementById('smoothingResult');
+
+        vocabSlider.addEventListener('input', function() {
+            document.getElementById('vocabValue').textContent = this.value;
+        });
+
+        totalSpamSlider.addEventListener('input', function() {
+            document.getElementById('totalSpamValue').textContent = parseInt(this.value).toLocaleString();
+        });
+
+        smoothingBtn.addEventListener('click', function() {
+            const word = unknownWordInput.value.trim().toLowerCase();
+            if (!word) {
+                alert('Please enter a word.');
+                return;
+            }
+
+            const vocabSize = parseInt(vocabSlider.value);
+            const totalWords = parseInt(totalSpamSlider.value);
+
+            const withoutSmoothing = 0 / totalWords;
+            const withSmoothing = 1 / (totalWords + vocabSize);
+
+            document.getElementById('smoothWord').textContent = word;
+            document.getElementById('vocabDisplay').textContent = vocabSize;
+            document.getElementById('smoothProb').textContent = '(0 + 1) / (' + totalWords.toLocaleString() + ' + ' + vocabSize + ') = ' + withSmoothing.toFixed(6);
+
+            smoothingResult.style.display = 'block';
+            smoothingResult.scrollIntoView({ behaviour: 'smooth' });
+        });
+
+        // ============================================================
+        // SECTION 5: ROC Curve and Evaluation Metrics
+        // ============================================================
+
+        const thresholdSlider = document.getElementById('threshold');
+        const rocCanvas = document.getElementById('rocCanvas');
+        const rocCurveCanvas = document.getElementById('rocCurveCanvas');
+
+        // Simulate test set predictions (scores between 0 and 1)
+        const testScores = [
+            // Actual spam scores (should be high)
+            0.95, 0.87, 0.92, 0.78, 0.85, 0.93, 0.81,
+            0.74, 0.88, 0.79, 0.90, 0.84, 0.89, 0.77,
+            0.86, 0.91, 0.82, 0.80, 0.94, 0.76,
+            // Actual ham scores (should be low)
+            0.15, 0.22, 0.18, 0.25, 0.20, 0.17, 0.28,
+            0.12, 0.24, 0.19, 0.14, 0.23, 0.21, 0.16,
+            0.26, 0.13, 0.29, 0.11, 0.27, 0.30
+        ];
+
+        const actualLabels = [
+            // First 20 are spam
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+            // Next 20 are ham
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ];
+
+        function computeMetrics(threshold) {
+            let tp = 0, fp = 0, tn = 0, fn = 0;
+
+            testScores.forEach((score, i) => {
+                const predicted = score >= threshold ? 1 : 0;
+                const actual = actualLabels[i];
+
+                if (predicted === 1 && actual === 1) tp++;
+                else if (predicted === 1 && actual === 0) fp++;
+                else if (predicted === 0 && actual === 0) tn++;
+                else if (predicted === 0 && actual === 1) fn++;
+            });
+
+            const precision = tp / (tp + fp) || 0;
+            const recall = tp / (tp + fn) || 0;
+            const f1 = 2 * (precision * recall) / (precision + recall) || 0;
+            const fpr = fp / (fp + tn) || 0;
+            const tpr = recall;
+
+            return { tp, fp, tn, fn, precision, recall, f1, fpr, tpr };
+        }
+
+        function drawROCPoint(threshold) {
+            const metrics = computeMetrics(threshold);
+
+            // Update confusion matrix
+            document.getElementById('tp').textContent = metrics.tp;
+            document.getElementById('fp').textContent = metrics.fp;
+            document.getElementById('tn').textContent = metrics.tn;
+            document.getElementById('fn').textContent = metrics.fn;
+
+            // Update metrics
+            document.getElementById('precision').textContent = metrics.precision.toFixed(3);
+            document.getElementById('recall').textContent = metrics.recall.toFixed(3);
+            document.getElementById('f1').textContent = metrics.f1.toFixed(3);
+
+            // Draw on ROC canvas
+            const rocCtx = rocCanvas.getContext('2d');
+            rocCtx.fillStyle = '#0a0a1a';
+            rocCtx.fillRect(0, 0, rocCanvas.width, rocCanvas.height);
+
+            const margin = 40;
+            const width = rocCanvas.width - 2 * margin;
+            const height = rocCanvas.height - 2 * margin;
+
+            // Draw axes
+            rocCtx.strokeStyle = 'rgba(34, 211, 238, 0.3)';
+            rocCtx.lineWidth = 1;
+            rocCtx.beginPath();
+            rocCtx.moveTo(margin, margin);
+            rocCtx.lineTo(margin, margin + height);
+            rocCtx.lineTo(margin + width, margin + height);
+            rocCtx.stroke();
+
+            // Diagonal line
+            rocCtx.strokeStyle = 'rgba(34, 211, 238, 0.2)';
+            rocCtx.beginPath();
+            rocCtx.moveTo(margin, margin + height);
+            rocCtx.lineTo(margin + width, margin);
+            rocCtx.stroke();
+
+            // Draw confusion matrix as 2x2 grid
+            const cellWidth = width / 2;
+            const cellHeight = height / 2;
+
+            // TN (top-left)
+            rocCtx.fillStyle = 'rgba(80, 100, 150, 0.4)';
+            rocCtx.fillRect(margin, margin, cellWidth, cellHeight);
+            rocCtx.fillStyle = '#a0a0b8';
+            rocCtx.font = '13px Georgia, serif';
+            rocCtx.textAlign = 'center';
+            rocCtx.fillText('TN: ' + metrics.tn, margin + cellWidth / 2, margin + cellHeight / 2);
+
+            // FP (top-right)
+            rocCtx.fillStyle = 'rgba(255, 107, 107, 0.4)';
+            rocCtx.fillRect(margin + cellWidth, margin, cellWidth, cellHeight);
+            rocCtx.fillStyle = '#ff6b6b';
+            rocCtx.fillText('FP: ' + metrics.fp, margin + cellWidth + cellWidth / 2, margin + cellHeight / 2);
+
+            // FN (bottom-left)
+            rocCtx.fillStyle = 'rgba(255, 107, 107, 0.4)';
+            rocCtx.fillRect(margin, margin + cellHeight, cellWidth, cellHeight);
+            rocCtx.fillStyle = '#ff6b6b';
+            rocCtx.fillText('FN: ' + metrics.fn, margin + cellWidth / 2, margin + cellHeight + cellHeight / 2);
+
+            // TP (bottom-right)
+            rocCtx.fillStyle = 'rgba(34, 211, 238, 0.4)';
+            rocCtx.fillRect(margin + cellWidth, margin + cellHeight, cellWidth, cellHeight);
+            rocCtx.fillStyle = '#22d3ee';
+            rocCtx.fillText('TP: ' + metrics.tp, margin + cellWidth + cellWidth / 2, margin + cellHeight + cellHeight / 2);
+
+            // Labels
+            rocCtx.fillStyle = '#606078';
+            rocCtx.font = '11px Georgia, serif';
+            rocCtx.textAlign = 'left';
+            rocCtx.fillText('Predicted Negative', margin + 10, margin - 15);
+            rocCtx.fillText('Predicted Positive', margin + cellWidth + 10, margin - 15);
+
+            rocCtx.save();
+            rocCtx.translate(margin - 30, margin + cellHeight / 2);
+            rocCtx.rotate(-Math.PI / 2);
+            rocCtx.textAlign = 'center';
+            rocCtx.fillText('Actual', 0, 0);
+            rocCtx.restore();
+        }
+
+        function drawROCCurve() {
+            const rocCtx = rocCurveCanvas.getContext('2d');
+            rocCtx.fillStyle = '#0a0a1a';
+            rocCtx.fillRect(0, 0, rocCurveCanvas.width, rocCurveCanvas.height);
+
+            const margin = 50;
+            const width = rocCurveCanvas.width - 2 * margin;
+            const height = rocCurveCanvas.height - 2 * margin;
+
+            // Draw axes
+            rocCtx.strokeStyle = 'rgba(34, 211, 238, 0.3)';
+            rocCtx.lineWidth = 1;
+            rocCtx.beginPath();
+            rocCtx.moveTo(margin, margin);
+            rocCtx.lineTo(margin, margin + height);
+            rocCtx.lineTo(margin + width, margin + height);
+            rocCtx.stroke();
+
+            // Diagonal line (random classifier)
+            rocCtx.strokeStyle = 'rgba(34, 211, 238, 0.2)';
+            rocCtx.beginPath();
+            rocCtx.moveTo(margin, margin + height);
+            rocCtx.lineTo(margin + width, margin);
+            rocCtx.stroke();
+
+            // ROC curve
+            rocCtx.strokeStyle = '#22d3ee';
+            rocCtx.lineWidth = 3;
+            rocCtx.beginPath();
+
+            let first = true;
+            for (let t = 0; t <= 1; t += 0.01) {
+                const metrics = computeMetrics(t);
+                const x = margin + metrics.fpr * width;
+                const y = margin + height - metrics.tpr * height;
+
+                if (first) {
+                    rocCtx.moveTo(x, y);
+                    first = false;
+                } else {
+                    rocCtx.lineTo(x, y);
+                }
+            }
+            rocCtx.stroke();
+
+            // Highlight current threshold point
+            const currentThreshold = parseFloat(thresholdSlider.value) / 100;
+            const currentMetrics = computeMetrics(currentThreshold);
+            const currentX = margin + currentMetrics.fpr * width;
+            const currentY = margin + height - currentMetrics.tpr * height;
+
+            rocCtx.fillStyle = '#ff6b6b';
+            rocCtx.beginPath();
+            rocCtx.arc(currentX, currentY, 6, 0, 2 * Math.PI);
+            rocCtx.fill();
+
+            // Axes labels
+            rocCtx.fillStyle = '#606078';
+            rocCtx.font = '12px Georgia, serif';
+            rocCtx.textAlign = 'center';
+            rocCtx.fillText('False Positive Rate', rocCurveCanvas.width / 2, rocCurveCanvas.height - 15);
+
+            rocCtx.save();
+            rocCtx.translate(15, rocCurveCanvas.height / 2);
+            rocCtx.rotate(-Math.PI / 2);
+            rocCtx.fillText('True Positive Rate', 0, 0);
+            rocCtx.restore();
+
+            // Grid lines
+            rocCtx.strokeStyle = 'rgba(34, 211, 238, 0.1)';
+            rocCtx.lineWidth = 1;
+            for (let i = 0.2; i < 1; i += 0.2) {
+                rocCtx.beginPath();
+                rocCtx.moveTo(margin + i * width, margin);
+                rocCtx.lineTo(margin + i * width, margin + height);
+                rocCtx.stroke();
+
+                rocCtx.beginPath();
+                rocCtx.moveTo(margin, margin + height - i * height);
+                rocCtx.lineTo(margin + width, margin + height - i * height);
+                rocCtx.stroke();
+            }
+
+            rocCtx.fillStyle = '#a0a0b8';
+            rocCtx.font = '11px Georgia, serif';
+            rocCtx.textAlign = 'right';
+            rocCtx.fillText('0.2', margin - 10, margin + height + 5);
+            rocCtx.fillText('0.4', margin - 10, margin + height - 0.4 * height + 5);
+            rocCtx.fillText('0.6', margin - 10, margin + height - 0.6 * height + 5);
+            rocCtx.fillText('0.8', margin - 10, margin + height - 0.8 * height + 5);
+        }
+
+        thresholdSlider.addEventListener('input', function() {
+            const threshold = parseFloat(this.value) / 100;
+            document.getElementById('thresholdValue').textContent = threshold.toFixed(2);
+            drawROCPoint(threshold);
+            drawROCCurve();
+        });
+
+        // Initial draw
+        drawROCPoint(0.5);
+        drawROCCurve();
+    </script><script src="js/mathematician-cards.js" defer></script>
+</body>
+</html>

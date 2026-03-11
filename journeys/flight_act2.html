@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathematics of Flight: Act 2 — The Lift Equation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&family=Crimson+Pro:ital@1&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #07101a;
+            --bg2: #0c1528;
+            --bg3: #111a30;
+            --accent: #60a5fa;
+            --accent-dim: rgba(96,165,250,0.15);
+            --secondary: #34d399;
+            --green: #10b981;
+            --cyan: #22d3ee;
+            --gold: #fbbf24;
+            --text: #e2e2f0;
+            --muted: #7070a0;
+            --panel: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.07);
+            --radius: 18px;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Nunito', sans-serif;
+            font-weight: 400;
+            font-size: 16px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        header {
+            position: sticky;
+            top: 0;
+            background: linear-gradient(180deg, var(--bg) 0%, rgba(7,16,26,0.95) 100%);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .progress-dots {
+            display: flex;
+            gap: 8px;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .dot.active {
+            background: var(--accent);
+            width: 24px;
+            border-radius: 5px;
+        }
+        .dot:hover {
+            background: var(--accent-dim);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px 40px;
+        }
+        .screens-container {
+            position: relative;
+            min-height: 600px;
+        }
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            opacity: 0;
+            pointer-events: none;
+            animation: fadeUp 0.6s ease;
+        }
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            position: static;
+            animation: fadeUp 0.6s ease;
+        }
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .narrator {
+            border-left: 4px solid var(--accent);
+            padding: 20px;
+            background: var(--panel);
+            border-radius: 0 var(--radius) var(--radius) 0;
+            margin: 20px 0;
+            font-style: italic;
+            color: var(--text);
+        }
+        h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+        h2 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--secondary);
+        }
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--accent);
+        }
+        p {
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+        .math-block {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            color: var(--gold);
+            text-align: center;
+        }
+        canvas {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            margin: 20px 0;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            justify-content: center;
+        }
+        button {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: var(--bg);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: 'Nunito', sans-serif;
+        }
+        button:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(96, 165, 250, 0.3);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .slider-group {
+            margin: 20px 0;
+            background: var(--panel);
+            padding: 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            -webkit-appearance: none;
+            margin: 8px 0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+        }
+        .nav-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+        .nav-link:hover {
+            color: var(--secondary);
+        }
+        .back-link {
+            display: inline-block;
+            margin-bottom: 30px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+        .back-link:hover {
+            color: var(--accent);
+        }
+        footer {
+            text-align: center;
+            padding: 28px 20px 18px;
+            color: #505068;
+            font-size: 0.72em;
+            line-height: 1.7;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 30px;
+        }
+        footer a {
+            color: #606078;
+            text-decoration: none;
+        }
+        footer a:hover {
+            color: var(--accent);
+        }
+        .insight {
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin: 20px 0;
+            color: var(--accent);
+            font-size: 14px;
+        }
+        .content-block {
+            margin: 30px 0;
+        }
+        .stats-display {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+        .stat-box {
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            font-size: 13px;
+        }
+        .stat-label {
+            color: var(--muted);
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            color: var(--secondary);
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .reynolds-display {
+            background: var(--accent-dim);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .reynolds-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/journeys/flight_act2.html">
+  <meta name="description" content="Learn about Flight Act2 in Mathematics Education">
+  </head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="header-title">Mathematics of Flight</div>
+            <div class="progress-dots">
+                <div class="dot" onclick="goToAct(1)"></div>
+                <div class="dot active" onclick="goToAct(2)"></div>
+                <div class="dot" onclick="goToAct(3)"></div>
+                <div class="dot" onclick="goToAct(4)"></div>
+                <div class="dot" onclick="goToAct(5)"></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <a href="../index.html" class="back-link">← Back to Journeys</a>
+
+        <div class="screens-container">
+            <!-- Screen 1: Four Variables -->
+            <section class="screen active">
+                <h1>The Lift Equation</h1>
+                <div class="narrator">
+                    <p>Four variables determine whether you fly or fall. Get them right, and you're airborne. Get them wrong, and you plummet.</p>
+                </div>
+                <div class="content-block">
+                    <p>Engineers need a formula that tells them exactly how much lift a wing will generate under any given conditions. The answer comes from dimensional analysis—reasoning about the physical quantities involved and how they must combine.</p>
+                    <p>Lift depends on four things: how dense the air is (ρ), how fast you're going (v), how large your wings are (S), and how efficiently the wing shape generates lift (C<sub>L</sub>). The question is: how do these combine?</p>
+                    <p>Through mathematical reasoning and experimental confirmation, engineers discovered that lift must follow this relationship:</p>
+                </div>
+                <div class="math-block">
+                    L = ½ ρv² S C<sub>L</sub>
+                </div>
+                <p>This is the most important equation in aeronautics. Let's explore what each term means and how they interact.</p>
+                <ul style="margin-left: 20px; margin-bottom: 16px;">
+                    <li><strong>L:</strong> Lift force (in Newtons)</li>
+                    <li><strong>ρ:</strong> Air density (kg/m³)</li>
+                    <li><strong>v:</strong> Velocity (m/s)</li>
+                    <li><strong>S:</strong> Wing area (m²)</li>
+                    <li><strong>C<sub>L</sub>:</strong> Lift coefficient (dimensionless)</li>
+                </ul>
+                <div class="insight">
+                    <strong>Why the factor of ½?</strong> It comes from the kinetic energy in the air. The formula encodes the physics of how moving air's energy translates into lifting force.
+                </div>
+                <div class="controls">
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 2: Interactive Lift Calculator -->
+            <section class="screen">
+                <h2>Interactive Lift Calculator</h2>
+                <div class="narrator">
+                    <p>Adjust these four variables and watch how lift changes. Notice something remarkable: velocity has the most dramatic effect.</p>
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Air Density (ρ)</span>
+                        <span id="rho-value">1.225</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px;">Sea Level: 1.225 kg/m³ → 40,000 ft: 0.38 kg/m³</div>
+                    <input type="range" id="rho-slider" min="0.38" max="1.225" value="1.225" step="0.05" oninput="updateCalculator()">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Velocity (v)</span>
+                        <span id="v-value">100</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px;">m/s (0–300 m/s)</div>
+                    <input type="range" id="v-slider" min="10" max="300" value="100" step="5" oninput="updateCalculator()">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Wing Area (S)</span>
+                        <span id="s-value">122</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px;">m² (50–500 m²)</div>
+                    <input type="range" id="s-slider" min="50" max="500" value="122" step="10" oninput="updateCalculator()">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Lift Coefficient (C<sub>L</sub>)</span>
+                        <span id="cl-value">1.2</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--muted); margin-bottom: 8px;">Typical cruise: 0.5 → Takeoff: 1.5 (stall ~2.0)</div>
+                    <input type="range" id="cl-slider" min="0.3" max="2.0" value="1.2" step="0.1" oninput="updateCalculator()">
+                </div>
+                <canvas id="canvas-lift" width="800" height="450"></canvas>
+                <div class="stats-display">
+                    <div class="stat-box">
+                        <div class="stat-label">Lift Generated</div>
+                        <div class="stat-value" id="lift-output">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Aircraft Weight (B747)</div>
+                        <div class="stat-value">3,629,000 N</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Status</div>
+                        <div class="stat-value" id="status-output">Grounded</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Margin</div>
+                        <div class="stat-value" id="margin-output">—</div>
+                    </div>
+                </div>
+                <div class="insight">
+                    <strong>Key Observation:</strong> Doubling velocity quadruples lift (v² term). Speed is the most powerful lever for generating lift.
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 3: Reynolds Number -->
+            <section class="screen">
+                <h2>Reynolds Number and Scale</h2>
+                <div class="narrator">
+                    <p>A tiny insect wing and a jumbo jet wing are fundamentally different. The mathematics tells us why: they live in different flow regimes.</p>
+                </div>
+                <div class="math-block">
+                    Re = ρvL/μ
+                </div>
+                <p>The Reynolds number quantifies the ratio of inertial forces to viscous forces in a fluid. It tells you whether a flow is laminar (smooth, layered) or turbulent (chaotic, mixed).</p>
+                <p><strong>L</strong> is a characteristic length (for a wing, this is typically the chord—the distance from leading edge to trailing edge).</p>
+                <p><strong>μ</strong> is dynamic viscosity (air viscosity is about 1.8 × 10⁻⁵ Pa·s at sea level).</p>
+                <canvas id="canvas-reynolds" width="800" height="450"></canvas>
+                <div class="reynolds-display">
+                    <div style="font-size: 14px; margin-bottom: 8px;">Reynolds Number Comparison</div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; text-align: center;">
+                        <div>
+                            <div style="color: var(--muted); font-size: 12px;">Mosquito Wing</div>
+                            <div class="reynolds-value">100</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--muted); font-size: 12px;">Cessna 172</div>
+                            <div class="reynolds-value">1.5M</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--muted); font-size: 12px;">Boeing 747</div>
+                            <div class="reynolds-value">140M</div>
+                        </div>
+                    </div>
+                </div>
+                <p style="margin-top: 20px;">The Reynolds numbers differ by a factor of one million! This means the aerodynamics are fundamentally different. A scale model of a jumbo jet doesn't fly like a real jumbo jet—you must account for this difference when testing in wind tunnels.</p>
+                <div class="insight">
+                    <strong>Why it matters:</strong> You cannot simply shrink a design and expect the same aerodynamic behaviour. Physics operates differently at different scales.
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="nextScreen()">Continue →</button>
+                </div>
+            </section>
+
+            <!-- Screen 4: Dimensional Analysis -->
+            <section class="screen">
+                <h2>The Power of Dimensional Reasoning</h2>
+                <div class="narrator">
+                    <p>Before we tested a single wing in a wind tunnel, mathematicians knew what form the lift equation must take. They used only dimensional analysis.</p>
+                </div>
+                <div class="content-block">
+                    <p>Lift is a force, measured in Newtons. What physical quantities could possibly create a force?</p>
+                    <ul style="margin-left: 20px; margin-bottom: 16px;">
+                        <li>Air density ρ [kg/m³]</li>
+                        <li>Velocity v [m/s]</li>
+                        <li>Wing area S [m²]</li>
+                        <li>Some dimensionless efficiency factor (the lift coefficient C<sub>L</sub>)</li>
+                    </ul>
+                    <p>Using only dimensional analysis—matching units—we can determine how these must combine:</p>
+                    <p style="margin-left: 20px;"><strong>Force = [kg/m³] × [m/s]² × [m²] × [dimensionless]</strong></p>
+                    <p style="margin-left: 20px;"><strong>Force = [kg·m/s²] = Newtons</strong> ✓</p>
+                    <p>The exact form L = ½ρv²SC<sub>L</sub> (including the factor of ½) comes from detailed fluid mechanics, but the basic structure—that lift must depend on ρ, v², S, and C<sub>L</sub>—is mathematically inevitable.</p>
+                    <p>This is the power of dimensional analysis: it constrains possibilities before experiment. Mathematics narrows the infinite to the plausible.</p>
+                </div>
+                <div class="insight">
+                    <strong>Insight:</strong> Physics is not just about equations; it's about constraints. Dimensional analysis is one of the most powerful constraints mathematicians have.
+                </div>
+                <div class="controls">
+                    <button onclick="prevScreen()">← Back</button>
+                    <button onclick="goToAct(3)">Act 3: Stability and CG →</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <footer>
+        <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+        <div style="margin-top:6px">
+            <a href="../terms.html">Terms of Use</a>
+            &nbsp;&middot;&nbsp;
+            <a href="../intellectual-property.html">Intellectual Property</a>
+            &nbsp;&middot;&nbsp;
+            <a href="../privacy.html">Privacy Policy</a>
+        </div>
+    </footer>
+
+    <script>
+        let currentScreen = 0;
+        const screens = document.querySelectorAll('.screen');
+        const dots = document.querySelectorAll('.dot');
+
+        function showScreen(n) {
+            screens.forEach(s => s.classList.remove('active'));
+            screens[n].classList.add('active');
+            currentScreen = n;
+        }
+
+        function nextScreen() {
+            if (currentScreen < screens.length - 1) {
+                showScreen(currentScreen + 1);
+            }
+        }
+
+        function prevScreen() {
+            if (currentScreen > 0) {
+                showScreen(currentScreen - 1);
+            }
+        }
+
+        function goToAct(act) {
+            const acts = ['flight_act1.html', 'flight_act2.html', 'flight_act3.html', 'flight_act4.html', 'flight_act5.html'];
+            window.location.href = acts[act - 1];
+        }
+
+        function updateCalculator() {
+            const rho = parseFloat(document.getElementById('rho-slider').value);
+            const v = parseFloat(document.getElementById('v-slider').value);
+            const S = parseFloat(document.getElementById('s-slider').value);
+            const CL = parseFloat(document.getElementById('cl-slider').value);
+
+            document.getElementById('rho-value').textContent = rho.toFixed(3);
+            document.getElementById('v-value').textContent = v.toFixed(0);
+            document.getElementById('s-value').textContent = S.toFixed(0);
+            document.getElementById('cl-value').textContent = CL.toFixed(2);
+
+            const L = 0.5 * rho * v * v * S * CL;
+            const W = 3629000; // Boeing 747 weight in Newtons
+            const margin = L - W;
+
+            document.getElementById('lift-output').textContent = (L / 1000000).toFixed(2) + ' MN';
+
+            if (L >= W) {
+                document.getElementById('status-output').textContent = '✓ Airborne';
+                document.getElementById('status-output').style.color = 'var(--secondary)';
+                document.getElementById('margin-output').textContent = '+' + (margin / 1000000).toFixed(2) + ' MN';
+                document.getElementById('margin-output').style.color = 'var(--secondary)';
+            } else {
+                document.getElementById('status-output').textContent = '✗ Grounded';
+                document.getElementById('status-output').style.color = 'var(--accent)';
+                document.getElementById('margin-output').textContent = (margin / 1000000).toFixed(2) + ' MN';
+                document.getElementById('margin-output').style.color = 'var(--accent)';
+            }
+
+            drawLiftCanvas();
+        }
+
+        function drawLiftCanvas() {
+            const canvas = document.getElementById('canvas-lift');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#07101a';
+            ctx.fillRect(0, 0, w, h);
+
+            const rho = parseFloat(document.getElementById('rho-slider').value);
+            const v = parseFloat(document.getElementById('v-slider').value);
+            const S = parseFloat(document.getElementById('s-slider').value);
+            const CL = parseFloat(document.getElementById('cl-slider').value);
+            const L = 0.5 * rho * v * v * S * CL;
+            const W = 3629000;
+
+            // Scale for visualization
+            const scale = h / (W * 1.5);
+            const liftHeight = L * scale;
+            const weightHeight = W * scale;
+
+            // Draw balance beam analogy
+            const centerX = w / 2;
+            const baseY = h - 60;
+
+            // Fulcrum
+            ctx.fillStyle = '#7070a0';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 20, baseY);
+            ctx.lineTo(centerX + 20, baseY);
+            ctx.lineTo(centerX, baseY - 15);
+            ctx.closePath();
+            ctx.fill();
+
+            // Left beam (Lift)
+            ctx.strokeStyle = L >= W ? '#34d399' : '#60a5fa';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 200, baseY);
+            ctx.lineTo(centerX, baseY);
+            ctx.stroke();
+
+            // Right beam (Weight)
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(centerX, baseY);
+            ctx.lineTo(centerX + 200, baseY);
+            ctx.stroke();
+
+            // Lift box
+            const liftColor = L >= W ? '#34d399' : '#60a5fa';
+            ctx.fillStyle = liftColor;
+            ctx.globalAlpha = 0.3;
+            ctx.fillRect(centerX - 200, baseY - liftHeight, 150, liftHeight);
+            ctx.globalAlpha = 1.0;
+            ctx.strokeStyle = liftColor;
+            ctx.strokeRect(centerX - 200, baseY - liftHeight, 150, liftHeight);
+
+            // Weight box
+            ctx.fillStyle = '#ef4444';
+            ctx.globalAlpha = 0.3;
+            ctx.fillRect(centerX + 50, baseY - weightHeight, 150, weightHeight);
+            ctx.globalAlpha = 1.0;
+            ctx.strokeStyle = '#ef4444';
+            ctx.strokeRect(centerX + 50, baseY - weightHeight, 150, weightHeight);
+
+            // Labels
+            ctx.font = 'bold 16px Nunito';
+            ctx.fillStyle = liftColor;
+            ctx.textAlign = 'center';
+            ctx.fillText('LIFT', centerX - 125, baseY + 30);
+
+            ctx.fillStyle = '#ef4444';
+            ctx.fillText('WEIGHT', centerX + 125, baseY + 30);
+
+            // Tilt indicator
+            if (L !== W) {
+                ctx.font = '12px Nunito';
+                ctx.fillStyle = L > W ? '#34d399' : '#ef4444';
+                ctx.fillText(L > W ? '⬆ Ascending' : '⬇ Descending', centerX, baseY - 35);
+            }
+        }
+
+        function drawReynoldsCanvas() {
+            const canvas = document.getElementById('canvas-reynolds');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#07101a';
+            ctx.fillRect(0, 0, w, h);
+
+            // Left side: Laminar flow (low Re)
+            ctx.font = 'bold 14px Nunito';
+            ctx.fillStyle = '#22d3ee';
+            ctx.textAlign = 'left';
+            ctx.fillText('Laminar Flow (Re < 1000)', 40, 30);
+
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+                ctx.beginPath();
+                ctx.moveTo(40, 60 + i * 30);
+                ctx.lineTo(250, 60 + i * 30);
+                ctx.stroke();
+            }
+
+            // Right side: Turbulent flow (high Re)
+            ctx.fillStyle = '#ef4444';
+            ctx.textAlign = 'left';
+            ctx.fillText('Turbulent Flow (Re > 1000)', 400, 30);
+
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 200; i++) {
+                const x = 400 + Math.random() * 300;
+                const y = 60 + Math.random() * 300;
+                const size = Math.random() * 8 + 2;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        // Initialize
+        showScreen(0);
+        setTimeout(() => {
+            updateCalculator();
+            drawReynoldsCanvas();
+        }, 100);
+    </script>
+</body>
+</html>

@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#070a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Mathematics of Propulsion — Act V</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Crimson+Pro:ital@0;1&display=swap');
+
+        :root {
+            --bg: #070a1a;
+            --bg2: #0e0e28;
+            --bg3: #151530;
+            --accent: #fb923c;
+            --accent-dim: rgba(251,146,60,0.15);
+            --secondary: #f472b6;
+            --green: #10b981;
+            --cyan: #22d3ee;
+            --gold: #fbbf24;
+            --text: #e2e2f0;
+            --muted: #7070a0;
+            --panel: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.07);
+            --radius: 18px;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Nunito', sans-serif;
+            overflow-x: hidden;
+        }
+
+        #stars {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background: radial-gradient(ellipse at 20% 30%, rgba(251,146,60,0.04) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 70%, rgba(34,211,238,0.03) 0%, transparent 60%),
+                        var(--bg);
+        }
+
+        #app {
+            position: relative; z-index: 1;
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+        }
+
+        .app-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(7,10,26,0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            position: sticky; top: 0; z-index: 10;
+        }
+        .header-logo {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.1em; font-style: italic; color: var(--muted);
+            letter-spacing: 0.5px;
+        }
+        .header-logo span { color: var(--accent); font-style: normal; }
+        .progress-dots {
+            display: flex; gap: 6px; align-items: center;
+        }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--border); transition: all 0.4s ease;
+        }
+        .dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+        .dot.done { background: var(--green); }
+
+        .screen {
+            display: none; flex-direction: column;
+            flex: 1; padding: 24px 20px 100px;
+            animation: fadeUp 0.5s ease both;
+        }
+        .screen.active { display: flex; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .narrator {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        .narrator::before {
+            content: '✦';
+            position: absolute; top: -10px; left: 18px;
+            background: var(--bg2); padding: 0 6px;
+            color: var(--accent); font-size: 0.8em;
+        }
+        .narrator p {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.15em; line-height: 1.75;
+            color: #c8c8e8;
+        }
+        .narrator p em { color: var(--accent); font-style: italic; }
+        .narrator p strong { color: #fff; font-weight: 400; }
+
+        .act-title {
+            text-align: center; margin-bottom: 20px;
+        }
+        .act-label {
+            font-size: 0.7em; text-transform: uppercase;
+            letter-spacing: 3px; color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .act-name {
+            font-family: 'Crimson Pro', serif;
+            font-size: clamp(1.6em, 6vw, 2.2em);
+            font-weight: 300; color: #fff;
+            letter-spacing: 0.5px;
+        }
+        .act-name em { color: var(--accent); font-style: italic; }
+
+        canvas {
+            display: block; margin: 0 auto; border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: linear-gradient(to bottom, rgba(15,20,40,0.9), rgba(10,10,20,0.95));
+            width: 100%; max-width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .insight {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-bottom: 20px;
+        }
+        .insight .lbl {
+            font-size: 0.72em; text-transform: uppercase;
+            letter-spacing: 2px; color: var(--muted);
+            margin-bottom: 8px; font-weight: 600;
+        }
+        .insight p {
+            font-family: 'Crimson Pro', serif;
+            font-size: 0.95em; line-height: 1.75;
+            color: #a8a8d0;
+        }
+        .insight strong { color: var(--accent); }
+
+        .timeline {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .timeline-item {
+            display: flex; gap: 12px; padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .timeline-item:last-child { border-bottom: none; }
+        .timeline-marker {
+            flex: 0 0 24px;
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7em; color: #070a1a; font-weight: 700;
+        }
+        .timeline-content {
+            flex: 1;
+        }
+        .timeline-year {
+            font-weight: 600; color: var(--accent); font-size: 0.9em;
+        }
+        .timeline-mission {
+            font-family: 'Crimson Pro', serif;
+            color: #c8c8e8; font-size: 0.95em; margin-top: 2px;
+        }
+
+        .celebration {
+            text-align: center;
+            padding: 32px 20px;
+            background: linear-gradient(135deg, rgba(251,146,60,0.1), rgba(34,211,238,0.1));
+            border-radius: var(--radius);
+            border: 1px solid var(--accent-dim);
+            margin-bottom: 20px;
+        }
+        .celebration-emoji {
+            font-size: 4em; display: block; margin-bottom: 12px;
+        }
+        .celebration-text {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.2em; line-height: 1.8;
+            color: #c8c8e8;
+        }
+        .celebration-text strong { color: var(--accent); }
+
+        .cta-btn {
+            width: 100%; max-width: 400px;
+            margin: 0 auto;
+            display: block;
+            background: linear-gradient(135deg, var(--accent), #f97316);
+            border: none; border-radius: 50px;
+            padding: 16px 32px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.05em; font-weight: 800;
+            color: #070a1a;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            touch-action: manipulation;
+            box-shadow: 0 4px 24px rgba(251,146,60,0.25);
+        }
+        .cta-btn:hover, .cta-btn:active {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(251,146,60,0.35);
+        }
+
+        #confetti {
+            position: fixed; inset: 0; z-index: 50; pointer-events: none;
+        }
+
+        .bottom-pad { height: 20px; }
+
+        a[href="../index.html"] {
+            position: fixed; top: 12px; left: 16px;
+            color: var(--muted); text-decoration: none;
+            font-size: 0.85em; z-index: 1000;
+            font-family: 'Crimson Pro', serif; font-style: italic;
+        }
+
+        footer {
+            text-align: center;
+            padding: 28px 20px 18px;
+            color: #505068;
+            font-size: 0.72em;
+            line-height: 1.7;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 30px;
+        }
+        footer a {
+            color: #606078;
+            text-decoration: none;
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/journeys/propulsion_act5.html">
+  <meta name="description" content="Learn about Propulsion Act5 in Mathematics Education">
+  </head>
+<body>
+<a href="../index.html">← mathsedu.org</a>
+<canvas id="confetti"></canvas>
+<div id="stars"></div>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-dots">
+        <div class="dot done"></div>
+        <div class="dot done"></div>
+        <div class="dot done"></div>
+        <div class="dot done"></div>
+        <div class="dot active"></div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: RELATIVISTIC ROCKET EQUATION -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">Mathematics of Propulsion · Act V</div>
+      <div class="act-name">To the <em>Stars</em></div>
+    </div>
+    <div style="text-align:center;margin:0 0 20px;">
+      <div style="font-size:4.5em;display:inline-block;">⭐</div>
+    </div>
+    <div class="narrator">
+      <p>What if we could go <em>really</em> fast?</p>
+      <p style="margin-top:10px">Tsiolkovsky's equation assumes velocities are tiny compared to the speed of light. But what if we built a rocket that reached 50% of light speed? 90% of light speed?</p>
+      <p style="margin-top:10px">The relativistic rocket equation — Tsiolkovsky updated for Einstein — reveals something shocking: the mass ratio becomes <em>absurd.</em> To reach 0.9c requires a mass ratio so enormous that no physical rocket could achieve it.</p>
+      <p style="margin-top:10px">Yet this same mathematics proved that spaceflight was possible decades before the first rocket launched. The equations don't lie.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">See the relativistic limit →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: RELATIVISTIC MASS RATIO -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Special Relativity</div>
+      <div class="act-name">The Speed of <em>Light</em> Barrier</div>
+    </div>
+    <div class="narrator">
+      <p>The relativistic rocket equation is strikingly different from Tsiolkovsky's:</p>
+      <p style="margin-top:10px"><strong>tanh(Δv/2c) = (m₀ − mf) / (m₀ + mf)</strong></p>
+      <p style="margin-top:10px">This hyperbolic tangent means velocity asymptotically approaches the speed of light, never exceeding it. As velocities increase, the required mass ratio approaches infinity. To reach 0.1c requires roughly 5× more fuel. To reach 0.9c requires infinitely more fuel than to reach 0.8c.</p>
+    </div>
+
+    <canvas id="relativCanvas" width="400" height="300" style="max-height:300px;"></canvas>
+
+    <div class="insight">
+      <div class="lbl">Why interstellar travel is hard</div>
+      <p>To reach Alpha Centauri (4.37 light-years) in a human lifetime requires near-light speeds. But the fuel requirements are physically impossible with chemical rockets. Advanced propulsion (antimatter, nuclear fusion, sail technology) might eventually make this feasible — but the mathematics reveals the fundamental constraints.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)">Time dilation and real missions →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: TIME DILATION AND REAL MISSIONS -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">Spaceflight in History</div>
+      <div class="act-name">From Apollo to the <em>Stars</em></div>
+    </div>
+    <div class="narrator">
+      <p>At 0.9c, relativistic effects become dramatic. Time passes differently for the spacecraft than for Earth. This is <em>time dilation</em> — a direct consequence of relativity.</p>
+      <p style="margin-top:10px">Yet here on Earth, we've already built and launched actual spacecraft. Some are still flying, heading into interstellar space.</p>
+    </div>
+
+    <canvas id="timeCanvas" width="400" height="250" style="max-height:250px;"></canvas>
+
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-marker">🌍</div>
+        <div class="timeline-content">
+          <div class="timeline-year">1969</div>
+          <div class="timeline-mission">Apollo 11 reaches the Moon</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-marker">🛸</div>
+        <div class="timeline-content">
+          <div class="timeline-year">1977</div>
+          <div class="timeline-mission">Voyager 1 & 2 launch; use gravity assists to reach outer planets</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-marker">📡</div>
+        <div class="timeline-content">
+          <div class="timeline-year">2006</div>
+          <div class="timeline-mission">New Horizons launches; reaches Pluto in 2015</div>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-marker">✨</div>
+        <div class="timeline-content">
+          <div class="timeline-year">2016</div>
+          <div class="timeline-mission">Breakthrough Starshot proposed; tiny probes at 0.2c to reach Alpha Centauri in 20 years</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">Current trajectories</div>
+      <p>Voyager 1 is the fastest human-made object, moving at about 17 km/s relative to the Sun. At this speed, it will take roughly 70,000 years to reach Alpha Centauri. Yet the mathematics of propulsion opened this door.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)">The final reflection →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: FINAL REFLECTION -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">The Conclusion</div>
+      <div class="act-name">Mathematics <em>Predicted</em> the Future</div>
+    </div>
+    <div class="narrator">
+      <p>Tsiolkovsky understood the rocket equation in 1903. No rocket had left the ground. The Wright brothers had not yet flown. Yet mathematics alone — pure logic, conservation of momentum, and the laws of physics — <em>predicted</em> that spaceflight was possible.</p>
+      <p style="margin-top:10px">The equation told us exactly how expensive it would be. It set the boundary conditions for every rocket ever built. It revealed that reaching the Moon was feasible but expensive, and Mars even more so.</p>
+      <p style="margin-top:10px">Today, rockets routinely launch satellites into orbit. Humans have walked on the Moon. Robotic probes have reached every planet in the solar system. All of this was <em>predicted</em> by mathematics written down decades before any of it was possible.</p>
+    </div>
+
+    <div class="celebration">
+      <span class="celebration-emoji">🚀</span>
+      <div class="celebration-text">
+        <strong>Mathematics didn't just describe how to reach space.</strong><br>
+        It predicted that we would, centuries before we did.<br>
+        <br>
+        <em>The equations were right all along.</em>
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">The future of propulsion</div>
+      <p>Today's researchers pursue nuclear fusion rockets, antimatter annihilation drives, and light sails. Each is governed by the same mathematical principles Tsiolkovsky discovered. The future of propulsion — and of human spaceflight — is written in mathematics.</p>
+    </div>
+
+    <button class="cta-btn" onclick="celebrate()">✦ Journey Complete</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <footer>
+    <div>&copy; 2025–2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="../terms.html">Terms of Use</a>
+        &nbsp;&middot;&nbsp;
+        <a href="../intellectual-property.html">Intellectual Property</a>
+        &nbsp;&middot;&nbsp;
+        <a href="../privacy.html">Privacy Policy</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+let currentScreen = 0;
+
+function goToScreen(n) {
+  document.getElementById(`screen-${currentScreen}`).classList.remove('active');
+  currentScreen = n;
+  document.getElementById(`screen-${currentScreen}`).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function celebrate() {
+  launchConfetti();
+  setTimeout(() => window.location.href = '../index.html', 1200);
+}
+
+// ── Relativistic mass ratio visualization ──
+function drawRelativistic() {
+  const cv = document.getElementById('relativCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const padding = 40;
+  const graphW = w - 2 * padding;
+  const graphH = h - 2 * padding;
+  const graphX = padding;
+  const graphY = padding;
+
+  // Axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(graphX, graphY + graphH);
+  ctx.lineTo(graphX + graphW, graphY + graphH);
+  ctx.moveTo(graphX, graphY);
+  ctx.lineTo(graphX, graphY + graphH);
+  ctx.stroke();
+
+  // Draw the relativistic mass ratio curve
+  ctx.strokeStyle = 'rgba(251,146,60,0.8)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  for (let i = 0; i <= graphW; i += 1) {
+    const frac = i / graphW; // 0 to 1
+    const c = 300000; // speed of light km/s
+    const velocity = 0.1 + frac * 0.85; // 0.1c to 0.95c
+
+    // Relativistic: tanh(v/2c) = (m0-mf)/(m0+mf)
+    const tanhVal = Math.tanh(velocity / 2);
+    const massRatio = (1 + tanhVal) / (1 - tanhVal);
+
+    // Cap at 100 for visualization
+    const y = graphY + graphH - Math.min(massRatio / 100 * graphH, graphH);
+
+    if (i === 0) ctx.moveTo(graphX + i, y);
+    else ctx.lineTo(graphX + i, y);
+  }
+  ctx.stroke();
+
+  // Light speed barrier line
+  ctx.strokeStyle = 'rgba(34,211,238,0.3)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(graphX + graphW, graphY);
+  ctx.lineTo(graphX + graphW, graphY + graphH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Labels
+  ctx.fillStyle = '#c8c8e8';
+  ctx.font = '10px Nunito';
+  ctx.textAlign = 'center';
+  ctx.fillText('0.1c', graphX, graphY + graphH + 20);
+  ctx.fillText('0.9c', graphX + graphW, graphY + graphH + 20);
+  ctx.textAlign = 'right';
+  ctx.fillText('Mass ratio →', graphX - 5, graphY + 10);
+
+  ctx.font = '9px Crimson Pro';
+  ctx.fillStyle = '#7070a0';
+  ctx.textAlign = 'right';
+  ctx.fillText('Speed of light (unreachable)', w - 5, graphY + 10);
+
+  ctx.fillStyle = '#c8c8e8';
+  ctx.font = 'bold 11px Nunito';
+  ctx.textAlign = 'center';
+  ctx.fillText('Relativistic Rocket Equation', w / 2, 20);
+}
+
+// ── Time dilation visualization ──
+function drawTimeDilation() {
+  const cv = document.getElementById('timeCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const speeds = [
+    { v: 0.3, label: '0.3c', color: 'rgba(251,146,60,0.4)' },
+    { v: 0.6, label: '0.6c', color: 'rgba(251,146,60,0.6)' },
+    { v: 0.9, label: '0.9c', color: 'rgba(251,146,60,0.8)' }
+  ];
+
+  const barHeight = 35;
+  const barY = [50, 120, 190];
+
+  speeds.forEach((s, idx) => {
+    const x = 40;
+    const y = barY[idx];
+
+    // Time dilation factor: 1 / sqrt(1 - v²/c²)
+    const gamma = 1 / Math.sqrt(1 - s.v * s.v);
+
+    // Draw Earth time (1 year)
+    ctx.fillStyle = 'rgba(34,211,238,0.4)';
+    ctx.fillRect(x, y, 60, barHeight);
+    ctx.strokeStyle = 'rgba(34,211,238,0.7)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, 60, barHeight);
+    ctx.fillStyle = '#c8c8e8';
+    ctx.font = '11px Nunito';
+    ctx.textAlign = 'center';
+    ctx.fillText('1 year (Earth)', x + 30, y + barHeight + 15);
+
+    // Draw spacecraft time (dilated)
+    const shipTime = Math.min(60 / gamma, 60);
+    ctx.fillStyle = s.color;
+    ctx.fillRect(x + 100, y, shipTime, barHeight);
+    ctx.strokeStyle = 'rgba(251,146,60,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x + 100, y, shipTime, barHeight);
+
+    ctx.fillStyle = '#c8c8e8';
+    ctx.font = '10px Nunito';
+    ctx.textAlign = 'center';
+    ctx.fillText((1/gamma).toFixed(2) + ' yr', x + 100 + shipTime/2, y + barHeight + 15);
+
+    // Speed label
+    ctx.fillStyle = 'rgba(251,146,60,0.9)';
+    ctx.font = 'bold 12px Nunito';
+    ctx.textAlign = 'left';
+    ctx.fillText(s.label, 10, y + barHeight/2 + 5);
+  });
+
+  // Title
+  ctx.fillStyle = '#c8c8e8';
+  ctx.font = 'bold 12px Nunito';
+  ctx.textAlign = 'center';
+  ctx.fillText('Time Dilation: 1 year on Earth vs. on spacecraft', w/2, 20);
+
+  // Footer
+  ctx.fillStyle = '#7070a0';
+  ctx.font = '9px Crimson Pro';
+  ctx.textAlign = 'center';
+  ctx.fillText('At relativistic speeds, time passes slower on the spacecraft', w/2, h - 10);
+}
+
+// ── Confetti ──
+const cc = document.getElementById('confetti');
+const cxc = cc.getContext('2d');
+let parts = [];
+
+function launchConfetti() {
+  cc.width = innerWidth;
+  cc.height = innerHeight;
+  parts = [];
+  for (let i = 0; i < 120; i++) {
+    parts.push({
+      x: Math.random() * cc.width,
+      y: -20,
+      vx: (Math.random() - 0.5) * 5,
+      vy: 2 + Math.random() * 4,
+      c: ['#fb923c', '#22d3ee', '#fbbf24', '#f472b6', '#10b981'][Math.floor(Math.random() * 5)],
+      s: 5 + Math.random() * 7,
+      r: Math.random() * Math.PI * 2,
+      vr: (Math.random() - 0.5) * 0.2,
+      l: 1
+    });
+  }
+  animateConfetti();
+  setTimeout(() => { parts = []; }, 3500);
+}
+
+function animateConfetti() {
+  cxc.clearRect(0, 0, cc.width, cc.height);
+  parts = parts.filter(p => p.l > 0.01);
+  parts.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.1;
+    p.r += p.vr;
+    p.l -= 0.012;
+    cxc.save();
+    cxc.globalAlpha = p.l;
+    cxc.translate(p.x, p.y);
+    cxc.rotate(p.r);
+    cxc.fillStyle = p.c;
+    cxc.fillRect(-p.s/2, -p.s/2, p.s, p.s * 0.6);
+    cxc.restore();
+  });
+  if (parts.length > 0) requestAnimationFrame(animateConfetti);
+}
+
+window.addEventListener('load', () => {
+  drawRelativistic();
+  drawTimeDilation();
+});
+</script>
+</body>
+</html>

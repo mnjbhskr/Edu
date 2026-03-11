@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#070a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Mathematics of Propulsion — Act I</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Crimson+Pro:ital@0;1&display=swap');
+
+        :root {
+            --bg: #070a1a;
+            --bg2: #0e0e28;
+            --bg3: #151530;
+            --accent: #fb923c;
+            --accent-dim: rgba(251,146,60,0.15);
+            --secondary: #f472b6;
+            --green: #10b981;
+            --cyan: #22d3ee;
+            --gold: #fbbf24;
+            --text: #e2e2f0;
+            --muted: #7070a0;
+            --panel: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.07);
+            --radius: 18px;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Nunito', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* ── Starfield ── */
+        #stars {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background: radial-gradient(ellipse at 20% 30%, rgba(251,146,60,0.04) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 70%, rgba(34,211,238,0.03) 0%, transparent 60%),
+                        var(--bg);
+        }
+
+        /* ── App Shell ── */
+        #app {
+            position: relative; z-index: 1;
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+        }
+
+        /* ── Header ── */
+        .app-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(7,10,26,0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            position: sticky; top: 0; z-index: 10;
+        }
+        .header-logo {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.1em; font-style: italic; color: var(--muted);
+            letter-spacing: 0.5px;
+        }
+        .header-logo span { color: var(--accent); font-style: normal; }
+        .progress-dots {
+            display: flex; gap: 6px; align-items: center;
+        }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--border); transition: all 0.4s ease;
+        }
+        .dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+        .dot.done { background: var(--green); }
+
+        /* ── Screens ── */
+        .screen {
+            display: none; flex-direction: column;
+            flex: 1; padding: 24px 20px 100px;
+            animation: fadeUp 0.5s ease both;
+        }
+        .screen.active { display: flex; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Narrator Box ── */
+        .narrator {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        .narrator::before {
+            content: '✦';
+            position: absolute; top: -10px; left: 18px;
+            background: var(--bg2); padding: 0 6px;
+            color: var(--accent); font-size: 0.8em;
+        }
+        .narrator p {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.15em; line-height: 1.75;
+            color: #c8c8e8;
+        }
+        .narrator p em { color: var(--accent); font-style: italic; }
+        .narrator p strong { color: #fff; font-weight: 400; }
+
+        /* ── Act title ── */
+        .act-title {
+            text-align: center; margin-bottom: 20px;
+        }
+        .act-label {
+            font-size: 0.7em; text-transform: uppercase;
+            letter-spacing: 3px; color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .act-name {
+            font-family: 'Crimson Pro', serif;
+            font-size: clamp(1.6em, 6vw, 2.2em);
+            font-weight: 300; color: #fff;
+            letter-spacing: 0.5px;
+        }
+        .act-name em { color: var(--accent); font-style: italic; }
+
+        /* ── Canvas ── */
+        canvas {
+            display: block; margin: 0 auto; border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: linear-gradient(to bottom, rgba(15,20,40,0.9), rgba(10,10,20,0.95));
+            width: 100%; max-width: 100%;
+            margin-bottom: 20px;
+        }
+
+        /* ── Insight box ── */
+        .insight {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-bottom: 20px;
+        }
+        .insight .lbl {
+            font-size: 0.72em; text-transform: uppercase;
+            letter-spacing: 2px; color: var(--muted);
+            margin-bottom: 8px; font-weight: 600;
+        }
+        .insight p {
+            font-family: 'Crimson Pro', serif;
+            font-size: 0.95em; line-height: 1.75;
+            color: #a8a8d0;
+        }
+        .insight strong { color: var(--accent); }
+
+        /* ── Slider ── */
+        .slider-container {
+            margin: 20px 0;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+        }
+        .slider-label {
+            font-size: 0.8em; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--muted);
+            margin-bottom: 10px; display: block;
+        }
+        .slider-input {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--accent-dim);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .slider-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent);
+        }
+        .slider-input::-moz-range-thumb {
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px var(--accent);
+        }
+        .slider-value {
+            margin-top: 10px;
+            font-family: 'Crimson Pro', serif;
+            font-size: 1em;
+            color: var(--accent);
+            text-align: center;
+        }
+
+        /* ── Comparison table ── */
+        .comparison-table {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        .table-row {
+            display: flex; gap: 8px; margin-bottom: 12px;
+            padding-bottom: 12px; border-bottom: 1px solid var(--border);
+        }
+        .table-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .table-label {
+            flex: 0 0 120px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .table-bar {
+            flex: 1;
+            display: flex; align-items: center;
+        }
+        .bar {
+            height: 24px; border-radius: 6px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-dim));
+            position: relative; overflow: hidden;
+        }
+        .bar-label {
+            position: absolute; left: 8px; top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.75em; font-weight: 600;
+            color: #fff;
+        }
+
+        /* ── Button styles ── */
+        .cta-btn {
+            width: 100%; max-width: 400px;
+            margin: 0 auto;
+            display: block;
+            background: linear-gradient(135deg, var(--accent), #f97316);
+            border: none; border-radius: 50px;
+            padding: 16px 32px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.05em; font-weight: 800;
+            color: #070a1a;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            touch-action: manipulation;
+            box-shadow: 0 4px 24px rgba(251,146,60,0.25);
+        }
+        .cta-btn:hover, .cta-btn:active {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(251,146,60,0.35);
+        }
+        .cta-btn:disabled {
+            opacity: 0.35; transform: none;
+            box-shadow: none; cursor: default;
+        }
+
+        #confetti {
+            position: fixed; inset: 0; z-index: 50; pointer-events: none;
+        }
+
+        .bottom-pad { height: 20px; }
+
+        a[href="../index.html"] {
+            position: fixed; top: 12px; left: 16px;
+            color: var(--muted); text-decoration: none;
+            font-size: 0.85em; z-index: 1000;
+            font-family: 'Crimson Pro', serif; font-style: italic;
+        }
+
+        footer {
+            text-align: center;
+            padding: 28px 20px 18px;
+            color: #505068;
+            font-size: 0.72em;
+            line-height: 1.7;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 30px;
+        }
+        footer a {
+            color: #606078;
+            text-decoration: none;
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/journeys/propulsion_act1.html">
+  <meta name="description" content="Learn about Propulsion Act1 in Mathematics Education">
+  </head>
+<body>
+<a href="../index.html">← mathsedu.org</a>
+<canvas id="confetti"></canvas>
+<div id="stars"></div>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-dots">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: OPENING NARRATIVE -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">Mathematics of Propulsion · Act I</div>
+      <div class="act-name">The Tyranny of the <em>Rocket Equation</em></div>
+    </div>
+    <div style="text-align:center;margin:0 0 20px;">
+      <div style="font-size:4.5em;display:inline-block;">🚀</div>
+    </div>
+    <div class="narrator">
+      <p>Every rocket ever built is mostly <em>fuel.</em></p>
+      <p style="margin-top:10px">The Space Shuttle launches at 96% fuel, 4% everything else — crew, cargo, engines, structure. Saturn V? Still 96% fuel. Falcon 9? 95%.</p>
+      <p style="margin-top:10px">Why? Because of a brutal mathematical reality discovered by a Russian scientist in 1903, decades before the first rocket ever left the ground.</p>
+      <p style="margin-top:10px">To escape Earth, you must fight gravity. But the fuel you burn to climb also adds <em>weight.</em> To lift heavier rockets, you need more fuel. But that fuel weighs more. So you need <em>even more</em> fuel. It's a vicious cycle.</p>
+      <p style="margin-top:10px">This is the rocket equation. And it's why space exploration is so spectacularly difficult.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Discover the equation →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: TSIOLKOVSKY EQUATION -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Tsiolkovsky's Discovery</div>
+      <div class="act-name">The <em>Exponential</em> Truth</div>
+    </div>
+    <div class="narrator">
+      <p>In 1903, Russian schoolteacher Konstantin Tsiolkovsky derived a single equation that governed <em>all</em> rocket motion.</p>
+      <p style="margin-top:10px"><strong>Δv = vₑ · ln(m₀/mf)</strong></p>
+      <p style="margin-top:10px">The change in velocity depends on the <em>exhaust velocity</em> and the <em>natural logarithm</em> of the mass ratio. To go twice as fast, you don't need twice the fuel. You need exponentially more.</p>
+    </div>
+
+    <canvas id="rocketCanvas" width="400" height="300" style="max-height:300px;"></canvas>
+
+    <div class="slider-container">
+      <label class="slider-label">Payload mass vs fuel mass</label>
+      <input type="range" id="massRatio" class="slider-input" min="1" max="50" value="10" oninput="updateRocket()">
+      <div class="slider-value">
+        Fuel mass ratio: <strong id="ratioValue">10.0</strong>x
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">The exponential wall</div>
+      <p>Increase the payload by 10%, and you need 15% more fuel. Increase it by 50%, and you need <strong>exponentially</strong> more fuel. This constraint shaped the entire history of space exploration.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)">Compare real rockets →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: REAL ROCKETS COMPARISON -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">The Reality</div>
+      <div class="act-name">Rockets Are <em>Mostly Fuel</em></div>
+    </div>
+    <div class="narrator">
+      <p>Here are the fuel-to-payload ratios for history's most famous rockets. They cluster around the same horrifying percentage.</p>
+    </div>
+
+    <canvas id="comparisonCanvas" width="400" height="350" style="max-height:350px;"></canvas>
+
+    <div class="comparison-table">
+      <div class="table-row">
+        <div class="table-label">Saturn V</div>
+        <div class="table-bar">
+          <div class="bar" style="width:96%"><div class="bar-label">96%</div></div>
+        </div>
+      </div>
+      <div class="table-row">
+        <div class="table-label">Falcon 9</div>
+        <div class="table-bar">
+          <div class="bar" style="width:95%"><div class="bar-label">95%</div></div>
+        </div>
+      </div>
+      <div class="table-row">
+        <div class="table-label">Space Shuttle</div>
+        <div class="table-bar">
+          <div class="bar" style="width:85%"><div class="bar-label">85%</div></div>
+        </div>
+      </div>
+      <div class="table-row">
+        <div class="table-label">Soyuz</div>
+        <div class="table-bar">
+          <div class="bar" style="width:91%"><div class="bar-label">91%</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">Why these numbers?</div>
+      <p>Tsiolkovsky's equation is unforgiving. To reach low Earth orbit (about 9 km/s), you need a mass ratio of roughly 15–20. No current rocket can do better because chemical propulsion has physical limits. More advanced propulsion (ion drives, nuclear) might improve this. But the equation is eternal.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)">Reflection and Act II →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: REFLECTION -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">The Insight</div>
+      <div class="act-name">Mathematics <em>Predicted</em> This</div>
+    </div>
+    <div class="narrator">
+      <p>Tsiolkovsky understood this equation in 1903. No human had reached space. No computer existed. The Wright brothers had not yet flown.</p>
+      <p style="margin-top:10px">Yet mathematics alone, through pure logic and the laws of conservation, <em>predicted</em> that spaceflight was possible — and told us exactly how expensive it would be.</p>
+      <p style="margin-top:10px">The equation set the boundary conditions for all future rocket builders. It said: this is what you must overcome.</p>
+      <p style="margin-top:10px">Tsiolkovsky spent the rest of his life convinced that humanity would reach the stars. And mathematics had shown him why.</p>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">Coming in Act II</div>
+      <p>But how does a rocket actually work? The answer lies in Newton's third law — and the elegant mathematics of momentum exchange.</p>
+    </div>
+
+    <button class="cta-btn" onclick="celebrate()">✦ To Act II →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <footer>
+    <div>&copy; 2025–2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="../terms.html">Terms of Use</a>
+        &nbsp;&middot;&nbsp;
+        <a href="../intellectual-property.html">Intellectual Property</a>
+        &nbsp;&middot;&nbsp;
+        <a href="../privacy.html">Privacy Policy</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+let currentScreen = 0;
+
+function goToScreen(n) {
+  document.getElementById(`screen-${currentScreen}`).classList.remove('active');
+  currentScreen = n;
+  document.getElementById(`screen-${currentScreen}`).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function celebrate() {
+  launchConfetti();
+  setTimeout(() => window.location.href = 'propulsion_act2.html', 900);
+}
+
+// ── Rocket visualization ──
+function drawRocket() {
+  const cv = document.getElementById('rocketCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+
+  // Draw fuel/payload
+  const ratio = parseFloat(document.getElementById('massRatio').value);
+  const fuelHeight = (h * 0.65) * (ratio / (ratio + 1));
+  const payloadHeight = (h * 0.65) - fuelHeight;
+
+  // Rocket body
+  const rocketX = w / 2;
+  const rocketTop = 40;
+  const rocketWidth = 60;
+
+  // Fuel section
+  ctx.fillStyle = 'rgba(251,146,60,0.4)';
+  ctx.fillRect(rocketX - rocketWidth/2, rocketTop, rocketWidth, fuelHeight);
+  ctx.strokeStyle = 'rgba(251,146,60,0.8)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(rocketX - rocketWidth/2, rocketTop, rocketWidth, fuelHeight);
+
+  // Payload section
+  ctx.fillStyle = 'rgba(34,211,238,0.4)';
+  ctx.fillRect(rocketX - rocketWidth/2, rocketTop + fuelHeight, rocketWidth, payloadHeight);
+  ctx.strokeStyle = 'rgba(34,211,238,0.8)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(rocketX - rocketWidth/2, rocketTop + fuelHeight, rocketWidth, payloadHeight);
+
+  // Nose cone
+  ctx.fillStyle = 'rgba(34,211,238,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(rocketX - rocketWidth/2, rocketTop + fuelHeight + payloadHeight);
+  ctx.lineTo(rocketX, rocketTop + fuelHeight + payloadHeight - 20);
+  ctx.lineTo(rocketX + rocketWidth/2, rocketTop + fuelHeight + payloadHeight);
+  ctx.closePath();
+  ctx.fill();
+
+  // Fins
+  ctx.fillStyle = 'rgba(251,146,60,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(rocketX - rocketWidth/2, rocketTop + fuelHeight + payloadHeight + 5);
+  ctx.lineTo(rocketX - rocketWidth/2 - 15, rocketTop + fuelHeight + payloadHeight + 25);
+  ctx.lineTo(rocketX - rocketWidth/2, rocketTop + fuelHeight + payloadHeight + 15);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(rocketX + rocketWidth/2, rocketTop + fuelHeight + payloadHeight + 5);
+  ctx.lineTo(rocketX + rocketWidth/2 + 15, rocketTop + fuelHeight + payloadHeight + 25);
+  ctx.lineTo(rocketX + rocketWidth/2, rocketTop + fuelHeight + payloadHeight + 15);
+  ctx.closePath();
+  ctx.fill();
+
+  // Labels
+  ctx.fillStyle = 'rgba(251,146,60,0.8)';
+  ctx.font = 'bold 12px Nunito';
+  ctx.fillText('Fuel', rocketX - 20, rocketTop + fuelHeight/2);
+
+  ctx.fillStyle = 'rgba(34,211,238,0.8)';
+  ctx.fillText('Payload', rocketX - 25, rocketTop + fuelHeight + payloadHeight/2);
+
+  // Equation at bottom
+  ctx.fillStyle = '#c8c8e8';
+  ctx.font = '12px Crimson Pro';
+  ctx.textAlign = 'center';
+  ctx.fillText('Δv = vₑ · ln(m₀/mf)', w/2, h - 10);
+}
+
+function updateRocket() {
+  const ratio = parseFloat(document.getElementById('massRatio').value);
+  document.getElementById('ratioValue').textContent = ratio.toFixed(1);
+  drawRocket();
+  drawComparison();
+}
+
+// ── Comparison chart ──
+function drawComparison() {
+  const cv = document.getElementById('comparisonCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const rockets = [
+    { name: 'Saturn V', fuel: 96 },
+    { name: 'Falcon 9', fuel: 95 },
+    { name: 'Shuttle', fuel: 85 },
+    { name: 'Soyuz', fuel: 91 }
+  ];
+
+  const barWidth = 50;
+  const spacing = w / (rockets.length + 1);
+
+  rockets.forEach((r, i) => {
+    const x = spacing * (i + 1);
+    const barHeight = (r.fuel / 100) * (h - 80);
+
+    // Bar
+    ctx.fillStyle = `rgba(251,146,60,${0.3 + (r.fuel/100) * 0.5})`;
+    ctx.fillRect(x - barWidth/2, h - 60 - barHeight, barWidth, barHeight);
+
+    ctx.strokeStyle = 'rgba(251,146,60,0.8)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - barWidth/2, h - 60 - barHeight, barWidth, barHeight);
+
+    // Label
+    ctx.fillStyle = '#c8c8e8';
+    ctx.font = '12px Nunito';
+    ctx.textAlign = 'center';
+    ctx.fillText(r.name, x, h - 25);
+
+    // Percentage
+    ctx.fillStyle = 'rgba(251,146,60,0.9)';
+    ctx.font = 'bold 13px Nunito';
+    ctx.fillText(r.fuel + '%', x, h - 60 - barHeight - 8);
+  });
+
+  // Axes
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(30, 20);
+  ctx.lineTo(30, h - 60);
+  ctx.lineTo(w - 10, h - 60);
+  ctx.stroke();
+
+  // Y-axis label
+  ctx.fillStyle = '#7070a0';
+  ctx.font = '11px Nunito';
+  ctx.textAlign = 'right';
+  ctx.fillText('100%', 25, 25);
+  ctx.fillText('0%', 25, h - 55);
+}
+
+// ── Confetti ──
+const cc = document.getElementById('confetti');
+const cxc = cc.getContext('2d');
+let parts = [];
+
+function launchConfetti() {
+  cc.width = innerWidth;
+  cc.height = innerHeight;
+  parts = [];
+  for (let i = 0; i < 90; i++) {
+    parts.push({
+      x: Math.random() * cc.width,
+      y: -20,
+      vx: (Math.random() - 0.5) * 5,
+      vy: 2 + Math.random() * 4,
+      c: ['#fb923c', '#22d3ee', '#fbbf24', '#f472b6', '#10b981'][Math.floor(Math.random() * 5)],
+      s: 5 + Math.random() * 7,
+      r: Math.random() * Math.PI * 2,
+      vr: (Math.random() - 0.5) * 0.2,
+      l: 1
+    });
+  }
+  animateConfetti();
+  setTimeout(() => { parts = []; }, 3500);
+}
+
+function animateConfetti() {
+  cxc.clearRect(0, 0, cc.width, cc.height);
+  parts = parts.filter(p => p.l > 0.01);
+  parts.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.1;
+    p.r += p.vr;
+    p.l -= 0.012;
+    cxc.save();
+    cxc.globalAlpha = p.l;
+    cxc.translate(p.x, p.y);
+    cxc.rotate(p.r);
+    cxc.fillStyle = p.c;
+    cxc.fillRect(-p.s/2, -p.s/2, p.s, p.s * 0.6);
+    cxc.restore();
+  });
+  if (parts.length > 0) requestAnimationFrame(animateConfetti);
+}
+
+// Initialize on load
+window.addEventListener('load', () => {
+  drawRocket();
+  drawComparison();
+});
+</script>
+</body>
+</html>

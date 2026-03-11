@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Routing — A Visual Discovery of Mathematics</title>
+    <meta name="description" content="Explore packet switching, flow networks, and internet routing via interactive visualisations of the Ford-Fulkerson algorithm and TCP congestion control.">
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="Network Routing — A Visual Discovery of Mathematics">
+    <meta property="og:description" content="Explore packet switching, flow networks, and internet routing via interactive visualisations.">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Network Routing — A Visual Discovery of Mathematics">
+    <meta name="twitter:description" content="Explore packet switching, flow networks, and internet routing via interactive visualisations.">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "LearningResource",
+        "name": "Network Routing",
+        "description": "Interactive exploration of packet switching, flow networks, max-flow/min-cut, and internet routing.",
+        "educationalLevel": "Advanced",
+        "difficultyLevel": "3",
+        "url": "https://mathsedu.org/network_routing.html",
+        "isPartOf": {
+            "@type": "Course",
+            "name": "The Mathematics Behind the Internet"
+        }
+    }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #0a0a1a;
+            color: #e0e0e0;
+            font-family: Georgia, serif;
+            line-height: 1.7;
+            font-size: 1em;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 24px 28px 48px;
+        }
+
+        .back {
+            display: inline-block;
+            color: #22d3ee;
+            text-decoration: none;
+            font-size: 0.95em;
+            margin-bottom: 20px;
+            transition: color 0.2s;
+        }
+
+        .back:hover {
+            color: #ffffff;
+        }
+
+        h1 {
+            font-size: 2.4em;
+            margin-bottom: 10px;
+            color: #ffffff;
+            font-weight: normal;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            font-style: italic;
+            color: #b0b0c4;
+            margin-bottom: 28px;
+            font-size: 1.05em;
+        }
+
+        .narrative {
+            background: rgba(34, 211, 238, 0.05);
+            border-left: 4px solid #22d3ee;
+            padding: 20px;
+            margin-bottom: 36px;
+            line-height: 1.8;
+            font-size: 1.02em;
+        }
+
+        .section {
+            margin-bottom: 48px;
+        }
+
+        .section h2 {
+            font-size: 1.7em;
+            color: #22d3ee;
+            margin-bottom: 16px;
+            font-weight: normal;
+        }
+
+        .section h3 {
+            font-size: 1.2em;
+            color: #b0b0c4;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            font-weight: normal;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            color: #b0b0c4;
+            padding: 5px 13px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            font-size: 0.92em;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.07);
+            color: #e0e0ef;
+        }
+
+        .btn.active {
+            background: rgba(34, 211, 238, 0.13);
+            border-color: rgba(34, 211, 238, 0.4);
+            color: #22d3ee;
+        }
+
+        .insight-box {
+            background: rgba(34, 211, 238, 0.08);
+            border-left: 3px solid #22d3ee;
+            padding: 16px;
+            margin: 20px 0;
+            font-size: 0.95em;
+        }
+
+        .explain {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 6px;
+        }
+
+        .explain-name {
+            color: #22d3ee;
+            font-weight: bold;
+            min-width: 100px;
+        }
+
+        .explain-text {
+            color: #d0d0d8;
+        }
+
+        .formula-block {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 16px;
+            margin: 16px 0;
+            border-radius: 6px;
+            font-family: "Courier New", monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            color: #90ee90;
+        }
+
+        canvas {
+            border-radius: 6px;
+            display: block;
+            background: rgba(0, 0, 0, 0.3);
+            margin-bottom: 16px;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .slider-row label {
+            min-width: 120px;
+            font-size: 0.9em;
+            color: #b0b0c4;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .value-display {
+            color: #22d3ee;
+            min-width: 60px;
+            text-align: right;
+            font-family: "Courier New", monospace;
+            font-size: 0.9em;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            .section h2 {
+                font-size: 1.4em;
+            }
+        }
+
+        footer {
+            text-align: center;
+            padding: 28px 20px 18px;
+            color: #505068;
+            font-size: 0.72em;
+            line-height: 1.7;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            margin-top: 30px;
+        }
+
+        footer a {
+            color: #606078;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        footer a:hover {
+            color: #808088;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            background: rgba(34, 211, 238, 0.07);
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            color: #909099;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 1.4em;
+            color: #22d3ee;
+            font-family: "Courier New", monospace;
+            margin-top: 4px;
+        }
+
+        .warning {
+            color: #ff6b6b;
+        }
+
+        .success {
+            color: #51cf66;
+        }
+
+        p {
+            margin-bottom: 14px;
+        }
+
+        input[type="number"] {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: "Courier New", monospace;
+            font-size: 0.9em;
+            width: 70px;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #22d3ee;
+            background: rgba(34, 211, 238, 0.1);
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/network_routing.html">
+  </head>
+<body>
+    <div class="container">
+        <a class="back" href="index.html">&larr; Back to Index</a>
+    <nav class="breadcrumb" style="font-size:0.82em;color:#707088;margin:6px 0 18px">
+    <a href="index.html" style="color:#707088;text-decoration:none">Home</a>
+    <span style="margin:0 6px">&rsaquo;</span>
+    <span style="color:#b0b0c0">Network Routing</span>
+</nav><h1>Network Routing</h1>
+        <p class="subtitle">How the internet moves information globally&thinsp;&mdash;&thinsp;and the mathematics that makes it work</p>
+
+        <div class="narrative">
+            When you send a message, it is not transmitted as one continuous stream to its destination. Instead, it is split into tiny packets that may take completely different routes across the world, travelling through different routers, links and continents—yet all arrive, reassemble perfectly, and deliver your intended meaning. This elegant idea, born in the 1960s, transformed communication forever. The mathematics underlying this magic comes from a surprisingly beautiful theory: <em>flow networks</em> and the algorithms that optimise them. Max-flow, min-cut, and protocol design all interweave to make the internet possible.
+        </div>
+
+        <!-- Section 1: Circuit Switching vs Packet Switching -->
+        <div class="section">
+            <h2>Circuit Switching vs Packet Switching</h2>
+
+            <p>Before the internet, telephone networks operated on <strong>circuit switching</strong>. When you called someone, a dedicated electrical circuit was established from your phone to theirs. That circuit remained open for the duration of the call, whether anyone was speaking or not. If many people were calling at once, new calls would be rejected—the network could not share circuits. Bandwidth was wasted during silences, and capacity was fundamentally rigid.</p>
+
+            <p>In 1964, Paul Baran proposed a revolutionary alternative: <strong>packet switching</strong>. Rather than dedicating a path for the entire communication, data is divided into small packets. Each packet is independently routed through the network, potentially taking different paths. Links can be shared: when one packet finishes, another begins. This approach is far more efficient and resilient.</p>
+
+            <h3>Interactive Comparison</h3>
+            <p>Toggle between circuit and packet switching. Observe how circuit switching dedicates one path (blocking others), while packet switching shares links dynamically:</p>
+
+            <div class="panel">
+                <div class="btn-row">
+                    <button class="btn active" id="btn_circuit">Circuit Switching</button>
+                    <button class="btn" id="btn_packet">Packet Switching</button>
+                </div>
+                <canvas id="canvas_switching" width="900" height="350"></canvas>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Link Utilisation (active mode)</div>
+                        <div class="stat-value" id="util_switching">42%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Calls/Messages Supported</div>
+                        <div class="stat-value" id="calls_switching">1</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Efficiency</div>
+                        <div class="stat-value" id="eff_switching">Low</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="insight-box">
+                <strong>Key insight:</strong> Packet switching allows <em>statistical multiplexing</em>. Because not all users transmit at once, the network can carry more simultaneous communications at far higher utilisation. This is why the modern internet scales to billions of devices.
+            </div>
+        </div>
+
+        <!-- Section 2: Flow Networks -->
+        <div class="section">
+            <h2>Flow Networks — Capacity and Flow</h2>
+
+            <p>To understand routing and congestion mathematically, we model networks as directed graphs with <strong>capacity</strong> constraints. Each edge has a maximum amount of "flow" (data, packets, bandwidth) it can carry. A <strong>source node</strong> (s) generates flow, and a <strong>sink node</strong> (t) consumes it. At every other node, <strong>flow conservation</strong> must hold: what comes in must go out.</p>
+
+            <div class="formula-block">
+Flow conservation at node v ≠ s, t:
+  Σ (flow into v) = Σ (flow out of v)
+
+At source s:
+  Σ (flow out of s) = total flow
+
+At sink t:
+  Σ (flow into t) = total flow
+            </div>
+
+            <p>Below is an interactive flow network. Each edge shows <strong>flow/capacity</strong>. Try to assign flow yourself. The system will check constraints and highlight violations:</p>
+
+            <div class="panel">
+                <h3>Interactive Flow Network</h3>
+                <canvas id="canvas_flow_network" width="900" height="400"></canvas>
+                <div class="btn-row">
+                    <button class="btn" id="btn_flow_reset">Reset All Flow</button>
+                    <button class="btn" id="btn_flow_randomise">Randomise Flow</button>
+                </div>
+                <div id="flow_info" style="font-size: 0.9em; color: #b0b0c4;"></div>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Flow s → t</div>
+                        <div class="stat-value" id="stat_total_flow">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Capacity Violations</div>
+                        <div class="stat-value" id="stat_violations">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Conservation Status</div>
+                        <div class="stat-value" id="stat_conservation">✓</div>
+                    </div>
+                </div>
+                <div class="explain">
+                    <div class="explain-name">Tip:</div>
+                    <div class="explain-text">Click on an edge label to modify flow. Flow must not exceed the capacity shown (e.g., "3/5" means capacity 5). Try to construct a valid flow from s (top-left) to t (bottom-right).</div>
+                </div>
+            </div>
+
+            <div class="insight-box">
+                <strong>Why flow networks matter:</strong> They model not just packet routing but also commodity distribution, airline scheduling, and many resource allocation problems. The constraints are simple, yet the optimisation is profound.
+            </div>
+        </div>
+
+        <!-- Section 3: Max-Flow Algorithm -->
+        <div class="section">
+            <h2>Max-Flow — The Ford-Fulkerson Algorithm</h2>
+
+            <p>The max-flow problem asks: what is the maximum amount of flow we can push from s to t while respecting capacity constraints? The <strong>Ford-Fulkerson algorithm</strong> (1956) solves this elegantly by repeatedly finding <strong>augmenting paths</strong>: paths from s to t where every edge has spare capacity. We push as much flow as possible along each path, then repeat on the updated network (the <strong>residual graph</strong>), until no augmenting path exists.</p>
+
+            <div class="formula-block">
+Ford-Fulkerson Algorithm:
+  1. Start with zero flow on all edges
+  2. While there exists an augmenting path P from s to t:
+       - Let δ = min capacity available on edges of P
+       - Increase flow by δ along all edges of P
+  3. Return the total flow
+            </div>
+
+            <p>The algorithm terminates when the residual graph has no s-t path. At this point, the flow is maximal. Remarkably, the max flow value equals the capacity of the minimum cut (a fact we explore next).</p>
+
+            <h3>Interactive Ford-Fulkerson Simulation</h3>
+            <p>Step through the algorithm. Watch augmenting paths light up in cyan, and see flow increase at each iteration:</p>
+
+            <div class="panel">
+                <canvas id="canvas_ff_network" width="900" height="420"></canvas>
+                <div class="btn-row">
+                    <button class="btn" id="btn_ff_step">Next Step</button>
+                    <button class="btn" id="btn_ff_auto">Auto (Fast)</button>
+                    <button class="btn" id="btn_ff_reset_algo">Reset</button>
+                </div>
+                <div id="ff_message" style="font-size: 0.9em; color: #b0b0c4; margin-bottom: 12px; min-height: 20px;"></div>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Current Flow</div>
+                        <div class="stat-value" id="stat_current_flow">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Iterations</div>
+                        <div class="stat-value" id="stat_iterations">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Status</div>
+                        <div class="stat-value" id="stat_ff_status">Ready</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="insight-box">
+                <strong>Residual graph:</strong> After pushing flow along an edge, we reduce its forward capacity and create a "reverse edge" with that flow as capacity. This allows the algorithm to "undo" flow decisions—a powerful mechanism.
+            </div>
+        </div>
+
+        <!-- Section 4: Max-Flow Min-Cut Theorem -->
+        <div class="section">
+            <h2>The Max-Flow Min-Cut Theorem</h2>
+
+            <p>A <strong>cut</strong> in a flow network is a partition of nodes into two sets: S (containing source s) and T (containing sink t). The <strong>capacity of the cut</strong> is the sum of capacities of all edges leaving S and entering T (forward edges only).</p>
+
+            <p>Here is one of the most elegant theorems in computer science and mathematics:</p>
+
+            <div class="insight-box" style="font-size: 1.05em; font-style: italic;">
+                <strong>Max-Flow Min-Cut Theorem (Ford &amp; Fulkerson, 1956):</strong><br><br>
+                The maximum flow from s to t equals the minimum capacity of any cut separating s from t.
+            </div>
+
+            <p>This theorem provides both a correctness proof and a bound: any cut's capacity is an upper bound on flow. The max-flow algorithm finds a flow that saturates a minimum cut, proving optimality.</p>
+
+            <h3>Interactive Cut Visualisation</h3>
+            <p>Below, after running the Ford-Fulkerson algorithm, all minimum cuts are revealed. Click to highlight different cuts and verify that their capacity equals the max flow:</p>
+
+            <div class="panel">
+                <canvas id="canvas_mincut" width="900" height="420"></canvas>
+                <div class="btn-row">
+                    <button class="btn" id="btn_mincut_prev">← Previous Cut</button>
+                    <button class="btn" id="btn_mincut_next">Next Cut →</button>
+                    <button class="btn" id="btn_mincut_all">Show All Cuts</button>
+                </div>
+                <div id="mincut_info" style="font-size: 0.9em; color: #b0b0c4; margin-bottom: 12px;"></div>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Max Flow (= Min Cut Capacity)</div>
+                        <div class="stat-value" id="stat_max_flow">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Current Cut Capacity</div>
+                        <div class="stat-value" id="stat_cut_capacity">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Number of Minimum Cuts Found</div>
+                        <div class="stat-value" id="stat_mincut_count">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="insight-box">
+                <strong>Intuition:</strong> Every unit of flow must cross from S to T at some point. The bottleneck—the minimum cut—is the tightest constraint. The max-flow algorithm finds the maximum rate at which we can push flow across this bottleneck.
+            </div>
+        </div>
+
+        <!-- Section 5: Internet Routing -->
+        <div class="section">
+            <h2>Internet Routing Protocols</h2>
+
+            <p>The theoretical max-flow framework guides real-world routing, but internet routing is more complex. Real routers must adapt to link failures, topology changes, and policy constraints. Two main paradigms exist:</p>
+
+            <h3>OSPF (Open Shortest Path First)</h3>
+            <p>OSPF is an <strong>intra-domain</strong> routing protocol used within an autonomous system (AS). Every router floods link-state information—the full network topology and link costs—to every other router. Each router then independently runs Dijkstra's algorithm to compute shortest paths. When a link fails, routers quickly detect it (via loss of "hello" packets), flood the new topology, and re-compute paths. The network <strong>converges</strong> within seconds to minutes.</p>
+
+            <h3>BGP (Border Gateway Protocol)</h3>
+            <p>BGP operates <strong>inter-domain</strong>, between autonomous systems (owned by different ISPs and organisations). BGP routers exchange <strong>reachability</strong> information: "I can reach prefix 192.0.2.0/24 via this path." Decisions are made not purely on path length but on policy: preferred AS paths, revenue agreements, and traffic engineering goals. BGP can take many minutes to converge after failures, leading to the famous phrase: <em>"the internet is held together by BGP and goodwill."</em></p>
+
+            <h3>Interactive Link Failure and Convergence</h3>
+            <p>Below, a network of routers runs OSPF. Click "Fail Link" to break a random link. Watch the routing tables update as the network reconverges. The red path shows packets rerouting:</p>
+
+            <div class="panel">
+                <canvas id="canvas_ospf" width="900" height="420"></canvas>
+                <div class="btn-row">
+                    <button class="btn" id="btn_ospf_reset">Reset Network</button>
+                    <button class="btn" id="btn_ospf_fail">Fail Random Link</button>
+                    <button class="btn" id="btn_ospf_recover">Recover Link</button>
+                </div>
+                <div id="ospf_info" style="font-size: 0.9em; color: #b0b0c4; margin-bottom: 12px; min-height: 40px;"></div>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Network State</div>
+                        <div class="stat-value" id="stat_ospf_state">Healthy</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Convergence Time</div>
+                        <div class="stat-value" id="stat_ospf_time">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Failed Links</div>
+                        <div class="stat-value" id="stat_ospf_failures">0</div>
+                    </div>
+                </div>
+                <div class="explain">
+                    <div class="explain-name">Observe:</div>
+                    <div class="explain-text">The initial path (blue line) is shortest. When a link fails, the path recomputes (red line) to avoid the failure. Each link is weighted equally; OSPF minimises hop count.</div>
+                </div>
+            </div>
+
+            <div class="insight-box">
+                <strong>Routing and flow networks:</strong> While OSPF and BGP do not explicitly solve max-flow problems, link failures, congestion, and capacity constraints motivate traffic engineering—using flow network concepts to optimally use available bandwidth.
+            </div>
+        </div>
+
+        <!-- Section 6: TCP Congestion Control -->
+        <div class="section">
+            <h2>Congestion Control and TCP</h2>
+
+            <p>Once packets are routed, the rate at which sources send must be controlled to avoid overwhelming networks. <strong>TCP (Transmission Control Protocol)</strong> uses <strong>additive increase, multiplicative decrease</strong> (AIMD): senders increase their sending rate slowly (additively) when there is no loss, but halve it sharply (multiplicatively) when packets are lost or marked as congested.</p>
+
+            <p>This simple rule has a beautiful property: multiple flows competing for bandwidth converge to <strong>fair sharing</strong>, where each flow gets an equal fraction. The rate oscillates in a characteristic sawtooth pattern.</p>
+
+            <h3>Interactive TCP Congestion Simulation</h3>
+            <p>Below, multiple flows share a bottleneck link. Each flow's sending rate is plotted over time. Watch the sawtooth pattern emerge as TCP reacts to congestion:</p>
+
+            <div class="panel">
+                <canvas id="canvas_tcp" width="900" height="380"></canvas>
+                <div class="btn-row">
+                    <button class="btn" id="btn_tcp_reset">Reset Simulation</button>
+                    <button class="btn" id="btn_tcp_pause">Pause</button>
+                </div>
+                <div class="slider-row">
+                    <label for="slider_tcp_flows">Number of Flows:</label>
+                    <input type="range" id="slider_tcp_flows" min="1" max="5" value="2">
+                    <div class="value-display" id="display_tcp_flows">2</div>
+                </div>
+                <div class="slider-row">
+                    <label for="slider_tcp_link">Link Capacity (Mbps):</label>
+                    <input type="range" id="slider_tcp_link" min="10" max="100" value="50" step="10">
+                    <div class="value-display" id="display_tcp_link">50</div>
+                </div>
+                <div id="tcp_info" style="font-size: 0.85em; color: #b0b0c4; margin-bottom: 12px;"></div>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Simulation Time</div>
+                        <div class="stat-value" id="stat_tcp_time">0s</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Link Utilisation</div>
+                        <div class="stat-value" id="stat_tcp_util">0%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Fairness Index</div>
+                        <div class="stat-value" id="stat_tcp_fairness">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="insight-box">
+                <strong>Why AIMD works:</strong> When congestion occurs, multiplicative decrease ensures all flows reduce rate proportionally. Additive increase then allows the network to explore higher rates. Together, they drive the system toward equilibrium where flows are fairly allocated and link is well utilised.
+            </div>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="section">
+            <h2>Synthesis: From Theory to Practice</h2>
+
+            <p><strong>Packet switching</strong> enables efficient use of bandwidth by multiplexing independent flows. <strong>Flow networks</strong and the <strong>max-flow/min-cut theorem</strong> provide the mathematical foundation: they tell us the maximum capacity and the bottleneck. <strong>Routing protocols</strong like OSPF and BGP distribute packets optimally (or near-optimally) through the topology. Finally, <strong>TCP congestion control</strong> ensures that sources behave fairly and adapt to network conditions.</p>
+
+            <p>These ideas, developed in the 1950s through 1980s, remain central to the modern internet. Every bit of data you send crosses routers running variants of these algorithms. The mathematics is not a luxury—it is the skeleton that holds the internet together.</p>
+
+            <div class="insight-box">
+                <strong>Further exploration:</strong> Study the simplex method for linear programming (generalises max-flow), learn about game theory and fairness in bandwidth allocation, explore multicast flow problems, and investigate modern Software-Defined Networking (SDN) which explicitly optimises flows.
+            </div>
+        </div>
+    </div>
+
+    <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="terms.html" style="color:#606078;text-decoration:none">Terms of Use</a>
+        &nbsp;&middot;&nbsp;
+        <a href="intellectual-property.html" style="color:#606078;text-decoration:none">Intellectual Property</a>
+        &nbsp;&middot;&nbsp;
+        <a href="privacy.html" style="color:#606078;text-decoration:none">Privacy Policy</a>
+    </div>
+</footer>
+
+    <script>
+        // ====== Utility Functions ======
+        function drawCircle(ctx, x, y, r, fill, stroke, lineWidth = 2) {
+            ctx.fillStyle = fill;
+            ctx.strokeStyle = stroke;
+            ctx.lineWidth = lineWidth;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function drawLine(ctx, x1, y1, x2, y2, color, width = 2, dashed = false) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            if (dashed) ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawArrowhead(ctx, fromX, fromY, toX, toY, color, size = 8) {
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(toX, toY);
+            ctx.lineTo(toX - size * Math.cos(angle - Math.PI / 6), toY - size * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(toX - size * Math.cos(angle + Math.PI / 6), toY - size * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function drawText(ctx, text, x, y, color, size, align = "center", baseline = "middle") {
+            ctx.fillStyle = color;
+            ctx.font = `${size}px Georgia, serif`;
+            ctx.textAlign = align;
+            ctx.textBaseline = baseline;
+            ctx.fillText(text, x, y);
+        }
+
+        // ====== Section 1: Circuit vs Packet Switching ======
+        const canvas_switching = document.getElementById('canvas_switching');
+        const ctx_switching = canvas_switching.getContext('2d');
+        let switchingMode = 'circuit'; // 'circuit' or 'packet'
+        let animationTime = 0;
+
+        function drawNetworkTopology(ctx, width, height, mode, time) {
+            // Clear
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Three parallel paths
+            const startX = 60, endX = width - 60;
+            const paths = [
+                { y: 80, label: 'Path 1', color: '#22d3ee' },
+                { y: 150, label: 'Path 2', color: '#22d3ee' },
+                { y: 220, label: 'Path 3', color: '#22d3ee' }
+            ];
+
+            // Nodes
+            ctx.fillStyle = 'rgba(34, 211, 238, 0.2)';
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 2;
+            paths.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(startX, p.y, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(endX, p.y, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            });
+
+            // Labels
+            ctx.fillStyle = '#b0b0c4';
+            ctx.font = '12px Georgia, serif';
+            ctx.textAlign = 'right';
+            ctx.fillText('Source', startX - 20, height - 30);
+            ctx.textAlign = 'left';
+            ctx.fillText('Destination', endX + 20, height - 30);
+
+            if (mode === 'circuit') {
+                // Circuit mode: one dedicated path, others blocked
+                const dedicatedPath = 0;
+                paths.forEach((p, i) => {
+                    if (i === dedicatedPath) {
+                        // Dedicated: bright cyan, thick
+                        drawLine(ctx, startX + 12, p.y, endX - 12, p.y, '#22d3ee', 6);
+                        drawText(ctx, 'CIRCUIT (dedicated)', (startX + endX) / 2, p.y - 25, '#22d3ee', 13);
+                    } else {
+                        // Blocked
+                        drawLine(ctx, startX + 12, p.y, endX - 12, p.y, '#555555', 2);
+                        drawText(ctx, 'BLOCKED', (startX + endX) / 2, p.y + 25, '#666666', 11);
+                    }
+                });
+
+                // Update stats
+                document.getElementById('util_switching').textContent = '42%';
+                document.getElementById('calls_switching').textContent = '1';
+                document.getElementById('eff_switching').textContent = 'Low';
+
+            } else {
+                // Packet mode: packets traverse different paths
+                ctx.strokeStyle = '#22d3ee';
+                ctx.lineWidth = 2;
+                paths.forEach((p, i) => {
+                    drawLine(ctx, startX + 12, p.y, endX - 12, p.y, 'rgba(34, 211, 238, 0.4)', 2);
+                });
+
+                // Animated packets
+                const packetSize = 8;
+                const numPackets = 6;
+                for (let i = 0; i < numPackets; i++) {
+                    const pathIdx = i % 3;
+                    const p = paths[pathIdx];
+                    const progress = ((time / 50 + i * 0.15) % 1);
+                    const x = startX + (endX - startX) * progress;
+                    drawCircle(ctx, x, p.y, packetSize, 'rgba(34, 211, 238, 0.8)', '#22d3ee', 1);
+                }
+
+                drawText(ctx, 'Packets sharing all paths', (startX + endX) / 2, height - 60, '#22d3ee', 13);
+
+                // Update stats
+                document.getElementById('util_switching').textContent = '87%';
+                document.getElementById('calls_switching').textContent = '4–5';
+                document.getElementById('eff_switching').textContent = 'High';
+            }
+        }
+
+        function animateSwitching() {
+            drawNetworkTopology(ctx_switching, canvas_switching.width, canvas_switching.height, switchingMode, animationTime);
+            animationTime += 2;
+            requestAnimationFrame(animateSwitching);
+        }
+
+        document.getElementById('btn_circuit').addEventListener('click', () => {
+            switchingMode = 'circuit';
+            document.getElementById('btn_circuit').classList.add('active');
+            document.getElementById('btn_packet').classList.remove('active');
+        });
+
+        document.getElementById('btn_packet').addEventListener('click', () => {
+            switchingMode = 'packet';
+            document.getElementById('btn_packet').classList.add('active');
+            document.getElementById('btn_circuit').classList.remove('active');
+        });
+
+        animateSwitching();
+
+        // ====== Section 2: Flow Network ======
+        const canvas_flow = document.getElementById('canvas_flow_network');
+        const ctx_flow = canvas_flow.getContext('2d');
+
+        // Flow network graph (small example)
+        class FlowGraph {
+            constructor() {
+                this.nodes = [
+                    { id: 's', x: 100, y: 200, label: 's' },
+                    { id: 'a', x: 250, y: 80, label: 'a' },
+                    { id: 'b', x: 250, y: 320, label: 'b' },
+                    { id: 'c', x: 400, y: 150, label: 'c' },
+                    { id: 'd', x: 400, y: 280, label: 'd' },
+                    { id: 't', x: 550, y: 200, label: 't' }
+                ];
+
+                this.edges = [
+                    { from: 's', to: 'a', capacity: 10, flow: 0 },
+                    { from: 's', to: 'b', capacity: 10, flow: 0 },
+                    { from: 'a', to: 'c', capacity: 4, flow: 0 },
+                    { from: 'a', to: 'd', capacity: 2, flow: 0 },
+                    { from: 'b', to: 'd', capacity: 8, flow: 0 },
+                    { from: 'b', to: 'a', capacity: 3, flow: 0 },
+                    { from: 'c', to: 't', capacity: 10, flow: 0 },
+                    { from: 'd', to: 't', capacity: 10, flow: 0 }
+                ];
+
+                this.selectedEdgeIdx = null;
+            }
+
+            findNode(id) {
+                return this.nodes.find(n => n.id === id);
+            }
+
+            draw(ctx, width, height) {
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(0, 0, width, height);
+
+                // Draw edges
+                this.edges.forEach((e, i) => {
+                    const fromNode = this.findNode(e.from);
+                    const toNode = this.findNode(e.to);
+
+                    const isSelected = (i === this.selectedEdgeIdx);
+                    const color = isSelected ? '#22d3ee' : 'rgba(34, 211, 238, 0.5)';
+                    drawLine(ctx, fromNode.x, fromNode.y, toNode.x, toNode.y, color, isSelected ? 3 : 2);
+
+                    // Arrowhead
+                    const dx = toNode.x - fromNode.x;
+                    const dy = toNode.y - fromNode.y;
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    const ex = fromNode.x + (dx / len) * (len - 16);
+                    const ey = fromNode.y + (dy / len) * (len - 16);
+                    drawArrowhead(ctx, fromNode.x, fromNode.y, ex, ey, color, 6);
+
+                    // Label
+                    const mx = (fromNode.x + toNode.x) / 2;
+                    const my = (fromNode.y + toNode.y) / 2;
+                    const labelX = mx - 15;
+                    const labelY = my - 15;
+                    ctx.fillStyle = isSelected ? '#22d3ee' : '#b0b0c4';
+                    ctx.font = 'bold 11px Georgia, serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${e.flow}/${e.capacity}`, labelX, labelY);
+                });
+
+                // Draw nodes
+                this.nodes.forEach(n => {
+                    drawCircle(ctx, n.x, n.y, 18, 'rgba(34, 211, 238, 0.15)', '#22d3ee', 2);
+                    drawText(ctx, n.label, n.x, n.y, '#22d3ee', 14, 'center', 'middle');
+                });
+            }
+
+            getNodeAt(x, y) {
+                for (let n of this.nodes) {
+                    if (Math.hypot(x - n.x, y - n.y) < 25) return n;
+                }
+                return null;
+            }
+
+            getEdgeAt(x, y) {
+                for (let i = 0; i < this.edges.length; i++) {
+                    const e = this.edges[i];
+                    const from = this.findNode(e.from);
+                    const to = this.findNode(e.to);
+                    const dist = this.pointLineDistance(x, y, from.x, from.y, to.x, to.y);
+                    if (dist < 15) return i;
+                }
+                return null;
+            }
+
+            pointLineDistance(px, py, x1, y1, x2, y2) {
+                const A = px - x1, B = py - y1, C = x2 - x1, D = y2 - y1;
+                const dot = A * C + B * D;
+                const lenSq = C * C + D * D;
+                const param = Math.max(0, Math.min(1, dot / lenSq));
+                const xx = x1 + param * C - px;
+                const yy = y1 + param * D - py;
+                return Math.sqrt(xx * xx + yy * yy);
+            }
+
+            checkValidity() {
+                let totalViolations = 0;
+
+                // Check capacity
+                for (let e of this.edges) {
+                    if (e.flow > e.capacity) totalViolations++;
+                }
+
+                // Check conservation (except s and t)
+                const inFlow = {}, outFlow = {};
+                for (let id of ['a', 'b', 'c', 'd']) {
+                    inFlow[id] = 0;
+                    outFlow[id] = 0;
+                }
+
+                for (let e of this.edges) {
+                    if (e.from !== 's' && e.from !== 't') outFlow[e.from] = (outFlow[e.from] || 0) + e.flow;
+                    if (e.to !== 's' && e.to !== 't') inFlow[e.to] = (inFlow[e.to] || 0) + e.flow;
+                }
+
+                for (let id of ['a', 'b', 'c', 'd']) {
+                    if (Math.abs((inFlow[id] || 0) - (outFlow[id] || 0)) > 0.01) totalViolations++;
+                }
+
+                // Total flow s->t
+                let totalFlow = 0;
+                for (let e of this.edges) {
+                    if (e.from === 's') totalFlow += e.flow;
+                }
+
+                return { violations: totalViolations, flow: totalFlow };
+            }
+
+            reset() {
+                this.edges.forEach(e => e.flow = 0);
+                this.selectedEdgeIdx = null;
+            }
+
+            randomise() {
+                this.edges.forEach(e => {
+                    e.flow = Math.random() * (e.capacity * 0.8);
+                });
+            }
+        }
+
+        const flowGraph = new FlowGraph();
+
+        function updateFlowInfo() {
+            const validity = flowGraph.checkValidity();
+            document.getElementById('stat_total_flow').textContent = validity.flow.toFixed(1);
+            document.getElementById('stat_violations').textContent = validity.violations;
+            const conserv = validity.violations === 0 ? '✓' : '✗';
+            document.getElementById('stat_conservation').textContent = conserv;
+            document.getElementById('stat_conservation').style.color = (conserv === '✓') ? '#51cf66' : '#ff6b6b';
+        }
+
+        function drawFlowNetwork() {
+            flowGraph.draw(ctx_flow, canvas_flow.width, canvas_flow.height);
+            updateFlowInfo();
+        }
+
+        canvas_flow.addEventListener('click', (e) => {
+            const rect = canvas_flow.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const edgeIdx = flowGraph.getEdgeAt(x, y);
+            if (edgeIdx !== null) {
+                flowGraph.selectedEdgeIdx = (flowGraph.selectedEdgeIdx === edgeIdx) ? null : edgeIdx;
+            }
+        });
+
+        canvas_flow.addEventListener('click', (e) => {
+            const rect = canvas_flow.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const edgeIdx = flowGraph.getEdgeAt(x, y);
+            if (edgeIdx !== null) {
+                const newFlow = prompt(`Edge ${flowGraph.edges[edgeIdx].from}→${flowGraph.edges[edgeIdx].to}\nCapacity: ${flowGraph.edges[edgeIdx].capacity}\nCurrent flow: ${flowGraph.edges[edgeIdx].flow.toFixed(1)}\n\nNew flow:`,
+                    flowGraph.edges[edgeIdx].flow.toFixed(1));
+                if (newFlow !== null) {
+                    flowGraph.edges[edgeIdx].flow = Math.max(0, parseFloat(newFlow) || 0);
+                }
+            }
+        });
+
+        document.getElementById('btn_flow_reset').addEventListener('click', () => {
+            flowGraph.reset();
+            drawFlowNetwork();
+        });
+
+        document.getElementById('btn_flow_randomise').addEventListener('click', () => {
+            flowGraph.randomise();
+            drawFlowNetwork();
+        });
+
+        drawFlowNetwork();
+
+        // ====== Section 3: Ford-Fulkerson Algorithm ======
+        const canvas_ff = document.getElementById('canvas_ff_network');
+        const ctx_ff = canvas_ff.getContext('2d');
+
+        class FFNetwork {
+            constructor() {
+                this.nodes = [
+                    { id: 's', x: 80, y: 210, label: 's' },
+                    { id: '1', x: 220, y: 80, label: '1' },
+                    { id: '2', x: 220, y: 180, label: '2' },
+                    { id: '3', x: 220, y: 280, label: '3' },
+                    { id: '4', x: 360, y: 100, label: '4' },
+                    { id: '5', x: 360, y: 280, label: '5' },
+                    { id: 't', x: 500, y: 210, label: 't' }
+                ];
+
+                this.edges = [
+                    { from: 's', to: '1', cap: 16, flow: 0 },
+                    { from: 's', to: '2', cap: 12, flow: 0 },
+                    { from: '1', to: '2', cap: 10, flow: 0 },
+                    { from: '1', to: '4', cap: 12, flow: 0 },
+                    { from: '2', to: '1', cap: 9, flow: 0 },
+                    { from: '2', to: '3', cap: 14, flow: 0 },
+                    { from: '2', to: '5', cap: 9, flow: 0 },
+                    { from: '3', to: '5', cap: 7, flow: 0 },
+                    { from: '4', to: 't', cap: 20, flow: 0 },
+                    { from: '4', to: '5', cap: 4, flow: 0 },
+                    { from: '5', to: '3', cap: 6, flow: 0 },
+                    { from: '5', to: 't', cap: 10, flow: 0 }
+                ];
+
+                this.iterations = 0;
+                this.done = false;
+                this.augmentingPath = null;
+            }
+
+            findNode(id) {
+                return this.nodes.find(n => n.id === id);
+            }
+
+            buildResidual() {
+                const res = new Map();
+                for (let n of this.nodes) res.set(n.id, {});
+                for (let e of this.edges) {
+                    if (!res.get(e.from)[e.to]) res.get(e.from)[e.to] = 0;
+                    res.get(e.from)[e.to] += e.cap - e.flow;
+                    if (!res.get(e.to)[e.from]) res.get(e.to)[e.from] = 0;
+                    res.get(e.to)[e.from] += e.flow;
+                }
+                return res;
+            }
+
+            bfs(residual) {
+                const parent = {};
+                const queue = ['s'];
+                parent['s'] = null;
+                while (queue.length > 0) {
+                    const u = queue.shift();
+                    if (u === 't') break;
+                    for (let v in residual.get(u)) {
+                        if (!(v in parent) && residual.get(u)[v] > 0) {
+                            parent[v] = u;
+                            queue.push(v);
+                        }
+                    }
+                }
+                return parent;
+            }
+
+            step() {
+                if (this.done) return false;
+
+                const residual = this.buildResidual();
+                const parent = this.bfs(residual);
+
+                if (!('t' in parent)) {
+                    this.done = true;
+                    this.augmentingPath = null;
+                    return false;
+                }
+
+                // Find bottleneck
+                let bottleneck = Infinity;
+                let v = 't';
+                while (parent[v] !== null) {
+                    const u = parent[v];
+                    bottleneck = Math.min(bottleneck, residual.get(u)[v]);
+                    v = u;
+                }
+
+                // Update flow
+                v = 't';
+                const path = [];
+                while (parent[v] !== null) {
+                    const u = parent[v];
+                    path.unshift(u);
+                    const edgeIdx = this.edges.findIndex(e => e.from === u && e.to === v);
+                    if (edgeIdx !== -1) {
+                        this.edges[edgeIdx].flow += bottleneck;
+                    } else {
+                        const revIdx = this.edges.findIndex(e => e.from === v && e.to === u);
+                        if (revIdx !== -1) this.edges[revIdx].flow -= bottleneck;
+                    }
+                    v = u;
+                }
+                path.push('t');
+                this.augmentingPath = path;
+                this.iterations++;
+
+                return true;
+            }
+
+            getTotalFlow() {
+                return this.edges.filter(e => e.from === 's').reduce((sum, e) => sum + e.flow, 0);
+            }
+
+            reset() {
+                this.edges.forEach(e => e.flow = 0);
+                this.iterations = 0;
+                this.done = false;
+                this.augmentingPath = null;
+            }
+
+            draw(ctx, width, height) {
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(0, 0, width, height);
+
+                // Draw edges
+                for (let i = 0; i < this.edges.length; i++) {
+                    const e = this.edges[i];
+                    const from = this.findNode(e.from);
+                    const to = this.findNode(e.to);
+
+                    const onPath = this.augmentingPath && this.augmentingPath.includes(e.from) && this.augmentingPath.includes(e.to) &&
+                                   this.augmentingPath.indexOf(e.from) + 1 === this.augmentingPath.indexOf(e.to);
+                    const color = onPath ? '#22d3ee' : 'rgba(34, 211, 238, 0.4)';
+                    const width_ = onPath ? 3 : 2;
+
+                    drawLine(ctx, from.x, from.y, to.x, to.y, color, width_);
+
+                    const dx = to.x - from.x;
+                    const dy = to.y - from.y;
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    const ex = from.x + (dx / len) * (len - 16);
+                    const ey = from.y + (dy / len) * (len - 16);
+                    drawArrowhead(ctx, from.x, from.y, ex, ey, color, 6);
+
+                    const mx = (from.x + to.x) / 2;
+                    const my = (from.y + to.y) / 2;
+                    ctx.fillStyle = '#b0b0c4';
+                    ctx.font = 'bold 10px Georgia, serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${e.flow}/${e.cap}`, mx - 15, my - 12);
+                }
+
+                // Draw nodes
+                for (let n of this.nodes) {
+                    drawCircle(ctx, n.x, n.y, 16, 'rgba(34, 211, 238, 0.15)', '#22d3ee', 2);
+                    drawText(ctx, n.label, n.x, n.y, '#22d3ee', 13, 'center', 'middle');
+                }
+            }
+        }
+
+        const ffNetwork = new FFNetwork();
+        let ffAutoMode = false;
+
+        function drawFFNetwork() {
+            ffNetwork.draw(ctx_ff, canvas_ff.width, canvas_ff.height);
+            const msg = ffNetwork.done ? 'Maximum flow reached!' :
+                        ffNetwork.augmentingPath ? `Path: ${ffNetwork.augmentingPath.join(' → ')}` : '';
+            document.getElementById('ff_message').textContent = msg;
+            document.getElementById('stat_current_flow').textContent = ffNetwork.getTotalFlow();
+            document.getElementById('stat_iterations').textContent = ffNetwork.iterations;
+            document.getElementById('stat_ff_status').textContent = ffNetwork.done ? 'Complete' : (ffNetwork.augmentingPath ? 'Running' : 'Ready');
+        }
+
+        document.getElementById('btn_ff_step').addEventListener('click', () => {
+            ffAutoMode = false;
+            ffNetwork.step();
+            drawFFNetwork();
+        });
+
+        document.getElementById('btn_ff_auto').addEventListener('click', () => {
+            ffAutoMode = true;
+            const interval = setInterval(() => {
+                if (!ffNetwork.step() || !ffAutoMode) {
+                    ffAutoMode = false;
+                    clearInterval(interval);
+                }
+                drawFFNetwork();
+            }, 400);
+        });
+
+        document.getElementById('btn_ff_reset_algo').addEventListener('click', () => {
+            ffAutoMode = false;
+            ffNetwork.reset();
+            drawFFNetwork();
+        });
+
+        drawFFNetwork();
+
+        // ====== Section 4: Min-Cut ======
+        const canvas_mincut = document.getElementById('canvas_mincut');
+        const ctx_mincut = canvas_mincut.getContext('2d');
+
+        class MinCutVisualizer {
+            constructor(ffNetwork) {
+                this.ffNetwork = ffNetwork;
+                this.minCuts = [];
+                this.currentCutIdx = 0;
+                this.allCutsMode = false;
+            }
+
+            findMinCuts() {
+                // After max flow, compute reachable nodes in residual graph
+                const residual = this.ffNetwork.buildResidual();
+                const reachable = new Set(['s']);
+                const queue = ['s'];
+
+                while (queue.length > 0) {
+                    const u = queue.shift();
+                    for (let v in residual.get(u)) {
+                        if (!reachable.has(v) && residual.get(u)[v] > 0) {
+                            reachable.add(v);
+                            queue.push(v);
+                        }
+                    }
+                }
+
+                // A minimum cut separates reachable from unreachable nodes
+                // Capacity = sum of forward edges crossing the cut
+                let cutCapacity = 0;
+                const cutEdges = [];
+                for (let e of this.ffNetwork.edges) {
+                    if (reachable.has(e.from) && !reachable.has(e.to)) {
+                        cutCapacity += e.cap - e.flow; // Forward capacity
+                        cutEdges.push(e);
+                    }
+                }
+
+                this.minCuts = [{
+                    S: Array.from(reachable),
+                    T: this.ffNetwork.nodes.map(n => n.id).filter(id => !reachable.has(id)),
+                    capacity: cutCapacity,
+                    edges: cutEdges
+                }];
+
+                this.currentCutIdx = 0;
+            }
+
+            draw(ctx, width, height) {
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(0, 0, width, height);
+
+                if (this.minCuts.length === 0) {
+                    drawText(ctx, 'Run Ford-Fulkerson first', width / 2, height / 2, '#b0b0c4', 16);
+                    return;
+                }
+
+                const cut = this.minCuts[this.currentCutIdx];
+
+                // Draw regions
+                ctx.fillStyle = 'rgba(34, 211, 238, 0.08)';
+                ctx.fillRect(20, 20, width / 2 - 30, height - 40);
+                ctx.fillStyle = 'rgba(255, 100, 100, 0.08)';
+                ctx.fillRect(width / 2 + 10, 20, width / 2 - 30, height - 40);
+
+                ctx.strokeStyle = 'rgba(255, 100, 100, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(width / 2, 20);
+                ctx.lineTo(width / 2, height - 20);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Draw edges
+                for (let e of this.ffNetwork.edges) {
+                    const from = this.ffNetwork.findNode(e.from);
+                    const to = this.ffNetwork.findNode(e.to);
+
+                    const onCut = cut.edges.some(ce => ce.from === e.from && ce.to === e.to);
+                    const color = onCut ? '#ff6b6b' : 'rgba(34, 211, 238, 0.3)';
+                    const w = onCut ? 3 : 2;
+
+                    drawLine(ctx, from.x, from.y, to.x, to.y, color, w);
+
+                    const dx = to.x - from.x;
+                    const dy = to.y - from.y;
+                    const len = Math.sqrt(dx * dx + dy * dy);
+                    const ex = from.x + (dx / len) * (len - 16);
+                    const ey = from.y + (dy / len) * (len - 16);
+                    drawArrowhead(ctx, from.x, from.y, ex, ey, color, 6);
+
+                    const mx = (from.x + to.x) / 2;
+                    const my = (from.y + to.y) / 2;
+                    ctx.fillStyle = '#b0b0c4';
+                    ctx.font = 'bold 10px Georgia, serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`${e.flow}/${e.cap}`, mx - 15, my - 12);
+                }
+
+                // Draw nodes
+                for (let n of this.ffNetwork.nodes) {
+                    const inS = cut.S.includes(n.id);
+                    const nodeColor = inS ? 'rgba(34, 211, 238, 0.2)' : 'rgba(255, 100, 100, 0.2)';
+                    drawCircle(ctx, n.x, n.y, 16, nodeColor, inS ? '#22d3ee' : '#ff6b6b', 2);
+                    drawText(ctx, n.label, n.x, n.y, inS ? '#22d3ee' : '#ff6b6b', 13, 'center', 'middle');
+                }
+
+                // Labels
+                drawText(ctx, 'S (source side)', 40, 40, '#22d3ee', 12, 'left');
+                drawText(ctx, 'T (sink side)', width - 40, 40, '#ff6b6b', 12, 'right');
+            }
+
+            update() {
+                document.getElementById('stat_max_flow').textContent = this.ffNetwork.getTotalFlow();
+                if (this.minCuts.length > 0) {
+                    document.getElementById('stat_cut_capacity').textContent = this.minCuts[this.currentCutIdx].capacity;
+                    document.getElementById('mincut_info').textContent = `Cut S=${this.minCuts[this.currentCutIdx].S.join(',')}, T=${this.minCuts[this.currentCutIdx].T.join(',')} | Capacity=${this.minCuts[this.currentCutIdx].capacity}`;
+                }
+                document.getElementById('stat_mincut_count').textContent = this.minCuts.length;
+            }
+        }
+
+        const minCutViz = new MinCutVisualizer(ffNetwork);
+
+        function drawMinCut() {
+            minCutViz.draw(ctx_mincut, canvas_mincut.width, canvas_mincut.height);
+            minCutViz.update();
+        }
+
+        document.getElementById('btn_mincut_prev').addEventListener('click', () => {
+            if (minCutViz.minCuts.length > 0) {
+                minCutViz.currentCutIdx = (minCutViz.currentCutIdx - 1 + minCutViz.minCuts.length) % minCutViz.minCuts.length;
+                drawMinCut();
+            }
+        });
+
+        document.getElementById('btn_mincut_next').addEventListener('click', () => {
+            if (minCutViz.minCuts.length > 0) {
+                minCutViz.currentCutIdx = (minCutViz.currentCutIdx + 1) % minCutViz.minCuts.length;
+                drawMinCut();
+            }
+        });
+
+        document.getElementById('btn_mincut_all').addEventListener('click', () => {
+            minCutViz.findMinCuts();
+            drawMinCut();
+        });
+
+        // Update min-cut when FF finishes
+        const origFFStep = ffNetwork.step.bind(ffNetwork);
+        ffNetwork.step = function() {
+            const result = origFFStep();
+            if (this.done) {
+                minCutViz.findMinCuts();
+                drawMinCut();
+            }
+            return result;
+        };
+
+        drawMinCut();
+
+        // ====== Section 5: OSPF Routing ======
+        const canvas_ospf = document.getElementById('canvas_ospf');
+        const ctx_ospf = canvas_ospf.getContext('2d');
+
+        class OSPFNetwork {
+            constructor() {
+                this.routers = [
+                    { id: 'A', x: 100, y: 100 },
+                    { id: 'B', x: 200, y: 50 },
+                    { id: 'C', x: 300, y: 100 },
+                    { id: 'D', x: 150, y: 200 },
+                    { id: 'E', x: 250, y: 200 },
+                    { id: 'F', x: 350, y: 200 }
+                ];
+
+                this.links = [
+                    { from: 'A', to: 'B', active: true },
+                    { from: 'B', to: 'C', active: true },
+                    { from: 'A', to: 'D', active: true },
+                    { from: 'B', to: 'D', active: true },
+                    { from: 'B', to: 'E', active: true },
+                    { from: 'C', to: 'E', active: true },
+                    { from: 'C', to: 'F', active: true },
+                    { from: 'D', to: 'E', active: true },
+                    { from: 'E', to: 'F', active: true }
+                ];
+
+                this.source = 'A';
+                this.dest = 'F';
+                this.path = [];
+                this.failedLink = null;
+                this.convergenceTime = 0;
+                this.failureTime = null;
+                this.computePath();
+            }
+
+            computePath() {
+                // Dijkstra from source to dest
+                const dist = {};
+                const prev = {};
+                const unvisited = new Set();
+
+                for (let r of this.routers) {
+                    dist[r.id] = Infinity;
+                    prev[r.id] = null;
+                    unvisited.add(r.id);
+                }
+                dist[this.source] = 0;
+
+                while (unvisited.size > 0) {
+                    let u = null;
+                    for (let node of unvisited) {
+                        if (u === null || dist[node] < dist[u]) u = node;
+                    }
+                    if (u === null || dist[u] === Infinity) break;
+
+                    unvisited.delete(u);
+
+                    for (let link of this.links) {
+                        if (!link.active) continue;
+                        let v = null;
+                        if (link.from === u) v = link.to;
+                        else if (link.to === u) v = link.from;
+
+                        if (v && unvisited.has(v) && dist[u] + 1 < dist[v]) {
+                            dist[v] = dist[u] + 1;
+                            prev[v] = u;
+                        }
+                    }
+                }
+
+                // Reconstruct path
+                this.path = [];
+                let u = this.dest;
+                while (u !== null) {
+                    this.path.unshift(u);
+                    u = prev[u];
+                }
+            }
+
+            failRandomLink() {
+                const activeLinks = this.links.filter(l => l.active);
+                if (activeLinks.length > 0) {
+                    const link = activeLinks[Math.floor(Math.random() * activeLinks.length)];
+                    link.active = false;
+                    this.failedLink = link;
+                    this.failureTime = Date.now();
+                    this.convergenceTime = 0;
+                    this.computePath();
+                }
+            }
+
+            recover() {
+                if (this.failedLink) {
+                    this.failedLink.active = true;
+                    this.failedLink = null;
+                    this.failureTime = null;
+                    this.computePath();
+                }
+            }
+
+            draw(ctx, width, height) {
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(0, 0, width, height);
+
+                // Scaling
+                const scale = 1.2;
+                const offsetX = 200, offsetY = 150;
+
+                // Draw links
+                for (let link of this.links) {
+                    const from = this.routers.find(r => r.id === link.from);
+                    const to = this.routers.find(r => r.id === link.to);
+                    const x1 = offsetX + from.x * scale;
+                    const y1 = offsetY + from.y * scale;
+                    const x2 = offsetX + to.x * scale;
+                    const y2 = offsetY + to.y * scale;
+
+                    const color = link.active ? 'rgba(34, 211, 238, 0.5)' : 'rgba(200, 50, 50, 0.4)';
+                    const lineWidth = link.active ? 2 : 2;
+                    drawLine(ctx, x1, y1, x2, y2, color, lineWidth);
+                }
+
+                // Draw path
+                if (this.path.length > 1) {
+                    ctx.strokeStyle = this.failedLink ? '#ff6b6b' : '#22d3ee';
+                    ctx.lineWidth = 4;
+                    for (let i = 0; i < this.path.length - 1; i++) {
+                        const from = this.routers.find(r => r.id === this.path[i]);
+                        const to = this.routers.find(r => r.id === this.path[i + 1]);
+                        const x1 = offsetX + from.x * scale;
+                        const y1 = offsetY + from.y * scale;
+                        const x2 = offsetX + to.x * scale;
+                        const y2 = offsetY + to.y * scale;
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw routers
+                for (let r of this.routers) {
+                    const x = offsetX + r.x * scale;
+                    const y = offsetY + r.y * scale;
+                    const onPath = this.path.includes(r.id);
+                    const fill = onPath ? 'rgba(34, 211, 238, 0.25)' : 'rgba(34, 211, 238, 0.1)';
+                    const stroke = onPath ? '#22d3ee' : 'rgba(34, 211, 238, 0.6)';
+                    drawCircle(ctx, x, y, 18, fill, stroke, 2);
+                    drawText(ctx, r.id, x, y, '#22d3ee', 14, 'center', 'middle');
+                }
+            }
+
+            getStatus() {
+                if (this.failedLink) {
+                    if (this.failureTime) {
+                        const elapsed = (Date.now() - this.failureTime) / 1000;
+                        if (elapsed < 1) {
+                            return `Link ${this.failedLink.from}—${this.failedLink.to} failed! Converging...`;
+                        } else {
+                            return `Converged. New path: ${this.path.join(' → ')}`;
+                        }
+                    }
+                } else {
+                    return `Healthy. Path: ${this.path.join(' → ')}`;
+                }
+                return '';
+            }
+        }
+
+        const ospfNetwork = new OSPFNetwork();
+
+        function drawOSPF() {
+            ospfNetwork.draw(ctx_ospf, canvas_ospf.width, canvas_ospf.height);
+            document.getElementById('ospf_info').textContent = ospfNetwork.getStatus();
+            document.getElementById('stat_ospf_state').textContent = ospfNetwork.failedLink ? 'Converging' : 'Healthy';
+            document.getElementById('stat_ospf_failures').textContent = ospfNetwork.failedLink ? '1' : '0';
+            document.getElementById('stat_ospf_time').textContent = ospfNetwork.failureTime ? `${((Date.now() - ospfNetwork.failureTime) / 1000).toFixed(1)}s` : '—';
+        }
+
+        document.getElementById('btn_ospf_reset').addEventListener('click', () => {
+            ospfNetwork.recover();
+            drawOSPF();
+        });
+
+        document.getElementById('btn_ospf_fail').addEventListener('click', () => {
+            ospfNetwork.failRandomLink();
+            drawOSPF();
+        });
+
+        document.getElementById('btn_ospf_recover').addEventListener('click', () => {
+            ospfNetwork.recover();
+            drawOSPF();
+        });
+
+        setInterval(drawOSPF, 100);
+
+        // ====== Section 6: TCP Congestion Control ======
+        const canvas_tcp = document.getElementById('canvas_tcp');
+        const ctx_tcp = canvas_tcp.getContext('2d');
+
+        class TCPSimulation {
+            constructor() {
+                this.flows = [
+                    { rate: 5, color: '#22d3ee', history: [] },
+                    { rate: 5, color: '#90ee90', history: [] }
+                ];
+                this.linkCapacity = 50;
+                this.time = 0;
+                this.paused = false;
+            }
+
+            step() {
+                if (this.paused) return;
+
+                // Check congestion
+                const totalRate = this.flows.reduce((sum, f) => sum + f.rate, 0);
+                const congested = totalRate > this.linkCapacity;
+
+                for (let flow of this.flows) {
+                    if (congested) {
+                        // Multiplicative decrease
+                        flow.rate *= 0.5;
+                    } else {
+                        // Additive increase
+                        flow.rate += 0.5;
+                    }
+                    // Cap at link capacity
+                    flow.rate = Math.min(flow.rate, this.linkCapacity);
+                    flow.history.push(flow.rate);
+                    if (flow.history.length > 120) flow.history.shift();
+                }
+
+                this.time++;
+            }
+
+            reset() {
+                this.flows.forEach(f => {
+                    f.rate = 5;
+                    f.history = [];
+                });
+                this.time = 0;
+            }
+
+            setNumFlows(n) {
+                const colors = ['#22d3ee', '#90ee90', '#ffaa00', '#ff6b6b', '#d946ef'];
+                this.flows = [];
+                for (let i = 0; i < n; i++) {
+                    this.flows.push({ rate: 5, color: colors[i % colors.length], history: [] });
+                }
+                this.reset();
+            }
+
+            setLinkCapacity(cap) {
+                this.linkCapacity = cap;
+            }
+
+            getTotalRate() {
+                return this.flows.reduce((sum, f) => sum + f.rate, 0);
+            }
+
+            draw(ctx, width, height) {
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(0, 0, width, height);
+
+                const padding = 40;
+                const graphWidth = width - 2 * padding;
+                const graphHeight = height - 2 * padding - 20;
+
+                // Grid and axes
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i <= 5; i++) {
+                    const y = padding + (graphHeight / 5) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(padding, y);
+                    ctx.lineTo(width - padding, y);
+                    ctx.stroke();
+                }
+
+                // Y-axis
+                ctx.strokeStyle = '#22d3ee';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(padding, padding);
+                ctx.lineTo(padding, height - padding);
+                ctx.lineTo(width - padding, height - padding);
+                ctx.stroke();
+
+                // Labels
+                ctx.fillStyle = '#b0b0c4';
+                ctx.font = '11px Georgia, serif';
+                ctx.textAlign = 'right';
+                for (let i = 0; i <= 5; i++) {
+                    const rate = (this.linkCapacity / 5) * i;
+                    const y = padding + (graphHeight / 5) * (5 - i);
+                    ctx.fillText(rate.toFixed(0), padding - 10, y + 4);
+                }
+                ctx.textAlign = 'center';
+                ctx.fillText('Time', width / 2, height - 10);
+
+                // Plot lines
+                for (let flowIdx = 0; flowIdx < this.flows.length; flowIdx++) {
+                    const flow = this.flows[flowIdx];
+                    ctx.strokeStyle = flow.color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    for (let i = 0; i < flow.history.length; i++) {
+                        const x = padding + (graphWidth / 120) * i;
+                        const y = height - padding - (graphHeight / this.linkCapacity) * flow.history[i];
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+
+                // Link capacity line
+                ctx.strokeStyle = '#ff6b6b';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                const y = height - padding - graphHeight;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Legend
+                ctx.font = '11px Georgia, serif';
+                ctx.textAlign = 'left';
+                ctx.fillText('Link capacity', width - padding + 10, y);
+                for (let i = 0; i < this.flows.length; i++) {
+                    ctx.fillStyle = this.flows[i].color;
+                    ctx.fillText(`Flow ${i + 1}`, padding, height - 55 + i * 18);
+                }
+            }
+        }
+
+        const tcpSim = new TCPSimulation();
+
+        function drawTCP() {
+            tcpSim.draw(ctx_tcp, canvas_tcp.width, canvas_tcp.height);
+            const totalRate = tcpSim.getTotalRate();
+            const util = ((totalRate / tcpSim.linkCapacity) * 100).toFixed(0);
+            document.getElementById('stat_tcp_time').textContent = (tcpSim.time / 10).toFixed(1) + 's';
+            document.getElementById('stat_tcp_util').textContent = util + '%';
+
+            // Fairness: Jain's fairness index
+            const n = tcpSim.flows.length;
+            const sumRate = tcpSim.flows.reduce((s, f) => s + f.rate, 0);
+            const sumRate2 = tcpSim.flows.reduce((s, f) => s + f.rate * f.rate, 0);
+            const fairness = (sumRate * sumRate) / (n * sumRate2);
+            document.getElementById('stat_tcp_fairness').textContent = fairness.toFixed(2);
+
+            const info = `${tcpSim.flows.length} flow(s) sharing ${tcpSim.linkCapacity} Mbps link. Each flow rate oscillates via AIMD.`;
+            document.getElementById('tcp_info').textContent = info;
+        }
+
+        document.getElementById('btn_tcp_reset').addEventListener('click', () => {
+            tcpSim.reset();
+            tcpSim.paused = false;
+            drawTCP();
+        });
+
+        document.getElementById('btn_tcp_pause').addEventListener('click', () => {
+            tcpSim.paused = !tcpSim.paused;
+            document.getElementById('btn_tcp_pause').textContent = tcpSim.paused ? 'Resume' : 'Pause';
+        });
+
+        document.getElementById('slider_tcp_flows').addEventListener('input', (e) => {
+            tcpSim.setNumFlows(parseInt(e.target.value));
+            document.getElementById('display_tcp_flows').textContent = e.target.value;
+            drawTCP();
+        });
+
+        document.getElementById('slider_tcp_link').addEventListener('input', (e) => {
+            tcpSim.setLinkCapacity(parseInt(e.target.value));
+            document.getElementById('display_tcp_link').textContent = e.target.value;
+            drawTCP();
+        });
+
+        // TCP animation loop
+        let tcpInterval = setInterval(() => {
+            tcpSim.step();
+            drawTCP();
+        }, 50);
+
+        drawTCP();
+    </script><script src="js/mathematician-cards.js" defer></script>
+</body>
+</html>

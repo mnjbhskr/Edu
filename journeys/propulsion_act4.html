@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#070a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Mathematics of Propulsion — Act IV</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Crimson+Pro:ital@0;1&display=swap');
+
+        :root {
+            --bg: #070a1a;
+            --bg2: #0e0e28;
+            --bg3: #151530;
+            --accent: #fb923c;
+            --accent-dim: rgba(251,146,60,0.15);
+            --secondary: #f472b6;
+            --green: #10b981;
+            --cyan: #22d3ee;
+            --gold: #fbbf24;
+            --text: #e2e2f0;
+            --muted: #7070a0;
+            --panel: rgba(255,255,255,0.03);
+            --border: rgba(255,255,255,0.07);
+            --radius: 18px;
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+        html, body {
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Nunito', sans-serif;
+            overflow-x: hidden;
+        }
+
+        #stars {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background: radial-gradient(ellipse at 20% 30%, rgba(251,146,60,0.04) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 70%, rgba(34,211,238,0.03) 0%, transparent 60%),
+                        var(--bg);
+        }
+
+        #app {
+            position: relative; z-index: 1;
+            min-height: 100vh;
+            display: flex; flex-direction: column;
+        }
+
+        .app-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(7,10,26,0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            position: sticky; top: 0; z-index: 10;
+        }
+        .header-logo {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.1em; font-style: italic; color: var(--muted);
+            letter-spacing: 0.5px;
+        }
+        .header-logo span { color: var(--accent); font-style: normal; }
+        .progress-dots {
+            display: flex; gap: 6px; align-items: center;
+        }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--border); transition: all 0.4s ease;
+        }
+        .dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+        .dot.done { background: var(--green); }
+
+        .screen {
+            display: none; flex-direction: column;
+            flex: 1; padding: 24px 20px 100px;
+            animation: fadeUp 0.5s ease both;
+        }
+        .screen.active { display: flex; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .narrator {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+            margin-bottom: 24px;
+            position: relative;
+        }
+        .narrator::before {
+            content: '✦';
+            position: absolute; top: -10px; left: 18px;
+            background: var(--bg2); padding: 0 6px;
+            color: var(--accent); font-size: 0.8em;
+        }
+        .narrator p {
+            font-family: 'Crimson Pro', serif;
+            font-size: 1.15em; line-height: 1.75;
+            color: #c8c8e8;
+        }
+        .narrator p em { color: var(--accent); font-style: italic; }
+        .narrator p strong { color: #fff; font-weight: 400; }
+
+        .act-title {
+            text-align: center; margin-bottom: 20px;
+        }
+        .act-label {
+            font-size: 0.7em; text-transform: uppercase;
+            letter-spacing: 3px; color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .act-name {
+            font-family: 'Crimson Pro', serif;
+            font-size: clamp(1.6em, 6vw, 2.2em);
+            font-weight: 300; color: #fff;
+            letter-spacing: 0.5px;
+        }
+        .act-name em { color: var(--accent); font-style: italic; }
+
+        canvas {
+            display: block; margin: 0 auto; border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: linear-gradient(to bottom, rgba(15,20,40,0.9), rgba(10,10,20,0.95));
+            width: 100%; max-width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .insight {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 16px 18px;
+            margin-bottom: 20px;
+        }
+        .insight .lbl {
+            font-size: 0.72em; text-transform: uppercase;
+            letter-spacing: 2px; color: var(--muted);
+            margin-bottom: 8px; font-weight: 600;
+        }
+        .insight p {
+            font-family: 'Crimson Pro', serif;
+            font-size: 0.95em; line-height: 1.75;
+            color: #a8a8d0;
+        }
+        .insight strong { color: var(--accent); }
+
+        .slider-container {
+            margin: 20px 0;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px;
+        }
+        .slider-label {
+            font-size: 0.8em; text-transform: uppercase;
+            letter-spacing: 1px; color: var(--muted);
+            margin-bottom: 10px; display: block;
+        }
+        .slider-input {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--accent-dim);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .slider-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent);
+        }
+        .slider-input::-moz-range-thumb {
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px var(--accent);
+        }
+        .slider-value {
+            margin-top: 10px;
+            font-family: 'Crimson Pro', serif;
+            font-size: 1em;
+            color: var(--accent);
+            text-align: center;
+        }
+
+        .deltav-table {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        .deltav-row {
+            display: flex; justify-content: space-between;
+            padding: 12px 0; border-bottom: 1px solid var(--border);
+            font-family: 'Crimson Pro', serif;
+        }
+        .deltav-row:last-child { border-bottom: none; }
+        .deltav-mission { flex: 1; color: #c8c8e8; }
+        .deltav-cost { text-align: right; color: var(--accent); font-weight: 700; }
+
+        .cta-btn {
+            width: 100%; max-width: 400px;
+            margin: 0 auto;
+            display: block;
+            background: linear-gradient(135deg, var(--accent), #f97316);
+            border: none; border-radius: 50px;
+            padding: 16px 32px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.05em; font-weight: 800;
+            color: #070a1a;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            touch-action: manipulation;
+            box-shadow: 0 4px 24px rgba(251,146,60,0.25);
+        }
+        .cta-btn:hover, .cta-btn:active {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(251,146,60,0.35);
+        }
+
+        #confetti {
+            position: fixed; inset: 0; z-index: 50; pointer-events: none;
+        }
+
+        .bottom-pad { height: 20px; }
+
+        a[href="../index.html"] {
+            position: fixed; top: 12px; left: 16px;
+            color: var(--muted); text-decoration: none;
+            font-size: 0.85em; z-index: 1000;
+            font-family: 'Crimson Pro', serif; font-style: italic;
+        }
+
+        footer {
+            text-align: center;
+            padding: 28px 20px 18px;
+            color: #505068;
+            font-size: 0.72em;
+            line-height: 1.7;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            margin-top: 30px;
+        }
+        footer a {
+            color: #606078;
+            text-decoration: none;
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/journeys/propulsion_act4.html">
+  <meta name="description" content="Learn about Propulsion Act4 in Mathematics Education">
+  </head>
+<body>
+<a href="../index.html">← mathsedu.org</a>
+<canvas id="confetti"></canvas>
+<div id="stars"></div>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-dots">
+        <div class="dot done"></div>
+        <div class="dot done"></div>
+        <div class="dot done"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: STRAIGHT LINES DON'T WORK -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">Mathematics of Propulsion · Act IV</div>
+      <div class="act-name">The Hohmann <em>Transfer</em></div>
+    </div>
+    <div style="text-align:center;margin:0 0 20px;">
+      <div style="font-size:4.5em;display:inline-block;">🛰️</div>
+    </div>
+    <div class="narrator">
+      <p>You can't just point a rocket at the Moon and fly there in a straight line.</p>
+      <p style="margin-top:10px">If you try, you'll overshoot. Or you'll need to slow down, which burns fuel. Or you'll crash.</p>
+      <p style="margin-top:10px">Instead, space missions use elegant orbital transfers. The most famous is the <em>Hohmann transfer</em> — a fuel-efficient path between two circular orbits. You burn twice: once to enter an elliptical orbit, and again to circularise at your destination.</p>
+      <p style="margin-top:10px">This is celestial mechanics made practical. It's how we reached the Moon, and how we'll reach Mars.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Visualise the transfer →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: HOHMANN ANIMATION -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Orbital Transfers</div>
+      <div class="act-name">The Efficient <em>Path</em></div>
+    </div>
+    <div class="narrator">
+      <p>A Hohmann transfer burns at periapsis (closest point) to raise your apoapsis (furthest point), creating an elliptical transfer orbit. When you reach apoapsis, you burn again to enter the higher circular orbit.</p>
+    </div>
+
+    <canvas id="hohmannCanvas" width="400" height="350" style="max-height:350px;"></canvas>
+
+    <div class="slider-container">
+      <label class="slider-label">Target orbit (Earth radii)</label>
+      <input type="range" id="targetOrbit" class="slider-input" min="1.1" max="3" step="0.1" value="1.5" oninput="updateHohmann()">
+      <div class="slider-value">
+        Altitude: <strong id="altValue">1.5</strong> Earth radii
+      </div>
+    </div>
+
+    <div class="deltav-table">
+      <div class="deltav-row">
+        <div class="deltav-mission">Burn 1 (Hohmann raise)</div>
+        <div class="deltav-cost" id="burn1">3.2 km/s</div>
+      </div>
+      <div class="deltav-row">
+        <div class="deltav-mission">Burn 2 (Circularise)</div>
+        <div class="deltav-cost" id="burn2">2.7 km/s</div>
+      </div>
+      <div class="deltav-row" style="border-top:2px solid rgba(251,146,60,0.3);padding-top:12px;margin-top:8px;">
+        <div class="deltav-mission"><strong>Total Δv</strong></div>
+        <div class="deltav-cost" id="totalBurn"><strong>5.9 km/s</strong></div>
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">Why Hohmann is optimal</div>
+      <p>The Hohmann transfer uses the minimum Δv to reach another orbit. Any other path requires more fuel. This is why nearly every satellite, spacecraft, and space station uses Hohmann transfers. It's mathematically proven to be the most efficient.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)">Gravity assists and technique →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: GRAVITY ASSISTS -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">Advanced Manoeuvres</div>
+      <div class="act-name">Gravity <em>Assists</em></div>
+    </div>
+    <div class="narrator">
+      <p>The Oberth effect says: it's more fuel-efficient to burn at periapsis (closest point to the planet) than at apoapsis. A burn near a planet does more work.</p>
+      <p style="margin-top:10px">This led to <em>gravity assists</em> — using a planet's gravity to slingshot a spacecraft to a new trajectory without burning fuel. Voyager 2 used four gravity assists (Jupiter, Saturn, Uranus, Neptune) to explore the outer planets using barely any fuel.</p>
+    </div>
+
+    <canvas id="assistCanvas" width="400" height="300" style="max-height:300px;"></canvas>
+
+    <div class="insight">
+      <div class="lbl">The trajectory bend</div>
+      <p>A spacecraft approaching a planet from one direction will exit going a different direction. The faster the close approach, the sharper the bend. By timing these assists carefully, you can reach distant planets without carrying enough fuel for direct trajectories.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)">Real mission costs →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: MISSION DELTA-V BUDGETS -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">Real Missions</div>
+      <div class="act-name">Delta-v <em>Budgets</em></div>
+    </div>
+    <div class="narrator">
+      <p>Here are the fuel requirements (total Δv) for actual space missions. These values determine the rocket, launch cost, and feasibility of the mission.</p>
+    </div>
+
+    <div class="deltav-table">
+      <div class="deltav-row">
+        <div class="deltav-mission">Earth to Low Earth Orbit (LEO)</div>
+        <div class="deltav-cost">9.7 km/s</div>
+      </div>
+      <div class="deltav-row">
+        <div class="deltav-mission">LEO to Lunar Orbit</div>
+        <div class="deltav-cost">3.3 km/s</div>
+      </div>
+      <div class="deltav-row">
+        <div class="deltav-mission">Earth to Mars (via Hohmann)</div>
+        <div class="deltav-cost">11.6 km/s</div>
+      </div>
+      <div class="deltav-row">
+        <div class="deltav-mission">Earth to Jupiter (via Hohmann)</div>
+        <div class="deltav-cost">19.3 km/s</div>
+      </div>
+      <div class="deltav-row">
+        <div class="deltav-mission">Earth escape (to solar system)</div>
+        <div class="deltav-cost">16.7 km/s</div>
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">Why the Moon is achievable</div>
+      <p>Getting to the Moon requires less Δv than reaching Mars because it's closer. Apollo 11 launched with enough Δv budget for the entire mission. Reaching Mars requires significantly more energy — roughly the same as launching multiple Moon missions. This is why Mars remains a frontier.</p>
+    </div>
+
+    <button class="cta-btn" onclick="celebrate()">✦ To Act V →</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <footer>
+    <div>&copy; 2025–2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="../terms.html">Terms of Use</a>
+        &nbsp;&middot;&nbsp;
+        <a href="../intellectual-property.html">Intellectual Property</a>
+        &nbsp;&middot;&nbsp;
+        <a href="../privacy.html">Privacy Policy</a>
+    </div>
+  </footer>
+</div>
+
+<script>
+let currentScreen = 0;
+
+function goToScreen(n) {
+  document.getElementById(`screen-${currentScreen}`).classList.remove('active');
+  currentScreen = n;
+  document.getElementById(`screen-${currentScreen}`).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function celebrate() {
+  launchConfetti();
+  setTimeout(() => window.location.href = 'propulsion_act5.html', 900);
+}
+
+// ── Hohmann transfer animation ──
+function drawHohmann() {
+  const cv = document.getElementById('hohmannCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const centerX = w / 2;
+  const centerY = h / 2;
+  const r1 = 60; // Lower orbit radius
+  const targetRatio = parseFloat(document.getElementById('targetOrbit').value);
+  const r2 = r1 * targetRatio;
+
+  // Earth
+  ctx.fillStyle = 'rgba(34,211,238,0.8)';
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, 20, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Initial orbit
+  ctx.strokeStyle = 'rgba(251,146,60,0.5)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, r1, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Target orbit
+  ctx.strokeStyle = 'rgba(16,185,129,0.5)';
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, r2, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Transfer orbit (ellipse)
+  ctx.strokeStyle = 'rgba(244,114,182,0.6)';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  const a = (r1 + r2) / 2;
+  const b = Math.sqrt(r1 * r2);
+  for (let angle = 0; angle < Math.PI * 2; angle += 0.02) {
+    const x = centerX + a * Math.cos(angle);
+    const y = centerY + b * Math.sin(angle);
+    if (angle === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  // Spacecraft at periapsis
+  const t = (Date.now() / 3000) % 1;
+  let scX, scY;
+  if (t < 0.5) {
+    // Moving along transfer ellipse (lower half)
+    const angle = t * Math.PI;
+    scX = centerX + a * Math.cos(angle);
+    scY = centerY + b * Math.sin(angle);
+  } else {
+    // Moving along target orbit (upper half)
+    const angle = (t - 0.5) * Math.PI;
+    scX = centerX + r2 * Math.cos(angle);
+    scY = centerY - r2 * Math.sin(angle);
+  }
+
+  ctx.fillStyle = 'rgba(251,146,60,0.9)';
+  ctx.beginPath();
+  ctx.arc(scX, scY, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Labels
+  ctx.fillStyle = '#c8c8e8';
+  ctx.font = '11px Nunito';
+  ctx.textAlign = 'center';
+  ctx.fillText('Initial orbit', centerX, centerY - r1 - 15);
+  ctx.fillText('Target orbit', centerX, centerY - r2 - 15);
+
+  ctx.fillStyle = 'rgba(244,114,182,0.8)';
+  ctx.font = 'bold 11px Nunito';
+  ctx.fillText('Transfer', centerX - 40, centerY - 60);
+
+  // Burn markers
+  ctx.fillStyle = 'rgba(255,100,0,0.8)';
+  ctx.beginPath();
+  ctx.arc(centerX + r1, centerY, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.font = 'bold 10px Nunito';
+  ctx.fillStyle = '#c8c8e8';
+  ctx.fillText('Burn 1', centerX + r1 + 20, centerY + 20);
+
+  ctx.fillStyle = 'rgba(255,100,0,0.8)';
+  ctx.beginPath();
+  ctx.arc(centerX - r2, centerY, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#c8c8e8';
+  ctx.fillText('Burn 2', centerX - r2 - 20, centerY - 20);
+
+  requestAnimationFrame(drawHohmann);
+}
+
+function updateHohmann() {
+  const alt = parseFloat(document.getElementById('targetOrbit').value);
+  document.getElementById('altValue').textContent = alt.toFixed(1);
+
+  // Calculate delta-v (simplified)
+  const v1 = 7.8; // LEO velocity
+  const v2 = 7.8 * Math.sqrt(2 / (alt + 1));
+  const vTransfer1 = Math.sqrt(2 * (1/1 - 1/((1 + alt)/2)));
+  const vTransfer2 = Math.sqrt(2 * (1/alt - 1/((1 + alt)/2)));
+
+  const burn1 = (vTransfer1 - v1).toFixed(1);
+  const burn2 = (v2 - vTransfer2).toFixed(1);
+  const total = (parseFloat(burn1) + parseFloat(burn2)).toFixed(1);
+
+  document.getElementById('burn1').textContent = burn1 + ' km/s';
+  document.getElementById('burn2').textContent = burn2 + ' km/s';
+  document.getElementById('totalBurn').innerHTML = '<strong>' + total + ' km/s</strong>';
+}
+
+// ── Gravity assist visualization ──
+function drawAssist() {
+  const cv = document.getElementById('assistCanvas');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const planetX = w / 2;
+  const planetY = h / 2;
+
+  // Planet
+  ctx.fillStyle = 'rgba(34,211,238,0.7)';
+  ctx.beginPath();
+  ctx.arc(planetX, planetY, 18, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Incoming trajectory
+  ctx.strokeStyle = 'rgba(251,146,60,0.6)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(50, 50);
+  ctx.quadraticCurveTo(planetX - 60, planetY - 60, planetX - 40, planetY - 40);
+  ctx.stroke();
+
+  // Closest approach
+  ctx.fillStyle = 'rgba(255,100,0,0.8)';
+  ctx.beginPath();
+  ctx.arc(planetX - 40, planetY - 40, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Outgoing trajectory (bent)
+  ctx.strokeStyle = 'rgba(16,185,129,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(planetX - 40, planetY - 40);
+  ctx.quadraticCurveTo(planetX + 60, planetY - 60, w - 50, 50);
+  ctx.stroke();
+
+  // Velocity vectors
+  ctx.strokeStyle = 'rgba(251,146,60,0.7)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(planetX - 40, planetY - 40);
+  ctx.lineTo(planetX - 40 - 40, planetY - 40 - 40);
+  ctx.stroke();
+  ctx.fillStyle = '#c8c8e8';
+  ctx.font = '10px Nunito';
+  ctx.fillText('v_in', planetX - 60, planetY - 60);
+
+  ctx.strokeStyle = 'rgba(16,185,129,0.7)';
+  ctx.beginPath();
+  ctx.moveTo(planetX - 40, planetY - 40);
+  ctx.lineTo(planetX - 40 + 40, planetY - 40 - 40);
+  ctx.stroke();
+  ctx.fillText('v_out', planetX, planetY - 60);
+
+  // Labels
+  ctx.fillStyle = '#c8c8e8';
+  ctx.font = 'bold 12px Nunito';
+  ctx.textAlign = 'center';
+  ctx.fillText('Slingshot Effect', w / 2, 25);
+
+  ctx.font = '9px Crimson Pro';
+  ctx.fillStyle = '#7070a0';
+  ctx.fillText('Planet bends path without fuel burn', w / 2, h - 10);
+}
+
+// ── Confetti ──
+const cc = document.getElementById('confetti');
+const cxc = cc.getContext('2d');
+let parts = [];
+
+function launchConfetti() {
+  cc.width = innerWidth;
+  cc.height = innerHeight;
+  parts = [];
+  for (let i = 0; i < 90; i++) {
+    parts.push({
+      x: Math.random() * cc.width,
+      y: -20,
+      vx: (Math.random() - 0.5) * 5,
+      vy: 2 + Math.random() * 4,
+      c: ['#fb923c', '#22d3ee', '#fbbf24', '#f472b6', '#10b981'][Math.floor(Math.random() * 5)],
+      s: 5 + Math.random() * 7,
+      r: Math.random() * Math.PI * 2,
+      vr: (Math.random() - 0.5) * 0.2,
+      l: 1
+    });
+  }
+  animateConfetti();
+  setTimeout(() => { parts = []; }, 3500);
+}
+
+function animateConfetti() {
+  cxc.clearRect(0, 0, cc.width, cc.height);
+  parts = parts.filter(p => p.l > 0.01);
+  parts.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.1;
+    p.r += p.vr;
+    p.l -= 0.012;
+    cxc.save();
+    cxc.globalAlpha = p.l;
+    cxc.translate(p.x, p.y);
+    cxc.rotate(p.r);
+    cxc.fillStyle = p.c;
+    cxc.fillRect(-p.s/2, -p.s/2, p.s, p.s * 0.6);
+    cxc.restore();
+  });
+  if (parts.length > 0) requestAnimationFrame(animateConfetti);
+}
+
+window.addEventListener('load', () => {
+  updateHohmann();
+  drawHohmann();
+  drawAssist();
+});
+</script>
+</body>
+</html>

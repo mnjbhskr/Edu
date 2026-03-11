@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Images Are Compressed — A Visual Discovery of Mathematics</title>
+    <meta name="description" content="Explore JPEG compression and the Discrete Cosine Transform. Interactive visualisations of DCT, quantisation, and the JPEG pipeline.">
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "LearningResource",
+        "name": "How Images Are Compressed",
+        "description": "An interactive exploration of JPEG compression and the Discrete Cosine Transform",
+        "url": "https://mathsedu.org/image_compression.html",
+        "author": {
+            "@type": "Person",
+            "name": "Manoj Bhaskar"
+        },
+        "educationalLevel": "Advanced",
+        "inLanguage": "en-GB",
+        "isPartOf": {
+            "@type": "Course",
+            "name": "The Mathematics Behind the Internet"
+        }
+    }
+    </script>
+
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="How Images Are Compressed">
+    <meta property="og:description" content="Explore JPEG compression and the Discrete Cosine Transform through interactive visualisations">
+    <meta property="og:url" content="https://mathsedu.org/image_compression.html">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="How Images Are Compressed">
+    <meta name="twitter:description" content="Explore JPEG compression and the Discrete Cosine Transform through interactive visualisations">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            background: #0a0a1a;
+            color: #e0e0e0;
+            font-family: Georgia, serif;
+            line-height: 1.65;
+            font-size: 16px;
+        }
+
+        body {
+            padding: 0;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 24px 28px 48px;
+        }
+
+        .back {
+            display: inline-block;
+            color: #22d3ee;
+            text-decoration: none;
+            font-size: 0.95em;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+        }
+
+        .back:hover {
+            color: #e0e0e0;
+        }
+
+        h1 {
+            font-size: 2.2em;
+            font-weight: normal;
+            margin-bottom: 8px;
+            color: #e0e0e0;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-style: italic;
+            color: #a0a0b8;
+            font-size: 0.95em;
+            margin-bottom: 28px;
+        }
+
+        .narrative {
+            border-left: 3px solid #22d3ee;
+            padding-left: 20px;
+            margin: 28px 0;
+            color: #d0d0e0;
+            font-size: 0.98em;
+            line-height: 1.7;
+        }
+
+        h2 {
+            font-size: 1.5em;
+            font-weight: normal;
+            margin: 40px 0 20px 0;
+            color: #22d3ee;
+            letter-spacing: -0.3px;
+        }
+
+        h3 {
+            font-size: 1.1em;
+            font-weight: normal;
+            margin: 22px 0 12px 0;
+            color: #b8b8d0;
+        }
+
+        p {
+            margin-bottom: 16px;
+            line-height: 1.7;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+
+        .panel h3 {
+            margin-top: 0;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+
+        .slider-row label {
+            font-size: 0.93em;
+            color: #b8b8d0;
+            min-width: 120px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            min-width: 200px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #22d3ee;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(34, 211, 238, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #22d3ee;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(34, 211, 238, 0.4);
+        }
+
+        .value-display {
+            color: #22d3ee;
+            font-weight: bold;
+            min-width: 80px;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            color: #b0b0c4;
+            padding: 5px 13px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: Georgia, serif;
+            font-size: 0.92em;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.07);
+            color: #e0e0ef;
+        }
+
+        .btn.active {
+            background: rgba(34, 211, 238, 0.13);
+            border-color: rgba(34, 211, 238, 0.4);
+            color: #22d3ee;
+        }
+
+        canvas {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            display: block;
+            margin: 16px 0;
+        }
+
+        .insight-box {
+            background: rgba(34, 211, 238, 0.05);
+            border-left: 3px solid #22d3ee;
+            padding: 16px 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-size: 0.96em;
+        }
+
+        .explain {
+            display: flex;
+            gap: 16px;
+            margin: 16px 0;
+            align-items: flex-start;
+        }
+
+        .explain-name {
+            color: #22d3ee;
+            font-weight: bold;
+            min-width: 100px;
+            font-size: 0.92em;
+        }
+
+        .explain-text {
+            flex: 1;
+            font-size: 0.93em;
+            color: #d0d0e0;
+            line-height: 1.6;
+        }
+
+        .formula-block {
+            background: rgba(34, 211, 238, 0.08);
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            color: #22d3ee;
+        }
+
+        .grid-display {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            margin: 16px 0;
+        }
+
+        .grid-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75em;
+            color: #22d3ee;
+            padding: 2px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .side-by-side {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .side-by-side {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            h2 {
+                font-size: 1.3em;
+            }
+
+            .explain {
+                flex-direction: column;
+            }
+
+            .explain-name {
+                min-width: auto;
+            }
+        }
+
+        .comparison-label {
+            text-align: center;
+            color: #a0a0b8;
+            font-size: 0.87em;
+            margin-top: 8px;
+            font-style: italic;
+        }
+    </style>
+<link rel="canonical" href="https://mathsedu.org/image_compression.html">
+  </head>
+<body>
+    <div class="container">
+        <a class="back" href="index.html">&larr; Back to Index</a>
+    <nav class="breadcrumb" style="font-size:0.82em;color:#707088;margin:6px 0 18px">
+    <a href="index.html" style="color:#707088;text-decoration:none">Home</a>
+    <span style="margin:0 6px">&rsaquo;</span>
+    <span style="color:#b0b0c0">How Images Are Compressed</span>
+</nav><h1>How Images Are Compressed</h1>
+        <p class="subtitle">JPEG, the Discrete Cosine Transform, and the mathematics of visual data &mdash; Advanced</p>
+
+        <div class="narrative">
+            <p>Billions of images are shared, streamed, and stored every single day. Yet most of these are JPEG files — typically just a few hundred kilobytes each, despite containing millions of pixels. How is this possible? The answer lies in a brilliant mathematical transformation called the Discrete Cosine Transform (DCT), which allows us to represent an image using far fewer numbers while preserving the details that matter most to the human eye. This exploration reveals the hidden mathematics that makes modern image sharing practical.</p>
+        </div>
+
+        <!-- Section 1: Why Compression Matters -->
+        <h2>Why Compression Matters</h2>
+        <p>Imagine a single frame of video at full HD resolution (1920 × 1080 pixels). Each pixel requires 3 bytes to store its red, green, and blue values. That's 1920 × 1080 × 3 = 6,220,800 bytes, roughly 6 MB per frame. At 30 frames per second, a single second of uncompressed video would require 180 MB of storage. A two-hour film would need 1.3 terabytes!</p>
+
+        <p>JPEG compression reduces this dramatically, typically achieving 10:1 to 50:1 compression ratios whilst remaining perceptually lossless to the human eye. The key is understanding which information the human visual system is sensitive to, and which can be safely discarded.</p>
+
+        <div class="panel">
+            <h3>Interactive: Raw vs Compressed File Sizes</h3>
+            <p>Adjust the image dimensions and see how file size scales. The compression ratio depends on image complexity, but typical JPEG achieves 20:1 to 30:1 reduction.</p>
+
+            <div class="slider-row">
+                <label>Width (px):</label>
+                <input type="range" id="sliderWidth" min="320" max="4096" value="1920" step="16">
+                <span class="value-display" id="displayWidth">1920</span>
+            </div>
+
+            <div class="slider-row">
+                <label>Height (px):</label>
+                <input type="range" id="sliderHeight" min="240" max="2160" value="1080" step="16">
+                <span class="value-display" id="displayHeight">1080</span>
+            </div>
+
+            <canvas id="canvasSizes" width="800" height="280"></canvas>
+
+            <div class="explain">
+                <div class="explain-name">Raw size:</div>
+                <div class="explain-text" id="rawSize">6.22 MB</div>
+            </div>
+
+            <div class="explain">
+                <div class="explain-name">JPEG (typical):</div>
+                <div class="explain-text" id="jpegSize">0.21 MB (20:1 compression)</div>
+            </div>
+        </div>
+
+        <!-- Section 2: The Discrete Cosine Transform -->
+        <h2>The Discrete Cosine Transform (DCT)</h2>
+        <p>The Discrete Cosine Transform is a fundamental technique in signal processing. It decomposes any signal into a sum of cosine functions at different frequencies. Rather than storing pixel values directly, JPEG stores the coefficients of these cosines.</p>
+
+        <div class="formula-block">
+            X(k) = Σ<sub style="vertical-align: sub;">n=0 to N-1</sub> x(n) cos[π(2n+1)k / 2N]
+        </div>
+
+        <p>This formula transforms a sequence of N values <em>x(n)</em> into N frequency coefficients <em>X(k)</em>. The low-frequency coefficients (small k) represent the broad patterns in the signal, whilst high-frequency coefficients capture fine details.</p>
+
+        <div class="panel">
+            <h3>Interactive: 1D Discrete Cosine Transform</h3>
+            <p>Below, we show 8 sample pixel values. Adjust the sliders to change the contribution of each DCT basis function. Watch how the sum (orange curve) reconstructs different signals.</p>
+
+            <div class="slider-row">
+                <label>Basis 0 (DC):</label>
+                <input type="range" id="dctCoeff0" min="-255" max="255" value="128" step="1">
+                <span class="value-display" id="dctVal0">128</span>
+            </div>
+            <div class="slider-row">
+                <label>Basis 1:</label>
+                <input type="range" id="dctCoeff1" min="-255" max="255" value="0" step="1">
+                <span class="value-display" id="dctVal1">0</span>
+            </div>
+            <div class="slider-row">
+                <label>Basis 2:</label>
+                <input type="range" id="dctCoeff2" min="-255" max="255" value="0" step="1">
+                <span class="value-display" id="dctVal2">0</span>
+            </div>
+            <div class="slider-row">
+                <label>Basis 3:</label>
+                <input type="range" id="dctCoeff3" min="-255" max="255" value="0" step="1">
+                <span class="value-display" id="dctVal3">0</span>
+            </div>
+            <div class="slider-row">
+                <label>Basis 4:</label>
+                <input type="range" id="dctCoeff4" min="-255" max="255" value="0" step="1">
+                <span class="value-display" id="dctVal4">0</span>
+            </div>
+            <div class="slider-row">
+                <label>Basis 5:</label>
+                <input type="range" id="dctCoeff5" min="-255" max="255" value="0" step="1">
+                <span class="value-display" id="dctVal5">0</span>
+            </div>
+            <div class="slider-row">
+                <label>Basis 6:</label>
+                <input type="range" id="dctCoeff6" min="-255" max="255" value="0" step="1">
+                <span class="value-display" id="dctVal6">0</span>
+            </div>
+            <div class="slider-row">
+                <label>Basis 7:</label>
+                <input type="range" id="dctCoeff7" min="-255" max="255" value="0" step="1">
+                <span class="value-display" id="dctVal7">0</span>
+            </div>
+
+            <canvas id="canvasDCT1D" width="800" height="380"></canvas>
+
+            <div class="insight-box">
+                <strong>Key Insight:</strong> The first coefficient (Basis 0) represents the average brightness. Subsequent coefficients add finer and finer oscillations. Most natural images contain very little high-frequency information, so we can discard high-frequency coefficients with minimal visible impact.
+            </div>
+        </div>
+
+        <!-- Section 3: The 8×8 Block -->
+        <h2>The 8×8 Block — Heart of JPEG</h2>
+        <p>JPEG compression operates on 8×8 blocks of pixels. The image is divided into a grid of these blocks, and each block is processed independently. This allows for a good balance between compression and artefacts.</p>
+
+        <p>The 2D DCT extends the 1D transform to two dimensions, creating 64 basis patterns. The top-left corner represents low-frequency information (flat regions), whilst the bottom-right contains high-frequency details (edges and texture).</p>
+
+        <div class="panel">
+            <h3>Interactive: 8×8 DCT Basis Functions</h3>
+            <p>Each basis function is a 2D pattern. The corner patterns are smooth (low frequency), the opposite corners are highly oscillatory (high frequency).</p>
+
+            <canvas id="canvasBasis8x8" width="800" height="550"></canvas>
+
+            <p style="margin-top: 20px; font-size: 0.93em; color: #a0a0b8;">Above: the 64 2D DCT basis patterns. Top-left is the DC (constant) basis; patterns grow more oscillatory towards the bottom-right.</p>
+        </div>
+
+        <!-- Section 4: Quantisation -->
+        <h2>Quantisation — Where Information Is Lost</h2>
+        <p>After the DCT, we have 64 frequency coefficients. The next step is <em>quantisation</em>: dividing each coefficient by a quantisation value and rounding to the nearest integer. This is where JPEG loses information — and where we control the trade-off between file size and visual quality.</p>
+
+        <p>High-frequency coefficients are typically divided by larger values, so they often round to zero and are discarded. Low-frequency coefficients are divided by smaller values, preserving them with better precision.</p>
+
+        <div class="panel">
+            <h3>Interactive: Quantisation in Action</h3>
+            <p>Observe how quality setting affects the quantisation matrix and the reconstructed block. Move the quality slider to see how coefficients become zero at lower qualities.</p>
+
+            <div class="slider-row">
+                <label>Quality (%):</label>
+                <input type="range" id="qualitySlider" min="1" max="100" value="75" step="1">
+                <span class="value-display" id="qualityValue">75%</span>
+            </div>
+
+            <h3 style="margin-top: 28px;">Original 8×8 Block (Pixel Values)</h3>
+            <div class="grid-display" id="gridOriginal"></div>
+
+            <h3>After DCT (Coefficients)</h3>
+            <div class="grid-display" id="gridDCT"></div>
+
+            <h3>After Quantisation (Rounded to Integer)</h3>
+            <div class="grid-display" id="gridQuantised"></div>
+
+            <h3>Reconstructed Block (After Inverse DCT)</h3>
+            <div class="grid-display" id="gridReconstructed"></div>
+
+            <canvas id="canvasQuantComparison" width="800" height="350"></canvas>
+
+            <div class="insight-box">
+                <strong>Lossy Compression:</strong> Notice how the reconstructed block differs from the original. At quality 75%, this is mostly imperceptible. At quality 10%, artefacts become obvious. This is the trade-off JPEG makes: smaller file size at the cost of some image degradation.
+            </div>
+        </div>
+
+        <!-- Section 5: The Complete JPEG Pipeline -->
+        <h2>The Complete JPEG Pipeline</h2>
+        <p>JPEG compression involves several stages working together:</p>
+
+        <ol style="margin: 16px 0 24px 28px; line-height: 1.8;">
+            <li><strong>Colour space conversion:</strong> Convert from RGB to YC<sub>b</sub>C<sub>r</sub> (separating brightness from colour)</li>
+            <li><strong>Chroma subsampling:</strong> The human eye is less sensitive to colour details, so we store colour at half resolution</li>
+            <li><strong>8×8 blocking:</strong> Divide the image into 8×8 blocks</li>
+            <li><strong>DCT:</strong> Transform each block into frequency coefficients</li>
+            <li><strong>Quantisation:</strong> Round coefficients to integers using the quantisation matrix</li>
+            <li><strong>Zigzag scan:</strong> Reorder coefficients from low to high frequency</li>
+            <li><strong>Run-length &amp; Huffman coding:</strong> Compress the coefficients and zeros with entropy coding</li>
+        </ol>
+
+        <div class="panel">
+            <h3>Interactive: JPEG Pipeline Visualisation</h3>
+            <p>Click each button to step through the JPEG encoding process. Watch how the sample block transforms at each stage.</p>
+
+            <div class="btn-row">
+                <button class="btn active" data-stage="original">Original</button>
+                <button class="btn" data-stage="8x8">8×8 Block</button>
+                <button class="btn" data-stage="dct">After DCT</button>
+                <button class="btn" data-stage="quant">After Quantisation</button>
+                <button class="btn" data-stage="reconstructed">Reconstructed</button>
+            </div>
+
+            <canvas id="canvasPipeline" width="800" height="300"></canvas>
+        </div>
+
+        <!-- Section 6: Quality Levels -->
+        <h2>Quality Levels in Practice</h2>
+        <p>JPEG files can be saved at different quality levels. Higher quality preserves more high-frequency detail but results in larger files. The sweet spot for web images is typically 75-85%, which appears visually lossless to most viewers whilst achieving significant compression.</p>
+
+        <div class="panel">
+            <h3>Interactive: Image Quality Comparison</h3>
+            <p>Adjust the quality slider to see how a procedurally-generated image changes at different compression levels.</p>
+
+            <div class="slider-row">
+                <label>Quality (%):</label>
+                <input type="range" id="qualityCompare" min="1" max="100" value="50" step="1">
+                <span class="value-display" id="qualityCompareValue">50%</span>
+            </div>
+
+            <div class="side-by-side">
+                <div>
+                    <canvas id="canvasQualityOriginal" width="350" height="350"></canvas>
+                    <div class="comparison-label">Original (uncompressed)</div>
+                </div>
+                <div>
+                    <canvas id="canvasQualityCompressed" width="350" height="350"></canvas>
+                    <div class="comparison-label" id="qualityLabel">JPEG at 50%</div>
+                </div>
+            </div>
+
+            <div class="explain" style="margin-top: 20px;">
+                <div class="explain-name">File size:</div>
+                <div class="explain-text" id="estimatedSize">~50 KB at 50% quality</div>
+            </div>
+        </div>
+
+        <!-- Summary Section -->
+        <h2>Why This Matters</h2>
+        <p>The Discrete Cosine Transform is elegant mathematics in action. By recognising that natural images are sparse in the frequency domain (they contain mostly low frequencies with some mid and high frequencies), JPEG compression achieves extraordinary reduction whilst preserving visual fidelity.</p>
+
+        <p>This same principle underlies modern video compression (H.264, H.265), audio compression (AAC, MP3), and even medical imaging. Understanding the DCT reveals not just how JPEG works, but a fundamental principle of signal processing: represent data in the domain where it is most sparse, and discard what matters least.</p>
+
+        <div class="insight-box">
+            <strong>Deep Insight:</strong> JPEG is a lossy format because it discards high-frequency information that the human visual system is insensitive to. This is an example of <em>perceptual coding</em> — exploiting properties of human perception to achieve compression. The mathematics enables the compression, but psychology determines where we can afford information loss.
+        </div>
+    </div>
+
+    <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="terms.html" style="color:#606078;text-decoration:none">Terms of Use</a>
+        &nbsp;&middot;&nbsp;
+        <a href="intellectual-property.html" style="color:#606078;text-decoration:none">Intellectual Property</a>
+        &nbsp;&middot;&nbsp;
+        <a href="privacy.html" style="color:#606078;text-decoration:none">Privacy Policy</a>
+    </div>
+</footer>
+
+    <script>
+        // ===== SECTION 1: FILE SIZE CALCULATOR =====
+        function updateFileSizes() {
+            const width = parseInt(document.getElementById('sliderWidth').value);
+            const height = parseInt(document.getElementById('sliderHeight').value);
+
+            document.getElementById('displayWidth').textContent = width.toLocaleString();
+            document.getElementById('displayHeight').textContent = height.toLocaleString();
+
+            const rawBytes = width * height * 3;
+            const rawMB = (rawBytes / (1024 * 1024)).toFixed(2);
+            document.getElementById('rawSize').textContent = `${rawMB} MB`;
+
+            const compressionRatio = 20 + Math.random() * 10; // 20-30:1
+            const jpegBytes = rawBytes / compressionRatio;
+            const jpegMB = (jpegBytes / (1024 * 1024)).toFixed(2);
+            const ratio = compressionRatio.toFixed(1);
+            document.getElementById('jpegSize').textContent = `${jpegMB} MB (${ratio}:1 compression)`;
+
+            drawSizeComparison(width, height, rawBytes, jpegBytes);
+        }
+
+        function drawSizeComparison(width, height, rawBytes, jpegBytes) {
+            const canvas = document.getElementById('canvasSizes');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const maxBytes = rawBytes * 1.2;
+            const scale = (canvas.width - 100) / maxBytes;
+            const barHeight = 40;
+            const spacing = 80;
+
+            // Raw bar
+            ctx.fillStyle = '#606078';
+            const rawWidth = rawBytes * scale;
+            ctx.fillRect(40, spacing, rawWidth, barHeight);
+            ctx.fillStyle = '#e0e0e0';
+            ctx.font = '12px Georgia';
+            ctx.textAlign = 'left';
+            ctx.fillText('Raw', 10, spacing + 25);
+            ctx.fillText((rawBytes / (1024*1024)).toFixed(1) + ' MB', rawWidth + 50, spacing + 25);
+
+            // JPEG bar
+            ctx.fillStyle = '#22d3ee';
+            const jpegWidth = jpegBytes * scale;
+            ctx.fillRect(40, spacing + 80, jpegWidth, barHeight);
+            ctx.fillStyle = '#e0e0e0';
+            ctx.textAlign = 'left';
+            ctx.fillText('JPEG', 10, spacing + 105);
+            ctx.fillText((jpegBytes / (1024*1024)).toFixed(2) + ' MB', jpegWidth + 50, spacing + 105);
+
+            // Labels
+            ctx.fillStyle = '#a0a0b8';
+            ctx.font = 'italic 12px Georgia';
+            ctx.fillText(width + ' × ' + height + ' pixels', 40, 30);
+        }
+
+        document.getElementById('sliderWidth').addEventListener('input', updateFileSizes);
+        document.getElementById('sliderHeight').addEventListener('input', updateFileSizes);
+        updateFileSizes();
+
+        // ===== SECTION 2: 1D DCT VISUALISATION =====
+        function dct1D(x) {
+            const N = x.length;
+            const X = new Array(N);
+            for (let k = 0; k < N; k++) {
+                let sum = 0;
+                for (let n = 0; n < N; n++) {
+                    sum += x[n] * Math.cos(Math.PI * (2*n + 1) * k / (2*N));
+                }
+                const c = (k === 0) ? Math.sqrt(1/N) : Math.sqrt(2/N);
+                X[k] = sum * c;
+            }
+            return X;
+        }
+
+        function inverseDCT1D(X) {
+            const N = X.length;
+            const x = new Array(N);
+            for (let n = 0; n < N; n++) {
+                let sum = 0;
+                for (let k = 0; k < N; k++) {
+                    const c = (k === 0) ? Math.sqrt(1/N) : Math.sqrt(2/N);
+                    sum += c * X[k] * Math.cos(Math.PI * (2*n + 1) * k / (2*N));
+                }
+                x[n] = sum;
+            }
+            return x;
+        }
+
+        function drawDCT1D() {
+            const canvas = document.getElementById('canvasDCT1D');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Get coefficients from sliders
+            const coeffs = [];
+            for (let i = 0; i < 8; i++) {
+                const val = parseFloat(document.getElementById(`dctCoeff${i}`).value);
+                coeffs.push(val);
+                document.getElementById(`dctVal${i}`).textContent = val.toFixed(0);
+            }
+
+            const reconstructed = inverseDCT1D(coeffs);
+
+            // Draw grid
+            const margin = 40;
+            const graphWidth = canvas.width - 2 * margin;
+            const graphHeight = 120;
+            const topOffset = 20;
+
+            // Background grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 8; i++) {
+                const x = margin + (i / 8) * graphWidth;
+                ctx.beginPath();
+                ctx.moveTo(x, topOffset);
+                ctx.lineTo(x, topOffset + graphHeight);
+                ctx.stroke();
+            }
+
+            // Axes
+            ctx.strokeStyle = '#505068';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(margin, topOffset);
+            ctx.lineTo(margin, topOffset + graphHeight);
+            ctx.lineTo(margin + graphWidth, topOffset + graphHeight);
+            ctx.stroke();
+
+            // Draw each basis function faintly
+            for (let basis = 0; basis < 8; basis++) {
+                ctx.strokeStyle = `rgba(176, 176, 196, ${0.1 + basis * 0.03})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let i = 0; i < 8; i++) {
+                    const x = margin + (i / 8) * graphWidth;
+                    const val = Math.cos(Math.PI * (2*i + 1) * basis / 16);
+                    const y = topOffset + graphHeight / 2 - val * graphHeight / 4;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            // Draw reconstructed signal as thick cyan line
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < 8; i++) {
+                const x = margin + (i / 8) * graphWidth;
+                const normalized = (reconstructed[i] + 255) / 510; // Normalise to 0-1
+                const y = topOffset + graphHeight - normalized * graphHeight;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Draw sample points as circles
+            ctx.fillStyle = '#22d3ee';
+            for (let i = 0; i < 8; i++) {
+                const x = margin + (i / 8) * graphWidth;
+                const normalized = (reconstructed[i] + 255) / 510;
+                const y = topOffset + graphHeight - normalized * graphHeight;
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Labels
+            ctx.fillStyle = '#a0a0b8';
+            ctx.font = '11px Georgia';
+            ctx.textAlign = 'center';
+            for (let i = 0; i <= 8; i++) {
+                const x = margin + (i / 8) * graphWidth;
+                ctx.fillText(i, x, topOffset + graphHeight + 18);
+            }
+
+            ctx.textAlign = 'right';
+            ctx.fillText('255', margin - 5, topOffset);
+            ctx.fillText('0', margin - 5, topOffset + graphHeight / 2 + 4);
+            ctx.fillText('-255', margin - 5, topOffset + graphHeight);
+
+            // Title
+            ctx.fillStyle = '#e0e0e0';
+            ctx.font = 'bold 13px Georgia';
+            ctx.textAlign = 'left';
+            ctx.fillText('Reconstructed signal (cyan)', margin, topOffset - 5);
+        }
+
+        // Update 1D DCT on slider changes
+        for (let i = 0; i < 8; i++) {
+            document.getElementById(`dctCoeff${i}`).addEventListener('input', drawDCT1D);
+        }
+        drawDCT1D();
+
+        // ===== SECTION 3: 8×8 DCT BASIS FUNCTIONS =====
+        function dct2D(block) {
+            const N = 8;
+            const result = Array(N).fill(0).map(() => Array(N).fill(0));
+            for (let u = 0; u < N; u++) {
+                for (let v = 0; v < N; v++) {
+                    let sum = 0;
+                    for (let i = 0; i < N; i++) {
+                        for (let j = 0; j < N; j++) {
+                            const cu = (u === 0) ? 1/Math.sqrt(2) : 1;
+                            const cv = (v === 0) ? 1/Math.sqrt(2) : 1;
+                            const angle = Math.PI * (2*i + 1) * u / 16 + Math.PI * (2*j + 1) * v / 16;
+                            sum += block[i][j] * Math.cos(angle);
+                        }
+                    }
+                    result[u][v] = sum * 2/8 * 1 * 1; // Simplified normalization
+                }
+            }
+            return result;
+        }
+
+        function drawBasis8x8() {
+            const canvas = document.getElementById('canvasBasis8x8');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const cellSize = 40;
+            const padding = 40;
+            const cols = 8;
+            const rows = 8;
+
+            for (let u = 0; u < rows; u++) {
+                for (let v = 0; v < cols; v++) {
+                    const x = padding + v * cellSize;
+                    const y = padding + u * cellSize;
+
+                    // Draw basis function as a heatmap
+                    for (let i = 0; i < 8; i++) {
+                        for (let j = 0; j < 8; j++) {
+                            const cu = (u === 0) ? 1/Math.sqrt(2) : 1;
+                            const cv = (v === 0) ? 1/Math.sqrt(2) : 1;
+                            const angle = Math.PI * (2*i + 1) * u / 16 + Math.PI * (2*j + 1) * v / 16;
+                            const value = Math.cos(angle) * cu * cv;
+
+                            // Map to greyscale: -1 to 1 -> 0 to 255
+                            const grey = Math.floor(128 + value * 100);
+                            ctx.fillStyle = `rgb(${grey}, ${grey}, ${grey})`;
+                            ctx.fillRect(x + j * 5, y + i * 5, 5, 5);
+                        }
+                    }
+
+                    // Border
+                    ctx.strokeStyle = 'rgba(34, 211, 238, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(x, y, cellSize, cellSize);
+                }
+            }
+
+            // Title
+            ctx.fillStyle = '#a0a0b8';
+            ctx.font = '11px Georgia';
+            ctx.textAlign = 'center';
+            ctx.fillText('Low freq →', canvas.width / 2, padding - 15);
+            ctx.fillText('← High freq', canvas.width / 2, canvas.height - 10);
+        }
+
+        drawBasis8x8();
+
+        // ===== SECTION 4: QUANTISATION =====
+        function getQuantisationMatrix(quality) {
+            const baseMatrix = [
+                [16, 11, 10, 16, 24, 40, 51, 61],
+                [12, 12, 14, 19, 26, 58, 60, 55],
+                [14, 13, 16, 24, 40, 57, 69, 56],
+                [14, 17, 22, 29, 51, 87, 80, 62],
+                [18, 22, 37, 56, 68, 109, 103, 77],
+                [24, 35, 55, 64, 81, 104, 113, 92],
+                [49, 64, 78, 87, 103, 121, 120, 101],
+                [72, 92, 95, 98, 112, 100, 103, 99]
+            ];
+
+            const scale = quality < 50 ? 5000 / quality : 200 - 2 * quality;
+            const result = baseMatrix.map(row =>
+                row.map(val => Math.max(1, Math.round(val * scale / 100)))
+            );
+            return result;
+        }
+
+        function generateSampleBlock() {
+            // Create a simple gradient block with some variation
+            const block = [];
+            for (let i = 0; i < 8; i++) {
+                block[i] = [];
+                for (let j = 0; j < 8; j++) {
+                    const gradient = (i + j) / 14 * 200 + 20;
+                    const noise = Math.sin(i * 1.5) * Math.cos(j * 1.2) * 20;
+                    block[i][j] = Math.max(0, Math.min(255, gradient + noise));
+                }
+            }
+            return block;
+        }
+
+        function quantise(coeffs, quantMatrix) {
+            const result = [];
+            for (let i = 0; i < 8; i++) {
+                result[i] = [];
+                for (let j = 0; j < 8; j++) {
+                    result[i][j] = Math.round(coeffs[i][j] / quantMatrix[i][j]);
+                }
+            }
+            return result;
+        }
+
+        function dequantise(coeffs, quantMatrix) {
+            const result = [];
+            for (let i = 0; i < 8; i++) {
+                result[i] = [];
+                for (let j = 0; j < 8; j++) {
+                    result[i][j] = coeffs[i][j] * quantMatrix[i][j];
+                }
+            }
+            return result;
+        }
+
+        function inverseDCT2D(block) {
+            const N = 8;
+            const result = Array(N).fill(0).map(() => Array(N).fill(0));
+            for (let i = 0; i < N; i++) {
+                for (let j = 0; j < N; j++) {
+                    let sum = 0;
+                    for (let u = 0; u < N; u++) {
+                        for (let v = 0; v < N; v++) {
+                            const cu = (u === 0) ? 1/Math.sqrt(2) : 1;
+                            const cv = (v === 0) ? 1/Math.sqrt(2) : 1;
+                            const angle = Math.PI * (2*i + 1) * u / 16 + Math.PI * (2*j + 1) * v / 16;
+                            sum += cu * cv * block[u][v] * Math.cos(angle);
+                        }
+                    }
+                    result[i][j] = sum * 2/8 * 1 * 1;
+                }
+            }
+            return result;
+        }
+
+        function updateQuantisation() {
+            const quality = parseInt(document.getElementById('qualitySlider').value);
+            document.getElementById('qualityValue').textContent = quality + '%';
+
+            const originalBlock = generateSampleBlock();
+            const dctCoeffs = dct2D(originalBlock);
+            const quantMatrix = getQuantisationMatrix(quality);
+            const quantCoeffs = quantise(dctCoeffs, quantMatrix);
+            const dequantCoeffs = dequantise(quantCoeffs, quantMatrix);
+            const reconstructedBlock = inverseDCT2D(dequantCoeffs);
+
+            // Update grids
+            updateGrid('gridOriginal', originalBlock, 0, 255);
+            updateGrid('gridDCT', dctCoeffs, -1000, 1000);
+            updateGrid('gridQuantised', quantCoeffs, -100, 100);
+            updateGrid('gridReconstructed', reconstructedBlock, 0, 255);
+
+            // Draw comparison
+            drawQuantComparison(originalBlock, reconstructedBlock, quality);
+        }
+
+        function updateGrid(elementId, data, min, max) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = '';
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+                    const value = data[i][j];
+                    cell.textContent = Math.round(value);
+
+                    // Color based on magnitude
+                    const normalised = (value - min) / (max - min);
+                    const hue = Math.max(0, Math.min(1, normalised)) * 180;
+                    const sat = 50;
+                    const light = 30 + normalised * 40;
+                    cell.style.backgroundColor = `hsl(${hue}, ${sat}%, ${light}%)`;
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function drawQuantComparison(original, reconstructed, quality) {
+            const canvas = document.getElementById('canvasQuantComparison');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const pixelSize = 30;
+            const padding = 40;
+            const gap = 50;
+
+            // Original
+            ctx.fillStyle = '#a0a0b8';
+            ctx.font = '12px Georgia';
+            ctx.fillText('Original', padding, padding - 10);
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const val = Math.max(0, Math.min(255, original[i][j]));
+                    const grey = Math.round(val);
+                    ctx.fillStyle = `rgb(${grey}, ${grey}, ${grey})`;
+                    ctx.fillRect(padding + j * pixelSize, padding + i * pixelSize, pixelSize - 1, pixelSize - 1);
+                }
+            }
+
+            // Reconstructed
+            const offsetX = padding + 8 * pixelSize + gap;
+            ctx.fillStyle = '#a0a0b8';
+            ctx.fillText('Reconstructed (Quality ' + quality + '%)', offsetX, padding - 10);
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const val = Math.max(0, Math.min(255, reconstructed[i][j]));
+                    const grey = Math.round(val);
+                    ctx.fillStyle = `rgb(${grey}, ${grey}, ${grey})`;
+                    ctx.fillRect(offsetX + j * pixelSize, padding + i * pixelSize, pixelSize - 1, pixelSize - 1);
+                }
+            }
+
+            // Error map
+            const offsetX2 = offsetX + 8 * pixelSize + gap;
+            ctx.fillStyle = '#a0a0b8';
+            ctx.fillText('Difference', offsetX2, padding - 10);
+            let maxError = 0;
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const error = Math.abs(original[i][j] - reconstructed[i][j]);
+                    maxError = Math.max(maxError, error);
+                }
+            }
+
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const error = Math.abs(original[i][j] - reconstructed[i][j]);
+                    const intensity = Math.round((error / Math.max(1, maxError)) * 255);
+                    ctx.fillStyle = `rgb(${intensity}, 0, ${255-intensity})`;
+                    ctx.fillRect(offsetX2 + j * pixelSize, padding + i * pixelSize, pixelSize - 1, pixelSize - 1);
+                }
+            }
+        }
+
+        document.getElementById('qualitySlider').addEventListener('input', updateQuantisation);
+        updateQuantisation();
+
+        // ===== SECTION 5: PIPELINE =====
+        const pipelineStages = ['original', '8x8', 'dct', 'quant', 'reconstructed'];
+        let currentStage = 0;
+
+        function drawPipelineStage(stage) {
+            const canvas = document.getElementById('canvasPipeline');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const block = generateSampleBlock();
+            const dctCoeffs = dct2D(block);
+            const quantMatrix = getQuantisationMatrix(75);
+            const quantCoeffs = quantise(dctCoeffs, quantMatrix);
+            const dequantCoeffs = dequantise(quantCoeffs, quantMatrix);
+            const reconstructedBlock = inverseDCT2D(dequantCoeffs);
+
+            let dataToDisplay = block;
+            let min = 0, max = 255;
+            let title = 'Original image (8×8 block)';
+
+            if (stage === '8x8') {
+                dataToDisplay = block;
+                title = '8×8 block extracted from image';
+            } else if (stage === 'dct') {
+                dataToDisplay = dctCoeffs;
+                min = -1000;
+                max = 1000;
+                title = 'After DCT (frequency coefficients)';
+            } else if (stage === 'quant') {
+                dataToDisplay = quantCoeffs;
+                min = -100;
+                max = 100;
+                title = 'After Quantisation (rounded integers)';
+            } else if (stage === 'reconstructed') {
+                dataToDisplay = reconstructedBlock;
+                title = 'After Inverse DCT (reconstructed)';
+            }
+
+            // Draw title
+            ctx.fillStyle = '#22d3ee';
+            ctx.font = 'bold 14px Georgia';
+            ctx.fillText(title, 40, 30);
+
+            // Draw block
+            const pixelSize = 24;
+            const padding = 60;
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    let val = dataToDisplay[i][j];
+
+                    if (stage === 'dct') {
+                        // Heatmap for coefficients
+                        const normalised = (val - min) / (max - min);
+                        const hue = Math.max(0, Math.min(1, normalised)) * 200;
+                        const sat = 60;
+                        const light = 40 + normalised * 30;
+                        ctx.fillStyle = `hsl(${hue}, ${sat}%, ${light}%)`;
+                    } else if (stage === 'quant') {
+                        const normalised = (val - min) / (max - min);
+                        const hue = Math.max(0, Math.min(1, normalised)) * 200;
+                        const sat = 70;
+                        const light = 35 + normalised * 35;
+                        ctx.fillStyle = `hsl(${hue}, ${sat}%, ${light}%)`;
+                    } else {
+                        // Greyscale
+                        const clamped = Math.max(0, Math.min(255, val));
+                        const grey = Math.round(clamped);
+                        ctx.fillStyle = `rgb(${grey}, ${grey}, ${grey})`;
+                    }
+
+                    ctx.fillRect(padding + j * pixelSize, padding + i * pixelSize, pixelSize - 1, pixelSize - 1);
+                }
+            }
+
+            // Border
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(padding, padding, 8 * pixelSize - 1, 8 * pixelSize - 1);
+
+            // Info
+            ctx.fillStyle = '#a0a0b8';
+            ctx.font = '11px Georgia';
+            ctx.fillText('Data representation changes at each stage of JPEG compression', 40, canvas.height - 15);
+        }
+
+        document.querySelectorAll('[data-stage]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-stage]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentStage = pipelineStages.indexOf(btn.dataset.stage);
+                drawPipelineStage(pipelineStages[currentStage]);
+            });
+        });
+
+        drawPipelineStage('original');
+
+        // ===== SECTION 6: QUALITY COMPARISON =====
+        function generateProceduralImage(width, height, quality) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            // Gradient background
+            const grad = ctx.createLinearGradient(0, 0, width, height);
+            grad.addColorStop(0, '#1a1a3a');
+            grad.addColorStop(1, '#0a3a2a');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+
+            // Add some shapes
+            ctx.fillStyle = '#22d3ee';
+            ctx.fillRect(width * 0.1, height * 0.1, width * 0.3, height * 0.3);
+            ctx.fillStyle = '#e0e0e0';
+            ctx.beginPath();
+            ctx.arc(width * 0.75, height * 0.25, width * 0.15, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ff6b6b';
+            ctx.beginPath();
+            ctx.moveTo(width * 0.2, height * 0.7);
+            ctx.lineTo(width * 0.4, height * 0.9);
+            ctx.lineTo(width * 0.4, height * 0.7);
+            ctx.fill();
+
+            // Add texture with noise
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const noise = (Math.random() - 0.5) * 10;
+                data[i] = Math.max(0, Math.min(255, data[i] + noise));
+                data[i+1] = Math.max(0, Math.min(255, data[i+1] + noise));
+                data[i+2] = Math.max(0, Math.min(255, data[i+2] + noise));
+            }
+            ctx.putImageData(imageData, 0, 0);
+
+            return canvas;
+        }
+
+        function simulateJPEGCompression(sourceCanvas, quality) {
+            const targetCanvas = document.createElement('canvas');
+            targetCanvas.width = sourceCanvas.width;
+            targetCanvas.height = sourceCanvas.height;
+            const ctx = targetCanvas.getContext('2d');
+
+            // Copy source
+            ctx.drawImage(sourceCanvas, 0, 0);
+
+            // Apply block-wise DCT compression simulation
+            const blockSize = 8;
+            const imageData = ctx.getImageData(0, 0, targetCanvas.width, targetCanvas.height);
+            const data = imageData.data;
+            const width = targetCanvas.width;
+
+            const qualityScale = quality / 100;
+            const blurAmount = (1 - qualityScale) * 2;
+
+            // Simple blur simulation for lossy compression
+            const tempData = new Uint8ClampedArray(data);
+            for (let i = 0; i < width; i += blockSize) {
+                for (let j = 0; j < targetCanvas.height; j += blockSize) {
+                    const blockData = [];
+                    for (let bi = 0; bi < blockSize && i + bi < width; bi++) {
+                        for (let bj = 0; bj < blockSize && j + bj < targetCanvas.height; bj++) {
+                            const idx = ((j + bj) * width + (i + bi)) * 4;
+                            blockData.push({r: tempData[idx], g: tempData[idx+1], b: tempData[idx+2]});
+                        }
+                    }
+
+                    const avgR = blockData.reduce((a, p) => a + p.r, 0) / blockData.length;
+                    const avgG = blockData.reduce((a, p) => a + p.g, 0) / blockData.length;
+                    const avgB = blockData.reduce((a, p) => a + p.b, 0) / blockData.length;
+
+                    let idx = 0;
+                    for (let bi = 0; bi < blockSize && i + bi < width; bi++) {
+                        for (let bj = 0; bj < blockSize && j + bj < targetCanvas.height; bj++) {
+                            const pixelIdx = ((j + bj) * width + (i + bi)) * 4;
+                            data[pixelIdx] = Math.round(tempData[pixelIdx] * qualityScale + avgR * (1 - qualityScale));
+                            data[pixelIdx+1] = Math.round(tempData[pixelIdx+1] * qualityScale + avgG * (1 - qualityScale));
+                            data[pixelIdx+2] = Math.round(tempData[pixelIdx+2] * qualityScale + avgB * (1 - qualityScale));
+                            idx++;
+                        }
+                    }
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+
+            return targetCanvas;
+        }
+
+        function updateQualityComparison() {
+            const quality = parseInt(document.getElementById('qualityCompare').value);
+            document.getElementById('qualityCompareValue').textContent = quality + '%';
+            document.getElementById('qualityLabel').textContent = `JPEG at ${quality}%`;
+
+            const fileSize = Math.round(50 * (100 / quality) / 2); // Rough estimate
+            document.getElementById('estimatedSize').textContent = `~${fileSize} KB at ${quality}% quality`;
+
+            // Generate original
+            const originalCanvas = generateProceduralImage(350, 350, 100);
+            const originalCtx = document.getElementById('canvasQualityOriginal').getContext('2d');
+            originalCtx.drawImage(originalCanvas, 0, 0, 350, 350);
+
+            // Generate compressed
+            const compressedCanvas = simulateJPEGCompression(originalCanvas, quality);
+            const compressedCtx = document.getElementById('canvasQualityCompressed').getContext('2d');
+            compressedCtx.drawImage(compressedCanvas, 0, 0, 350, 350);
+        }
+
+        document.getElementById('qualityCompare').addEventListener('input', updateQualityComparison);
+        updateQualityComparison();
+    </script><script src="js/mathematician-cards.js" defer></script>
+</body>
+</html>
