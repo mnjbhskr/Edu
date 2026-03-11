@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#07071a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Broken Machine &mdash; Act IV</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#07071a; --bg2:#0b0b24; --bg3:#10102e;
+            --rose:#fb7185; --rose-dim:rgba(251,113,133,0.1);
+            --gold:#fbbf24; --gold-dim:rgba(251,191,36,0.12);
+            --cyan:#22d3ee; --cyan-dim:rgba(34,211,238,0.1);
+            --green:#10b981; --green-dim:rgba(16,185,129,0.1);
+            --silver:#e2e8f0; --silver-dim:rgba(226,232,240,0.08);
+            --muted:#7070a0; --text:#c8d0f0;
+            --border:rgba(251,113,133,0.12); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(7,7,26,0.92);
+            backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--rose);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--gold);}
+        .dot.active{background:var(--rose);box-shadow:0 0 10px var(--rose);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 6px var(--rose)}50%{box-shadow:0 0 18px var(--rose)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--rose);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--rose);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#c0c8e8;}
+        .narrator p em{color:var(--rose);font-style:italic;}
+        .narrator p strong{color:var(--silver);font-weight:600;}
+        .narrator.gold{border-left-color:var(--gold);} .narrator.gold::before{color:var(--gold);}
+        .narrator.cyan{border-left-color:var(--cyan);} .narrator.cyan::before{color:var(--cyan);}
+        .narrator.green{border-left-color:var(--green);} .narrator.green::before{color:var(--green);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--silver);}
+        .act-name em{color:var(--rose);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--rose),#e11d48);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#fff;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 24px rgba(251,113,133,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(251,113,133,0.45);}
+        .cta-btn:disabled{opacity:0.35;transform:none;box-shadow:none;cursor:default;}
+        .cta-btn.gold{background:linear-gradient(135deg,var(--gold),#f59e0b);box-shadow:0 4px 24px rgba(251,191,36,0.3);}
+        .cta-btn.gold:hover{box-shadow:0 8px 32px rgba(251,191,36,0.45);}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .insight{background:var(--bg2);border:1px solid rgba(251,113,133,0.15);border-left:3px solid var(--rose);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--rose);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#9098c0;}
+        .insight p em{color:var(--rose);font-style:normal;font-weight:600;}
+        .insight.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);}
+        .insight.gold .lbl{color:var(--gold);}
+        .insight.cyan{border-left-color:var(--cyan);border-color:rgba(34,211,238,0.15);}
+        .insight.cyan .lbl{color:var(--cyan);}
+        .insight.green{border-left-color:var(--green);border-color:rgba(16,185,129,0.15);}
+        .insight.green .lbl{color:var(--green);}
+
+        /* Turing Machine Simulator */
+        .tm-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px;margin-bottom:16px;overflow:hidden;}
+        .tm-label{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;}
+        #tmCanvas{width:100%;height:180px;display:block;border-radius:8px;}
+        .tm-state{text-align:center;font-family:'DM Sans',monospace;font-size:0.9em;color:var(--gold);
+            margin:8px 0;padding:6px;background:var(--bg3);border-radius:8px;}
+
+        /* Rule Table */
+        .rule-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:0.85em;}
+        .rule-table th{background:var(--bg3);color:var(--muted);font-weight:600;padding:8px 6px;
+            text-align:center;border:1px solid rgba(255,255,255,0.06);font-size:0.75em;
+            text-transform:uppercase;letter-spacing:1px;}
+        .rule-table td{padding:6px;text-align:center;border:1px solid rgba(255,255,255,0.06);
+            color:var(--text);font-family:'DM Sans',monospace;}
+        .rule-table td.editable{background:rgba(251,191,36,0.06);cursor:pointer;color:var(--gold);
+            border-color:rgba(251,191,36,0.2);}
+        .rule-table td.filled{background:rgba(16,185,129,0.08);color:var(--green);
+            border-color:rgba(16,185,129,0.2);}
+
+        /* Action buttons */
+        .action-strip{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;}
+        .act-btn{padding:11px 20px;border-radius:12px;background:var(--bg3);
+            border:1.5px solid var(--border);color:var(--muted);
+            font-family:'DM Sans',sans-serif;font-size:0.9em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;}
+        .act-btn:hover,.act-btn:active{border-color:var(--rose);color:var(--rose);background:var(--rose-dim);}
+        .act-btn.gold-btn:hover,.act-btn.gold-btn:active{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+        .act-btn:disabled{opacity:0.3;cursor:default;}
+
+        /* Halt Game */
+        .program-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:14px 16px;margin-bottom:10px;transition:all 0.3s;}
+        .program-card .prog-desc{font-family:'Lora',serif;font-size:0.95em;line-height:1.6;
+            color:var(--text);margin-bottom:10px;}
+        .program-card .prog-num{font-size:0.7em;text-transform:uppercase;letter-spacing:2px;
+            color:var(--muted);margin-bottom:6px;font-weight:600;}
+        .guess-btns{display:flex;gap:8px;}
+        .guess-btn{flex:1;padding:9px 0;border-radius:10px;border:1.5px solid var(--border);
+            background:var(--bg3);color:var(--muted);font-family:'DM Sans',sans-serif;
+            font-size:0.82em;font-weight:600;cursor:pointer;transition:all 0.2s;}
+        .guess-btn:hover{border-color:var(--gold);color:var(--gold);}
+        .guess-btn.correct{background:var(--green-dim);border-color:var(--green);color:var(--green);}
+        .guess-btn.wrong{background:var(--rose-dim);border-color:var(--rose);color:var(--rose);}
+        .guess-btn.revealed{background:var(--gold-dim);border-color:var(--gold);color:var(--gold);}
+        .guess-btn:disabled{cursor:default;opacity:0.8;}
+        .prog-feedback{margin-top:8px;font-family:'Lora',serif;font-size:0.88em;line-height:1.6;
+            color:#8090b8;display:none;padding:8px 12px;background:var(--bg3);border-radius:10px;}
+        .prog-feedback.show{display:block;}
+
+        /* Diagonal Proof */
+        .proof-branch{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px;margin-bottom:12px;transition:all 0.4s;opacity:0.4;}
+        .proof-branch.active{opacity:1;}
+        .proof-branch.rose-glow{border-color:var(--rose);box-shadow:0 0 20px rgba(251,113,133,0.15);}
+        .proof-branch .branch-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;
+            color:var(--muted);margin-bottom:10px;font-weight:600;}
+        .proof-step{padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);
+            font-family:'Lora',serif;font-size:0.95em;line-height:1.6;color:#8090b8;
+            display:none;}
+        .proof-step.show{display:block;}
+        .proof-step .step-num{color:var(--muted);font-family:'DM Sans',monospace;font-size:0.8em;margin-right:6px;}
+        .proof-step .contradiction{color:var(--rose);font-weight:600;}
+        .proof-step .valid{color:var(--gold);}
+
+        /* Two-track tabs */
+        .track-tabs{display:flex;gap:4px;margin-bottom:14px;}
+        .track-tab{flex:1;padding:10px;text-align:center;border-radius:10px;border:1.5px solid var(--border);
+            background:var(--bg3);color:var(--muted);font-family:'DM Sans',sans-serif;
+            font-size:0.82em;font-weight:600;cursor:pointer;transition:all 0.2s;}
+        .track-tab.active{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+        .track-content{display:none;}
+        .track-content.active{display:block;}
+
+        /* Pre-built machine cards */
+        .machine-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;
+            padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;}
+        .machine-card:hover{border-color:var(--gold);}
+        .machine-card.selected{border-color:var(--gold);background:var(--gold-dim);}
+        .machine-card .mc-name{font-weight:600;color:var(--silver);font-size:0.9em;margin-bottom:4px;}
+        .machine-card .mc-desc{font-size:0.8em;color:var(--muted);line-height:1.5;}
+        .machine-card .mc-result{font-size:0.75em;text-transform:uppercase;letter-spacing:1px;
+            margin-top:6px;font-weight:700;}
+        .mc-result.halts{color:var(--green);}
+        .mc-result.loops{color:var(--rose);}
+
+        /* Connection items */
+        .connection-item{background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+            padding:14px 16px;margin-bottom:10px;}
+        .connection-item .ci-icon{font-size:1.4em;margin-bottom:6px;}
+        .connection-item .ci-title{font-weight:600;color:var(--silver);font-size:0.9em;margin-bottom:4px;}
+        .connection-item .ci-desc{font-size:0.85em;color:var(--muted);line-height:1.5;font-family:'Lora',serif;}
+
+        /* Score display */
+        .score-display{text-align:center;padding:12px;background:var(--bg3);border-radius:12px;
+            margin-bottom:14px;font-family:'DM Sans',monospace;}
+        .score-display .score-num{font-size:1.4em;color:var(--gold);font-weight:700;}
+        .score-display .score-label{font-size:0.72em;color:var(--muted);text-transform:uppercase;
+            letter-spacing:1px;}
+
+        /* Status card */
+        .status-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:14px 16px;margin-bottom:14px;min-height:54px;
+            font-family:'Lora',serif;font-size:1em;line-height:1.7;color:#8090b8;transition:all 0.3s;}
+        .status-card .hi{color:var(--silver);} .status-card .rose{color:var(--rose);}
+        .status-card .gold{color:var(--gold);} .status-card .cyan{color:var(--cyan);}
+        .status-card .green{color:var(--green);}
+
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        @keyframes warningPulse{0%,100%{opacity:0.6}50%{opacity:1}}
+
+        /* Navigation footer */
+        .nav-footer{display:flex;gap:12px;max-width:400px;margin:20px auto 0;width:100%;}
+        .nav-footer .cta-btn{flex:1;}
+
+        /* Footer */
+        .site-footer{text-align:center;padding:24px 20px;font-size:0.72em;color:#3a3a5c;
+            border-top:1px solid rgba(255,255,255,0.04);margin-top:auto;}
+        .site-footer a{color:#4a4a6c;text-decoration:none;}
+    </style>
+</head>
+<body>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act IV of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot active"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========== SCREEN 0: OPENING ========== -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Broken Machine &middot; Act IV</div>
+      <div class="act-name">The Machine That <em>Cannot Decide</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;">
+      <div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">&#x2699;</div>
+    </div>
+    <div class="narrator">
+      <p><em>Alan Turing. Cambridge, 1936. Age 24.</em></p>
+      <p style="margin-top:10px">He had read G&ouml;del. He understood, perhaps better than anyone, what the theorems meant.</p>
+      <p style="margin-top:10px">He asked a different question. Not <strong>&ldquo;what can&rsquo;t mathematics prove?&rdquo;</strong> but <strong>&ldquo;what can&rsquo;t a machine compute?&rdquo;</strong></p>
+      <p style="margin-top:10px">To answer it, he had to invent, precisely and for the first time, what a <em>machine</em> is.</p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">Alan Turing, 1912&ndash;1954</div>
+      <p>A runner, a mathematician, a codebreaker. Turing&rsquo;s 1936 paper &ldquo;On Computable Numbers&rdquo; defined computation itself &mdash; and proved its limits &mdash; before any programmable computer existed. He was 24 years old.</p>
+    </div>
+    <div class="insight">
+      <div class="lbl">Try This</div>
+      <p>Before continuing: can you imagine a program that analyses other programs and always correctly decides whether they will finish running or loop forever? Hold that thought.</p>
+    </div>
+    <div class="insight cyan">
+      <div class="lbl">What To Notice</div>
+      <p>This act echoes Acts II and III. The same diagonal argument appears a third time. Watch for it. The d&eacute;j&agrave; vu is deliberate.</p>
+    </div>
+    <div class="insight gold">
+      <div class="lbl">Why It Matters</div>
+      <p>Turing&rsquo;s proof did two things at once: it showed that certain problems are <em>impossible</em> to solve by computation &mdash; and it gave us the precise definition of what a computer is. The limit and the invention arrived together.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Build a machine &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ========== SCREEN 1: THE TURING MACHINE ========== -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Discovery</div>
+      <div class="act-name">The <em>Turing Machine</em></div>
+    </div>
+    <div class="narrator">
+      <p>A Turing machine is absurdly simple. An <em>infinite tape</em> of cells. A <em>read/write head</em> that moves one cell at a time. A <em>state register</em> &mdash; the machine&rsquo;s current mood. And a <em>rule table</em>: if in state X reading symbol Y, write Z, move left or right, enter new state.</p>
+      <p style="margin-top:10px"><strong>That is all a computer is.</strong></p>
+    </div>
+
+    <div class="tm-wrap">
+      <div class="tm-label">Your Turing Machine</div>
+      <canvas id="tmCanvas"></canvas>
+      <div class="tm-state" id="tmStatus">State: START &middot; Waiting for rules</div>
+    </div>
+
+    <div class="narrator gold">
+      <p>Fill in the rule table below. When the head reads <strong>0</strong>, it should write <strong>1</strong>, move right, and stay in START. When it reads a <strong>blank</strong>, it should stop.</p>
+    </div>
+
+    <table class="rule-table" id="ruleTable">
+      <tr><th>State</th><th>Read</th><th>Write</th><th>Move</th><th>New State</th></tr>
+      <tr>
+        <td>START</td><td>0</td>
+        <td class="editable" id="rule1-write" onclick="fillRule(1)">?</td>
+        <td class="editable" id="rule1-move" onclick="fillRule(1)">?</td>
+        <td class="editable" id="rule1-next" onclick="fillRule(1)">?</td>
+      </tr>
+      <tr>
+        <td>START</td><td>_</td>
+        <td class="editable" id="rule2-write" onclick="fillRule(2)">?</td>
+        <td class="editable" id="rule2-move" onclick="fillRule(2)">?</td>
+        <td class="editable" id="rule2-next" onclick="fillRule(2)">?</td>
+      </tr>
+    </table>
+
+    <div class="action-strip">
+      <button class="act-btn gold-btn" id="btnRunTM" onclick="runUserTM()" disabled>&#9654; Run Machine</button>
+      <button class="act-btn" onclick="resetTM()">&#x21bb; Reset</button>
+    </div>
+
+    <div id="tmFeedback" class="status-card" style="display:none;"></div>
+
+    <div class="narrator" style="display:none;" id="tmReveal1">
+      <p>The machine flipped every 0 to 1, moved right, and halted at the blank. <em>A complete program in two rules.</em></p>
+      <p style="margin-top:10px">Now observe three pre-built machines. Watch which ones halt and which run forever.</p>
+    </div>
+
+    <div id="prebuiltSection" style="display:none;">
+      <div class="tm-label" style="margin-bottom:8px;">Pre-built Machines</div>
+      <div class="machine-card" id="mc-counter" onclick="runPrebuilt('counter')">
+        <div class="mc-name">The Counter</div>
+        <div class="mc-desc">Writes 1s endlessly. Counts in unary, ticking forever.</div>
+        <div class="mc-result loops" style="display:none;">LOOPS FOREVER</div>
+      </div>
+      <div class="machine-card" id="mc-reverser" onclick="runPrebuilt('reverser')">
+        <div class="mc-name">The Reverser</div>
+        <div class="mc-desc">Reverses a short string of symbols, then halts.</div>
+        <div class="mc-result halts" style="display:none;">HALTS</div>
+      </div>
+      <div class="machine-card" id="mc-searcher" onclick="runPrebuilt('searcher')">
+        <div class="mc-name">The Searcher</div>
+        <div class="mc-desc">Searches for a 1 on an all-zero tape. The tape has no 1s.</div>
+        <div class="mc-result loops" style="display:none;">LOOPS FOREVER</div>
+      </div>
+    </div>
+
+    <div id="tmQuestion" class="narrator" style="display:none;">
+      <p>One halted. Two didn&rsquo;t.</p>
+      <p style="margin-top:10px">Before running each one, could you have <em>predicted</em> which would halt and which would loop?</p>
+    </div>
+
+    <div class="action-strip" id="predictBtns" style="display:none;">
+      <button class="act-btn" onclick="answerPredict('yes')">Yes</button>
+      <button class="act-btn" onclick="answerPredict('no')">No</button>
+      <button class="act-btn" onclick="answerPredict('maybe')">Maybe</button>
+    </div>
+
+    <div id="predictReveal" class="narrator gold" style="display:none;">
+      <p>For these simple machines &mdash; perhaps. But programs can be arbitrarily complex.</p>
+      <p style="margin-top:10px">Turing asked: <em>is there a single universal algorithm that can examine ANY program and its input, and decide: &ldquo;this will halt&rdquo; or &ldquo;this will run forever&rdquo;?</em></p>
+      <p style="margin-top:10px"><strong>Can the machine be its own judge?</strong></p>
+    </div>
+
+    <button class="cta-btn" id="s1Next" onclick="goToScreen(2)" disabled style="margin-top:14px;">Play the Halting Game &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ========== SCREEN 2: WILL IT HALT? GAME ========== -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">Discovery</div>
+      <div class="act-name"><em>Will It Halt?</em></div>
+    </div>
+    <div class="narrator">
+      <p>Six programs. Each described in plain English. For each one, guess: does it <strong>halt</strong>, <strong>loop forever</strong>, or is the answer <em>unknown</em>?</p>
+    </div>
+
+    <div class="score-display">
+      <div class="score-label">Score</div>
+      <div class="score-num" id="haltScore">0 / 7</div>
+    </div>
+
+    <div id="haltGame"></div>
+
+    <div id="haltReveal" class="insight" style="display:none;">
+      <div class="lbl">The Lesson</div>
+      <p>Programs 4, 5, and the bonus are not trick questions. They are <em>equivalent to open problems in mathematics</em>. If you could decide halting, you could resolve the greatest unsolved conjectures by simply running the relevant program and checking whether it stops.</p>
+      <p style="margin-top:8px">This is not a party trick. The Halting Problem is <em>genuinely hard</em> &mdash; not because computers are slow, but because halting is connected to mathematical truth itself.</p>
+    </div>
+
+    <button class="cta-btn" id="s2Next" onclick="goToScreen(3)" disabled style="margin-top:14px;">The diagonal returns &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ========== SCREEN 3: THE DIAGONAL ARGUMENT RETURNS ========== -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">Discovery</div>
+      <div class="act-name">The Diagonal <em>Returns</em></div>
+    </div>
+    <div class="narrator">
+      <p>Here it is again. The move Cantor used to prove some infinities are larger than others. The move G&ouml;del used to construct his unprovable statement.</p>
+      <p style="margin-top:10px"><em>Turing is about to use it too.</em> Watch carefully &mdash; you&rsquo;ve seen this before.</p>
+    </div>
+
+    <!-- Step 1: Assume H exists -->
+    <div class="proof-branch active" id="step1">
+      <div class="branch-title">Step 1 &mdash; Suppose a Halt-Checker Exists</div>
+      <div class="proof-step show">
+        <span class="valid">Assume</span> &mdash; for contradiction &mdash; that there IS a program <strong>H</strong> that can decide, for any program P and input I, whether P(I) halts.
+      </div>
+      <div class="proof-step show" style="margin-top:8px;font-family:'DM Sans',monospace;font-size:0.88em;color:var(--gold);">
+        H(P, I) = HALTS &nbsp; if P terminates on input I<br>
+        H(P, I) = LOOPS &nbsp; if P runs forever on input I
+      </div>
+    </div>
+
+    <button class="act-btn gold-btn" id="btnStep2" onclick="showStep(2)" style="margin:0 auto 14px;display:block;">Next step &rarr;</button>
+
+    <!-- Step 2: Build D -->
+    <div class="proof-branch" id="step2" style="display:none;">
+      <div class="branch-title">Step 2 &mdash; Build a New Program D</div>
+      <div class="proof-step show">
+        Using H, build a new program <strong>D</strong> that takes any program P as input:
+      </div>
+      <div class="proof-step show" style="margin-top:8px;font-family:'DM Sans',monospace;font-size:0.88em;padding:10px;background:var(--bg3);border-radius:8px;">
+        <span style="color:var(--gold)">D(P):</span><br>
+        &nbsp;&nbsp;Run H(P, P)<br>
+        &nbsp;&nbsp;<span style="color:var(--green)">If H says &ldquo;halts&rdquo;</span> &rarr; D loops forever<br>
+        &nbsp;&nbsp;<span style="color:var(--rose)">If H says &ldquo;loops&rdquo;</span> &rarr; D halts immediately
+      </div>
+      <div class="proof-step show" style="margin-top:8px;">
+        D does the <em>opposite</em> of what H predicts. A legal program, built from a legal component.
+      </div>
+    </div>
+
+    <button class="act-btn gold-btn" id="btnStep3" onclick="showStep(3)" style="margin:0 auto 14px;display:none;">Run D on itself &rarr;</button>
+
+    <!-- Step 3: D(D) -->
+    <div class="proof-branch" id="step3" style="display:none;">
+      <div class="branch-title">Step 3 &mdash; What Does D(D) Do?</div>
+    </div>
+
+    <div id="contradictionBranches" style="display:none;">
+      <div class="proof-branch rose-glow" id="branchA">
+        <div class="branch-title" style="color:var(--rose);">If D(D) Halts&hellip;</div>
+        <div class="proof-step show"><span class="step-num">1.</span> D(D) halts</div>
+        <div class="proof-step show"><span class="step-num">2.</span> H was asked &ldquo;does D(D) halt?&rdquo; and answered <span class="valid">&ldquo;halts&rdquo;</span></div>
+        <div class="proof-step show"><span class="step-num">3.</span> But D&rsquo;s rule says: if H answers &ldquo;halts&rdquo; &rarr; <strong>loop forever</strong></div>
+        <div class="proof-step show"><span class="step-num">4.</span> So D(D) should loop &mdash; but we said it halts</div>
+        <div class="proof-step show"><span class="step-num"></span> <span class="contradiction">&#x26A0; CONTRADICTION</span></div>
+      </div>
+      <div class="proof-branch rose-glow" id="branchB">
+        <div class="branch-title" style="color:var(--rose);">If D(D) Loops&hellip;</div>
+        <div class="proof-step show"><span class="step-num">1.</span> D(D) loops forever</div>
+        <div class="proof-step show"><span class="step-num">2.</span> H was asked &ldquo;does D(D) halt?&rdquo; and answered <span class="valid">&ldquo;loops&rdquo;</span></div>
+        <div class="proof-step show"><span class="step-num">3.</span> But D&rsquo;s rule says: if H answers &ldquo;loops&rdquo; &rarr; <strong>halt immediately</strong></div>
+        <div class="proof-step show"><span class="step-num">4.</span> So D(D) should halt &mdash; but we said it loops</div>
+        <div class="proof-step show"><span class="step-num"></span> <span class="contradiction">&#x26A0; CONTRADICTION</span></div>
+      </div>
+    </div>
+
+    <button class="act-btn gold-btn" id="btnStep4" onclick="showStep(4)" style="margin:0 auto 14px;display:none;">The only escape &rarr;</button>
+
+    <!-- Step 4: Resolution -->
+    <div id="resolution" style="display:none;">
+      <div class="narrator" style="border-left-color:var(--rose);">
+        <p>Both branches lead to contradiction. The contradiction came from assuming <em>H exists</em>.</p>
+        <p style="margin-top:10px"><strong>H cannot exist.</strong> No program can decide halting for all programs.</p>
+        <p style="margin-top:10px">This is not a limitation of current technology. It is a theorem. No program &mdash; on any computer, past or future, however fast &mdash; <em>can solve the Halting Problem.</em></p>
+      </div>
+
+      <div class="insight gold">
+        <div class="lbl">The Diagonal Echo</div>
+        <p>You have seen this argument before.</p>
+        <p style="margin-top:6px"><strong>Cantor</strong> assumed a list of all real numbers &mdash; and constructed a number not on the list, by changing each diagonal digit.</p>
+        <p style="margin-top:6px"><strong>G&ouml;del</strong> assumed a complete formal system &mdash; and constructed a statement that says &ldquo;I am not provable.&rdquo;</p>
+        <p style="margin-top:6px"><strong>Turing</strong> assumed a halt-checking program &mdash; and built a program that contradicts itself when run on itself.</p>
+        <p style="margin-top:8px"><em>One argument. Three revelations. Self-reference combined with negation always breaks the assumption of completeness.</em></p>
+      </div>
+    </div>
+
+    <button class="cta-btn" id="s3Next" onclick="goToScreen(4)" disabled style="margin-top:14px;">See the theorem &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ========== SCREEN 4: UNDECIDABILITY ========== -->
+  <section class="screen" id="screen-4">
+    <div class="act-title">
+      <div class="act-label">Proof</div>
+      <div class="act-name"><em>Undecidability</em></div>
+    </div>
+
+    <div class="track-tabs">
+      <div class="track-tab active" onclick="switchTrack('intuitive')">Intuitive</div>
+      <div class="track-tab" onclick="switchTrack('precise')">Precise</div>
+    </div>
+
+    <div class="track-content active" id="track-intuitive">
+      <div class="narrator gold">
+        <p>A program that checks whether programs halt would need to simulate what those programs do. But some programs run forever &mdash; so the checker would have to run forever simulating them, which means the checker itself never gives an answer.</p>
+        <p style="margin-top:10px">But more than this: if you could check halting, you could resolve the great open conjectures of mathematics by building programs that search for counterexamples.</p>
+        <p style="margin-top:10px"><em>The undecidability of halting is, in a precise sense, the reason mathematics still has unsolved problems.</em></p>
+      </div>
+    </div>
+
+    <div class="track-content" id="track-precise">
+      <div class="narrator cyan">
+        <p><strong>Theorem (Turing, 1936).</strong> The Halting Problem is undecidable: there is no Turing machine H such that for all machines P and inputs I,</p>
+        <p style="margin-top:8px;font-family:'DM Sans',monospace;font-size:0.95em;text-align:center;color:var(--cyan);">
+          H(P, I) terminates and correctly outputs &ldquo;halts&rdquo; or &ldquo;loops&rdquo;.
+        </p>
+        <p style="margin-top:10px"><strong>Proof.</strong> By diagonal contradiction, as above. Assume H exists; construct D that does the opposite of H&rsquo;s prediction when given itself; D(D) leads to contradiction on both branches; therefore H does not exist. &square;</p>
+        <p style="margin-top:10px"><strong>Corollary (Rice&rsquo;s Theorem).</strong> The class of undecidable problems is vast. Any non-trivial semantic property of programs &mdash; &ldquo;does this program produce output X?&rdquo;, &ldquo;does this program ever enter state S?&rdquo; &mdash; is undecidable.</p>
+      </div>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">The Shape of The Argument</div>
+      <p><strong>Cantor 1891:</strong> Assume a list &rarr; construct what&rsquo;s not on it &rarr; contradiction.</p>
+      <p><strong>G&ouml;del 1931:</strong> Assume completeness &rarr; construct what can&rsquo;t be proved &rarr; contradiction.</p>
+      <p><strong>Turing 1936:</strong> Assume decidability &rarr; construct what contradicts the decision &rarr; contradiction.</p>
+      <p style="margin-top:8px"><em>The diagonal argument is the mathematics of impossibility.</em></p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(5)">Why this changes everything &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ========== SCREEN 5: CONNECTION — THE COMPUTER IS BORN ========== -->
+  <section class="screen" id="screen-5">
+    <div class="act-title">
+      <div class="act-label">Connection</div>
+      <div class="act-name">The Computer Is <em>Born</em></div>
+    </div>
+    <div class="narrator">
+      <p>Turing published his proof in 1936.</p>
+      <p style="margin-top:10px">To prove something was undecidable, he had to precisely define what it would mean for something to be <em>decidable</em> in the first place.</p>
+      <p style="margin-top:10px">That precise definition &mdash; the Turing Machine &mdash; was the first rigorous mathematical model of computation.</p>
+      <p style="margin-top:10px">Every computer ever built &mdash; every phone, laptop, supercomputer, quantum computer &mdash; is, in terms of what it can and cannot compute, equivalent to a Turing Machine. They are faster. They have more memory. <strong>They cannot solve different problems.</strong></p>
+    </div>
+
+    <div class="insight gold">
+      <div class="lbl">The Paradox</div>
+      <p style="font-size:1.1em;line-height:1.8;"><em>The computer was invented to prove what computers cannot do.</em></p>
+    </div>
+
+    <div class="tm-label" style="margin-bottom:10px;">Undecidable Problems &mdash; Proven Impossibilities</div>
+
+    <div class="connection-item">
+      <div class="ci-title">Virus Detection</div>
+      <div class="ci-desc">Whether an arbitrary program contains a virus is undecidable. This is why antivirus software is fundamentally limited &mdash; it cannot be perfect.</div>
+    </div>
+    <div class="connection-item">
+      <div class="ci-title">Program Equivalence</div>
+      <div class="ci-desc">Whether two arbitrary programs compute the same function is undecidable. No tool can ever guarantee that a rewrite of your code does exactly what the original did.</div>
+    </div>
+    <div class="connection-item">
+      <div class="ci-title">Output Prediction</div>
+      <div class="ci-desc">Whether an arbitrary program will ever output a specific string is undecidable. You cannot, in general, predict what a program will produce without running it.</div>
+    </div>
+    <div class="connection-item">
+      <div class="ci-title">Mathematical Provability</div>
+      <div class="ci-desc">Whether a mathematical theorem is provable from given axioms is undecidable. Turing&rsquo;s result and G&ouml;del&rsquo;s meet here: the limits of computation and the limits of proof are the same limit.</div>
+    </div>
+
+    <div class="narrator" style="margin-top:14px;">
+      <p>These are not unsolved engineering problems. They are <em>proven mathematical impossibilities</em>.</p>
+      <p style="margin-top:10px">The walls are real. And knowing exactly where they are is one of the greatest achievements of twentieth-century thought.</p>
+    </div>
+
+    <div class="nav-footer" style="flex-wrap:wrap;">
+      <a href="broken_machine_act3.html" class="cta-btn ghost" style="text-decoration:none;text-align:center;">&larr; Back to Act III</a>
+      <a href="broken_machine_act5.html" class="cta-btn" style="text-decoration:none;text-align:center;">Continue to Act V &rarr;</a>
+    </div>
+    <div style="max-width:400px;margin:12px auto 0;width:100%;">
+      <a href="../index.html" class="cta-btn ghost" style="text-decoration:none;text-align:center;display:block;">&larr; Back to mathsedu.org</a>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <footer class="site-footer">
+    <div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div>
+  </footer>
+</div>
+
+<script src="../narrator.js"></script>
+<script>
+/* ================================================================
+   NAVIGATION
+   ================================================================ */
+var curScreen = 0;
+function goToScreen(n) {
+    document.getElementById('screen-' + curScreen).classList.remove('active');
+    curScreen = n;
+    document.getElementById('screen-' + n).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateDots();
+    if (n === 1) initTMScreen();
+    if (n === 2) initHaltGame();
+}
+function updateDots() {
+    var dots = document.querySelectorAll('.progress-dots .dot');
+    // The 4th dot (index 3) is always this act's dot
+    // We show sub-progress within the act using the 5 dots
+    dots.forEach(function(d, i) {
+        d.className = 'dot';
+        if (i < curScreen) d.classList.add('done');
+        else if (i === curScreen) d.classList.add('active');
+    });
+}
+
+/* ================================================================
+   COSMOS BACKGROUND
+   ================================================================ */
+(function() {
+    var cv = document.getElementById('cosmos');
+    function draw() {
+        cv.width = innerWidth; cv.height = innerHeight;
+        var ctx = cv.getContext('2d');
+        var g = ctx.createRadialGradient(innerWidth * 0.3, innerHeight * 0.2, 0,
+            innerWidth * 0.5, innerHeight * 0.5, innerWidth * 0.8);
+        g.addColorStop(0, 'rgba(251,113,133,0.04)');
+        g.addColorStop(0.4, 'rgba(251,191,36,0.02)');
+        g.addColorStop(1, 'transparent');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
+        for (var i = 0; i < 200; i++) {
+            var x = Math.random() * cv.width, y = Math.random() * cv.height;
+            var r = Math.random() * 1.4, a = 0.04 + Math.random() * 0.3;
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+            var t = ['255,255,255', '200,180,200', '220,200,240'];
+            ctx.fillStyle = 'rgba(' + t[Math.floor(Math.random() * t.length)] + ',' + a + ')';
+            ctx.fill();
+        }
+    }
+    window.addEventListener('resize', draw); draw();
+})();
+
+/* ================================================================
+   TURING MACHINE SIMULATOR
+   ================================================================ */
+var tmCanvas, tmCtx, tmDPR;
+var tmTape = [];
+var tmHead = 0;
+var tmState = 'START';
+var tmRunning = false;
+var tmTimer = null;
+var tmStepCount = 0;
+var tmRulesFilled = [false, false];
+var tmUserDone = false;
+var prebuiltSeen = 0;
+
+function initTMScreen() {
+    tmCanvas = document.getElementById('tmCanvas');
+    tmDPR = window.devicePixelRatio || 1;
+    resizeTMCanvas();
+    resetTMTape([0, 0, 0, 0, 0]);
+    drawTM();
+}
+
+function resizeTMCanvas() {
+    if (!tmCanvas) return;
+    var w = tmCanvas.parentElement.clientWidth - 32;
+    tmCanvas.style.width = w + 'px';
+    tmCanvas.style.height = '180px';
+    tmCanvas.width = w * tmDPR;
+    tmCanvas.height = 180 * tmDPR;
+    tmCtx = tmCanvas.getContext('2d');
+    tmCtx.setTransform(tmDPR, 0, 0, tmDPR, 0, 0);
+}
+
+function resetTMTape(tape) {
+    tmTape = tape.slice();
+    // Extend tape with blanks on both sides
+    while (tmTape.length < 15) tmTape.push(-1);
+    tmHead = 0;
+    tmState = 'START';
+    tmStepCount = 0;
+    tmRunning = false;
+    if (tmTimer) { clearInterval(tmTimer); tmTimer = null; }
+}
+
+function drawTM() {
+    if (!tmCtx) return;
+    var w = tmCanvas.width / tmDPR, h = tmCanvas.height / tmDPR;
+    tmCtx.clearRect(0, 0, w, h);
+
+    var cellW = 44, cellH = 44, gap = 4;
+    var visibleCells = Math.min(Math.floor((w - 20) / (cellW + gap)), tmTape.length);
+    var startIdx = Math.max(0, tmHead - Math.floor(visibleCells / 2));
+    var totalW = visibleCells * (cellW + gap) - gap;
+    var offsetX = (w - totalW) / 2;
+    var tapeY = 70;
+
+    // Draw tape label
+    tmCtx.fillStyle = '#7070a0';
+    tmCtx.font = "600 11px 'DM Sans',sans-serif";
+    tmCtx.textAlign = 'center';
+    tmCtx.fillText('TAPE', w / 2, 20);
+
+    // Draw cells
+    for (var i = 0; i < visibleCells; i++) {
+        var idx = startIdx + i;
+        var x = offsetX + i * (cellW + gap);
+        var isHead = (idx === tmHead);
+
+        // Cell background
+        tmCtx.fillStyle = isHead ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.03)';
+        tmCtx.strokeStyle = isHead ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.08)';
+        tmCtx.lineWidth = isHead ? 2 : 1;
+        tmCtx.beginPath();
+        tmCtx.roundRect(x, tapeY, cellW, cellH, 6);
+        tmCtx.fill();
+        tmCtx.stroke();
+
+        // Cell value
+        var val = idx < tmTape.length ? tmTape[idx] : -1;
+        var sym = val === -1 ? '_' : String(val);
+        tmCtx.fillStyle = isHead ? '#fbbf24' : '#8090b8';
+        tmCtx.font = "bold 16px 'DM Sans',monospace";
+        tmCtx.textAlign = 'center';
+        tmCtx.fillText(sym, x + cellW / 2, tapeY + cellH / 2 + 5);
+
+        // Cell index
+        tmCtx.fillStyle = '#4a5080';
+        tmCtx.font = "10px 'DM Sans',sans-serif";
+        tmCtx.fillText(idx, x + cellW / 2, tapeY + cellH + 14);
+    }
+
+    // Draw head arrow
+    var headScreenX = offsetX + (tmHead - startIdx) * (cellW + gap) + cellW / 2;
+    tmCtx.fillStyle = '#fbbf24';
+    tmCtx.beginPath();
+    tmCtx.moveTo(headScreenX - 8, tapeY - 12);
+    tmCtx.lineTo(headScreenX + 8, tapeY - 12);
+    tmCtx.lineTo(headScreenX, tapeY - 2);
+    tmCtx.closePath();
+    tmCtx.fill();
+
+    // Head label
+    tmCtx.fillStyle = '#fbbf24';
+    tmCtx.font = "600 11px 'DM Sans',sans-serif";
+    tmCtx.fillText('HEAD', headScreenX, tapeY - 18);
+
+    // State display
+    var stateColor = tmState === 'HALT' ? '#10b981' : '#fbbf24';
+    tmCtx.fillStyle = stateColor;
+    tmCtx.font = "600 12px 'DM Sans',monospace";
+    tmCtx.fillText('State: ' + tmState, w / 2, tapeY + cellH + 34);
+
+    // Dots at edges
+    tmCtx.fillStyle = '#4a5080';
+    tmCtx.font = "bold 16px sans-serif";
+    if (startIdx > 0) tmCtx.fillText('...', offsetX - 18, tapeY + cellH / 2 + 5);
+    tmCtx.fillText('...', offsetX + totalW + 14, tapeY + cellH / 2 + 5);
+}
+
+function fillRule(n) {
+    if (tmRulesFilled[n - 1]) return;
+    tmRulesFilled[n - 1] = true;
+    if (n === 1) {
+        document.getElementById('rule1-write').textContent = '1';
+        document.getElementById('rule1-write').className = 'filled';
+        document.getElementById('rule1-move').textContent = 'RIGHT';
+        document.getElementById('rule1-move').className = 'filled';
+        document.getElementById('rule1-next').textContent = 'START';
+        document.getElementById('rule1-next').className = 'filled';
+    } else {
+        document.getElementById('rule2-write').textContent = '_';
+        document.getElementById('rule2-write').className = 'filled';
+        document.getElementById('rule2-move').textContent = 'STOP';
+        document.getElementById('rule2-move').className = 'filled';
+        document.getElementById('rule2-next').textContent = 'HALT';
+        document.getElementById('rule2-next').className = 'filled';
+    }
+    if (tmRulesFilled[0] && tmRulesFilled[1]) {
+        document.getElementById('btnRunTM').disabled = false;
+    }
+}
+
+function runUserTM() {
+    if (tmRunning || tmUserDone) return;
+    resetTMTape([0, 0, 0, 0, 0]);
+    tmRunning = true;
+    document.getElementById('btnRunTM').disabled = true;
+    document.getElementById('tmStatus').textContent = 'Running...';
+
+    tmTimer = setInterval(function() {
+        var val = tmTape[tmHead];
+        if (val === -1 || val === undefined) {
+            // Blank: halt
+            tmState = 'HALT';
+            tmRunning = false;
+            clearInterval(tmTimer);
+            tmTimer = null;
+            drawTM();
+            document.getElementById('tmStatus').textContent = 'State: HALT — Machine stopped after ' + tmStepCount + ' steps';
+            document.getElementById('tmStatus').style.color = '#10b981';
+            onUserTMDone();
+            return;
+        }
+        // Read 0: write 1, move right, stay START
+        tmTape[tmHead] = 1;
+        tmHead++;
+        if (tmHead >= tmTape.length) tmTape.push(-1);
+        tmStepCount++;
+        drawTM();
+        document.getElementById('tmStatus').textContent = 'State: START · Step ' + tmStepCount;
+    }, 350);
+}
+
+function onUserTMDone() {
+    tmUserDone = true;
+    document.getElementById('tmReveal1').style.display = 'block';
+    document.getElementById('prebuiltSection').style.display = 'block';
+    document.getElementById('tmFeedback').style.display = 'block';
+    document.getElementById('tmFeedback').innerHTML = '<span class="green">The machine halted.</span> Every 0 became a 1. Two rules. One complete computation.';
+}
+
+function resetTM() {
+    if (tmTimer) { clearInterval(tmTimer); tmTimer = null; }
+    tmRunning = false;
+    resetTMTape([0, 0, 0, 0, 0]);
+    drawTM();
+    document.getElementById('tmStatus').textContent = 'State: START · Waiting for rules';
+    document.getElementById('tmStatus').style.color = '#fbbf24';
+    if (tmRulesFilled[0] && tmRulesFilled[1]) {
+        document.getElementById('btnRunTM').disabled = false;
+    }
+}
+
+/* Pre-built machines */
+var prebuiltRunning = false;
+var prebuiltTimer = null;
+
+function runPrebuilt(name) {
+    if (prebuiltRunning) return;
+    prebuiltRunning = true;
+
+    // Highlight selected card
+    document.querySelectorAll('.machine-card').forEach(function(c) { c.classList.remove('selected'); });
+    document.getElementById('mc-' + name).classList.add('selected');
+
+    var tape, head, state, maxSteps;
+
+    if (name === 'counter') {
+        tape = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
+        head = 0; state = 'COUNT'; maxSteps = 20;
+    } else if (name === 'reverser') {
+        tape = [1, 0, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
+        head = 0; state = 'REV'; maxSteps = 12;
+    } else {
+        tape = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        head = 0; state = 'SEARCH'; maxSteps = 20;
+    }
+
+    tmTape = tape; tmHead = head; tmState = state; tmStepCount = 0;
+    drawTM();
+    document.getElementById('tmStatus').textContent = 'Running: ' + name.charAt(0).toUpperCase() + name.slice(1) + '...';
+    document.getElementById('tmStatus').style.color = '#fbbf24';
+
+    var steps = 0;
+    prebuiltTimer = setInterval(function() {
+        steps++;
+        if (name === 'counter') {
+            tmTape[tmHead] = 1;
+            tmHead++;
+            if (tmHead >= tmTape.length) tmTape.push(-1);
+            tmState = 'COUNT';
+        } else if (name === 'reverser') {
+            // Simple simulation: swap from edges inward
+            if (steps <= 3) {
+                var left = steps - 1, right = 2 - (steps - 1);
+                if (left < right) {
+                    var tmp = tmTape[left]; tmTape[left] = tmTape[right]; tmTape[right] = tmp;
+                }
+                tmHead = steps - 1;
+                tmState = 'REV';
+            } else {
+                tmState = 'HALT';
+            }
+        } else {
+            tmHead++;
+            if (tmHead >= tmTape.length) tmTape.push(0);
+            tmState = 'SEARCH';
+        }
+
+        tmStepCount = steps;
+        drawTM();
+
+        if (name === 'reverser' && tmState === 'HALT') {
+            clearInterval(prebuiltTimer);
+            prebuiltTimer = null;
+            prebuiltRunning = false;
+            document.getElementById('tmStatus').textContent = 'HALT — Reverser finished in ' + steps + ' steps';
+            document.getElementById('tmStatus').style.color = '#10b981';
+            document.getElementById('mc-reverser').querySelector('.mc-result').style.display = 'block';
+            prebuiltSeen++;
+            checkPrebuiltDone();
+            return;
+        }
+
+        if (steps >= maxSteps) {
+            clearInterval(prebuiltTimer);
+            prebuiltTimer = null;
+            prebuiltRunning = false;
+            if (name === 'counter') {
+                document.getElementById('tmStatus').textContent = 'The Counter keeps going... (stopped display at ' + steps + ' steps)';
+                document.getElementById('tmStatus').style.color = '#fb7185';
+                document.getElementById('mc-counter').querySelector('.mc-result').style.display = 'block';
+            } else {
+                document.getElementById('tmStatus').textContent = 'The Searcher keeps searching... no 1 found. (stopped display at ' + steps + ' steps)';
+                document.getElementById('tmStatus').style.color = '#fb7185';
+                document.getElementById('mc-searcher').querySelector('.mc-result').style.display = 'block';
+            }
+            prebuiltSeen++;
+            checkPrebuiltDone();
+        }
+    }, 250);
+}
+
+function checkPrebuiltDone() {
+    if (prebuiltSeen >= 3) {
+        document.getElementById('tmQuestion').style.display = 'block';
+        document.getElementById('predictBtns').style.display = 'flex';
+    }
+}
+
+function answerPredict(ans) {
+    document.getElementById('predictBtns').style.display = 'none';
+    document.getElementById('predictReveal').style.display = 'block';
+    document.getElementById('s1Next').disabled = false;
+}
+
+/* ================================================================
+   HALT GAME
+   ================================================================ */
+var haltPrograms = [
+    {
+        desc: 'Count from 1 to 10, then stop.',
+        answer: 'halts',
+        feedback: 'Straightforward. A finite loop with a clear endpoint.'
+    },
+    {
+        desc: 'Count upward forever: 1, 2, 3, 4, ...',
+        answer: 'loops',
+        feedback: 'No stopping condition. The counter never reaches a target.'
+    },
+    {
+        desc: 'Check if n is even. If not, try n + 1. If yes, stop. (Starting with n = 1.)',
+        answer: 'halts',
+        feedback: 'n = 1 is odd, so try n = 2. 2 is even. Halt. Simple.'
+    },
+    {
+        desc: 'Search for the first odd perfect number. (A perfect number equals the sum of its proper divisors.)',
+        answer: 'unknown',
+        feedback: 'Whether an odd perfect number exists is an open problem in mathematics, unsolved for over 2,000 years. If one exists, this halts. If none exist, it loops forever. Nobody knows.'
+    },
+    {
+        desc: 'For each even number n > 2, check whether n is the sum of two primes. If any n fails, stop.',
+        answer: 'unknown',
+        feedback: 'This is Goldbach\'s Conjecture. Every even number tested so far (up to 4 \u00d7 10\u00b9\u2078) works. But no proof exists that it always does. If there is a counterexample, the program halts. If the conjecture is true, it runs forever.'
+    },
+    {
+        desc: 'Print the digits of \u03c0 one at a time: 3, 1, 4, 1, 5, 9, ...',
+        answer: 'loops',
+        feedback: '\u03c0 has infinitely many digits. The program never finishes.'
+    },
+    {
+        desc: 'BONUS: Pick any positive integer n. If n is even, halve it. If n is odd, triple it and add 1. Repeat. Stop if you reach 1. (Starting with n = 27.)',
+        answer: 'unknown',
+        feedback: 'This is the Collatz Conjecture. Every starting number tested reaches 1 \u2014 but nobody has proved it always does. The sequence for 27 reaches 9,232 before eventually returning to 1 after 111 steps. Erd\u0151s said: \u201cMathematics is not yet ready for such problems.\u201d'
+    }
+];
+var haltScore = 0;
+var haltAnswered = 0;
+
+function initHaltGame() {
+    var container = document.getElementById('haltGame');
+    if (container.children.length > 0) return;
+    haltScore = 0; haltAnswered = 0;
+
+    haltPrograms.forEach(function(prog, idx) {
+        var card = document.createElement('div');
+        card.className = 'program-card';
+        card.id = 'prog-' + idx;
+        var numLabel = idx < 6 ? 'Program ' + (idx + 1) : 'Bonus';
+        card.innerHTML =
+            '<div class="prog-num">' + numLabel + '</div>' +
+            '<div class="prog-desc">' + prog.desc + '</div>' +
+            '<div class="guess-btns">' +
+                '<button class="guess-btn" onclick="guessHalt(' + idx + ',\'halts\')">Halts</button>' +
+                '<button class="guess-btn" onclick="guessHalt(' + idx + ',\'loops\')">Loops</button>' +
+                '<button class="guess-btn" onclick="guessHalt(' + idx + ',\'unknown\')">Unknown</button>' +
+            '</div>' +
+            '<div class="prog-feedback" id="feedback-' + idx + '">' + prog.feedback + '</div>';
+        container.appendChild(card);
+    });
+}
+
+function guessHalt(idx, guess) {
+    var prog = haltPrograms[idx];
+    var card = document.getElementById('prog-' + idx);
+    var btns = card.querySelectorAll('.guess-btn');
+    btns.forEach(function(b) { b.disabled = true; });
+
+    var correctIdx = { halts: 0, loops: 1, unknown: 2 }[prog.answer];
+    var guessIdx = { halts: 0, loops: 1, unknown: 2 }[guess];
+
+    if (guess === prog.answer) {
+        btns[guessIdx].classList.add('correct');
+        haltScore++;
+    } else {
+        btns[guessIdx].classList.add('wrong');
+        btns[correctIdx].classList.add('revealed');
+    }
+
+    haltAnswered++;
+    document.getElementById('haltScore').textContent = haltScore + ' / ' + haltPrograms.length;
+    document.getElementById('feedback-' + idx).classList.add('show');
+
+    if (haltAnswered >= haltPrograms.length) {
+        document.getElementById('haltReveal').style.display = 'block';
+        document.getElementById('s2Next').disabled = false;
+    }
+}
+
+/* ================================================================
+   DIAGONAL PROOF STEPS
+   ================================================================ */
+function showStep(n) {
+    if (n === 2) {
+        document.getElementById('btnStep2').style.display = 'none';
+        document.getElementById('step2').style.display = 'block';
+        document.getElementById('step2').classList.add('active');
+        document.getElementById('btnStep3').style.display = 'block';
+    } else if (n === 3) {
+        document.getElementById('btnStep3').style.display = 'none';
+        document.getElementById('step3').style.display = 'block';
+        document.getElementById('step3').classList.add('active');
+        document.getElementById('contradictionBranches').style.display = 'block';
+
+        // Animate branches appearing
+        var brA = document.getElementById('branchA');
+        var brB = document.getElementById('branchB');
+        brA.classList.add('active');
+        setTimeout(function() { brB.classList.add('active'); }, 400);
+        document.getElementById('btnStep4').style.display = 'block';
+    } else if (n === 4) {
+        document.getElementById('btnStep4').style.display = 'none';
+        document.getElementById('resolution').style.display = 'block';
+        document.getElementById('s3Next').disabled = false;
+    }
+}
+
+/* ================================================================
+   TWO-TRACK TABS
+   ================================================================ */
+function switchTrack(track) {
+    document.querySelectorAll('.track-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.track-content').forEach(function(t) { t.classList.remove('active'); });
+    if (track === 'intuitive') {
+        document.querySelector('.track-tab:first-child').classList.add('active');
+        document.getElementById('track-intuitive').classList.add('active');
+    } else {
+        document.querySelector('.track-tab:last-child').classList.add('active');
+        document.getElementById('track-precise').classList.add('active');
+    }
+}
+
+/* ================================================================
+   CANVAS POLYFILL for roundRect
+   ================================================================ */
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        if (typeof r === 'number') r = [r, r, r, r];
+        this.beginPath();
+        this.moveTo(x + r[0], y);
+        this.lineTo(x + w - r[1], y);
+        this.quadraticCurveTo(x + w, y, x + w, y + r[1]);
+        this.lineTo(x + w, y + h - r[2]);
+        this.quadraticCurveTo(x + w, y + h, x + w - r[2], y + h);
+        this.lineTo(x + r[3], y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - r[3]);
+        this.lineTo(x, y + r[0]);
+        this.quadraticCurveTo(x, y, x + r[0], y);
+        this.closePath();
+        return this;
+    };
+}
+</script>
+</body>
+</html>

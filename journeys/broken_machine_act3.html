@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#07071a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Broken Machine &mdash; Act III</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#07071a; --bg2:#0b0b24; --bg3:#10102e;
+            --indigo:#818cf8; --indigo-dim:rgba(129,140,248,0.12);
+            --teal:#2dd4bf; --teal-dim:rgba(45,212,191,0.1);
+            --silver:#e2e8f0; --silver-dim:rgba(226,232,240,0.08);
+            --gold:#fbbf24; --gold-dim:rgba(251,191,36,0.12);
+            --rose:#fb7185; --rose-dim:rgba(251,113,133,0.1);
+            --rose-deep:#e11d48; --rose-deep-dim:rgba(225,29,72,0.12);
+            --cyan:#22d3ee; --cyan-dim:rgba(34,211,238,0.1);
+            --muted:#4a5080; --text:#c8d0f0;
+            --border:rgba(129,140,248,0.12); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+
+        /* Header */
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(7,7,26,0.92);
+            backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--rose);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--rose);}
+        .dot.active{background:var(--rose);box-shadow:0 0 10px var(--rose);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 6px var(--rose)}50%{box-shadow:0 0 18px var(--rose)}}
+
+        /* Screens */
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+        /* Narrator */
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--rose);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--rose);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#c0c8e8;}
+        .narrator p em{color:var(--rose);font-style:italic;}
+        .narrator p strong{color:var(--silver);font-weight:600;}
+        .narrator.gold{border-left-color:var(--gold);} .narrator.gold::before{color:var(--gold);}
+        .narrator.cyan{border-left-color:var(--cyan);} .narrator.cyan::before{color:var(--cyan);}
+
+        /* Titles */
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--silver);}
+        .act-name em{color:var(--rose);font-style:italic;}
+
+        /* Buttons */
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--rose),#e11d48);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#fff;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 24px rgba(251,113,133,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(251,113,133,0.45);}
+        .cta-btn:disabled{opacity:0.35;transform:none;box-shadow:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .cta-btn.gold{background:linear-gradient(135deg,var(--gold),#f59e0b);box-shadow:0 4px 24px rgba(251,191,36,0.3);}
+        .cta-btn.gold:hover{box-shadow:0 8px 32px rgba(251,191,36,0.45);}
+
+        /* Insight */
+        .insight{background:var(--bg2);border:1px solid rgba(251,113,133,0.15);border-left:3px solid var(--rose);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--rose);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#9098c0;}
+        .insight p em{color:var(--rose);font-style:normal;font-weight:600;}
+        .insight.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);}
+        .insight.gold .lbl{color:var(--gold);}
+        .insight.teal{border-left-color:var(--teal);border-color:rgba(45,212,191,0.15);}
+        .insight.teal .lbl{color:var(--teal);}
+        .insight.cyan{border-left-color:var(--cyan);border-color:rgba(34,211,238,0.15);}
+        .insight.cyan .lbl{color:var(--cyan);}
+
+        /* Machine */
+        .machine-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:24px;margin-bottom:20px;text-align:center;position:relative;overflow:hidden;}
+        .machine-body{width:200px;height:160px;margin:0 auto 16px;border:2px solid rgba(251,191,36,0.4);
+            border-radius:12px;background:var(--gold-dim);position:relative;display:flex;align-items:center;
+            justify-content:center;flex-direction:column;gap:8px;}
+        .machine-body .gears{font-size:2.8em;animation:spin 4s linear infinite;}
+        @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        .machine-body .gears.stopped{animation:none;}
+        .warning-light{width:16px;height:16px;border-radius:50%;background:var(--rose);position:absolute;
+            top:12px;right:12px;opacity:0;transition:opacity 0.3s;}
+        .warning-light.on{opacity:1;animation:blink 1s ease infinite;}
+        .warning-light.solid{opacity:1;animation:none;}
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+        .diag-panel{background:var(--bg3);border:1px solid rgba(251,191,36,0.2);border-radius:8px;
+            padding:10px 14px;margin-top:8px;font-family:'DM Sans',monospace;font-size:0.8em;color:var(--gold);
+            min-height:40px;text-align:left;line-height:1.6;}
+        .diag-panel .rose{color:var(--rose);}
+        .self-diag-btn{padding:10px 20px;border-radius:12px;background:var(--gold-dim);
+            border:1.5px solid rgba(251,191,36,0.4);color:var(--gold);
+            font-family:'DM Sans',sans-serif;font-size:0.85em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;margin-top:12px;}
+        .self-diag-btn:hover{background:rgba(251,191,36,0.2);border-color:var(--gold);}
+        .self-diag-btn:disabled{opacity:0.3;cursor:default;}
+
+        /* Status bar */
+        .status-bar{width:100%;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;
+            margin:12px 0;overflow:hidden;}
+        .status-fill{height:100%;background:var(--gold);border-radius:3px;width:0%;transition:width 0.3s;}
+        .status-fill.rose{background:var(--rose);}
+
+        /* Analogy puzzle */
+        .analogy-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;}
+        .analogy-row{display:flex;align-items:center;gap:10px;padding:12px 14px;
+            background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;
+            font-family:'Lora',serif;font-size:0.92em;line-height:1.6;}
+        .analogy-row .attempt{color:var(--gold);min-width:40%;font-weight:600;}
+        .analogy-row .reason{color:var(--muted);font-style:italic;}
+        .analogy-row.matched{border-color:rgba(45,212,191,0.4);background:rgba(45,212,191,0.05);}
+        .drop-zone{min-height:44px;padding:10px 14px;background:var(--bg3);border:1.5px dashed rgba(251,113,133,0.3);
+            border-radius:12px;color:var(--muted);font-family:'Lora',serif;font-size:0.92em;font-style:italic;
+            cursor:pointer;transition:all 0.2s;text-align:center;}
+        .drop-zone:hover{border-color:var(--rose);background:var(--rose-dim);}
+        .drop-zone.filled{border-style:solid;border-color:rgba(251,113,133,0.5);color:var(--rose);
+            background:var(--rose-dim);cursor:default;}
+
+        /* Steps */
+        .step-list{display:flex;flex-direction:column;gap:0;margin-bottom:20px;}
+        .step{padding:14px 16px;background:var(--bg2);border:1px solid var(--border);
+            border-radius:var(--radius);opacity:0.25;transform:translateX(-10px);
+            transition:all 0.5s ease;margin-bottom:8px;position:relative;}
+        .step.visible{opacity:1;transform:translateX(0);}
+        .step .step-num{font-size:0.65em;text-transform:uppercase;letter-spacing:2px;
+            color:var(--muted);margin-bottom:4px;}
+        .step .step-num.rose{color:var(--rose);}
+        .step p{font-family:'Lora',serif;font-size:0.95em;line-height:1.7;color:#9098c0;}
+        .step p strong{color:var(--silver);}
+        .step p em{color:var(--rose);}
+        .step .formula{font-family:'DM Sans',monospace;font-size:1.05em;color:var(--gold);
+            padding:8px 12px;background:var(--bg3);border-radius:8px;margin-top:8px;display:inline-block;}
+        .step .formula.rose{color:var(--rose);}
+        .step.alarm{border-color:rgba(251,113,133,0.4);background:rgba(251,113,133,0.06);}
+        .step-advance{padding:10px 18px;border-radius:12px;background:var(--bg3);
+            border:1.5px solid var(--border);color:var(--muted);
+            font-family:'DM Sans',sans-serif;font-size:0.85em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;margin:4px auto 16px;display:block;}
+        .step-advance:hover{border-color:var(--rose);color:var(--rose);}
+        .step-advance:disabled{opacity:0.3;cursor:default;}
+
+        /* Tower */
+        .tower-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:20px;margin-bottom:20px;overflow:hidden;}
+        .tower{display:flex;flex-direction:column-reverse;align-items:center;gap:0;min-height:200px;
+            position:relative;padding-bottom:16px;}
+        .tower-block{width:85%;max-width:300px;padding:14px;background:var(--bg3);
+            border:1.5px solid rgba(251,191,36,0.25);border-radius:10px;text-align:center;
+            font-family:'DM Sans',monospace;font-size:0.9em;color:var(--gold);
+            position:relative;transition:all 0.4s;margin-bottom:-1px;}
+        .tower-block .sys-name{font-weight:700;font-size:1.1em;}
+        .tower-block .sys-desc{font-size:0.75em;color:var(--muted);margin-top:2px;font-family:'Lora',serif;}
+        .tower-block.question{border-color:rgba(251,113,133,0.4);border-style:dashed;background:var(--rose-dim);}
+        .tower-block.question .sys-name{color:var(--rose);}
+        .tower-arrow{color:var(--muted);font-size:1.2em;margin:4px 0;}
+        .tower-label{font-size:0.65em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);
+            text-align:center;margin-bottom:12px;}
+        .choice-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px;}
+        .choice-btn{padding:12px 20px;border-radius:12px;background:var(--bg3);
+            border:1.5px solid var(--border);color:var(--muted);
+            font-family:'DM Sans',sans-serif;font-size:0.88em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;max-width:200px;text-align:center;}
+        .choice-btn:hover{border-color:var(--rose);color:var(--rose);}
+        .choice-btn.selected{border-color:var(--teal);color:var(--teal);background:var(--teal-dim);}
+        .choice-btn:disabled{opacity:0.3;cursor:default;}
+
+        /* Two-track */
+        .track-toggle{display:flex;gap:0;margin-bottom:16px;border-radius:12px;overflow:hidden;
+            border:1.5px solid var(--border);}
+        .track-tab{flex:1;padding:12px 16px;text-align:center;background:var(--bg3);
+            color:var(--muted);font-family:'DM Sans',sans-serif;font-size:0.85em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;border:none;}
+        .track-tab.active{background:var(--rose-dim);color:var(--rose);}
+        .track-tab:first-child{border-right:1px solid var(--border);}
+        .track-content{display:none;animation:fadeUp 0.4s ease both;}
+        .track-content.active{display:block;}
+
+        /* Theorem box */
+        .theorem-box{background:linear-gradient(135deg,rgba(251,113,133,0.08),rgba(225,29,72,0.05));
+            border:1.5px solid rgba(251,113,133,0.3);border-radius:var(--radius);
+            padding:22px;margin-bottom:20px;text-align:center;}
+        .theorem-label{font-size:0.65em;text-transform:uppercase;letter-spacing:3px;color:var(--rose);margin-bottom:10px;}
+        .theorem-text{font-family:'Lora',serif;font-size:1.05em;line-height:1.75;color:var(--silver);
+            font-style:italic;}
+        .theorem-formula{font-family:'DM Sans',monospace;font-size:1.3em;font-weight:700;
+            color:var(--rose);margin:14px 0 6px;letter-spacing:1px;}
+
+        /* History cards */
+        .history-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px 18px;margin-bottom:12px;cursor:pointer;transition:all 0.3s;}
+        .history-card:hover{border-color:rgba(251,113,133,0.3);}
+        .history-card .name{font-family:'DM Sans',sans-serif;font-size:0.9em;font-weight:700;
+            color:var(--gold);margin-bottom:6px;}
+        .history-card .quote{font-family:'Lora',serif;font-size:0.95em;line-height:1.7;
+            color:#8090b8;font-style:italic;display:none;}
+        .history-card.open .quote{display:block;margin-top:8px;}
+        .history-card.open{border-color:rgba(251,113,133,0.3);background:rgba(251,113,133,0.04);}
+
+        /* Reflection */
+        .reflection-box{background:linear-gradient(135deg,rgba(34,211,238,0.06),rgba(129,140,248,0.04));
+            border:1px solid rgba(34,211,238,0.2);border-radius:var(--radius);
+            padding:22px;margin-bottom:20px;text-align:center;}
+        .reflection-box p{font-family:'Lora',serif;font-size:1.05em;line-height:1.8;color:#9098c0;}
+        .reflection-box p em{color:var(--cyan);font-style:italic;}
+        .reflection-box p strong{color:var(--silver);}
+
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        @keyframes shudder{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+        /* Footer */
+        footer{text-align:center;padding:24px 20px;border-top:1px solid var(--border);
+            font-size:0.75em;color:var(--muted);line-height:1.8;}
+        footer a{color:var(--rose);text-decoration:none;}
+    </style>
+</head>
+<body>
+<a href="../index.html" style="position:fixed;top:12px;left:16px;color:#808098;text-decoration:none;font-size:0.85em;z-index:1000;font-family:Georgia,serif">← mathsedu.org</a>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act III of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- SCREEN 0: OPENING -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Broken Machine · Act III</div>
+      <div class="act-name">The <em>Deeper</em> Crack</div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;">
+      <div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">🔍</div>
+    </div>
+    <div class="narrator">
+      <p><em>Gödel. Still 1931. Still 25.</em></p>
+      <p style="margin-top:12px">His first theorem was devastating.</p>
+      <p style="margin-top:8px">His second was <strong>worse</strong>.</p>
+    </div>
+    <div class="narrator gold">
+      <p>Hilbert's programme had a fallback position.</p>
+      <p style="margin-top:10px">Even if the system cannot prove everything &mdash; surely it can at least prove that <em style="color:var(--gold)">it does not prove contradictions?</em></p>
+      <p style="margin-top:10px">Surely the machine can verify that the machine works?</p>
+    </div>
+    <div class="narrator">
+      <p>Gödel answered that question too.</p>
+      <p style="margin-top:8px">The answer was <em>no</em>.</p>
+    </div>
+    <div class="insight">
+      <div class="lbl">Try This</div>
+      <p>Before continuing, think about this: can you ever be completely certain that your own reasoning is sound &mdash; using only your own reasoning to check? Hold that thought.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Watch the machine inspect itself &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- SCREEN 1: DISCOVERY 1 — THE CONSISTENCY QUESTION -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Discovery</div>
+      <div class="act-name">The Consistency <em>Question</em></div>
+    </div>
+
+    <!-- The Machine -->
+    <div class="machine-wrap" id="machineWrap">
+      <div class="machine-body" id="machineBody">
+        <div class="warning-light on" id="warningLight1"></div>
+        <div class="gears" id="machineGears">⚙️</div>
+        <div style="font-size:0.7em;color:var(--gold);font-weight:600;letter-spacing:1px;">PROOF MACHINE</div>
+      </div>
+      <div style="font-size:0.62em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin:12px 0 4px;">Self-Diagnostic Mode</div>
+      <div class="status-bar" id="diagBar"><div class="status-fill" id="diagFill"></div></div>
+      <div class="diag-panel" id="diagPanel">System idle. Press button to begin self-check.</div>
+      <button class="self-diag-btn" id="btnDiag" onclick="runDiagnostic()">&#9654; Run Consistency Check</button>
+    </div>
+
+    <!-- Reveal after diagnostic -->
+    <div id="diagReveal" style="display:none;">
+      <div class="narrator">
+        <p>The consistency checker requires a proof.</p>
+        <p style="margin-top:8px">To construct that proof, it must use <em>the rules of the system it is trying to check.</em></p>
+        <p style="margin-top:10px">But if the system already has a problem &mdash; if it already proves contradictions &mdash; those same rules will be used in the consistency proof.</p>
+        <p style="margin-top:10px"><strong>A broken ruler cannot measure its own brokenness.</strong></p>
+      </div>
+
+      <!-- Analogy puzzle -->
+      <div style="font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;">Match the analogy</div>
+      <div class="analogy-grid">
+        <div class="analogy-row matched">
+          <span class="attempt">A ruler measuring its own length</span>
+          <span class="reason">The instrument IS the thing being measured</span>
+        </div>
+        <div class="analogy-row matched">
+          <span class="attempt">A judge presiding over their own trial</span>
+          <span class="reason">The authority IS what is on trial</span>
+        </div>
+        <div class="analogy-row matched">
+          <span class="attempt">An eye trying to see itself</span>
+          <span class="reason">The seeing organ cannot be its own object</span>
+        </div>
+        <div class="analogy-row" id="analogyRow4">
+          <span class="attempt">A formal system proving its own consistency</span>
+          <span class="reason" id="analogyAnswer" style="display:none;">The rules used to build the proof ARE what we are trying to verify</span>
+        </div>
+      </div>
+      <div class="drop-zone" id="dropZone" onclick="completeAnalogy()">
+        Tap to complete: "The rules used to build the proof ARE..."
+      </div>
+      <div id="analogyDone" style="display:none;">
+        <div class="insight teal">
+          <div class="lbl">What To Notice</div>
+          <p>Every one of these fails for the same reason: <em style="color:var(--teal)">the verifier and the thing being verified are the same entity.</em> Self-verification is circular. This is not a flaw in the system. It is a theorem about all systems.</p>
+        </div>
+        <button class="cta-btn" onclick="goToScreen(2)">See what happens when we try &rarr;</button>
+      </div>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- SCREEN 2: DISCOVERY 2 — WHAT WOULD A CONSISTENCY PROOF REQUIRE? -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">The argument</div>
+      <div class="act-name">What Would a <em>Consistency Proof</em> Require?</div>
+    </div>
+
+    <div class="narrator gold">
+      <p>Suppose the system <em style="color:var(--gold)">could</em> prove "I contain no contradictions."</p>
+      <p style="margin-top:8px">Call this statement <strong>CON</strong>.</p>
+      <p style="margin-top:8px">Watch what happens.</p>
+    </div>
+
+    <div class="step-list" id="stepList">
+      <div class="step visible" id="step-1">
+        <div class="step-num">Step 1</div>
+        <p><strong>CON is provable</strong> &rarr; CON is true.</p>
+        <p style="margin-top:4px">(We assume the system only proves truths.)</p>
+      </div>
+      <div class="step" id="step-2">
+        <div class="step-num">Step 2</div>
+        <p>Recall Act II. The system contains a statement <strong>G</strong> that says <em>"G is not provable."</em></p>
+        <p style="margin-top:4px">We showed: if the system is consistent, G is not provable.</p>
+      </div>
+      <div class="step" id="step-3">
+        <div class="step-num">Step 3</div>
+        <p>That argument &mdash; <em>"if consistent, then G is unprovable"</em> &mdash; is itself a valid proof within the system.</p>
+        <div class="formula">CON &rarr; &not;Provable(G)</div>
+      </div>
+      <div class="step" id="step-4">
+        <div class="step-num">Step 4</div>
+        <p>But we assumed CON is provable. So the system can derive:</p>
+        <div class="formula">G is unprovable</div>
+      </div>
+      <div class="step" id="step-5">
+        <div class="step-num">Step 5</div>
+        <p>But G <strong>says</strong> "G is unprovable."</p>
+        <p style="margin-top:4px">So the system just <em>proved G</em>.</p>
+      </div>
+      <div class="step alarm" id="step-6">
+        <div class="step-num rose">Step 6 &mdash; Alarm</div>
+        <p>The system proved G... but G says it <em>cannot</em> be proved...</p>
+        <div class="formula rose">&mdash; CONTRADICTION &mdash;</div>
+      </div>
+    </div>
+
+    <button class="step-advance" id="btnStep" onclick="advanceStep()">Next step &rarr;</button>
+
+    <div id="stepConclusion" style="display:none;">
+      <div class="machine-wrap" style="border-color:rgba(251,113,133,0.3);">
+        <div class="machine-body" id="machineBody2" style="animation:shudder 0.15s ease infinite;">
+          <div class="warning-light solid"></div>
+          <div class="gears stopped" style="color:var(--rose);">⚙️</div>
+          <div style="font-size:0.7em;color:var(--rose);font-weight:600;letter-spacing:1px;">SYSTEM FAILURE</div>
+        </div>
+      </div>
+
+      <div class="narrator">
+        <p>If the system can prove its own consistency, it can also prove G.</p>
+        <p style="margin-top:8px">But proving G leads straight to contradiction.</p>
+        <p style="margin-top:10px"><strong>Therefore: a consistent system cannot prove its own consistency.</strong></p>
+      </div>
+
+      <div class="theorem-box">
+        <div class="theorem-label">Gödel's Second Incompleteness Theorem</div>
+        <div class="theorem-text">No consistent formal system powerful enough to describe basic arithmetic can prove its own consistency.</div>
+      </div>
+
+      <div class="insight gold">
+        <div class="lbl">Why It Matters</div>
+        <p>The first theorem said there are truths the machine cannot reach. The second says one of those truths is the statement <em style="color:var(--gold)">"I am reliable."</em> The machine cannot even certify that it works.</p>
+      </div>
+
+      <button class="cta-btn" onclick="goToScreen(3)">How deep does it go? &rarr;</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- SCREEN 3: DISCOVERY 3 — TURTLES ALL THE WAY DOWN -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">The infinite regress</div>
+      <div class="act-name">Turtles All the <em>Way Down</em></div>
+    </div>
+
+    <div class="narrator">
+      <p>You might think: fine, the system cannot verify itself. But surely a <em>stronger</em> system could verify it from outside?</p>
+      <p style="margin-top:10px">Yes. It can.</p>
+      <p style="margin-top:8px">But then&hellip; <em>who verifies the stronger system?</em></p>
+    </div>
+
+    <div class="tower-wrap">
+      <div class="tower-label">A tower of formal systems</div>
+      <div class="tower" id="tower">
+        <!-- Built by JS -->
+      </div>
+      <div id="towerQuestion" style="text-align:center;margin-top:12px;display:none;">
+        <p style="font-family:'Lora',serif;font-size:0.95em;color:var(--rose);font-style:italic;">Who verifies this one?</p>
+        <div class="choice-btns" id="towerChoices">
+          <button class="choice-btn" onclick="towerExtend()">A yet stronger system</button>
+          <button class="choice-btn" onclick="towerTrust()">We just have to trust it</button>
+        </div>
+      </div>
+      <div id="towerTrustReveal" style="display:none;margin-top:16px;">
+        <div class="narrator cyan">
+          <p>This is, in fact, what working mathematicians do.</p>
+          <p style="margin-top:8px">They adopt axiom systems they find intuitively compelling and work within them.</p>
+          <p style="margin-top:8px">It is pragmatic. It is not logically circular.</p>
+          <p style="margin-top:8px">But it is also <em style="color:var(--cyan)">not the certainty Hilbert hoped for.</em></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="towerReflection" style="display:none;">
+      <div class="narrator">
+        <p>This is not a flaw in mathematics.</p>
+        <p style="margin-top:8px">It is a <em>theorem</em> about mathematics.</p>
+        <p style="margin-top:12px">Hilbert wanted a foundation that verified itself &mdash; a bedrock that needed no further support.</p>
+        <p style="margin-top:8px">Gödel proved that <strong>no such bedrock exists</strong>.</p>
+        <p style="margin-top:8px">Every system rests on something it cannot justify from within.</p>
+      </div>
+
+      <div class="insight">
+        <div class="lbl">What To Notice</div>
+        <p>Mathematicians did not abandon mathematics. They continued &mdash; as they had always done &mdash; with systems they found convincing. Only now they knew, with mathematical precision, <em>what they were doing.</em></p>
+      </div>
+
+      <button class="cta-btn" onclick="goToScreen(4)">See this stated precisely &rarr;</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- SCREEN 4: PROOF / EXPLANATION — TWO TRACKS -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="screen" id="screen-4">
+    <div class="act-title">
+      <div class="act-label">Two ways to see it</div>
+      <div class="act-name">The Second Theorem, <em>Stated</em></div>
+    </div>
+
+    <div class="track-toggle">
+      <button class="track-tab active" onclick="switchTrack('A')">Track A &mdash; Intuitive</button>
+      <button class="track-tab" onclick="switchTrack('B')">Track B &mdash; Precise</button>
+    </div>
+
+    <div class="track-content active" id="trackA">
+      <div class="narrator">
+        <p>The first theorem said: there are true statements the system cannot prove.</p>
+        <p style="margin-top:12px">The second theorem said: <em>one of those unprovable truths is the statement "I am consistent."</em></p>
+      </div>
+      <div class="reflection-box">
+        <p>The machine cannot certify its own health.</p>
+        <p style="margin-top:8px">You always need a doctor <em>from outside</em>.</p>
+      </div>
+      <div class="insight gold">
+        <div class="lbl">The Analogy</div>
+        <p>A surgeon can operate on anyone &mdash; except themselves. A proof system can verify anything &mdash; except its own soundness. The tool cannot be turned on itself without breaking the very thing it relies on.</p>
+      </div>
+    </div>
+
+    <div class="track-content" id="trackB">
+      <div class="narrator gold">
+        <p>If system <strong>S</strong> is consistent and sufficiently powerful, then:</p>
+      </div>
+      <div class="theorem-box">
+        <div class="theorem-formula">S ⊬ CON(S)</div>
+        <div class="theorem-text" style="margin-top:10px;">Where CON(S) is the formal statement "S does not derive a contradiction."</div>
+      </div>
+      <div class="narrator">
+        <p>This follows from the First Theorem:</p>
+        <p style="margin-top:8px"><strong>1.</strong> CON(S) &rarr; G is not provable in S</p>
+        <p style="margin-top:6px"><strong>2.</strong> If S could prove CON(S), it could prove G.</p>
+        <p style="margin-top:6px"><strong>3.</strong> But if S proves G, S is inconsistent &mdash; contradicting CON(S).</p>
+        <p style="margin-top:6px"><strong>4.</strong> Therefore S cannot prove CON(S).</p>
+      </div>
+      <div class="insight">
+        <div class="lbl">The Chain</div>
+        <p>The second theorem is not a separate discovery. It is an <em>immediate consequence</em> of the first. The same self-referential technique &mdash; mathematics talking about itself &mdash; delivers both results in a single stroke.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:12px;">
+      <button class="cta-btn" onclick="goToScreen(5)">The human response &rarr;</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- SCREEN 5: CONNECTION — THE HUMAN RESPONSE -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <section class="screen" id="screen-5">
+    <div class="act-title">
+      <div class="act-label">The aftermath</div>
+      <div class="act-name">The Human <em>Response</em></div>
+    </div>
+
+    <div class="narrator">
+      <p>The mathematical community's reaction was, at first, disbelief.</p>
+      <p style="margin-top:8px">Then, slowly, acceptance.</p>
+    </div>
+
+    <div style="font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;">Tap each to read</div>
+
+    <div class="history-card" onclick="toggleCard(this)">
+      <div class="name">John von Neumann</div>
+      <div class="quote">
+        <p>One of the greatest mathematicians of the century. He understood the implications immediately when Gödel presented his result.</p>
+        <p style="margin-top:8px">He approached Gödel after the lecture and said that his own ongoing work on Hilbert's programme was now <em>pointless</em>.</p>
+        <p style="margin-top:8px">Von Neumann then extended Gödel's result himself, independently deriving the Second Theorem from the First.</p>
+      </div>
+    </div>
+
+    <div class="history-card" onclick="toggleCard(this)">
+      <div class="name">Bertrand Russell</div>
+      <div class="quote">
+        <p>Whose <em>Principia Mathematica</em> was one of the systems Gödel had specifically targeted.</p>
+        <p style="margin-top:8px">Russell said late in his life that the discovery had made him feel that his most important work had been rendered irrelevant.</p>
+      </div>
+    </div>
+
+    <div class="history-card" onclick="toggleCard(this)">
+      <div class="name">David Hilbert</div>
+      <div class="quote">
+        <p>He never fully accepted it.</p>
+        <p style="margin-top:8px">He spent years trying to find an error in the proof.</p>
+        <p style="margin-top:8px">There was not one.</p>
+      </div>
+    </div>
+
+    <div id="connectionReveal" style="display:none;">
+      <div class="reflection-box" style="margin-top:16px;">
+        <p>Two theorems.</p>
+        <p style="margin-top:4px">Both proved by a <strong>25-year-old</strong>.</p>
+        <p style="margin-top:4px">Both using the same technique: making mathematics <em>talk about itself</em>.</p>
+      </div>
+      <div class="narrator cyan">
+        <p>Five years later, a 24-year-old in England would use the same technique.</p>
+        <p style="margin-top:10px">He would ask: not "what can mathematics prove?" but <em style="color:var(--cyan)">"what can a machine compute?"</em></p>
+        <p style="margin-top:10px">To answer that question, he would have to invent &mdash; precisely and for the first time &mdash; <strong>what a machine is</strong>.</p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;max-width:400px;margin:0 auto;width:100%;">
+        <button class="cta-btn" onclick="window.location.href='broken_machine_act4.html'">Meet Alan Turing &rarr;</button>
+        <button class="cta-btn ghost" onclick="window.location.href='broken_machine_act2.html'">&larr; Back to Act II</button>
+      </div>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <footer>
+    &copy; 2025 Manoj Bhaskar. Licensed under
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a>
+  </footer>
+</div>
+
+<script src="../narrator.js"></script>
+<script>
+/* ── State ── */
+var curScreen = 0;
+var diagRunning = false;
+var stepIndex = 0;
+var towerLevel = 3;
+var towerExtended = 0;
+var cardsOpened = 0;
+
+/* ── Navigation ── */
+function goToScreen(n) {
+    document.getElementById('screen-' + curScreen).classList.remove('active');
+    curScreen = n;
+    document.getElementById('screen-' + n).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateDots();
+    if (n === 1) initMachine();
+    if (n === 2) initSteps();
+    if (n === 3) buildTower();
+}
+
+function updateDots() {
+    var dots = document.querySelectorAll('.progress-dots .dot');
+    for (var i = 0; i < dots.length; i++) {
+        dots[i].className = 'dot';
+        if (i < curScreen) dots[i].classList.add('done');
+        if (i === curScreen) dots[i].classList.add('active');
+    }
+}
+
+/* ── Screen 1: Diagnostic ── */
+function initMachine() {
+    diagRunning = false;
+    document.getElementById('diagPanel').textContent = 'System idle. Press button to begin self-check.';
+    document.getElementById('diagFill').style.width = '0%';
+    document.getElementById('diagReveal').style.display = 'none';
+    document.getElementById('btnDiag').disabled = false;
+}
+
+function runDiagnostic() {
+    if (diagRunning) return;
+    diagRunning = true;
+    document.getElementById('btnDiag').disabled = true;
+    var fill = document.getElementById('diagFill');
+    var panel = document.getElementById('diagPanel');
+    var cycle = 0;
+    var progress = 0;
+    var messages = [
+        'Initiating self-diagnostic...',
+        'Checking axiom consistency...',
+        'Verifying inference rules...',
+        'Cross-referencing proof chains...',
+        'Applying rules to verify rules...',
+        '<span class="rose">Warning: circular dependency detected</span>',
+        'Restarting verification from axioms...',
+        'Checking axiom consistency...',
+        'Applying rules to verify rules...',
+        '<span class="rose">Warning: verification requires the system it is verifying</span>',
+        'Restarting...',
+    ];
+    var msgIndex = 0;
+
+    var interval = setInterval(function() {
+        progress += Math.random() * 15;
+        if (progress > 95) {
+            progress = 0;
+            cycle++;
+            fill.classList.toggle('rose');
+        }
+        fill.style.width = Math.min(progress, 95) + '%';
+
+        if (msgIndex < messages.length) {
+            panel.innerHTML = messages[msgIndex];
+            msgIndex++;
+        }
+
+        if (cycle >= 2 && msgIndex >= messages.length) {
+            clearInterval(interval);
+            fill.style.width = '0%';
+            fill.classList.add('rose');
+            panel.innerHTML = '<span class="rose">DIAGNOSTIC FAILED: Cannot verify system using system rules.<br>The checker IS the thing being checked.</span>';
+            document.getElementById('machineBody').style.animation = 'shudder 0.15s ease 6';
+            setTimeout(function() {
+                document.getElementById('machineBody').style.animation = '';
+                document.getElementById('diagReveal').style.display = 'block';
+                document.getElementById('diagReveal').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 1000);
+        }
+    }, 800);
+}
+
+function completeAnalogy() {
+    var zone = document.getElementById('dropZone');
+    if (zone.classList.contains('filled')) return;
+    zone.classList.add('filled');
+    zone.textContent = 'The rules used to build the proof ARE what we are trying to verify.';
+    document.getElementById('analogyRow4').classList.add('matched');
+    document.getElementById('analogyAnswer').style.display = 'inline';
+    document.getElementById('analogyDone').style.display = 'block';
+    document.getElementById('analogyDone').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── Screen 2: Steps ── */
+function initSteps() {
+    stepIndex = 0;
+    var steps = document.querySelectorAll('.step');
+    for (var i = 0; i < steps.length; i++) {
+        if (i === 0) steps[i].classList.add('visible');
+        else steps[i].classList.remove('visible');
+    }
+    document.getElementById('stepConclusion').style.display = 'none';
+    document.getElementById('btnStep').style.display = 'block';
+    document.getElementById('btnStep').disabled = false;
+}
+
+function advanceStep() {
+    stepIndex++;
+    var steps = document.querySelectorAll('.step');
+    if (stepIndex < steps.length) {
+        steps[stepIndex].classList.add('visible');
+        steps[stepIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (stepIndex === steps.length - 1) {
+            // Last step — alarm
+            setTimeout(function() {
+                document.getElementById('btnStep').style.display = 'none';
+                document.getElementById('stepConclusion').style.display = 'block';
+                document.getElementById('stepConclusion').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 600);
+        }
+    }
+}
+
+/* ── Screen 3: Tower ── */
+function buildTower() {
+    var tower = document.getElementById('tower');
+    tower.innerHTML = '';
+    towerExtended = 0;
+    document.getElementById('towerQuestion').style.display = 'none';
+    document.getElementById('towerTrustReveal').style.display = 'none';
+    document.getElementById('towerReflection').style.display = 'none';
+    var choices = document.getElementById('towerChoices');
+    var btns = choices.querySelectorAll('.choice-btn');
+    for (var b = 0; b < btns.length; b++) { btns[b].disabled = false; btns[b].classList.remove('selected'); }
+
+    for (var i = 1; i <= towerLevel; i++) {
+        if (i > 1) {
+            var arrow = document.createElement('div');
+            arrow.className = 'tower-arrow';
+            arrow.textContent = '▲';
+            tower.appendChild(arrow);
+        }
+        var block = document.createElement('div');
+        block.className = 'tower-block';
+        block.innerHTML = '<div class="sys-name">S' + subscript(i) + '</div>' +
+            '<div class="sys-desc">' + (i === 1 ? 'Base system (e.g. Peano Arithmetic)' :
+            'Can prove S' + subscript(i-1) + ' is consistent') + '</div>';
+        tower.appendChild(block);
+    }
+
+    // Add the question mark block
+    var arrow2 = document.createElement('div');
+    arrow2.className = 'tower-arrow';
+    arrow2.textContent = '▲';
+    tower.appendChild(arrow2);
+
+    var qBlock = document.createElement('div');
+    qBlock.className = 'tower-block question';
+    qBlock.id = 'towerTop';
+    qBlock.innerHTML = '<div class="sys-name">?</div><div class="sys-desc">Who verifies this one?</div>';
+    qBlock.style.cursor = 'pointer';
+    qBlock.onclick = function() {
+        document.getElementById('towerQuestion').style.display = 'block';
+        document.getElementById('towerQuestion').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        qBlock.onclick = null;
+    };
+    tower.appendChild(qBlock);
+}
+
+function subscript(n) {
+    var subs = '₀₁₂₃₄₅₆₇₈₉';
+    return String(n).split('').map(function(d) { return subs[parseInt(d)]; }).join('');
+}
+
+function towerExtend() {
+    towerExtended++;
+    if (towerExtended >= 3) {
+        // After 3 extensions, auto-show trust
+        var btns = document.querySelectorAll('#towerChoices .choice-btn');
+        btns[0].disabled = true;
+        btns[0].style.opacity = '0.3';
+    }
+    towerLevel++;
+    var tower = document.getElementById('tower');
+
+    // Remove old question block and its arrow
+    var oldTop = document.getElementById('towerTop');
+    var oldArrow = oldTop.previousElementSibling;
+    tower.removeChild(oldTop);
+    tower.removeChild(oldArrow);
+
+    // Add the new real block
+    var arrow = document.createElement('div');
+    arrow.className = 'tower-arrow';
+    arrow.textContent = '▲';
+    tower.appendChild(arrow);
+
+    var block = document.createElement('div');
+    block.className = 'tower-block';
+    block.style.animation = 'fadeUp 0.5s ease both';
+    block.innerHTML = '<div class="sys-name">S' + subscript(towerLevel) + '</div>' +
+        '<div class="sys-desc">Can prove S' + subscript(towerLevel - 1) + ' is consistent</div>';
+    tower.appendChild(block);
+
+    // Add new question block
+    var arrow2 = document.createElement('div');
+    arrow2.className = 'tower-arrow';
+    arrow2.textContent = '▲';
+    tower.appendChild(arrow2);
+
+    var qBlock = document.createElement('div');
+    qBlock.className = 'tower-block question';
+    qBlock.id = 'towerTop';
+    qBlock.innerHTML = '<div class="sys-name">?</div><div class="sys-desc">Who verifies this one?</div>';
+    qBlock.style.animation = 'fadeUp 0.5s ease both';
+    tower.appendChild(qBlock);
+
+    tower.scrollTop = tower.scrollHeight;
+}
+
+function towerTrust() {
+    var btns = document.querySelectorAll('#towerChoices .choice-btn');
+    btns[0].disabled = true;
+    btns[1].disabled = true;
+    btns[1].classList.add('selected');
+    document.getElementById('towerTrustReveal').style.display = 'block';
+    setTimeout(function() {
+        document.getElementById('towerReflection').style.display = 'block';
+        document.getElementById('towerReflection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 600);
+}
+
+/* ── Screen 4: Track toggle ── */
+function switchTrack(t) {
+    var tabs = document.querySelectorAll('.track-tab');
+    tabs[0].classList.toggle('active', t === 'A');
+    tabs[1].classList.toggle('active', t === 'B');
+    document.getElementById('trackA').classList.toggle('active', t === 'A');
+    document.getElementById('trackB').classList.toggle('active', t === 'B');
+}
+
+/* ── Screen 5: History cards ── */
+function toggleCard(el) {
+    var wasOpen = el.classList.contains('open');
+    el.classList.toggle('open');
+    if (!wasOpen) {
+        cardsOpened++;
+        if (cardsOpened >= 3) {
+            setTimeout(function() {
+                document.getElementById('connectionReveal').style.display = 'block';
+                document.getElementById('connectionReveal').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 400);
+        }
+    }
+}
+
+/* ── Cosmos background ── */
+(function() {
+    var cv = document.getElementById('cosmos');
+    function draw() {
+        cv.width = innerWidth;
+        cv.height = innerHeight;
+        var ctx = cv.getContext('2d');
+        // Deep rose/indigo nebula
+        var g = ctx.createRadialGradient(innerWidth * 0.7, innerHeight * 0.3, 0,
+            innerWidth * 0.5, innerHeight * 0.5, innerWidth * 0.8);
+        g.addColorStop(0, 'rgba(251,113,133,0.04)');
+        g.addColorStop(0.4, 'rgba(129,140,248,0.03)');
+        g.addColorStop(1, 'transparent');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, cv.width, cv.height);
+        // Stars
+        for (var i = 0; i < 200; i++) {
+            var x = Math.random() * cv.width;
+            var y = Math.random() * cv.height;
+            var r = Math.random() * 1.4;
+            var a = 0.04 + Math.random() * 0.3;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            var colors = ['255,255,255', '200,180,255', '255,200,200'];
+            ctx.fillStyle = 'rgba(' + colors[Math.floor(Math.random() * colors.length)] + ',' + a + ')';
+            ctx.fill();
+        }
+    }
+    window.addEventListener('resize', draw);
+    draw();
+})();
+</script>
+</body>
+</html>

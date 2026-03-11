@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#07071a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Broken Machine &mdash; Act II: The Liar's Shadow</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#07071a; --bg2:#0a0a24; --bg3:#0e0e2a;
+            --rose:#fb7185; --rose-dim:rgba(251,113,133,0.1);
+            --gold:#fbbf24; --gold-dim:rgba(251,191,36,0.12);
+            --cyan:#22d3ee; --cyan-dim:rgba(34,211,238,0.1);
+            --green:#10b981; --green-dim:rgba(16,185,129,0.1);
+            --silver:#e2e8f0; --silver-dim:rgba(226,232,240,0.08);
+            --muted:#7070a0; --text:#c8d0f0;
+            --border:rgba(251,113,133,0.12); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(7,7,26,0.92);
+            backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--rose);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--gold);}
+        .dot.active{background:var(--rose);box-shadow:0 0 10px var(--rose);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 6px var(--rose)}50%{box-shadow:0 0 18px var(--rose)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+        /* Narrator boxes */
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--rose);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--rose);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#c0c8e8;}
+        .narrator p em{color:var(--rose);font-style:italic;}
+        .narrator p strong{color:var(--silver);font-weight:600;}
+        .narrator.gold{border-left-color:var(--gold);} .narrator.gold::before{color:var(--gold);}
+        .narrator.cyan{border-left-color:var(--cyan);} .narrator.cyan::before{color:var(--cyan);}
+
+        /* Insight boxes */
+        .insight{background:var(--bg2);border:1px solid rgba(251,113,133,0.15);border-left:3px solid var(--rose);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--rose);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#9098c0;}
+        .insight p em{color:var(--rose);font-style:normal;font-weight:600;}
+        .insight.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);}
+        .insight.gold .lbl{color:var(--gold);}
+        .insight.cyan{border-left-color:var(--cyan);border-color:rgba(34,211,238,0.15);}
+        .insight.cyan .lbl{color:var(--cyan);}
+        .insight.green{border-left-color:var(--green);border-color:rgba(16,185,129,0.15);}
+        .insight.green .lbl{color:var(--green);}
+
+        /* Act title */
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--silver);}
+        .act-name em{color:var(--rose);font-style:italic;}
+
+        /* Buttons */
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--rose),#e11d48);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#fff;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 24px rgba(251,113,133,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(251,113,133,0.45);}
+        .cta-btn:disabled{opacity:0.35;transform:none;box-shadow:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .cta-btn.gold-btn{background:linear-gradient(135deg,var(--gold),#f59e0b);box-shadow:0 4px 24px rgba(251,191,36,0.3);}
+        .cta-btn.gold-btn:hover{box-shadow:0 8px 32px rgba(251,191,36,0.45);}
+        .act-btn{padding:11px 20px;border-radius:12px;background:var(--bg3);
+            border:1.5px solid var(--border);color:var(--muted);
+            font-family:'DM Sans',sans-serif;font-size:0.9em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;}
+        .act-btn:hover,.act-btn:active{border-color:var(--rose);color:var(--rose);background:var(--rose-dim);}
+        .act-btn:disabled{opacity:0.3;cursor:default;}
+        .act-btn.selected{border-color:var(--rose);color:var(--rose);background:var(--rose-dim);}
+        .act-btn.correct{border-color:var(--green);color:var(--green);background:var(--green-dim);}
+        .act-btn.wrong{border-color:var(--muted);color:var(--muted);opacity:0.4;}
+
+        /* Liar paradox */
+        .liar-box{background:var(--bg2);border:2px solid var(--border);border-radius:var(--radius);
+            padding:28px 24px;text-align:center;margin-bottom:20px;transition:all 0.3s;}
+        .liar-sentence{font-family:'Lora',serif;font-size:clamp(1.2em,5vw,1.6em);font-weight:600;
+            color:var(--silver);line-height:1.6;margin-bottom:18px;}
+        .liar-buttons{display:flex;gap:12px;justify-content:center;}
+        .liar-btn{padding:12px 32px;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:1em;
+            font-weight:700;cursor:pointer;transition:all 0.2s;touch-action:manipulation;}
+        .liar-btn.true-btn{background:rgba(16,185,129,0.12);border:2px solid rgba(16,185,129,0.4);color:var(--green);}
+        .liar-btn.true-btn:hover{background:rgba(16,185,129,0.2);}
+        .liar-btn.false-btn{background:var(--rose-dim);border:2px solid rgba(251,113,133,0.4);color:var(--rose);}
+        .liar-btn.false-btn:hover{background:rgba(251,113,133,0.2);}
+        .chain-step{font-family:'Lora',serif;font-size:0.95em;line-height:1.7;color:#9098c0;
+            padding:8px 0;opacity:0;transform:translateY(8px);transition:all 0.4s;}
+        .chain-step.visible{opacity:1;transform:translateY(0);}
+        .chain-step .hi{color:var(--silver);font-weight:600;}
+        .chain-step .rose{color:var(--rose);font-weight:600;}
+        .chain-step .green{color:var(--green);font-weight:600;}
+        .contradiction-counter{font-family:'DM Sans',monospace;font-size:0.85em;color:var(--rose);
+            margin-top:14px;letter-spacing:1px;}
+        .loop-arrow{color:var(--rose);font-size:1.4em;margin:8px 0;opacity:0;transition:opacity 0.5s;}
+        .loop-arrow.visible{opacity:1;}
+
+        /* Self-reference */
+        .statement-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);
+            padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all 0.3s;}
+        .statement-card:hover{border-color:rgba(251,113,133,0.3);}
+        .statement-card.selected-paradox{border-color:var(--rose);background:var(--rose-dim);box-shadow:0 0 20px rgba(251,113,133,0.15);}
+        .statement-card.selected-safe{border-color:var(--green);background:var(--green-dim);}
+        .statement-card.selected-odd{border-color:var(--gold);background:var(--gold-dim);}
+        .statement-text{font-family:'Lora',serif;font-size:1.05em;color:var(--silver);margin-bottom:6px;}
+        .statement-verdict{font-size:0.82em;color:var(--muted);opacity:0;transition:opacity 0.4s;}
+        .statement-verdict.visible{opacity:1;}
+
+        /* Godel numbering */
+        .encoding-table{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px;margin-bottom:16px;overflow-x:auto;}
+        .enc-row{display:flex;align-items:center;gap:16px;padding:8px 0;
+            border-bottom:1px solid rgba(255,255,255,0.04);font-family:'DM Sans',monospace;font-size:0.95em;}
+        .enc-row:last-child{border-bottom:none;}
+        .enc-symbol{color:var(--cyan);font-weight:700;min-width:60px;font-size:1.1em;}
+        .enc-arrow{color:var(--muted);}
+        .enc-number{color:var(--gold);font-weight:700;}
+        .encode-area{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:18px;margin-bottom:16px;}
+        .encode-label{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;}
+        .symbol-display{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;}
+        .sym-chip{padding:8px 12px;border-radius:8px;font-family:'DM Sans',monospace;font-size:1.1em;font-weight:700;
+            border:1.5px solid;transition:all 0.3s;}
+        .sym-chip.pending{border-color:rgba(255,255,255,0.1);color:var(--muted);background:rgba(255,255,255,0.02);}
+        .sym-chip.encoded{border-color:rgba(251,191,36,0.4);color:var(--gold);background:var(--gold-dim);}
+        .sym-chip.active{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim);
+            box-shadow:0 0 12px rgba(34,211,238,0.2);}
+        .number-bank{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;}
+        .num-choice{padding:8px 14px;border-radius:8px;font-family:'DM Sans',monospace;font-size:1em;
+            font-weight:700;border:1.5px solid rgba(255,255,255,0.1);color:var(--muted);
+            background:rgba(255,255,255,0.02);cursor:pointer;transition:all 0.2s;}
+        .num-choice:hover{border-color:var(--gold);color:var(--gold);}
+        .num-choice.used{opacity:0.2;pointer-events:none;}
+        .encode-result{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;font-family:'DM Sans',monospace;
+            font-size:1em;color:var(--gold);min-height:28px;}
+
+        /* G construction */
+        .g-construct{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:20px;margin-bottom:16px;text-align:center;}
+        .g-step{font-family:'Lora',serif;font-size:1em;line-height:1.8;color:#8090b8;
+            padding:8px 0;opacity:0;transform:translateY(8px);transition:all 0.5s;}
+        .g-step.visible{opacity:1;transform:translateY(0);}
+        .g-step .cyan{color:var(--cyan);font-weight:600;}
+        .g-step .gold{color:var(--gold);font-weight:600;}
+        .g-statement{font-family:'Lora',serif;font-size:clamp(1.1em,4.5vw,1.4em);font-weight:600;
+            color:var(--rose);line-height:1.6;padding:16px;margin:12px 0;
+            border:2px solid var(--rose);border-radius:var(--radius);
+            background:var(--rose-dim);opacity:0;transition:all 0.8s;}
+        .g-statement.visible{opacity:1;box-shadow:0 0 30px rgba(251,113,133,0.2);}
+
+        /* Two-horned dilemma */
+        .dilemma-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:20px;margin-bottom:16px;}
+        .dilemma-top{text-align:center;font-family:'Lora',serif;font-size:1.15em;font-weight:600;
+            color:var(--rose);padding:12px;border:2px solid var(--rose);border-radius:12px;
+            background:var(--rose-dim);margin-bottom:20px;}
+        .branches{display:flex;gap:12px;margin-bottom:16px;}
+        @media(max-width:600px){.branches{flex-direction:column;}}
+        .branch{flex:1;border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;
+            cursor:pointer;transition:all 0.3s;position:relative;}
+        .branch:hover{border-color:rgba(251,113,133,0.3);}
+        .branch.active{border-color:var(--rose);background:rgba(251,113,133,0.04);}
+        .branch-label{font-size:0.7em;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;font-weight:700;}
+        .branch-label.left{color:var(--cyan);}
+        .branch-label.right{color:var(--gold);}
+        .branch-step{font-family:'Lora',serif;font-size:0.92em;line-height:1.7;color:#8090b8;
+            padding:6px 0;opacity:0;transform:translateY(6px);transition:all 0.4s;}
+        .branch-step.visible{opacity:1;transform:translateY(0);}
+        .branch-step .rose{color:var(--rose);font-weight:600;}
+        .branch-step .cyan{color:var(--cyan);font-weight:600;}
+        .branch-step .gold{color:var(--gold);font-weight:600;}
+        .branch-step .green{color:var(--green);font-weight:600;}
+        .branch-result{font-family:'DM Sans',sans-serif;font-size:0.85em;font-weight:700;
+            padding:10px;border-radius:8px;text-align:center;margin-top:10px;
+            opacity:0;transition:all 0.5s;}
+        .branch-result.visible{opacity:1;}
+        .branch-result.contradiction{background:var(--rose-dim);border:1.5px solid var(--rose);color:var(--rose);}
+        .branch-result.true-unprovable{background:var(--gold-dim);border:1.5px solid var(--gold);color:var(--gold);}
+
+        /* Warning light */
+        .warning-light{display:inline-block;width:12px;height:12px;border-radius:50%;
+            background:var(--rose);box-shadow:0 0 12px var(--rose);margin:0 4px;
+            animation:warningPulse 1.5s ease infinite;}
+        @keyframes warningPulse{0%,100%{opacity:0.6;box-shadow:0 0 8px var(--rose)}50%{opacity:1;box-shadow:0 0 20px var(--rose)}}
+
+        /* Venn diagram */
+        #vennCanvas{width:100%;height:280px;display:block;border-radius:8px;}
+        .venn-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px;margin-bottom:16px;}
+        .venn-label{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px;}
+
+        /* Response cards */
+        .response-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);
+            padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all 0.3s;}
+        .response-card:hover{border-color:rgba(251,113,133,0.3);}
+        .response-card.selected{border-color:var(--rose);background:rgba(251,113,133,0.05);}
+        .response-q{font-family:'Lora',serif;font-size:1em;font-style:italic;color:var(--silver);margin-bottom:8px;}
+        .response-a{font-family:'Lora',serif;font-size:0.92em;line-height:1.72;color:#8090b8;
+            opacity:0;max-height:0;overflow:hidden;transition:all 0.5s;}
+        .response-a.visible{opacity:1;max-height:200px;margin-top:8px;}
+
+        /* Theorem box */
+        .theorem-box{background:linear-gradient(135deg,rgba(251,113,133,0.08),rgba(251,191,36,0.04));
+            border:2px solid var(--rose);border-radius:var(--radius);
+            padding:22px;margin-bottom:18px;text-align:center;}
+        .theorem-label{font-size:0.7em;text-transform:uppercase;letter-spacing:3px;color:var(--rose);
+            margin-bottom:10px;font-weight:700;}
+        .theorem-text{font-family:'Lora',serif;font-size:clamp(0.95em,4vw,1.15em);font-weight:600;
+            color:var(--silver);line-height:1.7;}
+
+        /* Footer */
+        .site-footer{text-align:center;padding:24px 20px;border-top:1px solid var(--border);
+            font-size:0.75em;color:var(--muted);margin-top:auto;}
+        .site-footer a{color:var(--rose);text-decoration:none;}
+
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+        @keyframes flicker{0%{opacity:1}10%{opacity:0.3}20%{opacity:1}30%{opacity:0.5}40%{opacity:1}100%{opacity:1}}
+        .flicker{animation:flicker 0.6s ease;}
+        .action-strip{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;}
+    </style>
+</head>
+<body>
+<a href="../index.html" style="position:fixed;top:12px;left:16px;color:#808098;text-decoration:none;font-size:0.85em;z-index:1000;font-family:Georgia,serif">← mathsedu.org</a>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act II of V</div>
+      <div class="progress-dots" id="progressDots">
+        <div class="dot done"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================ -->
+  <!-- SCREEN 0: OPENING — Godel Character Card     -->
+  <!-- ============================================ -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Broken Machine · Act II</div>
+      <div class="act-name">The Liar's <em>Shadow</em></div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;">
+      <div style="font-size:4.5em;display:inline-block;animation:float 3s ease-in-out infinite;">
+        <span style="filter:grayscale(0.3);">🪞</span>
+      </div>
+    </div>
+    <div class="narrator">
+      <p><em>Kurt Gödel. Vienna, 1931. Age 25.</em></p>
+      <p style="margin-top:12px">Shy. Precise. Terrifyingly careful.</p>
+      <p style="margin-top:12px">He had found something. Something that nobody &mdash; not Hilbert, not Russell, not anyone &mdash; had expected to find.</p>
+      <p style="margin-top:12px"><strong>He had found a true statement that could never be proved.</strong></p>
+    </div>
+    <div class="narrator gold">
+      <p>Before we follow him &mdash; there is something you already know that will prepare you.</p>
+      <p style="margin-top:12px">Have you ever heard someone say:</p>
+      <p style="margin-top:8px"><em>"This sentence is false"?</em></p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">Let's start there &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- SCREEN 1: DISCOVERY 1 — The Liar's Paradox   -->
+  <!-- ============================================ -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Discovery</div>
+      <div class="act-name">The Liar's <em>Paradox</em></div>
+    </div>
+
+    <div class="liar-box" id="liarBox">
+      <div class="liar-sentence" id="liarSentence">"This sentence is false."</div>
+      <div class="liar-buttons">
+        <button class="liar-btn true-btn" id="btnTrue" onclick="liarClick('true')">TRUE</button>
+        <button class="liar-btn false-btn" id="btnFalse" onclick="liarClick('false')">FALSE</button>
+      </div>
+      <div id="chainArea" style="margin-top:18px;text-align:left;"></div>
+      <div class="loop-arrow" id="loopArrow">&#8635; Try again.</div>
+      <div class="contradiction-counter" id="contradictionCounter" style="display:none;">Contradictions found: <span id="cCount">0</span></div>
+    </div>
+
+    <div id="liarReveal" style="display:none;">
+      <div class="narrator">
+        <p>You have discovered something ancient.</p>
+        <p style="margin-top:10px">This paradox &mdash; the Liar's Paradox &mdash; has troubled philosophers since at least 600 BCE.</p>
+        <p style="margin-top:10px">The Greek philosopher Epimenides, who was Cretan, reportedly said: <em>"All Cretans are liars."</em></p>
+        <p style="margin-top:10px">Is that true?</p>
+      </div>
+      <div class="narrator gold">
+        <p>Gödel saw something in this paradox that nobody else had seen.</p>
+        <p style="margin-top:10px">Not a philosophical curiosity.</p>
+        <p style="margin-top:10px"><strong>A mathematical weapon.</strong></p>
+      </div>
+      <button class="cta-btn" onclick="goToScreen(2)">What did he see? &rarr;</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- SCREEN 2: DISCOVERY 2 — Self-Reference       -->
+  <!-- ============================================ -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">Discovery</div>
+      <div class="act-name">Self-<em>Reference</em></div>
+    </div>
+    <div class="narrator">
+      <p>Three statements. Each one refers to itself.</p>
+      <p style="margin-top:10px">Which one creates a paradox when you try to assign it a truth value?</p>
+    </div>
+
+    <div class="statement-card" id="stmt0" onclick="pickStatement(0)">
+      <div class="statement-text">"This sentence has five words."</div>
+      <div class="statement-verdict" id="verdict0"></div>
+    </div>
+    <div class="statement-card" id="stmt1" onclick="pickStatement(1)">
+      <div class="statement-text">"This sentence is false."</div>
+      <div class="statement-verdict" id="verdict1"></div>
+    </div>
+    <div class="statement-card" id="stmt2" onclick="pickStatement(2)">
+      <div class="statement-text">"This sentence is true."</div>
+      <div class="statement-verdict" id="verdict2"></div>
+    </div>
+
+    <div id="selfRefReveal" style="display:none;">
+      <div class="insight">
+        <div class="lbl">The key insight</div>
+        <p>The dangerous ingredient is not self-reference itself.</p>
+        <p style="margin-top:8px">It is <em>self-reference combined with negation</em>.</p>
+      </div>
+      <div class="narrator">
+        <p>"This sentence is true" is just confident. It does not break anything.</p>
+        <p style="margin-top:10px">"This sentence is false" breaks the machine because it uses itself to <em>deny</em> itself.</p>
+        <p style="margin-top:14px">Gödel thought: what if I could write a mathematical statement that says &mdash;</p>
+        <p style="margin-top:8px"><strong><em>"I cannot be proved"?</em></strong></p>
+      </div>
+      <button class="cta-btn" onclick="goToScreen(3)">How did he do it? &rarr;</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- SCREEN 3: DISCOVERY 3 — Gödel Numbering      -->
+  <!-- ============================================ -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">Discovery</div>
+      <div class="act-name">Gödel <em>Numbering</em></div>
+    </div>
+
+    <div class="narrator cyan">
+      <p>Gödel's trick was deceptively simple.</p>
+      <p style="margin-top:10px">He gave every mathematical symbol a number.</p>
+    </div>
+
+    <!-- Stage 1: Symbol encoding table -->
+    <div class="encoding-table" id="encTable">
+      <div class="encode-label">The Gödel Code</div>
+      <div class="enc-row"><div class="enc-symbol">0</div><div class="enc-arrow">&rarr;</div><div class="enc-number">1</div></div>
+      <div class="enc-row"><div class="enc-symbol">S</div><div class="enc-arrow">&rarr;</div><div class="enc-number">2</div><div style="color:var(--muted);font-size:0.8em;margin-left:8px;">(successor)</div></div>
+      <div class="enc-row"><div class="enc-symbol">+</div><div class="enc-arrow">&rarr;</div><div class="enc-number">3</div></div>
+      <div class="enc-row"><div class="enc-symbol">=</div><div class="enc-arrow">&rarr;</div><div class="enc-number">4</div></div>
+      <div class="enc-row"><div class="enc-symbol">&not;</div><div class="enc-arrow">&rarr;</div><div class="enc-number">5</div><div style="color:var(--muted);font-size:0.8em;margin-left:8px;">(not)</div></div>
+      <div class="enc-row"><div class="enc-symbol">(</div><div class="enc-arrow">&rarr;</div><div class="enc-number">6</div></div>
+      <div class="enc-row"><div class="enc-symbol">)</div><div class="enc-arrow">&rarr;</div><div class="enc-number">7</div></div>
+    </div>
+
+    <div class="narrator">
+      <p>Now encode a statement.</p>
+      <p style="margin-top:8px"><strong>S(0) = S(0)</strong></p>
+      <p style="margin-top:8px">Tap the correct number for each symbol, left to right.</p>
+    </div>
+
+    <!-- Encoding exercise -->
+    <div class="encode-area" id="encodeExercise">
+      <div class="encode-label">Encode: S(0) = S(0)</div>
+      <div class="symbol-display" id="symbolDisplay"></div>
+      <div class="number-bank" id="numberBank"></div>
+      <div class="encode-result" id="encodeResult"></div>
+    </div>
+
+    <div id="stage2Reveal" style="display:none;">
+      <!-- Stage 2: Maths talks about itself -->
+      <div class="narrator gold">
+        <p>Now here is the trick.</p>
+        <p style="margin-top:10px">This sequence of numbers &mdash; <strong>2, 6, 1, 7, 4, 2, 6, 1, 7</strong> &mdash; is itself made of numbers.</p>
+        <p style="margin-top:10px">And our formal system talks about numbers.</p>
+        <p style="margin-top:14px">So our formal system can make statements <em>about its own statements</em> &mdash; by making statements about numbers.</p>
+        <p style="margin-top:10px">Mathematics turned inward.</p>
+      </div>
+
+      <div class="insight cyan">
+        <div class="lbl">Self-reference through code</div>
+        <p>"The statement with Gödel number 47 is provable" is a statement <em>about</em> the formal system, written <em>in</em> the formal system.</p>
+      </div>
+
+      <button class="act-btn" onclick="showG()" id="btnShowG" style="margin:0 auto 20px;display:block;padding:14px 28px;">See what Gödel built &rarr;</button>
+    </div>
+
+    <!-- Stage 3: G is constructed -->
+    <div id="stage3Reveal" style="display:none;">
+      <div class="g-construct" id="gConstruct">
+        <div class="encode-label" style="margin-bottom:14px;">The construction of G</div>
+        <div class="g-step" id="gStep0">Step 1: Gödel assigns every statement a unique number &mdash; its <span class="cyan">Gödel number</span>.</div>
+        <div class="g-step" id="gStep1">Step 2: He writes a formula that says: <span class="gold">"The statement with number <em>n</em> is not provable."</span></div>
+        <div class="g-step" id="gStep2">Step 3: This formula itself has a Gödel number. Call it <span class="cyan">g</span>.</div>
+        <div class="g-step" id="gStep3">Step 4: Now substitute <span class="cyan">g</span> for <em>n</em>.</div>
+        <div class="g-statement" id="gFinal">G says: "The statement with Gödel number <em>g</em> is not provable."<br><br>G says: <strong>"I cannot be proved."</strong></div>
+      </div>
+
+      <div class="narrator">
+        <p>This statement is legal. It is grammatically correct mathematics.</p>
+        <p style="margin-top:10px">It plays by all of Hilbert's rules.</p>
+        <p style="margin-top:14px"><em>What happens if we try to prove it?</em></p>
+      </div>
+
+      <button class="cta-btn" onclick="goToScreen(4)">Follow the logic &rarr;</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- SCREEN 4: PROOF — The Two-Horned Dilemma     -->
+  <!-- ============================================ -->
+  <section class="screen" id="screen-4">
+    <div class="act-title">
+      <div class="act-label">The Proof</div>
+      <div class="act-name">The Two-Horned <em>Dilemma</em></div>
+    </div>
+
+    <div class="dilemma-wrap">
+      <div class="dilemma-top">G = "I cannot be proved." <span class="warning-light" id="warningTop" style="display:none;"></span></div>
+
+      <div class="branches">
+        <!-- LEFT BRANCH -->
+        <div class="branch" id="branchLeft" onclick="exploreBranch('left')">
+          <div class="branch-label left">Suppose G is provable</div>
+          <div class="branch-step" id="L0">1. G is provable</div>
+          <div class="branch-step" id="L1">2. &rArr; G is <span class="green">true</span> <span style="font-size:0.85em;color:var(--muted);">(we assume the system is consistent &mdash; it only proves true things)</span></div>
+          <div class="branch-step" id="L2">3. But G says <em>"I cannot be proved"</em></div>
+          <div class="branch-step" id="L3">4. If G is provable, then G is <span class="rose">false</span></div>
+          <div class="branch-step" id="L4">5. <span class="rose">CONTRADICTION</span></div>
+          <div class="branch-result contradiction" id="leftResult">G cannot be provable.</div>
+        </div>
+        <!-- RIGHT BRANCH -->
+        <div class="branch" id="branchRight" onclick="exploreBranch('right')">
+          <div class="branch-label right">Suppose G is not provable</div>
+          <div class="branch-step" id="R0">1. G is not provable</div>
+          <div class="branch-step" id="R1">2. G says <em>"I cannot be proved"</em></div>
+          <div class="branch-step" id="R2">3. That claim is... <span class="gold">correct</span></div>
+          <div class="branch-step" id="R3">4. G is <span class="gold">TRUE</span></div>
+          <div class="branch-result true-unprovable" id="rightResult">G is a true statement that cannot be proved.</div>
+        </div>
+      </div>
+
+      <div id="dilemmaConclusion" style="display:none;">
+        <div class="narrator" style="margin-top:16px;">
+          <p>Both branches lead somewhere definitive.</p>
+          <p style="margin-top:12px">If G is provable: the system proves a false statement. The system is <em>inconsistent</em>.</p>
+          <p style="margin-top:12px">If G is not provable: G is true but unprovable. The system is <em>incomplete</em>.</p>
+        </div>
+
+        <div class="theorem-box">
+          <div class="theorem-label">Gödel's First Incompleteness Theorem</div>
+          <div class="theorem-text">Any consistent formal system powerful enough to describe basic arithmetic contains true statements that cannot be proved within that system.</div>
+        </div>
+
+        <div class="narrator">
+          <p>Hilbert's machine cannot prove everything.</p>
+          <p style="margin-top:10px">Not because it is slow.</p>
+          <p style="margin-top:10px"><strong>Because it is mathematically impossible.</strong></p>
+          <p style="margin-top:14px">The rose warning light on the gold machine from Act I now stays on. <span class="warning-light"></span></p>
+          <p style="margin-top:10px">It does not go out.</p>
+        </div>
+
+        <button class="cta-btn" onclick="goToScreen(5)">See what this means &rarr;</button>
+      </div>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- SCREEN 5: PATTERN — Venn Diagram             -->
+  <!-- ============================================ -->
+  <section class="screen" id="screen-5">
+    <div class="act-title">
+      <div class="act-label">The Pattern</div>
+      <div class="act-name">Truth is <em>bigger</em> than Proof</div>
+    </div>
+
+    <div class="venn-wrap">
+      <div class="venn-label">The landscape after Gödel</div>
+      <canvas id="vennCanvas"></canvas>
+    </div>
+
+    <div class="insight">
+      <div class="lbl">The provable is a proper subset of the true</div>
+      <p>There are mathematical facts that exist &mdash; they are real, they are true &mdash; that no formal proof will ever reach.</p>
+    </div>
+
+    <div class="narrator">
+      <p>The <span style="color:var(--gold);">gold region</span> is everything the system can prove.</p>
+      <p style="margin-top:10px">The <span style="color:var(--silver);">white border</span> is everything that is true.</p>
+      <p style="margin-top:10px">The <span style="color:var(--rose);">rose gap</span> between them &mdash; that is Gödel's territory. True but unprovable. It will never close.</p>
+    </div>
+
+    <div class="insight gold">
+      <div class="lbl">Hilbert hoped for</div>
+      <p>A complete system &mdash; one that could prove every true statement about numbers. The gold circle would fill the white one entirely. No gap.</p>
+    </div>
+    <div class="insight">
+      <div class="lbl">Gödel proved</div>
+      <p>No consistent system of sufficient power can be complete. The rose gap is permanent. It is a mathematical certainty.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(6)">What does this mean? &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- SCREEN 6: CONNECTION — Response Choices       -->
+  <!-- ============================================ -->
+  <section class="screen" id="screen-6">
+    <div class="act-title">
+      <div class="act-label">Connection</div>
+      <div class="act-name">What does <em>this</em> mean?</div>
+    </div>
+
+    <div class="narrator">
+      <p>Three questions. Choose the one you find most striking.</p>
+    </div>
+
+    <div class="response-card" id="resp0" onclick="chooseResponse(0)">
+      <div class="response-q">"Does this mean mathematics is broken?"</div>
+      <div class="response-a" id="respA0">No. It means mathematics is <em>richer</em> than any formal system can capture. Truth is bigger than proof. That is humbling &mdash; but also beautiful.</div>
+    </div>
+    <div class="response-card" id="resp1" onclick="chooseResponse(1)">
+      <div class="response-q">"Is the Gödel statement actually true?"</div>
+      <div class="response-a" id="respA1">Yes &mdash; in any consistent system. We can see this from <em>outside</em> the system. But the system itself can never confirm it from within.</div>
+    </div>
+    <div class="response-card" id="resp2" onclick="chooseResponse(2)">
+      <div class="response-q">"Can we just add G as a new axiom?"</div>
+      <div class="response-a" id="respA2">Yes. Then you have a stronger system. But that system will have its <em>own</em> Gödel sentence &mdash; its own unprovable truth. You cannot escape. The gap always reappears.</div>
+    </div>
+
+    <div id="connectionReveal" style="display:none;">
+      <div class="narrator" style="margin-top:16px;">
+        <p><em>Hilbert heard about Gödel's result at that same conference in 1930.</em></p>
+        <p style="margin-top:12px">He was, by all accounts, furious.</p>
+        <p style="margin-top:12px">He spent years trying to find an error in the proof.</p>
+        <p style="margin-top:14px"><strong>There was not one.</strong></p>
+      </div>
+
+      <div class="insight">
+        <div class="lbl">The warning light stays on</div>
+        <p>The system works. The gears still turn. Theorems are still proved. But we now know, with certainty, that there are true statements the machine will never reach. <span class="warning-light"></span></p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px;">
+        <button class="cta-btn" onclick="goToAct3()">But Gödel was not finished &rarr;</button>
+        <button class="cta-btn ghost" onclick="window.location.href='broken_machine_act1.html'">&larr; Back to Act I</button>
+      </div>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<footer class="site-footer">
+  &copy; 2025 Manoj Bhaskar. Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a>.
+</footer>
+
+<script src="../narrator.js"></script>
+<script>
+/* ── State ── */
+var curScreen = 0;
+var contradictions = 0;
+var liarRevealed = false;
+var statementsClicked = [false, false, false];
+var encodingTarget = ['S','(','0',')','=','S','(','0',')'];
+var encodingAnswer = [2,6,1,7,4,2,6,1,7];
+var encodeIndex = 0;
+var branchExplored = {left: false, right: false};
+var responsesOpened = 0;
+
+/* ── Screen Navigation ── */
+function goToScreen(n) {
+    document.getElementById('screen-' + curScreen).classList.remove('active');
+    curScreen = n;
+    document.getElementById('screen-' + n).classList.add('active');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+    updateDots();
+    if (n === 1) initLiar();
+    if (n === 3) initEncoding();
+    if (n === 5) drawVenn();
+}
+
+function updateDots() {
+    var dots = document.querySelectorAll('#progressDots .dot');
+    /* Screen-to-dot mapping: 0-1 = dot 1 (active), 2 = dot 1 done/dot 2 active, etc. */
+    var screenDot = Math.min(Math.floor(curScreen / 1.2), 4);
+    dots.forEach(function(d, i) {
+        d.className = 'dot';
+        if (i < screenDot) d.className = 'dot done';
+        else if (i === screenDot) d.className = 'dot active';
+    });
+}
+
+/* ── Cosmos Background ── */
+(function() {
+    var cv = document.getElementById('cosmos');
+    function draw() {
+        cv.width = innerWidth; cv.height = innerHeight;
+        var ctx = cv.getContext('2d');
+        var g = ctx.createRadialGradient(innerWidth * 0.3, innerHeight * 0.2, 0, innerWidth * 0.5, innerHeight * 0.5, innerWidth * 0.8);
+        g.addColorStop(0, 'rgba(251,113,133,0.04)');
+        g.addColorStop(0.5, 'rgba(34,211,238,0.02)');
+        g.addColorStop(1, 'transparent');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
+        for (var i = 0; i < 200; i++) {
+            var x = Math.random() * cv.width, y = Math.random() * cv.height;
+            var r = Math.random() * 1.4, a = 0.04 + Math.random() * 0.3;
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+            var t = ['255,255,255', '200,180,200', '200,220,240'];
+            ctx.fillStyle = 'rgba(' + t[Math.floor(Math.random() * t.length)] + ',' + a + ')';
+            ctx.fill();
+        }
+    }
+    window.addEventListener('resize', draw); draw();
+})();
+
+/* ══════════════════════════════════════ */
+/* SCREEN 1: The Liar's Paradox          */
+/* ══════════════════════════════════════ */
+function initLiar() {
+    contradictions = 0;
+    liarRevealed = false;
+    document.getElementById('chainArea').innerHTML = '';
+    document.getElementById('loopArrow').classList.remove('visible');
+    document.getElementById('contradictionCounter').style.display = 'none';
+    document.getElementById('liarReveal').style.display = 'none';
+    document.getElementById('liarBox').style.borderColor = 'var(--border)';
+}
+
+function liarClick(choice) {
+    var chainArea = document.getElementById('chainArea');
+    chainArea.innerHTML = '';
+    var box = document.getElementById('liarBox');
+
+    /* Flash rose */
+    box.classList.add('flicker');
+    box.style.borderColor = 'var(--rose)';
+    setTimeout(function() { box.classList.remove('flicker'); }, 600);
+
+    var steps = [];
+    if (choice === 'true') {
+        steps = [
+            'If it is <span class="green">TRUE</span>, then it IS false — that is what it says.',
+            'But if it is false, it is not true.',
+            '<span class="rose">CONTRADICTION.</span> Try FALSE.'
+        ];
+    } else {
+        steps = [
+            'If it is <span class="rose">FALSE</span>, then its claim (that it is false) is wrong.',
+            'Which means it IS true.',
+            '<span class="rose">CONTRADICTION.</span> Try TRUE.'
+        ];
+    }
+
+    steps.forEach(function(text, i) {
+        var el = document.createElement('div');
+        el.className = 'chain-step';
+        el.innerHTML = text;
+        chainArea.appendChild(el);
+        setTimeout(function() { el.classList.add('visible'); }, 200 + i * 400);
+    });
+
+    contradictions++;
+    var counter = document.getElementById('contradictionCounter');
+    counter.style.display = 'block';
+    document.getElementById('cCount').textContent = contradictions;
+
+    var loop = document.getElementById('loopArrow');
+    setTimeout(function() { loop.classList.add('visible'); }, 200 + steps.length * 400);
+
+    if (contradictions >= 3 && !liarRevealed) {
+        liarRevealed = true;
+        setTimeout(function() {
+            document.getElementById('liarReveal').style.display = 'block';
+            document.getElementById('liarReveal').scrollIntoView({behavior: 'smooth', block: 'start'});
+        }, 200 + steps.length * 400 + 600);
+    }
+}
+
+/* ══════════════════════════════════════ */
+/* SCREEN 2: Self-Reference              */
+/* ══════════════════════════════════════ */
+function pickStatement(idx) {
+    var cards = document.querySelectorAll('.statement-card');
+    statementsClicked[idx] = true;
+
+    if (idx === 0) {
+        document.getElementById('stmt0').classList.add('selected-safe');
+        document.getElementById('verdict0').innerHTML = '<span style="color:var(--green);">TRUE — no paradox. Self-reference, but no negation.</span>';
+        document.getElementById('verdict0').classList.add('visible');
+    } else if (idx === 1) {
+        document.getElementById('stmt1').classList.add('selected-paradox');
+        document.getElementById('verdict1').innerHTML = '<span style="color:var(--rose);">PARADOX — self-reference + negation = contradiction.</span>';
+        document.getElementById('verdict1').classList.add('visible');
+    } else if (idx === 2) {
+        document.getElementById('stmt2').classList.add('selected-odd');
+        document.getElementById('verdict2').innerHTML = '<span style="color:var(--gold);">Odd, but not paradoxical — just circular. You can call it true or false and neither breaks.</span>';
+        document.getElementById('verdict2').classList.add('visible');
+    }
+
+    /* Show reveal after clicking the paradox */
+    if (statementsClicked[1]) {
+        setTimeout(function() {
+            document.getElementById('selfRefReveal').style.display = 'block';
+            if (statementsClicked[0] && statementsClicked[2]) {
+                document.getElementById('selfRefReveal').scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
+        }, 600);
+    }
+}
+
+/* ══════════════════════════════════════ */
+/* SCREEN 3: Gödel Numbering             */
+/* ══════════════════════════════════════ */
+function initEncoding() {
+    encodeIndex = 0;
+    var symDisplay = document.getElementById('symbolDisplay');
+    var numBank = document.getElementById('numberBank');
+    var result = document.getElementById('encodeResult');
+    symDisplay.innerHTML = '';
+    numBank.innerHTML = '';
+    result.innerHTML = '';
+    document.getElementById('stage2Reveal').style.display = 'none';
+    document.getElementById('stage3Reveal').style.display = 'none';
+
+    encodingTarget.forEach(function(sym, i) {
+        var chip = document.createElement('div');
+        chip.className = 'sym-chip ' + (i === 0 ? 'active' : 'pending');
+        chip.textContent = sym;
+        chip.id = 'sym-' + i;
+        symDisplay.appendChild(chip);
+    });
+
+    /* Number choices: 1-7, shown in order */
+    for (var n = 1; n <= 7; n++) {
+        var btn = document.createElement('div');
+        btn.className = 'num-choice';
+        btn.textContent = n;
+        btn.setAttribute('data-num', n);
+        btn.onclick = (function(num) { return function() { encodeClick(num); }; })(n);
+        numBank.appendChild(btn);
+    }
+}
+
+function encodeClick(num) {
+    if (encodeIndex >= encodingTarget.length) return;
+    var correct = encodingAnswer[encodeIndex];
+    if (num !== correct) {
+        /* Brief red flash on wrong choice */
+        var wrongBtn = document.querySelector('.num-choice[data-num="' + num + '"]');
+        if (wrongBtn) {
+            wrongBtn.style.borderColor = 'var(--rose)';
+            wrongBtn.style.color = 'var(--rose)';
+            setTimeout(function() {
+                wrongBtn.style.borderColor = '';
+                wrongBtn.style.color = '';
+            }, 400);
+        }
+        return;
+    }
+
+    /* Correct! */
+    var sym = document.getElementById('sym-' + encodeIndex);
+    sym.className = 'sym-chip encoded';
+
+    var resultEl = document.getElementById('encodeResult');
+    var numSpan = document.createElement('span');
+    numSpan.textContent = (encodeIndex > 0 ? ', ' : '') + num;
+    numSpan.style.opacity = '0';
+    numSpan.style.transition = 'opacity 0.3s';
+    resultEl.appendChild(numSpan);
+    setTimeout(function() { numSpan.style.opacity = '1'; }, 50);
+
+    encodeIndex++;
+
+    /* Highlight next symbol */
+    if (encodeIndex < encodingTarget.length) {
+        var next = document.getElementById('sym-' + encodeIndex);
+        next.className = 'sym-chip active';
+    }
+
+    /* Complete! */
+    if (encodeIndex >= encodingTarget.length) {
+        setTimeout(function() {
+            document.getElementById('stage2Reveal').style.display = 'block';
+            document.getElementById('stage2Reveal').scrollIntoView({behavior: 'smooth', block: 'start'});
+        }, 500);
+    }
+}
+
+function showG() {
+    document.getElementById('btnShowG').disabled = true;
+    document.getElementById('stage3Reveal').style.display = 'block';
+
+    var steps = ['gStep0', 'gStep1', 'gStep2', 'gStep3'];
+    steps.forEach(function(id, i) {
+        setTimeout(function() {
+            document.getElementById(id).classList.add('visible');
+        }, 400 + i * 900);
+    });
+
+    setTimeout(function() {
+        document.getElementById('gFinal').classList.add('visible');
+        document.getElementById('gFinal').scrollIntoView({behavior: 'smooth', block: 'center'});
+    }, 400 + steps.length * 900 + 500);
+}
+
+/* ══════════════════════════════════════ */
+/* SCREEN 4: The Two-Horned Dilemma      */
+/* ══════════════════════════════════════ */
+function exploreBranch(side) {
+    if (branchExplored[side]) return;
+    branchExplored[side] = true;
+
+    var branch = document.getElementById(side === 'left' ? 'branchLeft' : 'branchRight');
+    branch.classList.add('active');
+
+    var prefix = side === 'left' ? 'L' : 'R';
+    var count = side === 'left' ? 5 : 4;
+    var resultId = side === 'left' ? 'leftResult' : 'rightResult';
+
+    for (var i = 0; i < count; i++) {
+        (function(idx) {
+            setTimeout(function() {
+                document.getElementById(prefix + idx).classList.add('visible');
+            }, 300 + idx * 600);
+        })(i);
+    }
+
+    setTimeout(function() {
+        document.getElementById(resultId).classList.add('visible');
+        if (side === 'left') {
+            /* Flash warning light */
+            document.getElementById('warningTop').style.display = 'inline-block';
+        }
+    }, 300 + count * 600 + 300);
+
+    /* Check if both branches explored */
+    setTimeout(function() {
+        if (branchExplored.left && branchExplored.right) {
+            setTimeout(function() {
+                document.getElementById('dilemmaConclusion').style.display = 'block';
+                document.getElementById('dilemmaConclusion').scrollIntoView({behavior: 'smooth', block: 'start'});
+            }, 800);
+        }
+    }, 300 + count * 600 + 600);
+}
+
+/* ══════════════════════════════════════ */
+/* SCREEN 5: Venn Diagram                */
+/* ══════════════════════════════════════ */
+function drawVenn() {
+    var cv = document.getElementById('vennCanvas');
+    if (!cv) return;
+    var dpr = window.devicePixelRatio || 1;
+    var w = cv.parentElement.clientWidth - 32;
+    var h = 280;
+    cv.style.width = w + 'px'; cv.style.height = h + 'px';
+    cv.width = w * dpr; cv.height = h * dpr;
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    var cx = w / 2, cy = h / 2;
+    var outerR = Math.min(w, h) * 0.42;
+    var innerR = outerR * 0.6;
+
+    /* Outer circle: True statements — white border */
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(226,232,240,0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    /* Rose gap region (between outer and inner) */
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
+    ctx.fillStyle = 'rgba(251,113,133,0.08)';
+    ctx.fill();
+
+    /* Inner circle: Provable statements — gold */
+    ctx.beginPath();
+    ctx.arc(cx, cy, innerR, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(251,191,36,0.1)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(251,191,36,0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    /* Labels */
+    ctx.textAlign = 'center';
+    ctx.font = "600 13px 'DM Sans',sans-serif";
+
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText('True statements', cx, cy - outerR - 10);
+
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillText('Provable', cx, cy - 4);
+    ctx.fillText('statements', cx, cy + 14);
+
+    /* Rose gap label */
+    ctx.fillStyle = '#fb7185';
+    ctx.font = "italic 600 11px 'Lora',serif";
+    var labelR = (outerR + innerR) / 2;
+    ctx.fillText('True but', cx + labelR * 0.7, cy - 8);
+    ctx.fillText('unprovable', cx + labelR * 0.7, cy + 10);
+
+    /* G label */
+    ctx.font = "bold 16px 'DM Sans',sans-serif";
+    ctx.fillStyle = '#fb7185';
+    var gx = cx - labelR * 0.65, gy = cy + labelR * 0.3;
+    ctx.fillText('G', gx, gy);
+    ctx.beginPath();
+    ctx.arc(gx, gy - 5, 12, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(251,113,133,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+}
+
+/* ══════════════════════════════════════ */
+/* SCREEN 6: Connection — Responses      */
+/* ══════════════════════════════════════ */
+function chooseResponse(idx) {
+    var card = document.getElementById('resp' + idx);
+    var answer = document.getElementById('respA' + idx);
+    if (card.classList.contains('selected')) return;
+
+    card.classList.add('selected');
+    answer.classList.add('visible');
+    responsesOpened++;
+
+    if (responsesOpened >= 1) {
+        setTimeout(function() {
+            var reveal = document.getElementById('connectionReveal');
+            if (reveal.style.display === 'none') {
+                reveal.style.display = 'block';
+                reveal.scrollIntoView({behavior: 'smooth', block: 'start'});
+            }
+        }, 800);
+    }
+}
+
+/* ── Navigation ── */
+function goToAct3() {
+    window.location.href = 'broken_machine_act3.html';
+}
+
+/* ── Narrator Actions (for guided tour integration) ── */
+window.narratorActions = {
+    goToScreen0: function() { goToScreen(0); },
+    goToScreen1: function() { goToScreen(1); },
+    goToScreen2: function() { goToScreen(2); },
+    goToScreen3: function() { goToScreen(3); },
+    goToScreen4: function() { goToScreen(4); },
+    goToScreen5: function() { goToScreen(5); },
+    goToScreen6: function() { goToScreen(6); },
+    liarTrue: function() { liarClick('true'); },
+    liarFalse: function() { liarClick('false'); },
+    pickParadox: function() { pickStatement(1); },
+    exploreBranchLeft: function() { exploreBranch('left'); },
+    exploreBranchRight: function() { exploreBranch('right'); },
+};
+
+/* ── Resize handler for Venn ── */
+window.addEventListener('resize', function() {
+    if (curScreen === 5) drawVenn();
+});
+</script>
+</body>
+</html>

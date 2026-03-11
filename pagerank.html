@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How Search Engines Find What You're Looking For</title>
+    <meta name="description" content="From keyword stuffing to eigenvectors — the mathematics that made Google possible. Interactive PageRank visualisations.">
+    <link rel="canonical" href="https://mathsedu.org/pagerank.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "How Search Engines Find What You're Looking For",
+      "url": "https://mathsedu.org/pagerank.html",
+      "description": "From keyword stuffing to eigenvectors — the mathematics that made Google possible. Interactive PageRank visualisations.",
+      "educationalLevel": "Intermediate",
+      "teaches": "PageRank algorithm, Markov chains, eigenvectors",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "Computer Science, AI & Cryptography",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="How Search Engines Find What You're Looking For">
+    <meta property="og:description" content="From keyword stuffing to eigenvectors — the mathematics that made Google possible.">
+    <meta property="og:url" content="https://mathsedu.org/pagerank.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="How Search Engines Find What You're Looking For">
+    <meta name="twitter:description" content="From keyword stuffing to eigenvectors — the mathematics that made Google possible.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#22d3ee}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        h3{font-size:1.0em;font-weight:400;color:#fff;margin:20px 0 10px}
+        p{margin-bottom:14px;color:#c0c0d8;font-size:0.93em;line-height:1.75}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(34,211,238,0.13);border-color:rgba(34,211,238,0.4);color:#22d3ee}
+        .btn.green{background:rgba(16,185,129,0.13);border-color:rgba(16,185,129,0.4);color:#10b981}
+        .btn.green:hover{background:rgba(16,185,129,0.22);color:#10b981}
+        .insight-box{background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.18);border-left:3px solid #fbbf24;border-radius:8px;padding:14px 18px;margin:16px 0;font-size:0.88em;color:#c0b070;font-style:italic;line-height:1.7}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px;margin-bottom:20px}
+        .explain-name{color:#22d3ee;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .formula-block{background:rgba(34,211,238,0.04);border:1px solid rgba(34,211,238,0.12);border-radius:8px;padding:16px 20px;margin:16px 0;font-family:'Courier New',monospace;font-size:0.88em;color:#c0c0d8;line-height:1.9;overflow-x:auto;white-space:pre}
+        .slider-row{display:flex;align-items:center;gap:12px;margin:10px 0;flex-wrap:wrap}
+        .slider-row label{color:#808098;font-size:0.85em;min-width:70px}
+        .slider-row input[type=range]{flex:1;min-width:120px;accent-color:#22d3ee}
+        .slider-row .val{color:#22d3ee;font-family:'Courier New',monospace;font-size:0.88em;min-width:50px}
+        .narrative{border-left:3px solid rgba(34,211,238,0.3);padding:14px 20px;margin:20px 0;color:#a0a0b8;font-style:italic;font-size:0.92em;line-height:1.8}
+        .act-header{color:#22d3ee;font-size:1.3em;font-weight:400;margin:36px 0 10px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.04)}
+        .timeline-bar{position:relative;height:80px;margin:20px 0 30px;overflow-x:auto}
+        .timeline-line{position:absolute;top:30px;left:0;right:0;height:2px;background:rgba(255,255,255,0.08)}
+        .timeline-dot{position:absolute;top:22px;width:16px;height:16px;border-radius:50%;background:#22d3ee;cursor:pointer;transform:translateX(-8px);transition:all 0.2s;z-index:2}
+        .timeline-dot:hover{background:#fff;box-shadow:0 0 12px rgba(34,211,238,0.5)}
+        .timeline-label{position:absolute;top:46px;font-size:0.68em;color:#808098;white-space:nowrap;transform:translateX(-50%)}
+        .timeline-year{position:absolute;top:4px;font-size:0.72em;color:#606078;transform:translateX(-50%)}
+        .timeline-info{background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.15);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85em;color:#a0a0b8;display:none;line-height:1.6}
+        .misconception-panel{background:rgba(244,114,182,0.05);border:1px solid rgba(244,114,182,0.15);border-radius:10px;padding:18px 22px;margin:20px 0}
+        .misconception-panel h3{color:#f472b6;font-size:0.85em;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
+        .misconception{margin-bottom:14px}
+        .misconception .myth{color:#f472b6;font-size:0.88em;font-weight:bold;margin-bottom:2px}
+        .misconception .reality{color:#a0a0b8;font-size:0.85em;line-height:1.6}
+        .curious-panel{background:rgba(34,211,238,0.04);border:1px solid rgba(34,211,238,0.12);border-radius:10px;padding:18px 22px;margin:20px 0;cursor:pointer}
+        .curious-panel summary{color:#22d3ee;font-size:0.9em;list-style:none;display:flex;align-items:center;gap:8px}
+        .curious-panel summary::-webkit-details-marker{display:none}
+        .curious-panel summary::before{content:'>';display:inline-block;transition:transform 0.2s;color:#22d3ee;font-family:'Courier New',monospace}
+        .curious-panel[open] summary::before{transform:rotate(90deg)}
+        .curious-panel .curious-body{margin-top:12px;font-size:0.85em;color:#a0a0b8;line-height:1.75}
+        .connection-panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin:10px 0;overflow:hidden}
+        .connection-panel summary{padding:14px 18px;color:#e0e0e0;font-size:0.9em;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}
+        .connection-panel summary::-webkit-details-marker{display:none}
+        .connection-panel summary::before{content:'>';display:inline-block;transition:transform 0.2s;color:#10b981;font-family:'Courier New',monospace}
+        .connection-panel[open] summary::before{transform:rotate(90deg)}
+        .connection-panel .conn-body{padding:0 18px 14px;font-size:0.85em;color:#a0a0b8;line-height:1.75}
+        .keyword-page{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:14px 16px;flex:1;min-width:200px}
+        .keyword-page h4{font-size:0.85em;font-weight:400;margin-bottom:8px}
+        .keyword-page .content{font-size:0.78em;color:#a0a0b8;line-height:1.7}
+        .keyword-page .spam{color:rgba(255,255,255,0.08);font-size:0.6em}
+        .rank-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:0.75em;font-family:'Courier New',monospace;margin:6px 4px 0 0}
+        .rank-1{background:rgba(251,191,36,0.15);color:#fbbf24;border:1px solid rgba(251,191,36,0.3)}
+        .rank-2{background:rgba(255,255,255,0.04);color:#808098;border:1px solid rgba(255,255,255,0.08)}
+        .cross-links{margin-top:20px;font-size:0.82em;color:#606078}
+        .cross-links a{color:#22d3ee;text-decoration:none;opacity:0.7}
+        .cross-links a:hover{opacity:1}
+        .flex-row{display:flex;gap:20px;flex-wrap:wrap}
+        .flex-half{flex:1 1 300px;min-width:280px}
+        .matrix-grid{display:inline-grid;gap:2px;margin:10px 0}
+        .matrix-cell{width:40px;height:28px;display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace;font-size:0.72em;border-radius:3px}
+        .bar-chart-row{display:flex;align-items:center;gap:8px;margin:3px 0}
+        .bar-chart-label{font-family:'Courier New',monospace;font-size:0.8em;color:#808098;width:20px;text-align:right}
+        .bar-chart-bar{height:18px;border-radius:3px;transition:width 0.3s;min-width:2px}
+        .bar-chart-val{font-family:'Courier New',monospace;font-size:0.72em;color:#808098;min-width:45px}
+        .iteration-info{font-family:'Courier New',monospace;font-size:0.82em;color:#808098;margin:8px 0}
+        .prompt-box{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:8px;padding:12px 16px;margin:10px 0;font-size:0.85em;color:#80b8a0;font-style:italic;line-height:1.6}
+        .surfer-reveal{display:none;background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.2);border-radius:8px;padding:12px 18px;margin:12px 0;font-size:0.9em;color:#22d3ee;text-align:center}
+        .ranked-list{font-family:'Courier New',monospace;font-size:0.82em;color:#a0a0b8;line-height:1.8}
+        .special-flag{font-size:0.8em;color:#fbbf24;font-style:italic;margin:8px 0}
+        #buildCanvas{cursor:crosshair}
+        @media(max-width:700px){
+            canvas{width:100%!important;height:auto!important}
+            .flex-row{flex-direction:column}
+            .flex-half{min-width:100%}
+            .keyword-page{min-width:100%}
+            .matrix-cell{width:32px;height:24px;font-size:0.62em}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>How Search Engines Find What You're Looking For</h1>
+    <p class="subtitle">From keyword stuffing to eigenvectors &mdash; the mathematics that made Google possible</p>
+
+    <!-- ============================================================
+         OPENING NARRATIVE
+         ============================================================ -->
+    <div class="narrative">
+        In 1994, the World Wide Web had about 3,000 websites. By 1998, it had 2.4 million. By 2024, approximately 2 billion.<br><br>
+        The question was never &ldquo;can we build a search engine?&rdquo; The question was &ldquo;how do you decide which result matters most?&rdquo; It turns out this is a deep mathematical question &mdash; and the answer involves random walks, eigenvectors, and a constant called the damping factor.
+    </div>
+
+    <div class="narrative" style="margin-top:10px;border-left-color:rgba(251,191,36,0.3)">
+        Every time you search for something, a piece of mathematics invented by two PhD students in a Stanford garage decides what you see first. That mathematics is not complicated &mdash; it is elegant. And once you understand it, you will never look at a hyperlink the same way again.
+    </div>
+
+    <!-- ============================================================
+         HISTORICAL TIMELINE
+         ============================================================ -->
+    <h2>A Brief History of Search</h2>
+    <div class="panel" style="position:relative">
+        <div class="timeline-bar" id="timelineBar">
+            <div class="timeline-line"></div>
+        </div>
+        <div class="timeline-info" id="timelineInfo"></div>
+    </div>
+
+    <!-- ============================================================
+         ACT I — THE KEYWORD ERA
+         ============================================================ -->
+    <div class="act-header">Act I &mdash; The Keyword Era (1990&ndash;1997)</div>
+    <p>Early search engines &mdash; AltaVista, Excite, Lycos &mdash; ranked pages by keyword frequency. A page about &ldquo;tennis&rdquo; that mentioned the word one hundred times ranked higher than one that mentioned it once. The model treated every word occurrence as an independent signal. It ignored the structure of the web entirely.</p>
+    <p>Spammers discovered this within months. &ldquo;Keyword stuffing&rdquo; &mdash; hiding hundreds of repetitions of popular search terms in white text on white backgrounds &mdash; exploited the mathematics trivially. The system was broken.</p>
+
+    <!-- INTERACTIVE 1 — KEYWORD FAILURE -->
+    <h3>Try it: The Keyword Failure</h3>
+    <p style="font-size:0.85em;color:#808098">Two pages about &ldquo;best coffee shops.&rdquo; Which should rank higher?</p>
+
+    <div class="flex-row" style="margin-bottom:14px">
+        <div class="keyword-page" id="pageA">
+            <h4 style="color:#22d3ee">Page A &mdash; Quality Article</h4>
+            <div class="content">
+                <strong>The Best Coffee Shops in London</strong><br><br>
+                After visiting over fifty cafes across the city, here are our picks for the <em>best coffee shops</em> this year. From single-origin pour-overs in Shoreditch to classic Italian espresso bars in Soho, London's coffee scene has never been stronger. Each recommendation includes tasting notes, atmosphere ratings, and price guides for the best coffee shops we found.
+            </div>
+            <div style="margin-top:8px;font-size:0.72em;color:#808098">Keyword &ldquo;best coffee shops&rdquo;: <span style="color:#22d3ee">4 times</span> &middot; Inbound links: <span style="color:#10b981">23</span></div>
+            <div id="rankA"></div>
+        </div>
+        <div class="keyword-page" id="pageB">
+            <h4 style="color:#f472b6">Page B &mdash; Keyword-Stuffed Spam</h4>
+            <div class="content">
+                best coffee shops best coffee shops best coffee shops. Welcome to best coffee shops page about best coffee shops. Best coffee shops best coffee shops.
+                <span class="spam"><br>best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops best coffee shops</span>
+            </div>
+            <div style="margin-top:8px;font-size:0.72em;color:#808098">Keyword &ldquo;best coffee shops&rdquo;: <span style="color:#f472b6">60 times</span> &middot; Inbound links: <span style="color:#10b981">1</span></div>
+            <div id="rankB"></div>
+        </div>
+    </div>
+
+    <div class="btn-row">
+        <button class="btn" id="btnRankKeyword" onclick="rankByKeyword()">Rank by keyword frequency</button>
+        <button class="btn" id="btnRankLinks" onclick="rankByLinks()">Rank by links</button>
+    </div>
+
+    <div class="insight-box">
+        &ldquo;Early search engines could only see the text. Spammers exploited this within months. Something was missing &mdash; the structure of the web itself.&rdquo;
+    </div>
+
+    <!-- ============================================================
+         ACT II — THE LINK INSIGHT
+         ============================================================ -->
+    <div class="act-header">Act II &mdash; The Link Insight (1997&ndash;1998)</div>
+    <p>Jon Kleinberg at Cornell and separately Larry Page and Sergey Brin at Stanford noticed the same thing: <strong>a hyperlink is a vote</strong>. When a page links to another page, it is implicitly saying &ldquo;this page is worth reading.&rdquo;</p>
+    <p>This was a fundamental shift &mdash; from the <em>content</em> of a page to its <em>position in the graph</em> of the web.</p>
+    <p>But immediately a problem: not all votes should be equal. A link from the BBC is more valuable than a link from an obscure personal blog. But how do we know the BBC is important? Because important pages link to it. But how do we know those pages are important? Because&hellip;</p>
+    <p>This is circular reasoning. It is also, as Brin and Page recognised, an eigenvector problem.</p>
+
+    <!-- ============================================================
+         ACT III — THE MATHEMATICS
+         ============================================================ -->
+    <div class="act-header">Act III &mdash; The Mathematics (1998&ndash;present)</div>
+
+    <div class="narrative">
+        Forget algorithms for a moment. Imagine instead a person &mdash; infinitely patient, infinitely bored &mdash; sitting at a computer in 1998, clicking links at random. They never get tired. They never search for anything. They just click. When a page has no outgoing links, they pick any page on the web at random and start again.<br><br>
+        Where do they spend most of their time? The answer to that question is PageRank.
+    </div>
+
+    <p>The PageRank algorithm resolves the circularity by modelling a <strong>random walk on a directed graph</strong>. The long-run fraction of time the surfer spends on each page is that page's PageRank score. Finding this distribution is equivalent to finding the <strong>dominant eigenvector</strong> of the web's link matrix.</p>
+
+    <h3>The Mathematics</h3>
+
+    <p>Model the web as a <strong>transition matrix</strong> <em>M</em>:</p>
+    <div class="formula-block">M_ij = 1 / out-degree(j)   if j links to i
+M_ij = 0                   otherwise</div>
+
+    <p>The PageRank vector <strong>r</strong> satisfies the <strong>eigenvector equation</strong>:</p>
+    <div class="formula-block">r = M &times; r     (eigenvalue = 1)</div>
+
+    <p>Two complications require the <strong>damping factor</strong> <em>d</em> (typically 0.85): dangling nodes (pages with no outgoing links absorb probability) and disconnected components (the surfer may never reach some parts). The fix: with probability <em>d</em>, follow a link; with probability (1&minus;<em>d</em>), teleport to a random page.</p>
+
+    <p>The <strong>Google Matrix</strong>:</p>
+    <div class="formula-block">G = d &times; M  +  (1 - d) / N &times; J
+
+where J is the N&times;N all-ones matrix, d &asymp; 0.85</div>
+
+    <p>The full <strong>PageRank formula</strong>:</p>
+    <div class="formula-block">r(i) = (1 - d) / N  +  d &times; &Sigma; [ r(j) / out-degree(j) ]
+                              j &rarr; i</div>
+
+    <p><strong>Power iteration</strong> computes it: start with uniform distribution, repeatedly multiply by G:</p>
+    <div class="formula-block">r_{k+1} = G &times; r_k
+
+Converge when max|r_{k+1} - r_k| &lt; &epsilon;  (typically 0.001)</div>
+
+    <p style="font-size:0.85em;color:#808098">On the real web in 1998, convergence took approximately 52 iterations.</p>
+
+    <!-- ============================================================
+         INTERACTIVE 2 — THE RANDOM SURFER
+         ============================================================ -->
+    <h2>Interactive: The Random Surfer</h2>
+
+    <div class="panel">
+        <h3>Graph Preset</h3>
+        <div class="btn-row">
+            <button class="btn active" id="presetRealWorld" onclick="setPreset('realworld')">Real-world-like</button>
+            <button class="btn" id="presetChain" onclick="setPreset('chain')">Simple chain</button>
+            <button class="btn" id="presetStar" onclick="setPreset('star')">Star network</button>
+            <button class="btn" id="presetCyclic" onclick="setPreset('cyclic')">Cyclic</button>
+            <button class="btn" id="presetDangling" onclick="setPreset('dangling')">Dangling node trap</button>
+        </div>
+    </div>
+
+    <canvas id="surferCanvas" width="700" height="450"></canvas>
+
+    <div class="panel" style="margin-top:12px">
+        <div class="slider-row">
+            <label>Speed</label>
+            <input type="range" id="speedSlider" min="1" max="50" value="10">
+            <span class="val" id="speedVal">10 steps/s</span>
+        </div>
+        <div class="slider-row">
+            <label>Teleport</label>
+            <label style="min-width:auto"><input type="checkbox" id="teleportToggle" checked style="accent-color:#22d3ee"> Damping factor (d=0.85)</label>
+        </div>
+        <div class="btn-row" style="margin-top:10px">
+            <button class="btn green" id="surferStartBtn" onclick="toggleSurfer()">Start Surfer</button>
+            <button class="btn" onclick="resetSurfer()">Reset</button>
+            <span class="iteration-info">Steps: <span id="stepCount">0</span></span>
+        </div>
+    </div>
+
+    <!-- Surfer bar chart -->
+    <div class="panel" id="surferChartPanel">
+        <h3>Visit Distribution (PageRank Estimate)</h3>
+        <div id="surferChart"></div>
+    </div>
+
+    <div class="surfer-reveal" id="surferReveal">
+        This stable distribution is PageRank.
+    </div>
+
+    <!-- ============================================================
+         INTERACTIVE 3 — POWER ITERATION
+         ============================================================ -->
+    <h2>Interactive: Power Iteration</h2>
+
+    <div class="narrative" style="border-left-color:rgba(251,191,36,0.3)">
+        The random surfer and the matrix arrive at the same answer. This is not a coincidence &mdash; it is a theorem. A Markov chain on a graph converges to its stationary distribution, and that distribution is the dominant eigenvector of the transition matrix. The surfer's patient wandering is power iteration in disguise.
+    </div>
+
+    <div class="flex-row">
+        <div class="flex-half">
+            <div class="panel">
+                <h3>Transition Matrix M (Google Matrix G with d=0.85)</h3>
+                <div id="matrixGrid"></div>
+            </div>
+        </div>
+        <div class="flex-half">
+            <div class="panel">
+                <h3>PageRank Vector r</h3>
+                <div id="powerChart"></div>
+                <div class="iteration-info">Iteration: <span id="iterCount">0</span> &middot; Error: <span id="iterError">&mdash;</span></div>
+                <div id="surferOverlay" style="display:none;margin-top:8px;font-size:0.78em;color:#808098">
+                    <span style="display:inline-block;width:10px;height:10px;background:rgba(34,211,238,0.3);border:1px solid #22d3ee;border-radius:2px;margin-right:4px"></span> Surfer result overlay
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="btn-row">
+        <button class="btn" onclick="powerStart()">Start (uniform)</button>
+        <button class="btn" onclick="powerStep()">One iteration</button>
+        <button class="btn green" onclick="powerConverge()">Run to convergence</button>
+    </div>
+
+    <div class="insight-box">
+        &ldquo;The surfer and the matrix arrive at the same answer. The random walk and the eigenvector are the same thing &mdash; just two different ways of seeing it.&rdquo;
+    </div>
+
+    <!-- ============================================================
+         INTERACTIVE 4 — BUILD YOUR OWN WEB
+         ============================================================ -->
+    <h2>Interactive: Build Your Own Web</h2>
+    <p style="font-size:0.85em;color:#808098">Click to add nodes. Drag from one node to another to add a directed link. Click a link to remove it. Then run PageRank.</p>
+
+    <canvas id="buildCanvas" width="700" height="400"></canvas>
+
+    <div class="btn-row" style="margin-top:10px">
+        <button class="btn green" onclick="runBuildPageRank()">Run PageRank</button>
+        <button class="btn" onclick="clearBuild()">Clear</button>
+    </div>
+
+    <div class="special-flag" id="buildFlag"></div>
+    <div class="ranked-list" id="buildRanked"></div>
+
+    <div class="prompt-box">
+        Experiments to try:<br>
+        &bull; What happens if two pages link to each other and nobody else links to them?<br>
+        &bull; Can you build a graph where the page with the most inbound links is NOT the highest-ranked?<br>
+        &bull; What happens to a page's score when you remove its most important inbound link?
+    </div>
+
+    <!-- ============================================================
+         LAYER 4 — EXPLANATION (TWO TRACKS)
+         ============================================================ -->
+    <h2>Why Does the Surfer Converge?</h2>
+
+    <div class="flex-row">
+        <div class="flex-half">
+            <div class="explain">
+                <div class="explain-name">Track A &mdash; Intuitive (Markov chain)</div>
+                <div class="explain-text">
+                    The random surfer is a <strong>Markov chain</strong>: future behaviour depends only on where the surfer is now, not how they got there. For any Markov chain on a connected graph with no &ldquo;traps,&rdquo; a unique long-run distribution exists. The surfer's visits converge to this distribution regardless of where they start.<br><br>
+                    The PageRank of a page is simply its share of the surfer's long-run time.
+                </div>
+            </div>
+        </div>
+        <div class="flex-half">
+            <div class="explain">
+                <div class="explain-name">Track B &mdash; Linear Algebra (Eigenvector)</div>
+                <div class="explain-text">
+                    Model the web as a matrix <em>M</em>. The surfer's position after one step is M times their current distribution. After many steps: <strong>r = M &times; r</strong>. This is an eigenvector equation. The PageRank vector <strong>r</strong> is the eigenvector of M corresponding to eigenvalue 1.<br><br>
+                    The <strong>Perron-Frobenius theorem</strong> guarantees this eigenvector is unique and positive when M is the Google Matrix (with damping factor applied). Power iteration computes it.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         COMMON MISCONCEPTIONS
+         ============================================================ -->
+    <div class="misconception-panel">
+        <h3>Common Misconceptions</h3>
+        <div class="misconception">
+            <div class="myth">Misconception: PageRank ranks pages by content quality</div>
+            <div class="reality">Reality: PageRank knows nothing about content. It ranks pages purely by their position in the link graph. A highly-linked page about misinformation would score higher than a poorly-linked page of accurate scientific research.</div>
+        </div>
+        <div class="misconception">
+            <div class="myth">Misconception: More links always means higher PageRank</div>
+            <div class="reality">Reality: A link from a low-PageRank page contributes very little. Ten links from high-PageRank pages outweigh a thousand links from obscure ones. It is weighted influence, not vote count.</div>
+        </div>
+        <div class="misconception">
+            <div class="myth">Misconception: PageRank is still Google's primary ranking signal</div>
+            <div class="reality">Reality: Google's algorithm now includes hundreds of signals. PageRank was dominant in 1998&ndash;2010 but has become one factor among many. The mathematical ideas, however, remain foundational to how link structure is understood.</div>
+        </div>
+        <div class="misconception">
+            <div class="myth">Misconception: The damping factor d = 0.85 is arbitrary</div>
+            <div class="reality">Reality: It represents a meaningful assumption: a real web surfer follows a link with probability 0.85 and gets bored and jumps to a random page with probability 0.15. Different values of d lead to different rankings; 0.85 was found empirically to produce the most useful results.</div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+         FOR THE CURIOUS PANELS
+         ============================================================ -->
+    <details class="curious-panel">
+        <summary>For the Curious: The Perron-Frobenius Theorem</summary>
+        <div class="curious-body">
+            The Google Matrix G is a positive stochastic matrix:<br>
+            &bull; All entries are positive (guaranteed by the damping factor)<br>
+            &bull; Each column sums to 1 (it is a probability distribution)<br><br>
+            The Perron-Frobenius theorem states that any such matrix has a unique eigenvector with eigenvalue 1, and all its entries are positive.<br><br>
+            This is why PageRank is well-defined. Without the damping factor, the web's link matrix may not satisfy these conditions &mdash; and the eigenvector may not be unique or may have zero entries.<br><br>
+            The theorem was proved in 1907&ndash;1912, nearly 90 years before the web existed.
+        </div>
+    </details>
+
+    <details class="curious-panel">
+        <summary>For the Curious: HITS (Hyperlink-Induced Topic Search)</summary>
+        <div class="curious-body">
+            Jon Kleinberg at Cornell developed a competing algorithm in 1997: HITS (Hyperlink-Induced Topic Search).<br><br>
+            HITS assigns two scores to each page:<br>
+            &bull; <strong>Authority score</strong> &mdash; how often high-quality hubs link to this page<br>
+            &bull; <strong>Hub score</strong> &mdash; how many high-authority pages this page links to<br><br>
+            HITS and PageRank both use eigenvectors of link matrices, but HITS computes two eigenvectors (authorities and hubs) while PageRank computes one. HITS is query-dependent; PageRank is query-independent.<br><br>
+            PageRank's query-independence made it faster at web scale &mdash; and Google won the search engine wars partly on this basis.
+        </div>
+    </details>
+
+    <!-- ============================================================
+         LAYER 5 — CONNECTIONS
+         ============================================================ -->
+    <h2>PageRank Changed the World &mdash; and the Mathematics Didn't Stop There</h2>
+
+    <details class="connection-panel">
+        <summary>From web to science &mdash; Citation ranking</summary>
+        <div class="conn-body">
+            Citation ranking in academic papers uses identical mathematics. A paper cited by highly-cited papers ranks higher. Tools like Google Scholar and Semantic Scholar use PageRank variants. The idea that &ldquo;a link is a vote&rdquo; applies equally to hyperlinks and bibliographic references.
+        </div>
+    </details>
+    <details class="connection-panel">
+        <summary>From web to biology &mdash; Protein and neural networks</summary>
+        <div class="conn-body">
+            Protein interaction networks, neural connectivity graphs, and gene regulatory networks all use random-walk importance measures. The mathematics of PageRank has been applied to find the most &ldquo;central&rdquo; proteins in disease pathways, helping identify drug targets by graph centrality rather than experimental brute force.
+        </div>
+    </details>
+    <details class="connection-panel">
+        <summary>From web to finance &mdash; Systemic risk</summary>
+        <div class="conn-body">
+            Systemic risk in banking networks can be modelled using PageRank-like measures. A bank that is &ldquo;linked to&rdquo; by many other banks (i.e., owes money to or is owed money by many counterparties) has higher systemic importance. This connects directly to network theory in quantitative finance.
+        </div>
+    </details>
+    <details class="connection-panel">
+        <summary>The algorithm today &mdash; Beyond PageRank</summary>
+        <div class="conn-body">
+            Google's current ranking algorithm has evolved far beyond PageRank (which has been a less dominant factor since the mid-2010s). Modern search combines PageRank with machine learning models, content quality signals, user behaviour data, and large language model-based relevance scoring. The mathematical foundations, however, remain graph theory, linear algebra, and probability. The tools changed; the mathematics didn't.
+        </div>
+    </details>
+
+    <!-- ============================================================
+         CROSS-LINKS
+         ============================================================ -->
+    <div class="cross-links" style="margin-top:30px">
+        <strong>Related pages:</strong>
+        <a href="eigenvalues.html">Eigenvalues</a> &middot;
+        <a href="svd.html">SVD</a> &middot;
+        <a href="linear_transformations.html">Linear Transformations</a> &middot;
+        <a href="probability_distributions.html">Probability Distributions</a> &middot;
+        <a href="graph_theory.html">Graph Theory</a> &middot;
+        <a href="portfolio_theory.html">Portfolio Theory</a>
+    </div>
+
+</div><!-- end .container -->
+
+<script>
+/* ============================================================
+   TIMELINE
+   ============================================================ */
+(function(){
+    const milestones = [
+        {year:1990, pct:0, label:'Archie', desc:'Archie (1990) was the first search tool — an FTP index. It searched file names, not content. No ranking algorithm existed; results were alphabetical.'},
+        {year:1994, pct:12, label:'Yahoo!', desc:'Yahoo! (1994) used human curation — editors categorised websites by hand. This worked at 3,000 sites but could never scale to millions. The mathematical problem of ranking had not yet been posed.'},
+        {year:1996, pct:30, label:'AltaVista', desc:'AltaVista (1996) introduced full-text keyword matching at scale. Pages were ranked by keyword frequency — a model that spammers exploited within months via keyword stuffing.'},
+        {year:1998, pct:48, label:'PageRank', desc:'PageRank (1998) — Brin and Page published "The Anatomy of a Large-Scale Hypertextual Web Search Engine." The key insight: model the web as a directed graph and compute importance as the dominant eigenvector of the link matrix.'},
+        {year:2000, pct:58, label:'Google IPO era', desc:'Google went public in 2004 and became the dominant search engine. PageRank, combined with text relevance signals, outperformed all competitors. The algorithm processed billions of pages using distributed linear algebra.'},
+        {year:2010, pct:76, label:'Social signals', desc:'By 2010, Google incorporated hundreds of ranking signals beyond PageRank: click-through rates, social signals, page speed, mobile-friendliness. PageRank remained foundational but was no longer the sole dominant factor.'},
+        {year:2024, pct:100, label:'LLM ranking', desc:'By 2024, large language models are used for relevance scoring and query understanding. The mathematical foundations — graph theory, linear algebra, probability — remain central, but the ranking function is now a learned model, not a single eigenvector.'}
+    ];
+    const bar = document.getElementById('timelineBar');
+    const info = document.getElementById('timelineInfo');
+    milestones.forEach(m => {
+        const dot = document.createElement('div');
+        dot.className = 'timeline-dot';
+        dot.style.left = m.pct + '%';
+        dot.onclick = () => { info.style.display = 'block'; info.innerHTML = '<strong>' + m.year + ' — ' + m.label + ':</strong> ' + m.desc; };
+        const yr = document.createElement('div');
+        yr.className = 'timeline-year';
+        yr.style.left = m.pct + '%';
+        yr.textContent = m.year;
+        const lbl = document.createElement('div');
+        lbl.className = 'timeline-label';
+        lbl.style.left = m.pct + '%';
+        lbl.textContent = m.label;
+        bar.appendChild(dot);
+        bar.appendChild(yr);
+        bar.appendChild(lbl);
+    });
+})();
+
+/* ============================================================
+   INTERACTIVE 1 — KEYWORD FAILURE
+   ============================================================ */
+function rankByKeyword(){
+    document.getElementById('btnRankKeyword').classList.add('active');
+    document.getElementById('btnRankLinks').classList.remove('active');
+    document.getElementById('rankA').innerHTML = '<span class="rank-badge rank-2">#2 — 4 mentions</span>';
+    document.getElementById('rankB').innerHTML = '<span class="rank-badge rank-1">#1 — 60 mentions</span>';
+}
+function rankByLinks(){
+    document.getElementById('btnRankLinks').classList.add('active');
+    document.getElementById('btnRankKeyword').classList.remove('active');
+    document.getElementById('rankA').innerHTML = '<span class="rank-badge rank-1">#1 — 23 inbound links</span>';
+    document.getElementById('rankB').innerHTML = '<span class="rank-badge rank-2">#2 — 1 inbound link</span>';
+}
+
+/* ============================================================
+   GRAPH PRESETS & SHARED STATE
+   ============================================================ */
+const nodePositions = [
+    {x:150,y:100},{x:350,y:80},{x:550,y:100},{x:280,y:200},
+    {x:100,y:260},{x:350,y:280},{x:550,y:300},{x:400,y:420}
+];
+const nodeLabels = ['A','B','C','D','E','F','G','H'];
+
+const presets = {
+    realworld: {
+        // Mixed in/out degrees, a few hubs
+        edges:[[0,1],[0,3],[1,2],[1,3],[2,4],[3,5],[3,0],[4,5],[4,0],[5,6],[5,1],[6,7],[6,2],[7,5],[7,3],[2,5]]
+    },
+    chain: {
+        // A→B→C→D→E→F→G→H→A ring
+        edges:[[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0]]
+    },
+    star: {
+        // B,C,D,E,F,G,H all link to A. A links back to B only.
+        edges:[[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[0,1]]
+    },
+    cyclic: {
+        // Two interlocking cycles
+        edges:[[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[4,0],[2,6],[6,2]]
+    },
+    dangling: {
+        // Similar to realworld but H has no outgoing links
+        edges:[[0,1],[0,3],[1,2],[1,3],[2,4],[3,5],[3,0],[4,5],[4,0],[5,6],[5,1],[6,7],[6,2],[2,5]]
+    }
+};
+
+let currentPreset = 'realworld';
+let currentEdges = [];
+let surferPos = 0;
+let surferSteps = 0;
+let visitCounts = new Array(8).fill(0);
+let surferRunning = false;
+let surferTimer = null;
+let surferConvergedPR = null; // stored PR from surfer for overlay in power iteration
+
+function setPreset(name){
+    currentPreset = name;
+    currentEdges = presets[name].edges.slice();
+    resetSurfer();
+    powerReset();
+    // Update button states
+    document.querySelectorAll('[id^=preset]').forEach(b => b.classList.remove('active'));
+    const btnId = 'preset' + name.charAt(0).toUpperCase() + name.slice(1);
+    const el = document.getElementById(btnId);
+    if(el) el.classList.add('active');
+    // Aliases
+    if(name==='realworld') document.getElementById('presetRealWorld').classList.add('active');
+    drawSurferGraph();
+    updateSurferChart();
+    buildMatrixGrid();
+    drawPowerChart();
+}
+
+/* ============================================================
+   SURFER GRAPH DRAWING
+   ============================================================ */
+const surferCanvas = document.getElementById('surferCanvas');
+const sCtx = surferCanvas.getContext('2d');
+
+let surferDotPos = null; // {x,y} for animated dot
+let surferDotTarget = null;
+let surferAnimating = false;
+
+function getOutLinks(node){
+    return currentEdges.filter(e => e[0] === node).map(e => e[1]);
+}
+function getInLinks(node){
+    return currentEdges.filter(e => e[1] === node).map(e => e[0]);
+}
+
+function drawArrow(ctx, x1, y1, x2, y2, color, lw){
+    const dx = x2-x1, dy = y2-y1;
+    const len = Math.sqrt(dx*dx+dy*dy);
+    if(len < 1) return;
+    const ux = dx/len, uy = dy/len;
+    // Shorten to node radius
+    const r = 20;
+    const sx = x1 + ux*r, sy = y1 + uy*r;
+    const ex = x2 - ux*r, ey = y2 - uy*r;
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(ex, ey);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw || 1.5;
+    ctx.stroke();
+    // Arrowhead
+    const aLen = 10;
+    const aAngle = 0.4;
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - aLen*Math.cos(Math.atan2(dy,dx)-aAngle), ey - aLen*Math.sin(Math.atan2(dy,dx)-aAngle));
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - aLen*Math.cos(Math.atan2(dy,dx)+aAngle), ey - aLen*Math.sin(Math.atan2(dy,dx)+aAngle));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw || 1.5;
+    ctx.stroke();
+}
+
+function drawSurferGraph(){
+    const w = surferCanvas.width, h = surferCanvas.height;
+    sCtx.clearRect(0,0,w,h);
+    sCtx.fillStyle = '#0a0a1a';
+    sCtx.fillRect(0,0,w,h);
+
+    // Draw edges
+    currentEdges.forEach(([from, to]) => {
+        const p1 = nodePositions[from], p2 = nodePositions[to];
+        // Offset for bidirectional edges
+        let ox=0, oy=0;
+        const rev = currentEdges.find(e => e[0]===to && e[1]===from);
+        if(rev){
+            const dx = p2.x-p1.x, dy = p2.y-p1.y;
+            const len = Math.sqrt(dx*dx+dy*dy) || 1;
+            ox = -dy/len * 6;
+            oy = dx/len * 6;
+        }
+        drawArrow(sCtx, p1.x+ox, p1.y+oy, p2.x+ox, p2.y+oy, 'rgba(255,255,255,0.15)', 1.2);
+    });
+
+    // Draw nodes
+    const maxVisits = Math.max(1, ...visitCounts);
+    nodePositions.forEach((p, i) => {
+        const baseR = 18;
+        const r = surferSteps > 0 ? baseR + (visitCounts[i]/maxVisits)*12 : baseR;
+        // Glow for current position
+        if(i === surferPos && surferSteps > 0){
+            sCtx.beginPath();
+            sCtx.arc(p.x, p.y, r+8, 0, Math.PI*2);
+            sCtx.fillStyle = 'rgba(34,211,238,0.12)';
+            sCtx.fill();
+        }
+        sCtx.beginPath();
+        sCtx.arc(p.x, p.y, r, 0, Math.PI*2);
+        sCtx.fillStyle = i===surferPos && surferSteps>0 ? 'rgba(34,211,238,0.25)' : 'rgba(255,255,255,0.06)';
+        sCtx.strokeStyle = i===surferPos && surferSteps>0 ? '#22d3ee' : 'rgba(255,255,255,0.2)';
+        sCtx.lineWidth = 1.5;
+        sCtx.fill();
+        sCtx.stroke();
+
+        // Label
+        sCtx.fillStyle = '#e0e0e0';
+        sCtx.font = '14px Georgia';
+        sCtx.textAlign = 'center';
+        sCtx.textBaseline = 'middle';
+        sCtx.fillText(nodeLabels[i], p.x, p.y);
+
+        // Visit count
+        if(surferSteps > 0){
+            sCtx.fillStyle = '#808098';
+            sCtx.font = '11px Courier New';
+            sCtx.fillText(visitCounts[i].toString(), p.x, p.y + r + 14);
+        }
+    });
+
+    // Draw animated dot
+    if(surferDotPos){
+        sCtx.beginPath();
+        sCtx.arc(surferDotPos.x, surferDotPos.y, 6, 0, Math.PI*2);
+        sCtx.fillStyle = '#22d3ee';
+        sCtx.shadowColor = '#22d3ee';
+        sCtx.shadowBlur = 12;
+        sCtx.fill();
+        sCtx.shadowBlur = 0;
+    }
+}
+
+function updateSurferChart(){
+    const container = document.getElementById('surferChart');
+    const total = Math.max(1, surferSteps);
+    let html = '';
+    const maxPct = Math.max(0.01, ...visitCounts.map(v => v/total));
+    for(let i=0;i<8;i++){
+        const pct = visitCounts[i] / total;
+        const barW = (pct / maxPct) * 100;
+        html += '<div class="bar-chart-row">' +
+            '<span class="bar-chart-label">' + nodeLabels[i] + '</span>' +
+            '<div class="bar-chart-bar" style="width:' + barW + '%;background:' + (pct > 0.001 ? '#22d3ee' : 'rgba(34,211,238,0.3)') + '"></div>' +
+            '<span class="bar-chart-val">' + (pct*100).toFixed(1) + '%</span>' +
+            '</div>';
+    }
+    container.innerHTML = html;
+}
+
+function surferStep(){
+    const useDamping = document.getElementById('teleportToggle').checked;
+    const d = 0.85;
+    const outLinks = getOutLinks(surferPos);
+
+    let nextPos;
+    if(outLinks.length === 0){
+        // Dangling node — always teleport
+        nextPos = Math.floor(Math.random() * 8);
+    } else if(useDamping && Math.random() > d){
+        // Teleport
+        nextPos = Math.floor(Math.random() * 8);
+    } else {
+        // Follow random link
+        nextPos = outLinks[Math.floor(Math.random() * outLinks.length)];
+    }
+
+    surferPos = nextPos;
+    visitCounts[surferPos]++;
+    surferSteps++;
+    surferDotPos = {x: nodePositions[surferPos].x, y: nodePositions[surferPos].y};
+
+    document.getElementById('stepCount').textContent = surferSteps;
+    drawSurferGraph();
+    updateSurferChart();
+
+    // Show reveal after 500 steps
+    if(surferSteps >= 500){
+        document.getElementById('surferReveal').style.display = 'block';
+        // Store converged PR for overlay
+        const total = Math.max(1, surferSteps);
+        surferConvergedPR = visitCounts.map(v => v / total);
+    }
+}
+
+function toggleSurfer(){
+    if(surferRunning){
+        stopSurfer();
+    } else {
+        startSurfer();
+    }
+}
+
+function startSurfer(){
+    surferRunning = true;
+    document.getElementById('surferStartBtn').textContent = 'Pause';
+    const speed = parseInt(document.getElementById('speedSlider').value);
+    const interval = Math.max(10, 1000 / speed);
+    surferTimer = setInterval(surferStep, interval);
+}
+
+function stopSurfer(){
+    surferRunning = false;
+    document.getElementById('surferStartBtn').textContent = 'Start Surfer';
+    if(surferTimer) clearInterval(surferTimer);
+    surferTimer = null;
+}
+
+function resetSurfer(){
+    stopSurfer();
+    surferPos = 0;
+    surferSteps = 0;
+    visitCounts = new Array(8).fill(0);
+    surferDotPos = null;
+    surferConvergedPR = null;
+    document.getElementById('stepCount').textContent = '0';
+    document.getElementById('surferReveal').style.display = 'none';
+    drawSurferGraph();
+    updateSurferChart();
+}
+
+// Speed slider
+document.getElementById('speedSlider').addEventListener('input', function(){
+    document.getElementById('speedVal').textContent = this.value + ' steps/s';
+    if(surferRunning){
+        stopSurfer();
+        startSurfer();
+    }
+});
+
+/* ============================================================
+   INTERACTIVE 3 — POWER ITERATION
+   ============================================================ */
+let powerVector = null;
+let powerIter = 0;
+let powerError = null;
+
+function computeGoogleMatrix(){
+    const N = 8;
+    const d = 0.85;
+    // Build M: M[i][j] = 1/out-degree(j) if j->i
+    const M = Array.from({length:N}, () => new Array(N).fill(0));
+    for(let j=0;j<N;j++){
+        const out = getOutLinks(j);
+        if(out.length > 0){
+            out.forEach(i => { M[i][j] = 1 / out.length; });
+        } else {
+            // Dangling node: distribute equally
+            for(let i=0;i<N;i++) M[i][j] = 1/N;
+        }
+    }
+    // Google matrix: G = d*M + (1-d)/N * J
+    const G = Array.from({length:N}, () => new Array(N).fill(0));
+    for(let i=0;i<N;i++){
+        for(let j=0;j<N;j++){
+            G[i][j] = d * M[i][j] + (1-d)/N;
+        }
+    }
+    return G;
+}
+
+function buildMatrixGrid(){
+    const G = computeGoogleMatrix();
+    const N = 8;
+    const container = document.getElementById('matrixGrid');
+    let html = '<div style="overflow-x:auto"><table style="border-collapse:collapse">';
+    // Header row
+    html += '<tr><td class="matrix-cell" style="color:#808098;font-size:0.65em">G</td>';
+    for(let j=0;j<N;j++){
+        html += '<td class="matrix-cell" style="color:#808098">' + nodeLabels[j] + '</td>';
+    }
+    html += '</tr>';
+    for(let i=0;i<N;i++){
+        html += '<tr><td class="matrix-cell" style="color:#808098">' + nodeLabels[i] + '</td>';
+        for(let j=0;j<N;j++){
+            const v = G[i][j];
+            const intensity = Math.min(1, v * 4);
+            const r = Math.round(34 + intensity * 0);
+            const g = Math.round(34 + intensity * 177);
+            const b = Math.round(34 + intensity * 204);
+            const bg = 'rgba(' + r + ',' + g + ',' + b + ',' + (0.05 + intensity*0.35) + ')';
+            html += '<td class="matrix-cell" style="background:' + bg + '">' + v.toFixed(2) + '</td>';
+        }
+        html += '</tr>';
+    }
+    html += '</table></div>';
+    container.innerHTML = html;
+}
+
+function drawPowerChart(){
+    const container = document.getElementById('powerChart');
+    if(!powerVector){
+        let html = '';
+        for(let i=0;i<8;i++){
+            html += '<div class="bar-chart-row">' +
+                '<span class="bar-chart-label">' + nodeLabels[i] + '</span>' +
+                '<div class="bar-chart-bar" style="width:0%;background:#10b981"></div>' +
+                '<span class="bar-chart-val">&mdash;</span></div>';
+        }
+        container.innerHTML = html;
+        document.getElementById('surferOverlay').style.display = 'none';
+        return;
+    }
+    const maxVal = Math.max(0.01, ...powerVector);
+    let html = '';
+    for(let i=0;i<8;i++){
+        const barW = (powerVector[i] / maxVal) * 100;
+        html += '<div class="bar-chart-row" style="position:relative">' +
+            '<span class="bar-chart-label">' + nodeLabels[i] + '</span>' +
+            '<div style="position:relative;flex:1;height:18px">';
+        // Surfer overlay
+        if(surferConvergedPR){
+            const sBarW = (surferConvergedPR[i] / Math.max(0.01,...surferConvergedPR)) * 100;
+            html += '<div style="position:absolute;top:0;left:0;width:' + sBarW + '%;height:18px;background:rgba(34,211,238,0.15);border:1px solid rgba(34,211,238,0.3);border-radius:3px"></div>';
+        }
+        html += '<div class="bar-chart-bar" style="position:absolute;top:0;left:0;width:' + barW + '%;background:#10b981;opacity:0.85"></div>' +
+            '</div>' +
+            '<span class="bar-chart-val">' + (powerVector[i]*100).toFixed(1) + '%</span></div>';
+    }
+    container.innerHTML = html;
+    document.getElementById('iterCount').textContent = powerIter;
+    document.getElementById('iterError').textContent = powerError !== null ? powerError.toFixed(6) : '—';
+    document.getElementById('surferOverlay').style.display = surferConvergedPR ? 'block' : 'none';
+}
+
+function powerStart(){
+    powerVector = new Array(8).fill(1/8);
+    powerIter = 0;
+    powerError = null;
+    drawPowerChart();
+}
+
+function powerStep(){
+    if(!powerVector) powerStart();
+    const G = computeGoogleMatrix();
+    const N = 8;
+    const newV = new Array(N).fill(0);
+    for(let i=0;i<N;i++){
+        for(let j=0;j<N;j++){
+            newV[i] += G[i][j] * powerVector[j];
+        }
+    }
+    // Compute error
+    let maxDiff = 0;
+    for(let i=0;i<N;i++) maxDiff = Math.max(maxDiff, Math.abs(newV[i] - powerVector[i]));
+    powerError = maxDiff;
+    powerVector = newV;
+    powerIter++;
+    drawPowerChart();
+}
+
+function powerConverge(){
+    if(!powerVector) powerStart();
+    let maxIter = 200;
+    while(maxIter-- > 0){
+        const G = computeGoogleMatrix();
+        const N = 8;
+        const newV = new Array(N).fill(0);
+        for(let i=0;i<N;i++){
+            for(let j=0;j<N;j++){
+                newV[i] += G[i][j] * powerVector[j];
+            }
+        }
+        let maxDiff = 0;
+        for(let i=0;i<N;i++) maxDiff = Math.max(maxDiff, Math.abs(newV[i] - powerVector[i]));
+        powerError = maxDiff;
+        powerVector = newV;
+        powerIter++;
+        if(maxDiff < 0.001) break;
+    }
+    drawPowerChart();
+}
+
+function powerReset(){
+    powerVector = null;
+    powerIter = 0;
+    powerError = null;
+    drawPowerChart();
+}
+
+/* ============================================================
+   INTERACTIVE 4 — BUILD YOUR OWN WEB
+   ============================================================ */
+const buildCanvas = document.getElementById('buildCanvas');
+const bCtx = buildCanvas.getContext('2d');
+let buildNodes = []; // [{x,y,label}]
+let buildEdges = []; // [[from,to]]
+let buildPR = null;
+let buildDragging = false;
+let buildDragFrom = -1;
+let buildDragX = 0, buildDragY = 0;
+let buildNextLabel = 0;
+
+function getBuildCanvasPos(e){
+    const rect = buildCanvas.getBoundingClientRect();
+    const scaleX = buildCanvas.width / rect.width;
+    const scaleY = buildCanvas.height / rect.height;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {x: (clientX - rect.left)*scaleX, y: (clientY - rect.top)*scaleY};
+}
+
+function findBuildNode(x, y){
+    for(let i=0;i<buildNodes.length;i++){
+        const n = buildNodes[i];
+        const dx = n.x-x, dy = n.y-y;
+        if(dx*dx+dy*dy < 25*25) return i;
+    }
+    return -1;
+}
+
+function findBuildEdge(x, y){
+    for(let i=0;i<buildEdges.length;i++){
+        const [from, to] = buildEdges[i];
+        const p1 = buildNodes[from], p2 = buildNodes[to];
+        // Point-to-line distance
+        const dx = p2.x-p1.x, dy = p2.y-p1.y;
+        const len2 = dx*dx+dy*dy;
+        if(len2 < 1) continue;
+        const t = Math.max(0, Math.min(1, ((x-p1.x)*dx+(y-p1.y)*dy)/len2));
+        const px = p1.x+t*dx, py = p1.y+t*dy;
+        const dist = Math.sqrt((x-px)*(x-px)+(y-py)*(y-py));
+        if(dist < 10) return i;
+    }
+    return -1;
+}
+
+function drawBuildGraph(){
+    const w = buildCanvas.width, h = buildCanvas.height;
+    bCtx.clearRect(0,0,w,h);
+    bCtx.fillStyle = '#0a0a1a';
+    bCtx.fillRect(0,0,w,h);
+
+    // Edges
+    buildEdges.forEach(([from, to]) => {
+        const p1 = buildNodes[from], p2 = buildNodes[to];
+        let ox=0, oy=0;
+        const rev = buildEdges.find(e => e[0]===to && e[1]===from);
+        if(rev){
+            const dx = p2.x-p1.x, dy = p2.y-p1.y;
+            const len = Math.sqrt(dx*dx+dy*dy) || 1;
+            ox = -dy/len * 6; oy = dx/len * 6;
+        }
+        drawArrow(bCtx, p1.x+ox, p1.y+oy, p2.x+ox, p2.y+oy, 'rgba(255,255,255,0.2)', 1.5);
+    });
+
+    // Drag line
+    if(buildDragging && buildDragFrom >= 0){
+        const p = buildNodes[buildDragFrom];
+        bCtx.beginPath();
+        bCtx.moveTo(p.x, p.y);
+        bCtx.lineTo(buildDragX, buildDragY);
+        bCtx.strokeStyle = 'rgba(34,211,238,0.4)';
+        bCtx.lineWidth = 1.5;
+        bCtx.setLineDash([5,5]);
+        bCtx.stroke();
+        bCtx.setLineDash([]);
+    }
+
+    // Nodes
+    const maxPR = buildPR ? Math.max(0.01, ...buildPR) : 0;
+    buildNodes.forEach((n, i) => {
+        const baseR = 18;
+        const r = buildPR ? baseR + (buildPR[i]/maxPR)*14 : baseR;
+        bCtx.beginPath();
+        bCtx.arc(n.x, n.y, r, 0, Math.PI*2);
+        bCtx.fillStyle = 'rgba(255,255,255,0.06)';
+        bCtx.strokeStyle = buildPR ? 'rgba(16,185,129,' + (0.3 + 0.7*buildPR[i]/maxPR) + ')' : 'rgba(255,255,255,0.2)';
+        bCtx.lineWidth = buildPR ? 2 : 1.5;
+        bCtx.fill();
+        bCtx.stroke();
+        bCtx.fillStyle = '#e0e0e0';
+        bCtx.font = '13px Georgia';
+        bCtx.textAlign = 'center';
+        bCtx.textBaseline = 'middle';
+        bCtx.fillText(n.label, n.x, n.y);
+    });
+
+    // Instructions if empty
+    if(buildNodes.length === 0){
+        bCtx.fillStyle = '#505068';
+        bCtx.font = '14px Georgia';
+        bCtx.textAlign = 'center';
+        bCtx.fillText('Click anywhere to add nodes', w/2, h/2);
+    }
+}
+
+buildCanvas.addEventListener('mousedown', function(e){
+    const pos = getBuildCanvasPos(e);
+    const nodeIdx = findBuildNode(pos.x, pos.y);
+    if(nodeIdx >= 0){
+        buildDragging = true;
+        buildDragFrom = nodeIdx;
+        buildDragX = pos.x;
+        buildDragY = pos.y;
+    }
+});
+
+buildCanvas.addEventListener('mousemove', function(e){
+    if(buildDragging){
+        const pos = getBuildCanvasPos(e);
+        buildDragX = pos.x;
+        buildDragY = pos.y;
+        drawBuildGraph();
+    }
+});
+
+buildCanvas.addEventListener('mouseup', function(e){
+    const pos = getBuildCanvasPos(e);
+    if(buildDragging){
+        const toIdx = findBuildNode(pos.x, pos.y);
+        if(toIdx >= 0 && toIdx !== buildDragFrom){
+            // Add edge if not duplicate
+            const exists = buildEdges.find(e => e[0]===buildDragFrom && e[1]===toIdx);
+            if(!exists){
+                buildEdges.push([buildDragFrom, toIdx]);
+                buildPR = null;
+                document.getElementById('buildRanked').innerHTML = '';
+                document.getElementById('buildFlag').textContent = '';
+            }
+        }
+        buildDragging = false;
+        buildDragFrom = -1;
+        drawBuildGraph();
+        return;
+    }
+    // Check if clicking an edge to remove
+    const edgeIdx = findBuildEdge(pos.x, pos.y);
+    if(edgeIdx >= 0){
+        buildEdges.splice(edgeIdx, 1);
+        buildPR = null;
+        document.getElementById('buildRanked').innerHTML = '';
+        document.getElementById('buildFlag').textContent = '';
+        drawBuildGraph();
+        return;
+    }
+    // Add node if not too close to existing
+    const nearNode = findBuildNode(pos.x, pos.y);
+    if(nearNode < 0 && buildNodes.length < 15){
+        // Check min distance
+        let tooClose = false;
+        for(const n of buildNodes){
+            const dx = n.x-pos.x, dy = n.y-pos.y;
+            if(dx*dx+dy*dy < 60*60){ tooClose = true; break; }
+        }
+        if(!tooClose){
+            const labels = 'ABCDEFGHIJKLMNO';
+            buildNodes.push({x:pos.x, y:pos.y, label:labels[buildNodes.length] || (buildNodes.length+'')});
+            buildPR = null;
+            document.getElementById('buildRanked').innerHTML = '';
+            document.getElementById('buildFlag').textContent = '';
+            drawBuildGraph();
+        }
+    }
+});
+
+// Touch events
+buildCanvas.addEventListener('touchstart', function(e){
+    e.preventDefault();
+    const pos = getBuildCanvasPos(e);
+    const nodeIdx = findBuildNode(pos.x, pos.y);
+    if(nodeIdx >= 0){
+        buildDragging = true;
+        buildDragFrom = nodeIdx;
+        buildDragX = pos.x;
+        buildDragY = pos.y;
+    }
+}, {passive:false});
+
+buildCanvas.addEventListener('touchmove', function(e){
+    e.preventDefault();
+    if(buildDragging){
+        const pos = getBuildCanvasPos(e);
+        buildDragX = pos.x;
+        buildDragY = pos.y;
+        drawBuildGraph();
+    }
+}, {passive:false});
+
+buildCanvas.addEventListener('touchend', function(e){
+    e.preventDefault();
+    if(buildDragging){
+        // Find node at last drag position
+        const toIdx = findBuildNode(buildDragX, buildDragY);
+        if(toIdx >= 0 && toIdx !== buildDragFrom){
+            const exists = buildEdges.find(e => e[0]===buildDragFrom && e[1]===toIdx);
+            if(!exists){
+                buildEdges.push([buildDragFrom, toIdx]);
+                buildPR = null;
+                document.getElementById('buildRanked').innerHTML = '';
+                document.getElementById('buildFlag').textContent = '';
+            }
+        }
+        buildDragging = false;
+        buildDragFrom = -1;
+        drawBuildGraph();
+        return;
+    }
+    // If no dragging happened, treat as click to add node
+    // Use changedTouches for touchend
+    const rect = buildCanvas.getBoundingClientRect();
+    const scaleX = buildCanvas.width / rect.width;
+    const scaleY = buildCanvas.height / rect.height;
+    const touch = e.changedTouches[0];
+    const pos = {x:(touch.clientX-rect.left)*scaleX, y:(touch.clientY-rect.top)*scaleY};
+    const edgeIdx = findBuildEdge(pos.x, pos.y);
+    if(edgeIdx >= 0){
+        buildEdges.splice(edgeIdx, 1);
+        buildPR = null;
+        drawBuildGraph();
+        return;
+    }
+    const nearNode = findBuildNode(pos.x, pos.y);
+    if(nearNode < 0 && buildNodes.length < 15){
+        let tooClose = false;
+        for(const n of buildNodes){
+            const dx = n.x-pos.x, dy = n.y-pos.y;
+            if(dx*dx+dy*dy < 60*60){ tooClose = true; break; }
+        }
+        if(!tooClose){
+            const labels = 'ABCDEFGHIJKLMNO';
+            buildNodes.push({x:pos.x, y:pos.y, label:labels[buildNodes.length] || (buildNodes.length+'')});
+            buildPR = null;
+            drawBuildGraph();
+        }
+    }
+}, {passive:false});
+
+function runBuildPageRank(){
+    if(buildNodes.length < 2){ return; }
+    const N = buildNodes.length;
+    const d = 0.85;
+    // Build Google matrix
+    const G = Array.from({length:N}, () => new Array(N).fill(0));
+    for(let j=0;j<N;j++){
+        const out = buildEdges.filter(e => e[0]===j).map(e => e[1]);
+        if(out.length > 0){
+            out.forEach(i => { G[i][j] += d / out.length; });
+        } else {
+            // Dangling: distribute equally
+            for(let i=0;i<N;i++) G[i][j] += d / N;
+        }
+        for(let i=0;i<N;i++) G[i][j] += (1-d)/N;
+    }
+    // Power iteration
+    let r = new Array(N).fill(1/N);
+    for(let iter=0;iter<200;iter++){
+        const newR = new Array(N).fill(0);
+        for(let i=0;i<N;i++){
+            for(let j=0;j<N;j++) newR[i] += G[i][j]*r[j];
+        }
+        let maxDiff = 0;
+        for(let i=0;i<N;i++) maxDiff = Math.max(maxDiff, Math.abs(newR[i]-r[i]));
+        r = newR;
+        if(maxDiff < 0.001) break;
+    }
+    buildPR = r;
+
+    // Check for dangling nodes
+    let hasDangling = false;
+    for(let j=0;j<N;j++){
+        if(buildEdges.filter(e => e[0]===j).length === 0){ hasDangling = true; break; }
+    }
+    document.getElementById('buildFlag').textContent = hasDangling ? 'This graph has a dangling node — PageRank will be applied with damping.' : '';
+
+    // Ranked list
+    const ranked = r.map((v,i) => ({label:buildNodes[i].label, score:v})).sort((a,b) => b.score-a.score);
+    let html = '<strong style="color:#808098;font-size:0.78em">Ranked by PageRank:</strong><br>';
+    ranked.forEach((item, idx) => {
+        html += (idx+1) + '. ' + item.label + ' — ' + (item.score*100).toFixed(1) + '%<br>';
+    });
+    document.getElementById('buildRanked').innerHTML = html;
+
+    drawBuildGraph();
+}
+
+function clearBuild(){
+    buildNodes = [];
+    buildEdges = [];
+    buildPR = null;
+    document.getElementById('buildRanked').innerHTML = '';
+    document.getElementById('buildFlag').textContent = '';
+    drawBuildGraph();
+}
+
+/* ============================================================
+   INITIALISE
+   ============================================================ */
+setPreset('realworld');
+drawBuildGraph();
+
+</script>
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Built in collaboration with <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude Code</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div><div style="margin-top:4px">Free for personal educational use. Commercial use or redistribution without written permission is prohibited.</div></footer>
+</body>
+</html>

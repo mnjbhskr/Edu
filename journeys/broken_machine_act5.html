@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#07071a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Broken Machine — Act V</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#07071a; --bg2:#0b0b24; --bg3:#10102e;
+            --rose:#fb7185; --rose-dim:rgba(251,113,133,0.1);
+            --gold:#fbbf24; --gold-dim:rgba(251,191,36,0.12);
+            --indigo:#818cf8; --indigo-dim:rgba(129,140,248,0.12);
+            --teal:#2dd4bf; --teal-dim:rgba(45,212,191,0.1);
+            --violet:#a78bfa; --violet-dim:rgba(167,139,250,0.1);
+            --silver:#e2e8f0; --silver-dim:rgba(226,232,240,0.08);
+            --muted:#4a5080; --text:#c8d0f0;
+            --border:rgba(251,113,133,0.15); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(7,7,26,0.92);
+            backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--gold);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--rose);}
+        .dot.active{background:var(--gold);box-shadow:0 0 12px var(--gold);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 6px var(--gold)}50%{box-shadow:0 0 22px var(--gold)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.55s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--rose);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--rose);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#c0c8e8;}
+        .narrator p em{color:var(--gold);font-style:italic;}
+        .narrator p strong{color:var(--silver);font-weight:600;}
+        .narrator.gold{border-left-color:var(--gold);border-color:rgba(251,191,36,0.15);}
+        .narrator.gold::before{color:var(--gold);}
+        .narrator.teal{border-left-color:var(--teal);border-color:rgba(45,212,191,0.15);}
+        .narrator.teal::before{color:var(--teal);}
+        .narrator.violet{border-left-color:var(--violet);border-color:rgba(167,139,250,0.15);}
+        .narrator.violet::before{color:var(--violet);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--silver);}
+        .act-name em{color:var(--gold);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--gold),#d97706);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#07071a;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 24px rgba(251,191,36,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(251,191,36,0.5);}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .cta-btn.rose{background:linear-gradient(135deg,var(--rose),#e11d48);box-shadow:0 4px 24px rgba(251,113,133,0.3);}
+        .cta-btn.rose:hover{box-shadow:0 8px 36px rgba(251,113,133,0.5);}
+        .insight{background:var(--bg2);border:1px solid rgba(251,191,36,0.15);border-left:3px solid var(--gold);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#9098c0;}
+        .insight p em{color:var(--gold);font-style:normal;font-weight:600;}
+        .insight.rose{border-left-color:var(--rose);border-color:rgba(251,113,133,0.15);}
+        .insight.rose .lbl{color:var(--rose);}
+        .insight.teal{border-left-color:var(--teal);border-color:rgba(45,212,191,0.15);}
+        .insight.teal .lbl{color:var(--teal);}
+        .insight.violet{border-left-color:var(--violet);border-color:rgba(167,139,250,0.15);}
+        .insight.violet .lbl{color:var(--violet);}
+
+        /* ── Decidability Map ── */
+        .map-container{position:relative;width:100%;max-width:500px;margin:0 auto 20px;aspect-ratio:1/0.85;
+            background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;touch-action:none;}
+        .map-axis{position:absolute;font-size:0.6em;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);}
+        .map-axis.x{bottom:6px;left:50%;transform:translateX(-50%);}
+        .map-axis.y{top:50%;left:6px;transform:rotate(-90deg) translateX(-50%);transform-origin:left center;}
+        .map-label{position:absolute;font-size:0.55em;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:1px;}
+        .map-quadrant{position:absolute;border:1px dashed rgba(255,255,255,0.04);border-radius:8px;}
+        .map-midline{position:absolute;background:rgba(255,255,255,0.04);}
+        .map-midline.h{left:0;right:0;height:1px;top:50%;}
+        .map-midline.v{top:0;bottom:0;width:1px;left:50%;}
+        .problem-card{position:absolute;padding:6px 10px;border-radius:10px;font-size:0.72em;font-weight:600;
+            cursor:grab;user-select:none;transition:transform 0.15s,box-shadow 0.15s;z-index:2;
+            border:1.5px solid var(--border);background:var(--bg3);color:var(--text);white-space:nowrap;
+            touch-action:none;}
+        .problem-card.dragging{transform:scale(1.08);box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:10;cursor:grabbing;}
+        .problem-card.placed{cursor:default;border-color:var(--teal);background:rgba(45,212,191,0.08);}
+        .problem-card.wrong{animation:shake 0.4s ease;border-color:var(--rose);}
+        @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+        .card-tray{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px;min-height:44px;}
+        .tray-card{padding:8px 14px;border-radius:10px;font-size:0.78em;font-weight:600;
+            cursor:grab;user-select:none;border:1.5px solid var(--border);background:var(--bg3);
+            color:var(--text);transition:all 0.2s;touch-action:none;}
+        .tray-card:active{transform:scale(0.95);}
+        .tray-card.used{opacity:0.3;pointer-events:none;}
+        .map-feedback{text-align:center;font-family:'Lora',serif;font-size:0.85em;color:var(--muted);
+            min-height:2.5em;margin-bottom:12px;line-height:1.5;font-style:italic;}
+        .map-score{text-align:center;font-size:0.72em;color:var(--muted);margin-bottom:12px;}
+
+        /* ── P vs NP examples ── */
+        .pnp-example{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px 18px;margin-bottom:12px;cursor:pointer;transition:all 0.3s;}
+        .pnp-example:hover{border-color:rgba(251,191,36,0.3);}
+        .pnp-example.open{border-color:var(--gold);}
+        .pnp-header{display:flex;align-items:center;gap:12px;}
+        .pnp-icon{font-size:1.6em;flex-shrink:0;}
+        .pnp-title{font-family:'Lora',serif;font-size:1em;font-weight:600;color:var(--silver);}
+        .pnp-subtitle{font-size:0.78em;color:var(--muted);margin-top:2px;}
+        .pnp-detail{display:none;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.04);}
+        .pnp-example.open .pnp-detail{display:block;}
+        .pnp-detail p{font-family:'Lora',serif;font-size:0.92em;line-height:1.72;color:#9098c0;margin-bottom:8px;}
+        .pnp-detail p em{color:var(--gold);font-style:normal;font-weight:600;}
+        .pnp-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:0.65em;font-weight:600;
+            letter-spacing:1px;text-transform:uppercase;}
+        .pnp-badge.easy{background:rgba(45,212,191,0.1);border:1px solid rgba(45,212,191,0.25);color:var(--teal);}
+        .pnp-badge.hard{background:rgba(251,113,133,0.1);border:1px solid rgba(251,113,133,0.25);color:var(--rose);}
+
+        /* ── Diagonal Thread Timeline ── */
+        .timeline{position:relative;padding-left:32px;margin-bottom:20px;}
+        .timeline::before{content:'';position:absolute;left:14px;top:0;bottom:0;width:2px;
+            background:linear-gradient(to bottom,var(--teal),var(--gold),var(--rose),var(--violet));opacity:0.3;
+            transition:opacity 0.6s;}
+        .timeline.revealed::before{opacity:1;box-shadow:0 0 12px rgba(251,191,36,0.3);}
+        .tl-node{position:relative;padding:14px 16px;margin-bottom:16px;background:var(--bg2);
+            border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all 0.3s;}
+        .tl-node::before{content:'';position:absolute;left:-24px;top:18px;width:12px;height:12px;
+            border-radius:50%;background:var(--bg3);border:2px solid var(--muted);transition:all 0.3s;z-index:1;}
+        .tl-node.active{border-color:var(--gold);}
+        .tl-node.active::before{background:var(--gold);border-color:var(--gold);box-shadow:0 0 12px var(--gold);}
+        .tl-year{font-size:0.65em;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;}
+        .tl-name{font-family:'Lora',serif;font-size:1.05em;font-weight:600;color:var(--silver);margin-bottom:6px;}
+        .tl-summary{font-family:'Lora',serif;font-size:0.88em;color:var(--muted);line-height:1.6;font-style:italic;}
+        .tl-detail{display:none;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.04);}
+        .tl-node.active .tl-detail{display:block;}
+        .tl-detail p{font-family:'Lora',serif;font-size:0.88em;line-height:1.72;color:#9098c0;}
+        .tl-detail p em{color:var(--gold);font-style:normal;font-weight:600;}
+        .tl-same{text-align:center;font-size:0.68em;text-transform:uppercase;letter-spacing:2px;
+            color:var(--gold);margin:4px 0 4px -32px;opacity:0.5;}
+
+        /* ── Reflection cards ── */
+        .reflection-cards{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+        .refl-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:16px 18px;cursor:pointer;transition:all 0.3s;}
+        .refl-card:hover{border-color:rgba(251,191,36,0.3);}
+        .refl-card.selected{border-color:var(--gold);background:rgba(251,191,36,0.04);}
+        .refl-label{font-size:0.65em;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;font-weight:600;}
+        .refl-title{font-family:'Lora',serif;font-size:1em;font-weight:600;color:var(--silver);margin-bottom:4px;}
+        .refl-preview{font-family:'Lora',serif;font-size:0.88em;color:var(--muted);line-height:1.5;font-style:italic;}
+        .refl-full{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.04);}
+        .refl-card.selected .refl-full{display:block;}
+        .refl-full p{font-family:'Lora',serif;font-size:0.95em;line-height:1.85;color:#a8b0d0;margin-bottom:10px;}
+        .refl-full p em{color:var(--gold);font-style:italic;}
+
+        /* ── Consequence cards ── */
+        .consequence-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+        .cons-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:14px 16px;display:flex;gap:14px;align-items:flex-start;cursor:pointer;transition:all 0.3s;}
+        .cons-card:hover{border-color:rgba(251,113,133,0.3);}
+        .cons-card.open{border-color:var(--rose);}
+        .cons-icon{font-size:1.8em;flex-shrink:0;padding-top:2px;}
+        .cons-title{font-family:'Lora',serif;font-size:1em;font-weight:600;color:var(--silver);margin-bottom:3px;}
+        .cons-body{font-family:'Lora',serif;font-size:0.88em;color:var(--muted);line-height:1.6;font-style:italic;}
+        .cons-detail{display:none;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);}
+        .cons-card.open .cons-detail{display:block;}
+        .cons-detail p{font-family:'Lora',serif;font-size:0.85em;line-height:1.65;color:#8090b8;}
+        .cons-detail p em{color:var(--rose);font-style:normal;font-weight:600;}
+
+        /* ── Journey map ── */
+        .journey-act{background:var(--bg2);border:1px solid var(--border);border-left:3px solid;
+            border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;
+            display:flex;gap:14px;align-items:flex-start;animation:fadeUp 0.4s ease both;}
+        .ja-icon{font-size:1.8em;flex-shrink:0;}
+        .ja-label{font-size:0.62em;text-transform:uppercase;letter-spacing:2px;margin-bottom:3px;}
+        .ja-title{font-family:'Lora',serif;font-size:1em;font-weight:600;color:var(--silver);margin-bottom:3px;}
+        .ja-thread{font-family:'Lora',serif;font-size:0.85em;color:var(--muted);font-style:italic;line-height:1.5;}
+
+        /* ── Final ── */
+        .final-wrap{text-align:center;padding:28px 16px;
+            background:linear-gradient(135deg,rgba(251,113,133,0.07),rgba(251,191,36,0.06),rgba(129,140,248,0.04));
+            border:1px solid rgba(251,113,133,0.2);border-radius:var(--radius);margin-bottom:20px;}
+        .final-glow{width:80px;height:80px;margin:0 auto 16px;border-radius:50%;
+            background:radial-gradient(circle,rgba(251,113,133,0.4),rgba(251,191,36,0.2),transparent 70%);
+            display:flex;align-items:center;justify-content:center;font-size:2.5em;
+            animation:glowPulse 4s ease infinite;}
+        @keyframes glowPulse{0%,100%{box-shadow:0 0 20px rgba(251,113,133,0.2);transform:scale(1)}
+            50%{box-shadow:0 0 40px rgba(251,191,36,0.3);transform:scale(1.05)}}
+        .final-title{font-family:'Lora',serif;font-size:1.5em;color:var(--gold);margin-bottom:10px;font-weight:600;}
+        .final-body{font-family:'Lora',serif;font-size:1em;color:#8090b8;line-height:1.9;font-style:italic;}
+        .final-body em{color:var(--silver);font-style:normal;}
+
+        /* ── What was learned ── */
+        .learned-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:14px 16px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;}
+        .learned-num{font-family:'Lora',serif;font-size:1.2em;font-weight:700;color:var(--gold);flex-shrink:0;
+            width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+            border:1.5px solid rgba(251,191,36,0.3);border-radius:50%;}
+        .learned-text{font-family:'Lora',serif;font-size:0.92em;line-height:1.65;color:#9098c0;}
+        .learned-text strong{color:var(--silver);font-weight:600;}
+
+        /* ── Next journeys ── */
+        .next-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:14px 16px;margin-bottom:8px;display:flex;gap:14px;align-items:center;
+            transition:border-color 0.2s;}
+        .next-card:hover{border-color:rgba(251,191,36,0.25);}
+        .next-icon{font-size:1.8em;flex-shrink:0;}
+        .next-title{font-family:'Lora',serif;font-size:0.95em;font-weight:600;color:var(--silver);margin-bottom:2px;}
+        .next-sub{font-size:0.78em;color:var(--muted);font-style:italic;font-family:'Lora',serif;}
+        .next-tag{font-size:0.65em;background:var(--gold-dim);border:1px solid rgba(251,191,36,0.2);
+            color:var(--gold);border-radius:20px;padding:2px 8px;margin-left:auto;white-space:nowrap;flex-shrink:0;}
+
+        .learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
+        .learn-box .learn-title{font-size:0.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+        .learn-box.try-this .learn-title{color:var(--teal);}
+        .learn-box.notice .learn-title{color:var(--gold);}
+        .learn-box.why .learn-title{color:var(--rose);}
+        .learn-box p{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;}
+        .reset-btn{display:inline-block;background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 16px;border-radius:20px;font-size:0.8em;cursor:pointer;margin-top:8px;transition:all 0.25s;}
+        .reset-btn:hover{border-color:var(--teal);color:var(--teal);}
+
+        /* ── Warm glow canvas ── */
+        #warmGlow{position:fixed;inset:0;pointer-events:none;z-index:50;opacity:0;transition:opacity 3s ease;}
+
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+        .section-label{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;}
+
+        footer{text-align:center;padding:20px;font-size:0.72em;color:var(--muted);border-top:1px solid var(--border);margin-top:auto;}
+        footer a{color:var(--muted);text-decoration:none;}
+        footer a:hover{color:var(--gold);}
+    </style>
+</head>
+<body>
+<a href="../index.html" style="position:fixed;top:12px;left:16px;color:#808098;text-decoration:none;font-size:0.85em;z-index:1000;font-family:Georgia,serif">← mathsedu.org</a>
+<canvas id="warmGlow"></canvas>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act V of V</div>
+      <div class="progress-dots">
+        <div class="dot done"></div><div class="dot done"></div>
+        <div class="dot done"></div><div class="dot done"></div>
+        <div class="dot active"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SCREEN 0: OPENING -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Broken Machine · Act V</div>
+      <div class="act-name">The <em>Open</em> Door</div>
+    </div>
+    <div style="text-align:center;margin:4px 0 18px;">
+      <div style="font-size:4.5em;display:inline-block;animation:glowPulse 4s ease-in-out infinite;border-radius:50%;
+        background:radial-gradient(circle,rgba(251,113,133,0.15),transparent 70%);padding:10px;">&#9881;</div>
+    </div>
+    <div class="narrator">
+      <p>Three theorems. Thirty-six years apart. Three different men. One argument.</p>
+      <p style="margin-top:10px">The machine is broken. The question is: what does that mean?</p>
+    </div>
+    <div class="narrator gold">
+      <p>It could mean defeat. It does not.</p>
+      <p style="margin-top:10px">Every wall Gödel and Turing found also revealed something on the other side of it. Every impossibility result opened a new landscape of questions. The broken machine turned out to be a gift.</p>
+    </div>
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Before continuing, try to recall the central impossibility from each act. Act I: the dream. Act II: incompleteness. Act III: consistency. Act IV: undecidability. What single move appeared in all of them?</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>Each impossibility result was proved using a variation of the same technique: self-reference combined with negation. The diagonal argument is the thread that connects Cantor, Gödel, and Turing.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>These results did not end mathematics or computation. They gave both fields their precise shape. Understanding limits is the beginning of understanding what is possible.</p>
+    </div>
+    <button class="cta-btn" onclick="goToScreen(1)">See what was left &#8594;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 1: DISCOVERY — MAP OF DECIDABILITY -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Discovery</div>
+      <div class="act-name">The Map of <em>Decidability</em></div>
+    </div>
+    <div class="narrator">
+      <p>Not all problems are created equal. Some can be solved. Some cannot — ever, by any machine.</p>
+      <p style="margin-top:10px">Place each problem on the map. The horizontal axis measures solvability. The vertical axis measures difficulty.</p>
+    </div>
+
+    <div class="map-feedback" id="mapFeedback">Drag each card to its place on the map.</div>
+    <div class="map-score" id="mapScore"></div>
+
+    <div class="map-container" id="decidMap">
+      <div class="map-midline h"></div>
+      <div class="map-midline v"></div>
+      <div class="map-axis x">Solvability &rarr;</div>
+      <div class="map-axis y">Difficulty &rarr;</div>
+      <div class="map-label" style="bottom:8%;left:8%;">Decidable &amp; Easy</div>
+      <div class="map-label" style="top:8%;left:8%;">Decidable &amp; Hard</div>
+      <div class="map-label" style="bottom:8%;right:5%;">Undecidable</div>
+      <div class="map-label" style="top:8%;right:5%;">Undecidable</div>
+    </div>
+
+    <div class="card-tray" id="cardTray"></div>
+
+    <div id="mapReveal" style="display:none;">
+      <div class="narrator gold">
+        <p>The undecidable problems are not rare edge cases. They are everywhere. Most problems about programs are undecidable. Most sufficiently complex mathematical questions are undecidable.</p>
+        <p style="margin-top:10px"><em>The decidable problems — the ones we can solve — are the special cases.</em></p>
+      </div>
+    </div>
+
+    <button class="cta-btn" id="mapNextBtn" style="display:none;" onclick="goToScreen(2)">Zoom into the decidable region &#8594;</button>
+    <button class="reset-btn" id="mapResetBtn" onclick="resetMap()">Reset map</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 2: DISCOVERY — P vs NP -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">Discovery</div>
+      <div class="act-name"><em>P</em> vs <em>NP</em></div>
+    </div>
+    <div class="narrator">
+      <p>Within the solvable problems, there is a further frontier.</p>
+      <p style="margin-top:10px">Some problems are easy to solve. Some are easy to <strong>check</strong> but hard to solve. And the question of whether these two classes are the same is the greatest unsolved question in computer science.</p>
+    </div>
+
+    <div class="section-label">Three examples</div>
+    <div id="pnpExamples"></div>
+
+    <div id="pnpReveal" style="display:none;">
+      <div class="narrator gold">
+        <p>The question P = NP asks: is Sudoku actually easy? Is there a fast algorithm we just haven't found?</p>
+        <p style="margin-top:10px">Most mathematicians believe P &#8800; NP — that checking and solving are genuinely different. But nobody has proved it.</p>
+        <p style="margin-top:10px"><em>If P = NP: all encryption breaks. Every secret becomes transparent. Every NP-hard problem becomes easy.</em></p>
+        <p style="margin-top:10px">One of Hilbert's descendants — an unsolved decision problem — with a million-dollar prize attached.</p>
+      </div>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)">The diagonal thread &#8594;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 3: DISCOVERY — THE DIAGONAL THREAD -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">Discovery</div>
+      <div class="act-name">The <em>Diagonal</em> Thread</div>
+    </div>
+    <div class="narrator">
+      <p>One argument. Four uses. Forty-five years. Click each node to see the structural similarity — the same move, applied to different material.</p>
+    </div>
+
+    <div class="timeline" id="timeline">
+      <div class="tl-node" data-idx="0" onclick="toggleNode(this)">
+        <div class="tl-year" style="color:var(--teal);">1891 — Cantor</div>
+        <div class="tl-name">The Diagonal Argument</div>
+        <div class="tl-summary">Some infinities are larger than others.</div>
+        <div class="tl-detail">
+          <p>Assume a list of all real numbers.</p>
+          <p>Construct a number differing from the <em>n</em>th number in the <em>n</em>th digit.</p>
+          <p>The number is not on the list. The reals are uncountable.</p>
+          <p style="margin-top:8px"><em>The move: go down the diagonal, and change every entry.</em></p>
+        </div>
+      </div>
+      <div class="tl-same">&#8595; same move</div>
+      <div class="tl-node" data-idx="1" onclick="toggleNode(this)">
+        <div class="tl-year" style="color:var(--gold);">1931 — Gödel (First Theorem)</div>
+        <div class="tl-name">Incompleteness</div>
+        <div class="tl-summary">No consistent system is complete.</div>
+        <div class="tl-detail">
+          <p>Assume a complete formal system.</p>
+          <p>Construct a statement that encodes <em>"I am not provable."</em></p>
+          <p>The statement is true but unprovable. The system is incomplete.</p>
+          <p style="margin-top:8px"><em>The move: make the system talk about itself, then negate.</em></p>
+        </div>
+      </div>
+      <div class="tl-same">&#8595; same move</div>
+      <div class="tl-node" data-idx="2" onclick="toggleNode(this)">
+        <div class="tl-year" style="color:var(--rose);">1931 — Gödel (Second Theorem)</div>
+        <div class="tl-name">Consistency</div>
+        <div class="tl-summary">No consistent system proves its own consistency.</div>
+        <div class="tl-detail">
+          <p>Assume a system that proves its own consistency.</p>
+          <p>Show this leads to proving the Gödel sentence — which cannot be proved in a consistent system.</p>
+          <p>Contradiction. No consistent system can prove it is consistent.</p>
+          <p style="margin-top:8px"><em>The move: self-reference, layered one level deeper.</em></p>
+        </div>
+      </div>
+      <div class="tl-same">&#8595; same move</div>
+      <div class="tl-node" data-idx="3" onclick="toggleNode(this)">
+        <div class="tl-year" style="color:var(--violet);">1936 — Turing</div>
+        <div class="tl-name">The Halting Problem</div>
+        <div class="tl-summary">No program can decide halting.</div>
+        <div class="tl-detail">
+          <p>Assume a halt-checking program H.</p>
+          <p>Construct program D that <em>contradicts H's output when run on itself</em>.</p>
+          <p>Contradiction. H cannot exist. The Halting Problem is undecidable.</p>
+          <p style="margin-top:8px"><em>The move: build the thing that breaks the assumption.</em></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="threadInsight" style="display:none;">
+      <div class="narrator gold">
+        <p>This is not a coincidence. These results are genuinely related.</p>
+        <p style="margin-top:10px">Cantor, Gödel, Turing — one argument, three faces, one mathematical truth:</p>
+        <p style="margin-top:10px"><em>Self-reference, when combined with negation, always breaks the assumption of completeness.</em></p>
+        <p style="margin-top:10px">The diagonal argument is the mathematics of impossibility.</p>
+      </div>
+    </div>
+
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>For each of the four results, identify the three parts: the assumption, the self-referential construction, and the contradiction. Notice that the structure is identical each time.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(4)">Why limits are gifts &#8594;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 4: PROOF/EXPLANATION — THREE REFLECTIONS -->
+  <section class="screen" id="screen-4">
+    <div class="act-title">
+      <div class="act-label">Reflection</div>
+      <div class="act-name">Why Limits Are <em>Gifts</em></div>
+    </div>
+    <div class="narrator">
+      <p>Three ways to understand what the broken machine left behind. Choose the one that speaks to you.</p>
+    </div>
+
+    <div class="reflection-cards" id="reflCards">
+      <div class="refl-card" onclick="selectReflection(this,0)">
+        <div class="refl-label" style="color:var(--violet);">The Philosophical</div>
+        <div class="refl-title">Truth transcends proof</div>
+        <div class="refl-preview">Gödel's theorems did not diminish mathematics...</div>
+        <div class="refl-full">
+          <p>Gödel's theorems did not diminish mathematics. They revealed that mathematical truth is larger than any formal system can capture.</p>
+          <p><em>Truth transcends proof.</em> There are mathematical facts that are real and definite — but that no mechanical procedure will ever confirm.</p>
+          <p>This is humbling. It is also, if you sit with it, extraordinary.</p>
+        </div>
+      </div>
+      <div class="refl-card" onclick="selectReflection(this,1)">
+        <div class="refl-label" style="color:var(--teal);">The Practical</div>
+        <div class="refl-title">The broken machine built the working ones</div>
+        <div class="refl-preview">Turing's undecidability results, in proving what computers cannot do...</div>
+        <div class="refl-full">
+          <p>Turing's undecidability results, in proving what computers cannot do, precisely defined what computers <em>can</em> do. They gave birth to the theory of computation — the mathematical foundation of every program ever written.</p>
+          <p>Without the question "what is computable?", there is no computer science. Without the Halting Problem, there is no precise definition of an algorithm.</p>
+          <p><em>The broken machine built the working ones.</em></p>
+        </div>
+      </div>
+      <div class="refl-card" onclick="selectReflection(this,2)">
+        <div class="refl-label" style="color:var(--rose);">The Mathematical</div>
+        <div class="refl-title">The unprovable became its own subject</div>
+        <div class="refl-preview">Incompleteness opened new fields...</div>
+        <div class="refl-full">
+          <p>Incompleteness opened new fields. Model theory — the study of different mathematical universes in which different statements are true — grew directly from Gödel's methods.</p>
+          <p>Independence results in set theory (Cohen, 1963) showed that the Continuum Hypothesis is undecidable from the standard axioms — neither provably true nor provably false.</p>
+          <p><em>The unprovable became its own subject of study.</em></p>
+          <p>The broken machine revealed a richer landscape than the unbroken one would have.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>These three perspectives are not competing. They are the same truth, seen from different angles — just like the diagonal argument itself appears in different forms across different fields.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(5)">The living legacy &#8594;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 5: CONNECTION — THE LIVING LEGACY -->
+  <section class="screen" id="screen-5">
+    <div class="act-title">
+      <div class="act-label">Connection</div>
+      <div class="act-name">The <em>Living</em> Legacy</div>
+    </div>
+    <div class="narrator">
+      <p>The broken machine, today. Four real consequences — tap each to see why the impossibility results matter right now.</p>
+    </div>
+
+    <div class="consequence-grid" id="consGrid"></div>
+
+    <div class="narrator gold" style="margin-top:8px;">
+      <p>These are not unsolved engineering problems. They are proven mathematical impossibilities. The walls Gödel and Turing found are permanent.</p>
+      <p style="margin-top:10px">And yet — within those walls — everything we call modern computing was built.</p>
+    </div>
+
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>Every time you use encryption, every time antivirus software misses a threat, every time an AI system behaves unexpectedly — the broken machine is there, quietly shaping what is and is not possible.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(6)">See the full journey &#8594;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- SCREEN 6: COMPLETION -->
+  <section class="screen" id="screen-6">
+    <div class="act-title">
+      <div class="act-label">Complete</div>
+      <div class="act-name">The Broken <em>Machine</em></div>
+    </div>
+
+    <div class="section-label" style="text-align:center;">What you learned</div>
+
+    <div class="learned-item" style="animation-delay:0.1s;">
+      <div class="learned-num">1</div>
+      <div class="learned-text"><strong>Gödel's First Theorem:</strong> Any consistent, sufficiently powerful formal system contains true statements that cannot be proved within it. Mathematics is incomplete — necessarily and provably.</div>
+    </div>
+    <div class="learned-item" style="animation-delay:0.2s;">
+      <div class="learned-num">2</div>
+      <div class="learned-text"><strong>Gödel's Second Theorem:</strong> No such system can prove its own consistency. You always need a stronger system to verify a weaker one.</div>
+    </div>
+    <div class="learned-item" style="animation-delay:0.3s;">
+      <div class="learned-num">3</div>
+      <div class="learned-text"><strong>Turing's Halting Problem:</strong> No algorithm can determine whether an arbitrary program will halt. Some problems are not merely hard — they are undecidable. And the computer was invented to prove this.</div>
+    </div>
+
+    <div style="margin:20px 0;" id="journeyMap"></div>
+
+    <div class="final-wrap" id="finalWrap">
+      <div class="final-glow" id="finalGlowIcon">&#9881;</div>
+      <div class="final-title">The Broken Machine — Complete</div>
+      <div class="final-body">
+        The machine is broken.<br>
+        It was always broken. We just didn't know it.<br><br>
+        And knowing it — proving it, with mathematical precision —<br>
+        is one of the most extraordinary things human beings have ever done.<br><br>
+        Hilbert wanted to know everything.<br>
+        Gödel proved he never could.<br>
+        Turing built the machine that would change the world anyway.<br><br>
+        <em>The dream didn't die. It grew up.</em>
+      </div>
+    </div>
+
+    <div style="font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px;text-align:center;">Where would you like to go next?</div>
+    <div id="nextJourneys"></div>
+
+    <div class="learn-box try-this">
+      <div class="learn-title">Try This</div>
+      <p>Go back to Act I and read the opening again. Does Hilbert's dream feel different now? The proof machine has a warning light now — you can see it because you know what it means.</p>
+    </div>
+    <div class="learn-box notice">
+      <div class="learn-title">What To Notice</div>
+      <p>The diagonal argument appeared in every act. Cantor's version, Gödel's version, Turing's version. One move. Three revelations. This is the deepest structural pattern in the foundations of mathematics.</p>
+    </div>
+    <div class="learn-box why">
+      <div class="learn-title">Why It Matters</div>
+      <p>These are not historical curiosities. The Halting Problem limits every compiler. Gödel's theorems shape every proof assistant. P vs NP determines whether your encrypted messages stay private. The broken machine is the foundation of the modern world.</p>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px;">
+      <button class="cta-btn" onclick="warmFinale()">Acknowledge this journey</button>
+      <button class="cta-btn ghost" onclick="window.location.href='broken_machine_act1.html'">Return to the start — it looks different now</button>
+      <button class="cta-btn ghost" onclick="window.location.href='broken_machine_act4.html'">&larr; Back to Act IV</button>
+    </div>
+    <div class="bottom-pad"></div>
+
+    <footer>
+      &copy; 2025 <a href="https://mathsedu.org">Manoj Bhaskar</a>. Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a>
+    </footer>
+  </section>
+</div>
+
+<script src="../narrator.js"></script>
+<script>
+/* ── Screen navigation ── */
+let curScreen=0;
+const totalScreens=7;
+
+function goToScreen(n){
+  document.getElementById(`screen-${curScreen}`).classList.remove('active');
+  curScreen=n;
+  document.getElementById(`screen-${n}`).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  updateDots();
+  if(n===1) initMap();
+  if(n===2) buildPNP();
+  if(n===5) buildConsequences();
+  if(n===6) buildCompletion();
+}
+
+function updateDots(){
+  const dots=document.querySelectorAll('.progress-dots .dot');
+  // The 5 dots represent the 5 acts (all done except current)
+  // Screen progress within Act V shown by the active dot pulsing
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCREEN 1: DECIDABILITY MAP — Drag & Drop
+   ══════════════════════════════════════════════════════════════ */
+const problems=[
+  {id:'p1',label:'"Is 17 prime?"',zone:'de',explanation:'A simple check: try dividing by primes up to its square root. Decidable and easy.'},
+  {id:'p2',label:'"Sort this list"',zone:'de',explanation:'Many fast algorithms exist — merge sort, quicksort. Decidable and easy.'},
+  {id:'p3',label:'"Does this program halt?"',zone:'u',explanation:'The Halting Problem. Turing proved no algorithm can decide this in general. Undecidable.'},
+  {id:'p4',label:'"Is this formula satisfiable?" (SAT)',zone:'dh',explanation:'SAT is NP-complete: hard to solve, but any solution can be checked quickly. Decidable, but hard.'},
+  {id:'p5',label:'"Shortest route visiting every city"',zone:'dh',explanation:'The Travelling Salesman Problem — NP-hard. Decidable in principle, but no known fast algorithm.'},
+  {id:'p6',label:'"Integer solutions to these equations?"',zone:'u',explanation:'Hilbert\'s 10th problem. Matiyasevich proved in 1970 that no algorithm can decide this. Undecidable.'},
+  {id:'p7',label:'"Is this statement provable from ZFC?"',zone:'u',explanation:'Whether an arbitrary statement follows from the standard axioms is undecidable — a consequence of Gödel\'s work.'},
+];
+
+// Zone definitions: de=decidable-easy, dh=decidable-hard, u=undecidable
+// Map layout: left half = decidable, right half = undecidable
+// Bottom = easy, top = hard
+const zoneTargets={
+  de:{xMin:0,xMax:0.48,yMin:0.52,yMax:1},    // bottom-left
+  dh:{xMin:0,xMax:0.48,yMin:0,yMax:0.48},     // top-left
+  u:{xMin:0.52,xMax:1,yMin:0,yMax:1},          // right half
+};
+
+let mapInitialised=false, placed=0, dragCard=null, dragOffX=0, dragOffY=0;
+
+function initMap(){
+  if(mapInitialised) return;
+  mapInitialised=true;
+  const tray=document.getElementById('cardTray');
+  // Shuffle
+  const shuffled=[...problems].sort(()=>Math.random()-0.5);
+  shuffled.forEach(p=>{
+    const el=document.createElement('div');
+    el.className='tray-card';
+    el.textContent=p.label;
+    el.dataset.pid=p.id;
+    el.addEventListener('pointerdown',startDrag);
+    tray.appendChild(el);
+  });
+}
+
+function startDrag(e){
+  e.preventDefault();
+  const trayCard=e.currentTarget;
+  const pid=trayCard.dataset.pid;
+  const prob=problems.find(p=>p.id===pid);
+  if(!prob||trayCard.classList.contains('used')) return;
+
+  const map=document.getElementById('decidMap');
+  const mapRect=map.getBoundingClientRect();
+
+  // Create a floating card on the map
+  const card=document.createElement('div');
+  card.className='problem-card dragging';
+  card.textContent=prob.label;
+  card.dataset.pid=pid;
+  card.style.fontSize='0.68em';
+  map.appendChild(card);
+
+  const cRect=card.getBoundingClientRect();
+  const startX=e.clientX-mapRect.left-cRect.width/2;
+  const startY=e.clientY-mapRect.top-cRect.height/2;
+  card.style.left=startX+'px';
+  card.style.top=startY+'px';
+
+  dragCard={el:card,pid:pid,trayEl:trayCard,mapRect:mapRect};
+
+  const onMove=(ev)=>{
+    ev.preventDefault();
+    const x=ev.clientX-dragCard.mapRect.left-cRect.width/2;
+    const y=ev.clientY-dragCard.mapRect.top-cRect.height/2;
+    card.style.left=Math.max(0,Math.min(dragCard.mapRect.width-cRect.width,x))+'px';
+    card.style.top=Math.max(0,Math.min(dragCard.mapRect.height-cRect.height,y))+'px';
+  };
+
+  const onUp=(ev)=>{
+    document.removeEventListener('pointermove',onMove);
+    document.removeEventListener('pointerup',onUp);
+    card.classList.remove('dragging');
+
+    // Determine drop position as fraction of map
+    const cr=card.getBoundingClientRect();
+    const cx=(cr.left+cr.width/2-dragCard.mapRect.left)/dragCard.mapRect.width;
+    const cy=(cr.top+cr.height/2-dragCard.mapRect.top)/dragCard.mapRect.height;
+
+    const prob=problems.find(p=>p.id===dragCard.pid);
+    const target=zoneTargets[prob.zone];
+
+    if(cx>=target.xMin&&cx<=target.xMax&&cy>=target.yMin&&cy<=target.yMax){
+      // Correct
+      card.classList.add('placed');
+      card.style.cursor='default';
+      dragCard.trayEl.classList.add('used');
+      placed++;
+      document.getElementById('mapFeedback').innerHTML=prob.explanation;
+      document.getElementById('mapFeedback').style.color='var(--teal)';
+      document.getElementById('mapScore').textContent=placed+' of '+problems.length+' placed';
+      if(placed===problems.length){
+        document.getElementById('mapReveal').style.display='block';
+        document.getElementById('mapNextBtn').style.display='block';
+        document.getElementById('mapResetBtn').style.display='none';
+      }
+    } else {
+      // Wrong — shake and remove
+      card.classList.add('wrong');
+      document.getElementById('mapFeedback').innerHTML='Not quite. Try again — think about whether a computer can solve this, and how hard it would be.';
+      document.getElementById('mapFeedback').style.color='var(--rose)';
+      setTimeout(()=>{card.remove();},500);
+    }
+    dragCard=null;
+  };
+
+  document.addEventListener('pointermove',onMove);
+  document.addEventListener('pointerup',onUp);
+}
+
+function resetMap(){
+  const map=document.getElementById('decidMap');
+  map.querySelectorAll('.problem-card').forEach(c=>c.remove());
+  document.querySelectorAll('.tray-card').forEach(c=>c.classList.remove('used'));
+  placed=0;
+  document.getElementById('mapFeedback').innerHTML='Drag each card to its place on the map.';
+  document.getElementById('mapFeedback').style.color='';
+  document.getElementById('mapScore').textContent='';
+  document.getElementById('mapReveal').style.display='none';
+  document.getElementById('mapNextBtn').style.display='none';
+  document.getElementById('mapResetBtn').style.display='';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCREEN 2: P vs NP EXAMPLES
+   ══════════════════════════════════════════════════════════════ */
+const pnpData=[
+  {icon:'&#215;',title:'Multiplication',sub:'Easy to solve AND easy to check',badge:'easy',badgeText:'P',
+    detail:'<p>What is 37 &times; 43? You can compute this by hand in a minute. And checking the answer — <em>1591</em> — is just as fast: multiply and compare.</p><p>Multiplication lives comfortably in <em>P</em>: the class of problems a computer can solve quickly.</p>'},
+  {icon:'&#9638;',title:'Sudoku',sub:'Hard to solve, easy to check',badge:'hard',badgeText:'NP',
+    detail:'<p>Solving a large Sudoku puzzle is hard — you may need to try many combinations. But <em>checking</em> a completed grid takes seconds: scan each row, column, and box.</p><p>This is the signature of <em>NP</em>: solutions are hard to find but easy to verify.</p>'},
+  {icon:'&#128273;',title:'Factoring',sub:'Hard to solve, easy to check',badge:'hard',badgeText:'NP',
+    detail:'<p>Given the number 1,147 — find its prime factors. This takes real work. But given the answer — <em>31 &times; 37</em> — checking it is a single multiplication.</p><p>Your bank\'s encryption relies on the assumption that factoring is hard. If P = NP, it isn\'t.</p>'},
+];
+let pnpBuilt=false;
+function buildPNP(){
+  if(pnpBuilt) return;
+  pnpBuilt=true;
+  const wrap=document.getElementById('pnpExamples');
+  pnpData.forEach((d,i)=>{
+    const el=document.createElement('div');
+    el.className='pnp-example';
+    el.innerHTML=`<div class="pnp-header">
+      <div class="pnp-icon">${d.icon}</div>
+      <div style="flex:1"><div class="pnp-title">${d.title}</div><div class="pnp-subtitle">${d.sub}</div></div>
+      <span class="pnp-badge ${d.badge}">${d.badgeText}</span>
+    </div><div class="pnp-detail">${d.detail}</div>`;
+    el.addEventListener('click',()=>{
+      el.classList.toggle('open');
+      checkPNPReveal();
+    });
+    wrap.appendChild(el);
+  });
+}
+function checkPNPReveal(){
+  const opened=document.querySelectorAll('.pnp-example.open').length;
+  if(opened>=3) document.getElementById('pnpReveal').style.display='block';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCREEN 3: DIAGONAL THREAD TIMELINE
+   ══════════════════════════════════════════════════════════════ */
+let nodesRevealed=0;
+function toggleNode(el){
+  const wasActive=el.classList.contains('active');
+  el.classList.toggle('active');
+  if(!wasActive) nodesRevealed++;
+  if(nodesRevealed>=4){
+    document.getElementById('timeline').classList.add('revealed');
+    document.getElementById('threadInsight').style.display='block';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCREEN 4: REFLECTION CARDS
+   ══════════════════════════════════════════════════════════════ */
+function selectReflection(el,idx){
+  document.querySelectorAll('.refl-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCREEN 5: CONSEQUENCES
+   ══════════════════════════════════════════════════════════════ */
+const consData=[
+  {icon:'&#128737;',title:'Your antivirus software',
+    body:'Cannot be perfect, by Rice\'s Theorem.',
+    detail:'<p>Rice\'s Theorem proves that <em>no program can perfectly detect all malicious software</em>. Every antivirus is necessarily heuristic — it guesses, using patterns. The Halting Problem guarantees this limitation is permanent.</p>'},
+  {icon:'&#128274;',title:'Encryption',
+    body:'Relies on NP-hard problems.',
+    detail:'<p>Every time you make a secure connection, your browser relies on the assumption that <em>factoring large numbers is hard</em>. If P = NP were proved — if someone showed that checking and solving are equally easy — all current encryption would break overnight.</p>'},
+  {icon:'&#129302;',title:'Artificial intelligence',
+    body:'Safety is undecidable in the general case.',
+    detail:'<p>The question of whether a given AI system will behave safely is, in the general case, <em>undecidable</em>. Not hard. Not currently unsolved. Provably impossible to determine in all cases. This is a direct consequence of the Halting Problem.</p>'},
+  {icon:'&#8734;',title:'Mathematics itself',
+    body:'Some statements are independent of the standard axioms.',
+    detail:'<p>There are statements in normal mathematics — about infinite sets, about certain combinatorial structures — that are <em>known to be independent of the standard axioms</em>. They are true in some mathematical universes and false in others. The landscape Gödel revealed is still being mapped.</p>'},
+];
+let consBuilt=false;
+function buildConsequences(){
+  if(consBuilt) return;
+  consBuilt=true;
+  const grid=document.getElementById('consGrid');
+  consData.forEach(d=>{
+    const el=document.createElement('div');
+    el.className='cons-card';
+    el.innerHTML=`<div class="cons-icon">${d.icon}</div>
+      <div><div class="cons-title">${d.title}</div>
+      <div class="cons-body">${d.body}</div>
+      <div class="cons-detail">${d.detail}</div></div>`;
+    el.addEventListener('click',()=>el.classList.toggle('open'));
+    grid.appendChild(el);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCREEN 6: COMPLETION
+   ══════════════════════════════════════════════════════════════ */
+const acts=[
+  {icon:'&#9881;',act:'Act I',title:'The Dream',thread:'Hilbert\'s programme: axioms, rules, completeness. The dream of a machine that could prove everything.',col:'var(--indigo)'},
+  {icon:'&#128260;',act:'Act II',title:'The Liar',thread:'Gödel numbering. Self-reference. The sentence that says "I am not provable." Incompleteness.',col:'var(--gold)'},
+  {icon:'&#128736;',act:'Act III',title:'The Mirror',thread:'Can the machine verify itself? No. No consistent system proves its own consistency.',col:'var(--rose)'},
+  {icon:'&#128187;',act:'Act IV',title:'The Halt',thread:'Turing machines. The Halting Problem. The diagonal argument proves no program can decide halting.',col:'var(--teal)'},
+  {icon:'&#128682;',act:'Act V',title:'The Open Door',thread:'Decidability, P vs NP, the diagonal thread. The broken machine was a gift — it built the working ones.',col:'var(--gold)'},
+];
+
+const nextJourneyData=[
+  {icon:'&#128290;',title:'The Prime Journey',sub:'Why do some numbers refuse to be divided? Euclid\'s proof. The Riemann Hypothesis.',tag:'Available now',href:'prime_journey_act1.html'},
+  {icon:'&#128336;',title:'The Clock That Never Stops',sub:'Modular arithmetic. Caesar ciphers. Group theory. The mathematics of wrapping.',tag:'Available now',href:'clock_journey_act1.html'},
+  {icon:'&#127912;',title:'The Art of Uncertainty',sub:'Probability. Bayes\' theorem. How to reason when you don\'t have all the information.',tag:'Available now',href:'uncertainty_act1.html'},
+  {icon:'&#9854;',title:'The Infinite Hotel',sub:'Hilbert\'s Hotel. Cantor\'s diagonal. The sizes of infinity.',tag:'Available now',href:'infinite_hotel_act1.html'},
+];
+
+let completionBuilt=false;
+function buildCompletion(){
+  if(completionBuilt) return;
+  completionBuilt=true;
+
+  // Journey map
+  const map=document.getElementById('journeyMap');
+  acts.forEach((a,i)=>{
+    const div=document.createElement('div');
+    div.className='journey-act';
+    div.style.cssText=`border-left-color:${a.col};animation-delay:${i*0.1}s;`;
+    div.innerHTML=`<div class="ja-icon">${a.icon}</div>
+      <div><div class="ja-label" style="color:${a.col}">${a.act}</div>
+      <div class="ja-title">${a.title}</div>
+      <div class="ja-thread">${a.thread}</div></div>`;
+    map.appendChild(div);
+  });
+
+  // Next journeys
+  const nj=document.getElementById('nextJourneys');
+  nextJourneyData.forEach(j=>{
+    const div=document.createElement('div');
+    div.className='next-card';
+    const isAvailable=j.tag==='Available now';
+    div.style.cursor=isAvailable?'pointer':'default';
+    if(isAvailable) div.onclick=()=>{ window.location.href=j.href; };
+    div.innerHTML=`<div class="next-icon">${j.icon}</div>
+      <div style="flex:1;"><div class="next-title">${j.title}</div>
+      <div class="next-sub">${j.sub}</div></div>
+      <div class="next-tag" style="${isAvailable?'background:rgba(45,212,191,0.1);border-color:rgba(45,212,191,0.3);color:var(--teal);':''}">${j.tag}</div>`;
+    nj.appendChild(div);
+  });
+
+  // Mark journey complete
+  try{
+    localStorage.setItem('broken_machine_complete','true');
+    localStorage.setItem('broken_machine_replay','true');
+  }catch(e){}
+}
+
+/* ══════════════════════════════════════════════════════════════
+   WARM GLOW FINALE (not confetti)
+   ══════════════════════════════════════════════════════════════ */
+function warmFinale(){
+  const cv=document.getElementById('warmGlow');
+  cv.width=innerWidth;
+  cv.height=innerHeight;
+  const ctx=cv.getContext('2d');
+
+  // Rose light dims to warm gold glow
+  let t=0;
+  cv.style.opacity='1';
+
+  function draw(){
+    t+=0.008;
+    ctx.clearRect(0,0,cv.width,cv.height);
+
+    // Rose phase fading to gold
+    const roseFade=Math.max(0,1-t*1.5);
+    const goldGrow=Math.min(1,t*1.2);
+
+    // Central glow
+    const g=ctx.createRadialGradient(cv.width/2,cv.height*0.4,0,cv.width/2,cv.height*0.5,cv.width*0.6);
+    g.addColorStop(0,`rgba(251,113,133,${0.12*roseFade})`);
+    g.addColorStop(0.3,`rgba(251,191,36,${0.08*goldGrow})`);
+    g.addColorStop(0.6,`rgba(251,191,36,${0.04*goldGrow})`);
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;
+    ctx.fillRect(0,0,cv.width,cv.height);
+
+    // Gentle particles — not confetti, just warmth
+    for(let i=0;i<12;i++){
+      const px=cv.width*(0.3+0.4*Math.sin(t*0.5+i*0.85));
+      const py=cv.height*(0.2+0.5*Math.cos(t*0.3+i*1.1));
+      const r=2+Math.sin(t+i)*1.5;
+      const a=0.1+0.08*Math.sin(t*0.8+i);
+      ctx.beginPath();
+      ctx.arc(px,py,r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(251,191,36,${a})`;
+      ctx.fill();
+    }
+
+    if(t<2.5) requestAnimationFrame(draw);
+    else {
+      // Fade out slowly
+      cv.style.transition='opacity 3s ease';
+      cv.style.opacity='0';
+    }
+  }
+  draw();
+
+  // Update the glow icon to warm gold
+  const icon=document.getElementById('finalGlowIcon');
+  if(icon){
+    icon.style.background='radial-gradient(circle,rgba(251,191,36,0.4),rgba(251,191,36,0.15),transparent 70%)';
+    icon.style.transition='background 3s ease';
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   COSMOS BACKGROUND
+   ══════════════════════════════════════════════════════════════ */
+(function(){
+  const cv=document.getElementById('cosmos');
+  function draw(){
+    cv.width=innerWidth;cv.height=innerHeight;
+    const ctx=cv.getContext('2d');
+    // Rose-gold gradient — broken but beautiful
+    const g=ctx.createRadialGradient(innerWidth*.5,innerHeight*.35,0,innerWidth*.5,innerHeight*.5,innerWidth*.7);
+    g.addColorStop(0,'rgba(251,113,133,0.04)');
+    g.addColorStop(0.3,'rgba(251,191,36,0.03)');
+    g.addColorStop(0.6,'rgba(129,140,248,0.02)');
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.fillRect(0,0,cv.width,cv.height);
+    // Stars
+    for(let i=0;i<200;i++){
+      const x=Math.random()*cv.width,y=Math.random()*cv.height;
+      const r=Math.random()*1.4,a=0.03+Math.random()*0.25;
+      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+      const t=['255,255,255','255,200,200','255,230,180','200,210,255'];
+      ctx.fillStyle=`rgba(${t[Math.floor(Math.random()*t.length)]},${a})`;ctx.fill();
+    }
+  }
+  window.addEventListener('resize',draw);draw();
+})();
+</script>
+</body>
+</html>

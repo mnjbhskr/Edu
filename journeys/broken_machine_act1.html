@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#07071a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>The Broken Machine &mdash; Act I: Hilbert's Dream</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+        :root {
+            --bg:#07071a; --bg2:#0a0a24; --bg3:#0f0f2e;
+            --gold:#fbbf24; --gold-dim:rgba(251,191,36,0.12);
+            --cyan:#22d3ee; --cyan-dim:rgba(34,211,238,0.10);
+            --rose:#fb7185; --rose-dim:rgba(251,113,133,0.1);
+            --green:#10b981; --green-dim:rgba(16,185,129,0.10);
+            --silver:#e2e8f0; --silver-dim:rgba(226,232,240,0.08);
+            --muted:#7070a0; --text:#c8d0f0;
+            --border:rgba(251,191,36,0.12); --radius:16px;
+        }
+        *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+        html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+        #cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+        #app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+        .app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+            border-bottom:1px solid var(--border);background:rgba(7,7,26,0.92);
+            backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+        .header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;color:var(--muted);}
+        .header-logo span{color:var(--gold);font-style:normal;}
+        .progress-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+        .act-indicator{font-size:0.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+        .progress-dots{display:flex;gap:6px;}
+        .dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all 0.4s;}
+        .dot.done{background:var(--green);}
+        .dot.active{background:var(--gold);box-shadow:0 0 10px var(--gold);animation:pulse 2s ease infinite;}
+        @keyframes pulse{0%,100%{box-shadow:0 0 6px var(--gold)}50%{box-shadow:0 0 18px var(--gold)}}
+        .screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp 0.5s ease both;}
+        .screen.active{display:flex;}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+        .narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--gold);
+            border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+        .narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+            padding:0 6px;color:var(--gold);font-size:0.78em;}
+        .narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:#c0c8e8;}
+        .narrator p em{color:var(--gold);font-style:italic;}
+        .narrator p strong{color:var(--silver);font-weight:600;}
+        .narrator.cyan{border-left-color:var(--cyan);} .narrator.cyan::before{color:var(--cyan);}
+        .narrator.rose{border-left-color:var(--rose);} .narrator.rose::before{color:var(--rose);}
+        .act-title{text-align:center;margin-bottom:22px;}
+        .act-label{font-size:0.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+        .act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--silver);}
+        .act-name em{color:var(--gold);font-style:italic;}
+        .cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+            background:linear-gradient(135deg,var(--gold),#f59e0b);
+            border:none;border-radius:50px;padding:15px 30px;
+            font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+            color:#1a1a2e;cursor:pointer;transition:all 0.25s;touch-action:manipulation;
+            box-shadow:0 4px 24px rgba(251,191,36,0.3);}
+        .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(251,191,36,0.45);}
+        .cta-btn:disabled{opacity:0.35;transform:none;box-shadow:none;cursor:default;}
+        .cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+        .cta-btn.rose-btn{background:linear-gradient(135deg,var(--rose),#e11d48);color:#fff;box-shadow:0 4px 24px rgba(251,113,133,0.3);}
+        .cta-btn.rose-btn:hover{box-shadow:0 8px 32px rgba(251,113,133,0.45);}
+        .insight{background:var(--bg2);border:1px solid rgba(251,191,36,0.15);border-left:3px solid var(--gold);
+            border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+        .insight .lbl{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--gold);margin-bottom:6px;}
+        .insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:#9098c0;}
+        .insight p em{color:var(--gold);font-style:normal;font-weight:600;}
+        .insight.cyan{border-left-color:var(--cyan);border-color:rgba(34,211,238,0.15);}
+        .insight.cyan .lbl{color:var(--cyan);}
+        .insight.green{border-left-color:var(--green);border-color:rgba(16,185,129,0.15);}
+        .insight.green .lbl{color:var(--green);}
+        .insight.rose{border-left-color:var(--rose);border-color:rgba(251,113,133,0.15);}
+        .insight.rose .lbl{color:var(--rose);}
+
+        /* Machine styles */
+        .machine-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+            padding:20px;margin-bottom:16px;position:relative;overflow:hidden;}
+        .machine-label{font-size:0.68em;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:14px;}
+        .axiom-card{display:inline-flex;align-items:center;padding:10px 16px;border-radius:12px;
+            background:var(--gold-dim);border:1.5px solid rgba(251,191,36,0.35);
+            color:var(--gold);font-family:'Lora',serif;font-size:0.95em;
+            margin:4px;transition:all 0.3s;cursor:default;}
+        .axiom-card.proved{background:rgba(16,185,129,0.12);border-color:rgba(16,185,129,0.4);color:var(--green);}
+        .axiom-card.cyan{background:var(--cyan-dim);border-color:rgba(34,211,238,0.35);color:var(--cyan);}
+        .gear-row{display:flex;align-items:center;justify-content:center;gap:12px;padding:16px 0;position:relative;}
+        .gear{font-size:2em;animation:spinGear 3s linear infinite;display:inline-block;}
+        .gear:nth-child(2){animation-direction:reverse;animation-duration:2.5s;}
+        .gear:nth-child(3){animation-duration:3.5s;}
+        @keyframes spinGear{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+        .conveyor{height:4px;background:linear-gradient(90deg,var(--gold-dim),var(--gold),var(--gold-dim));
+            border-radius:2px;margin:8px 0;animation:conveyorMove 2s linear infinite;}
+        @keyframes conveyorMove{from{background-position:0 0}to{background-position:40px 0}}
+        .theorem-tray{background:rgba(16,185,129,0.06);border:1.5px dashed rgba(16,185,129,0.25);
+            border-radius:12px;padding:14px;min-height:50px;text-align:center;margin-top:10px;}
+        .stamp{display:inline-block;padding:6px 14px;border-radius:8px;font-weight:700;font-size:0.85em;
+            letter-spacing:1px;text-transform:uppercase;animation:stampIn 0.3s ease;}
+        .stamp.proved{background:rgba(251,191,36,0.15);border:1.5px solid var(--gold);color:var(--gold);}
+        .stamp.understood{background:rgba(16,185,129,0.15);border:1.5px solid var(--green);color:var(--green);}
+        @keyframes stampIn{from{transform:scale(1.5);opacity:0}to{transform:scale(1);opacity:1}}
+
+        /* Word bank for drag */
+        .word-bank{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0;}
+        .word-chip{padding:9px 18px;border-radius:24px;background:var(--bg3);border:1.5px solid var(--border);
+            color:var(--text);font-family:'DM Sans',sans-serif;font-size:0.9em;font-weight:500;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;user-select:none;}
+        .word-chip:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+        .word-chip.selected{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);
+            box-shadow:0 0 12px rgba(251,191,36,0.2);}
+        .word-chip.correct{border-color:var(--green);color:var(--green);background:var(--green-dim);cursor:default;}
+        .word-chip.wrong{border-color:var(--rose);color:var(--rose);animation:shake 0.4s ease;}
+        @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+        .word-chip:disabled{opacity:0.3;cursor:default;}
+
+        /* Slot for answers */
+        .answer-slot{display:inline-flex;align-items:center;padding:8px 16px;border-radius:12px;
+            background:rgba(255,255,255,0.03);border:2px dashed rgba(255,255,255,0.12);
+            min-width:80px;min-height:40px;justify-content:center;color:var(--muted);
+            font-family:'Lora',serif;font-size:0.95em;transition:all 0.3s;cursor:pointer;}
+        .answer-slot.filled{background:var(--gold-dim);border:1.5px solid rgba(251,191,36,0.4);
+            color:var(--gold);border-style:solid;}
+        .answer-slot.correct{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.4);
+            color:var(--green);border-style:solid;}
+
+        /* Queue styles */
+        .queue-item{display:flex;align-items:center;gap:12px;padding:14px 16px;
+            background:var(--bg3);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;
+            transition:all 0.4s;}
+        .queue-statement{font-family:'Lora',serif;font-size:0.95em;color:var(--text);flex:1;}
+        .queue-status{font-size:0.78em;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+            white-space:nowrap;padding:4px 10px;border-radius:6px;}
+        .queue-status.solved{background:rgba(251,191,36,0.15);color:var(--gold);}
+        .queue-status.spinning{background:rgba(34,211,238,0.1);color:var(--cyan);animation:spinPulse 1.5s ease infinite;}
+        @keyframes spinPulse{0%,100%{opacity:1}50%{opacity:0.5}}
+        .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--cyan-dim);
+            border-top-color:var(--cyan);border-radius:50%;animation:spin 0.8s linear infinite;margin-right:6px;vertical-align:middle;}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        /* Toggle */
+        .toggle-wrap{display:flex;flex-direction:column;gap:10px;margin:16px 0;}
+        .toggle-btn{padding:14px 20px;border-radius:14px;background:var(--bg3);
+            border:1.5px solid var(--border);color:var(--text);
+            font-family:'DM Sans',sans-serif;font-size:0.92em;font-weight:500;
+            cursor:pointer;transition:all 0.25s;touch-action:manipulation;text-align:left;line-height:1.5;}
+        .toggle-btn:hover{border-color:var(--gold);background:var(--gold-dim);}
+        .toggle-btn.chosen{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);}
+        .toggle-btn:disabled{cursor:default;}
+        .toggle-response{font-family:'Lora',serif;font-size:0.95em;line-height:1.72;color:#9098c0;
+            padding:14px 18px;background:var(--bg2);border-radius:12px;
+            border-left:3px solid var(--gold);margin-top:4px;animation:fadeUp 0.4s ease both;}
+
+        /* Vocab card matching */
+        .vocab-grid{display:flex;flex-direction:column;gap:10px;margin:14px 0;}
+        .vocab-row{display:flex;align-items:stretch;gap:10px;}
+        .vocab-term{min-width:110px;padding:12px 14px;border-radius:12px;
+            background:var(--gold-dim);border:1.5px solid rgba(251,191,36,0.3);
+            color:var(--gold);font-weight:700;font-size:0.9em;display:flex;align-items:center;justify-content:center;
+            text-align:center;}
+        .vocab-drop{flex:1;padding:12px 14px;border-radius:12px;
+            background:rgba(255,255,255,0.02);border:2px dashed rgba(255,255,255,0.1);
+            color:var(--muted);font-family:'Lora',serif;font-size:0.88em;line-height:1.5;
+            cursor:pointer;transition:all 0.3s;display:flex;align-items:center;min-height:52px;}
+        .vocab-drop.filled{background:var(--green-dim);border:1.5px solid rgba(16,185,129,0.35);
+            color:var(--green);border-style:solid;cursor:default;}
+        .vocab-drop.hover{border-color:var(--gold);background:var(--gold-dim);}
+        .def-chip{padding:10px 16px;border-radius:12px;background:var(--bg3);border:1.5px solid var(--border);
+            color:var(--text);font-family:'Lora',serif;font-size:0.88em;line-height:1.5;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;user-select:none;}
+        .def-chip:hover{border-color:var(--cyan);color:var(--cyan);}
+        .def-chip.selected{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim);}
+        .def-chip.used{opacity:0.25;cursor:default;pointer-events:none;}
+
+        /* Proof builder */
+        .proof-step{display:flex;align-items:center;gap:10px;padding:12px 14px;
+            background:var(--bg3);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;
+            transition:all 0.4s;}
+        .proof-num{width:28px;height:28px;border-radius:50%;background:var(--gold-dim);
+            border:1.5px solid rgba(251,191,36,0.3);display:flex;align-items:center;justify-content:center;
+            font-size:0.75em;font-weight:700;color:var(--gold);flex-shrink:0;}
+        .proof-text{font-family:'Lora',serif;font-size:0.92em;color:var(--text);flex:1;line-height:1.5;}
+        .proof-rule{font-size:0.72em;text-transform:uppercase;letter-spacing:1px;
+            padding:4px 8px;border-radius:6px;white-space:nowrap;}
+        .proof-rule.axiom{background:var(--gold-dim);color:var(--gold);}
+        .proof-rule.infer{background:var(--cyan-dim);color:var(--cyan);}
+        .proof-step.complete{border-color:rgba(251,191,36,0.3);background:rgba(251,191,36,0.05);}
+        .proof-step.glowing{border-color:rgba(251,191,36,0.5);background:rgba(251,191,36,0.08);
+            box-shadow:0 0 20px rgba(251,191,36,0.15);}
+
+        /* Rule selector */
+        .rule-selector{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0;}
+        .rule-btn{padding:10px 16px;border-radius:12px;background:var(--bg3);
+            border:1.5px solid var(--border);color:var(--muted);
+            font-family:'DM Sans',sans-serif;font-size:0.85em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;}
+        .rule-btn:hover{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim);}
+        .rule-btn:disabled{opacity:0.3;cursor:default;}
+
+        /* Warning light */
+        .warning-light{width:14px;height:14px;border-radius:50%;background:var(--rose);
+            box-shadow:0 0 12px var(--rose),0 0 24px rgba(251,113,133,0.3);
+            position:absolute;top:14px;right:14px;opacity:0;transition:opacity 0.3s;}
+        .warning-light.blink{animation:warningBlink 0.4s ease 3;}
+        @keyframes warningBlink{0%,100%{opacity:0}50%{opacity:1}}
+
+        /* Hilbert machine background animation */
+        .machine-bg{position:absolute;inset:0;pointer-events:none;overflow:hidden;opacity:0.08;}
+        .machine-bg .gear-bg{position:absolute;font-size:4em;animation:spinGear 8s linear infinite;}
+
+        .character-card{text-align:center;padding:28px 20px;margin-bottom:20px;}
+        .char-icon{font-size:4em;display:block;margin-bottom:12px;}
+        .char-name{font-family:'Lora',serif;font-size:1.4em;color:var(--silver);margin-bottom:4px;}
+        .char-detail{font-size:0.88em;color:var(--muted);font-style:italic;}
+
+        .action-strip{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;}
+        .act-btn{padding:11px 20px;border-radius:12px;background:var(--bg3);
+            border:1.5px solid var(--border);color:var(--muted);
+            font-family:'DM Sans',sans-serif;font-size:0.9em;font-weight:600;
+            cursor:pointer;transition:all 0.2s;touch-action:manipulation;}
+        .act-btn:hover,.act-btn:active{border-color:var(--gold);color:var(--gold);background:var(--gold-dim);}
+        .act-btn:disabled{opacity:0.3;cursor:default;}
+
+        .complete-badge{background:linear-gradient(135deg,rgba(251,191,36,0.1),rgba(16,185,129,0.05));
+            border:1px solid rgba(251,191,36,0.2);border-radius:var(--radius);
+            padding:24px;margin-bottom:20px;text-align:center;}
+        .badge-icon{font-size:3.5em;display:block;margin-bottom:10px;}
+        .badge-title{font-family:'Lora',serif;font-size:1.3em;color:var(--gold);margin-bottom:6px;}
+        .badge-sub{font-size:0.85em;color:var(--muted);font-family:'Lora',serif;font-style:italic;line-height:1.6;}
+
+        #confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+        .bottom-pad{height:20px;}
+        @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+
+        /* Progress bar for spinning statements */
+        .progress-bar-wrap{width:100%;height:4px;background:rgba(255,255,255,0.05);border-radius:2px;margin-top:6px;overflow:hidden;}
+        .progress-bar-inner{height:100%;background:var(--cyan);border-radius:2px;animation:progressSlow 8s linear infinite;}
+        @keyframes progressSlow{0%{width:0%}80%{width:72%}100%{width:74%}}
+
+        .hilbert-quote{font-family:'Lora',serif;font-size:clamp(1.1em,4vw,1.4em);
+            color:var(--silver);text-align:center;line-height:1.7;padding:20px;
+            border:1px solid rgba(251,191,36,0.2);border-radius:var(--radius);
+            background:linear-gradient(135deg,rgba(251,191,36,0.05),rgba(251,191,36,0.02));
+            margin-bottom:16px;position:relative;}
+        .hilbert-quote em{color:var(--gold);}
+    </style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<canvas id="cosmos"></canvas>
+<div id="app">
+  <header class="app-header">
+    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="progress-wrap">
+      <div class="act-indicator">Act I of V</div>
+      <div class="progress-dots" id="progressDots">
+        <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- SCREEN 0: OPENING — Character Card                        -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="screen active" id="screen-0">
+    <div class="act-title">
+      <div class="act-label">The Broken Machine &middot; Act I</div>
+      <div class="act-name">Hilbert's <em>Dream</em></div>
+    </div>
+    <div class="character-card">
+      <div class="char-icon" style="animation:float 3s ease-in-out infinite;">&#x1F3DB;</div>
+      <div class="char-name">David Hilbert</div>
+      <div class="char-detail">Konigsberg, 1900</div>
+    </div>
+    <div class="narrator">
+      <p><em>David Hilbert.</em> The greatest mathematician of his age. Standing before the world's mathematicians in Paris. About to make a promise.</p>
+    </div>
+    <div class="narrator" style="margin-top:-4px;">
+      <p><strong>"Every mathematical problem can be solved."</strong></p>
+      <p style="margin-top:10px">Not <em>might be.</em> Not <em>probably will be.</em> Can be.</p>
+      <p style="margin-top:10px">He meant it. And for a moment &mdash; for a beautiful, optimistic moment &mdash; almost everyone believed him.</p>
+    </div>
+    <div class="insight">
+      <div class="lbl">Try This</div>
+      <p>Before you continue, ask yourself: do you believe every mathematical question has a definite answer? Every puzzle a solution? Every conjecture a proof or a disproof? Hold your answer in mind as you enter the dream.</p>
+    </div>
+    <div class="insight cyan">
+      <div class="lbl">What To Notice</div>
+      <p>Hilbert's claim is not about intelligence or effort. It is a claim about the <em>nature of mathematics itself</em> &mdash; that truth and provability are the same thing.</p>
+    </div>
+    <div class="insight" style="border-left-color:var(--gold);">
+      <div class="lbl">Why It Matters</div>
+      <p>If Hilbert was right, mathematics would be a machine. Feed in axioms, apply rules, and every truth would eventually emerge. No mystery. No ambiguity. Just certainty, forever.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:400px;margin:0 auto;width:100%;">
+      <button class="cta-btn" onclick="startGuidedTour()" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);box-shadow:0 4px 24px rgba(251,191,36,0.3);">Start Guided Tour</button>
+      <button class="cta-btn" onclick="goToScreen(1)" style="background:linear-gradient(135deg,var(--gold),#d97706);">Enter the dream &rarr;</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- SCREEN 1: DISCOVERY 1 — The Proof Machine                 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="screen" id="screen-1">
+    <div class="act-title">
+      <div class="act-label">Discovery</div>
+      <div class="act-name">The Proof <em>Machine</em></div>
+    </div>
+
+    <!-- Machine visual -->
+    <div class="machine-wrap" id="proofMachine">
+      <div class="machine-bg">
+        <div class="gear-bg" style="top:10%;left:5%;">&#x2699;</div>
+        <div class="gear-bg" style="top:40%;right:8%;animation-direction:reverse;">&#x2699;</div>
+        <div class="gear-bg" style="bottom:10%;left:40%;">&#x2699;</div>
+      </div>
+      <div class="machine-label">Hilbert's Proof Machine</div>
+
+      <!-- Challenge area -->
+      <div id="challengeArea"></div>
+
+      <!-- Gears -->
+      <div class="gear-row" id="gearRow">
+        <span class="gear">&#x2699;</span>
+        <span class="gear">&#x2699;</span>
+        <span class="gear">&#x2699;</span>
+      </div>
+      <div class="conveyor"></div>
+
+      <!-- Theorem tray -->
+      <div class="theorem-tray" id="theoremTray">
+        <span style="color:var(--muted);font-size:0.85em;font-style:italic;">Proved theorems appear here</span>
+      </div>
+    </div>
+
+    <!-- Word bank -->
+    <div id="wordBankWrap"></div>
+
+    <!-- Whisper after 3 proofs -->
+    <div class="narrator" id="machineWhisper" style="display:none;">
+      <p><em>This is what Hilbert saw.</em> A machine of pure logic. Feed in true axioms, apply correct rules, and the truth comes out the other end. Every time. No ambiguity. No doubt.</p>
+      <p style="margin-top:10px">It was, he believed, just a matter of finding the right axioms and being patient enough.</p>
+    </div>
+
+    <div class="action-strip">
+      <button class="act-btn" onclick="resetProofMachine()">Reset</button>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(2)" id="s1Next" disabled>The machine hums. But can it solve everything? &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- SCREEN 2: DISCOVERY 2 — The Completeness Queue            -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="screen" id="screen-2">
+    <div class="act-title">
+      <div class="act-label">Discovery</div>
+      <div class="act-name">The Completeness <em>Question</em></div>
+    </div>
+    <div class="narrator cyan">
+      <p>The machine is still running. But now we feed it harder problems. Watch what happens when we queue up questions that mathematicians have wondered about for centuries.</p>
+    </div>
+
+    <!-- Queue -->
+    <div id="queueArea" style="margin-bottom:16px;"></div>
+
+    <!-- Toggle -->
+    <div id="toggleArea" style="display:none;">
+      <div style="font-family:'Lora',serif;font-size:1em;color:var(--silver);margin-bottom:10px;line-height:1.6;">
+        The gears keep spinning. The last two problems never resolve. Why?
+      </div>
+      <div class="toggle-wrap" id="toggleBtns"></div>
+      <div id="toggleResponse" style="display:none;"></div>
+    </div>
+
+    <!-- Narrative reveal after toggle -->
+    <div class="narrator" id="completenessReveal" style="display:none;">
+      <p>Hilbert's programme had three parts. First: prove that mathematics is <strong>complete</strong> &mdash; every true statement is provable. Second: prove it is <strong>consistent</strong> &mdash; it never proves a contradiction. Third: prove it is <strong>decidable</strong> &mdash; there is a mechanical procedure to determine whether any statement is true.</p>
+      <p style="margin-top:10px">He called the decidability question <em>"the main problem of mathematical logic."</em></p>
+      <p style="margin-top:10px">He was right about its importance. He was wrong about the answer.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(3)" id="s2Next" disabled>Name the three hopes &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- SCREEN 3: PATTERN — Vocabulary Cards                       -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="screen" id="screen-3">
+    <div class="act-title">
+      <div class="act-label">Pattern</div>
+      <div class="act-name">Three <em>Hopes</em></div>
+    </div>
+    <div class="narrator">
+      <p>Hilbert's programme rested on three pillars. Drag each definition to its correct term.</p>
+    </div>
+
+    <div class="vocab-grid" id="vocabGrid"></div>
+
+    <div style="font-family:'Lora',serif;font-size:0.88em;color:var(--muted);text-align:center;margin:8px 0 12px;" id="vocabHint">
+      Select a definition below, then tap the matching term.
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;" id="defBank"></div>
+
+    <!-- Stamp area -->
+    <div class="theorem-tray" id="vocabTray" style="display:none;">
+    </div>
+
+    <!-- Connecting observation -->
+    <div class="narrator" id="vocabObservation" style="display:none;">
+      <p><em>Notice something.</em> These three hopes &mdash; completeness, consistency, decidability &mdash; are not independent. If you had all three, mathematics would be a machine. You would never need intuition, creativity, or genius. You would just follow the procedure.</p>
+      <p style="margin-top:10px">Hilbert thought that was a good thing. Not everyone agreed.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(4)" id="s3Next" disabled>Build a proof from scratch &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- SCREEN 4: PROOF — Peano Arithmetic                        -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="screen" id="screen-4">
+    <div class="act-title">
+      <div class="act-label">Proof</div>
+      <div class="act-name">Inside a <em>Formal System</em></div>
+    </div>
+    <div class="narrator">
+      <p>Now you build proofs yourself. Here is a simplified formal system &mdash; <em>"Peano arithmetic lite"</em> &mdash; with three axioms and two inference rules.</p>
+    </div>
+
+    <!-- Axioms display -->
+    <div class="machine-wrap">
+      <div class="machine-label">Axioms</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="axiom-card"><strong>A1:</strong>&nbsp; 0 is a natural number</div>
+        <div class="axiom-card"><strong>A2:</strong>&nbsp; If n is a natural number, then S(n) is a natural number</div>
+        <div class="axiom-card"><strong>A3:</strong>&nbsp; For any natural number n: S(n) &ne; 0</div>
+      </div>
+    </div>
+    <div class="machine-wrap">
+      <div class="machine-label">Inference Rules</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        <div class="axiom-card cyan"><strong>Substitution:</strong>&nbsp; Replace a variable with any natural number</div>
+        <div class="axiom-card cyan"><strong>Modus Ponens:</strong>&nbsp; From "If A then B" and "A", conclude "B"</div>
+      </div>
+    </div>
+
+    <!-- Proof challenges -->
+    <div id="proofChallenges"></div>
+
+    <!-- Key insight -->
+    <div class="insight" id="proofInsight" style="display:none;">
+      <div class="lbl">The Key Insight</div>
+      <p>You just proved theorems from scratch. You never needed to "think" &mdash; only to follow rules. This is what a formal system <em>is.</em> The axioms are the starting assumptions. The rules are the only moves allowed. Every theorem is just a path from axioms to conclusion, following rules.</p>
+      <p style="margin-top:10px">The machine can, in principle, explore all possible paths. Try all possible rule applications. Check every sequence. This is what Hilbert imagined: a systematic, exhaustive, mechanical proof of everything.</p>
+    </div>
+
+    <button class="cta-btn" onclick="goToScreen(5)" id="s4Next" disabled>What happened next &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- SCREEN 5: CONNECTION — Hilbert's Speech & Rose Warning     -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="screen" id="screen-5">
+    <div class="act-title">
+      <div class="act-label">Connection</div>
+      <div class="act-name">The <em>Stakes</em></div>
+    </div>
+
+    <div class="narrator">
+      <p>Hilbert published his programme in 1900. For thirty years, it dominated mathematics. The greatest minds in the world worked to fulfil it. Consistency proofs were constructed for simpler systems. Progress was made.</p>
+      <p style="margin-top:10px">Then, in September 1930, Hilbert gave a famous speech.</p>
+    </div>
+
+    <div class="hilbert-quote" id="hilbertQuote">
+      <em>"Wir mussen wissen. Wir werden wissen."</em>
+      <div style="font-size:0.72em;color:var(--gold);margin-top:8px;letter-spacing:1px;">
+        "We must know. We will know."
+      </div>
+    </div>
+
+    <!-- Machine with warning light -->
+    <div class="machine-wrap" id="connectionMachine" style="min-height:120px;">
+      <div class="warning-light" id="warningLight"></div>
+      <div class="machine-label">The Proof Machine</div>
+      <div class="gear-row">
+        <span class="gear" style="color:var(--gold);">&#x2699;</span>
+        <span class="gear" style="color:var(--gold);">&#x2699;</span>
+        <span class="gear" style="color:var(--gold);">&#x2699;</span>
+      </div>
+      <div class="conveyor"></div>
+      <div style="text-align:center;font-size:0.82em;color:var(--muted);font-style:italic;margin-top:8px;">
+        The machine hums. Gold stamps cascade. Everything is working.
+      </div>
+    </div>
+
+    <div class="narrator rose" id="connectionReveal" style="display:none;">
+      <p>The next day, at a conference in the same city, a quiet 24-year-old presented a paper that made <em>"we will know"</em> permanently impossible.</p>
+      <p style="margin-top:10px">His name was Kurt Godel.</p>
+    </div>
+
+    <button class="cta-btn" onclick="triggerWarningLight()" id="connectionBtn">Continue &rarr;</button>
+
+    <div id="connectionCTA" style="display:none;margin-top:16px;">
+      <div class="complete-badge">
+        <span class="badge-icon">&#x2699;</span>
+        <div class="badge-title">Act I Complete &mdash; Hilbert's Dream</div>
+        <div class="badge-sub">You felt the pleasure of formal reasoning. The beauty of certainty. The satisfaction of a machine that always gives a definite answer.<br><br>But something has changed. A rose light blinked &mdash; just once.</div>
+      </div>
+      <button class="cta-btn rose-btn" onclick="completeAct1()">Meet the man who broke it &rarr;</button>
+      <div style="height:12px;"></div>
+      <button class="cta-btn ghost" onclick="window.location.href='../index.html'">&#8592; Back to mathsedu.org</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- COPYRIGHT FOOTER                                           -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<footer style="text-align:center;padding:20px;font-size:0.72em;color:var(--muted);border-top:1px solid var(--border);background:var(--bg);">
+  &copy; 2025 Manoj Bhaskar. Licensed under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:var(--gold);text-decoration:none;">CC BY-NC-SA 4.0</a>
+</footer>
+
+<script src="../narrator.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   The Broken Machine — Act I: Hilbert's Dream
+   Self-contained JS for all 6 screens
+   ═══════════════════════════════════════════════════════════════ */
+
+var curScreen = 0;
+var totalScreens = 6;
+
+/* ── Navigation ── */
+function goToScreen(n) {
+    document.getElementById('screen-' + curScreen).classList.remove('active');
+    curScreen = n;
+    document.getElementById('screen-' + n).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateDots();
+    // Init screens
+    if (n === 1) initProofMachine();
+    if (n === 2) initQueue();
+    if (n === 3) initVocab();
+    if (n === 4) initProofs();
+    if (n === 5) initConnection();
+}
+
+function updateDots() {
+    var dots = document.querySelectorAll('#progressDots .dot');
+    for (var i = 0; i < dots.length; i++) {
+        dots[i].className = 'dot';
+        if (i < curScreen) dots[i].className = 'dot done';
+        if (i === curScreen) dots[i].className = 'dot active';
+    }
+}
+
+/* ── Cosmos background ── */
+(function() {
+    var cv = document.getElementById('cosmos');
+    function draw() {
+        cv.width = innerWidth; cv.height = innerHeight;
+        var ctx = cv.getContext('2d');
+        var g = ctx.createRadialGradient(innerWidth * 0.3, innerHeight * 0.2, 0, innerWidth * 0.5, innerHeight * 0.5, innerWidth * 0.8);
+        g.addColorStop(0, 'rgba(251,191,36,0.03)');
+        g.addColorStop(0.5, 'rgba(34,211,238,0.015)');
+        g.addColorStop(1, 'transparent');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, cv.width, cv.height);
+        for (var i = 0; i < 200; i++) {
+            var x = Math.random() * cv.width, y = Math.random() * cv.height;
+            var r = Math.random() * 1.4, a = 0.04 + Math.random() * 0.3;
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+            var t = ['255,255,255', '255,240,200', '200,230,255'];
+            ctx.fillStyle = 'rgba(' + t[Math.floor(Math.random() * t.length)] + ',' + a + ')';
+            ctx.fill();
+        }
+    }
+    window.addEventListener('resize', draw); draw();
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN 1 — The Proof Machine
+   ═══════════════════════════════════════════════════════════════ */
+
+var proofChallenges = [
+    {
+        label: 'Syllogism',
+        premises: ['All men are mortal', 'Socrates is a man'],
+        conclusion: 'Therefore, Socrates is ___',
+        answer: 'mortal',
+        options: ['mortal', 'immortal', 'wise', 'Greek'],
+        theorem: 'Socrates is mortal'
+    },
+    {
+        label: 'Arithmetic',
+        premises: ['2 + 3 = ?'],
+        conclusion: 'The sum equals ___',
+        answer: '5',
+        options: ['4', '5', '6', '23'],
+        theorem: '2 + 3 = 5'
+    },
+    {
+        label: 'Commutativity',
+        premises: ['If A = B, does B = A?'],
+        conclusion: 'B = A is ___',
+        answer: 'true',
+        options: ['true', 'false', 'undefined', 'sometimes'],
+        theorem: 'If A = B then B = A'
+    },
+    {
+        label: 'Modus Ponens',
+        premises: ['If it rains, the ground is wet', 'It is raining'],
+        conclusion: 'Therefore, the ground is ___',
+        answer: 'wet',
+        options: ['dry', 'wet', 'muddy', 'unknown'],
+        theorem: 'The ground is wet'
+    },
+    {
+        label: 'Transitivity',
+        premises: ['If A > B and B > C'],
+        conclusion: 'Then A ___ C',
+        answer: '> (greater than)',
+        options: ['< (less than)', '> (greater than)', '= (equal to)', 'unrelated to'],
+        theorem: 'A > B > C implies A > C'
+    },
+    {
+        label: 'Proof Chain',
+        premises: ['All primes > 2 are odd', '7 is prime', '7 > 2'],
+        conclusion: 'Therefore, 7 is ___',
+        answer: 'odd',
+        options: ['even', 'odd', 'composite', 'perfect'],
+        theorem: '7 is odd'
+    }
+];
+var pmIndex = 0;
+var pmSolved = 0;
+
+function initProofMachine() {
+    pmIndex = 0;
+    pmSolved = 0;
+    document.getElementById('theoremTray').innerHTML = '<span style="color:var(--muted);font-size:0.85em;font-style:italic;">Proved theorems appear here</span>';
+    document.getElementById('machineWhisper').style.display = 'none';
+    document.getElementById('s1Next').disabled = true;
+    showChallenge();
+}
+
+function resetProofMachine() { initProofMachine(); }
+
+function showChallenge() {
+    if (pmIndex >= proofChallenges.length) {
+        document.getElementById('challengeArea').innerHTML = '<div style="text-align:center;padding:16px;color:var(--green);font-family:\'Lora\',serif;font-size:1.1em;">All proofs complete. The machine works perfectly.</div>';
+        document.getElementById('wordBankWrap').innerHTML = '';
+        document.getElementById('s1Next').disabled = false;
+        launchMiniConfetti();
+        return;
+    }
+    var ch = proofChallenges[pmIndex];
+    var html = '<div style="font-size:0.72em;text-transform:uppercase;letter-spacing:2px;color:var(--cyan);margin-bottom:10px;">' + ch.label + ' &mdash; Challenge ' + (pmIndex + 1) + ' of ' + proofChallenges.length + '</div>';
+    ch.premises.forEach(function(p) {
+        html += '<div class="axiom-card" style="display:block;margin-bottom:6px;">' + p + '</div>';
+    });
+    html += '<div style="margin-top:10px;font-family:\'Lora\',serif;font-size:1em;color:var(--silver);line-height:1.7;">' + ch.conclusion + '</div>';
+    document.getElementById('challengeArea').innerHTML = html;
+
+    // Word bank
+    var bankHtml = '<div class="word-bank">';
+    var shuffled = ch.options.slice().sort(function() { return Math.random() - 0.5; });
+    shuffled.forEach(function(opt) {
+        bankHtml += '<div class="word-chip" onclick="tryAnswer(this,\'' + opt.replace(/'/g, "\\'") + '\')">' + opt + '</div>';
+    });
+    bankHtml += '</div>';
+    document.getElementById('wordBankWrap').innerHTML = bankHtml;
+}
+
+function tryAnswer(el, answer) {
+    var ch = proofChallenges[pmIndex];
+    if (answer === ch.answer) {
+        el.className = 'word-chip correct';
+        // Disable all chips
+        var chips = document.querySelectorAll('#wordBankWrap .word-chip');
+        for (var i = 0; i < chips.length; i++) chips[i].style.pointerEvents = 'none';
+
+        pmSolved++;
+        // Add to tray
+        var tray = document.getElementById('theoremTray');
+        if (pmSolved === 1) tray.innerHTML = '';
+        var stamp = document.createElement('div');
+        stamp.innerHTML = '<span class="stamp proved">PROVED &#x2713;</span> <span style="font-family:\'Lora\',serif;font-size:0.88em;color:var(--gold);margin-left:6px;">' + ch.theorem + '</span>';
+        stamp.style.marginBottom = '6px';
+        tray.appendChild(stamp);
+
+        // Show whisper after 3
+        if (pmSolved === 3) {
+            document.getElementById('machineWhisper').style.display = 'block';
+        }
+
+        // Next challenge after delay
+        setTimeout(function() {
+            pmIndex++;
+            showChallenge();
+        }, 900);
+    } else {
+        el.className = 'word-chip wrong';
+        setTimeout(function() { el.className = 'word-chip'; }, 500);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN 2 — The Completeness Queue
+   ═══════════════════════════════════════════════════════════════ */
+
+var queueInitDone = false;
+
+function initQueue() {
+    if (queueInitDone) return;
+    queueInitDone = true;
+
+    var area = document.getElementById('queueArea');
+    area.innerHTML = '';
+
+    // Item 1: "7 is prime" — solves fast
+    var q1 = document.createElement('div');
+    q1.className = 'queue-item';
+    q1.innerHTML = '<div class="queue-statement">"7 is prime"</div><div class="queue-status" id="q1status" style="color:var(--muted);">Queued</div>';
+    area.appendChild(q1);
+
+    // Item 2: Goldbach
+    var q2 = document.createElement('div');
+    q2.className = 'queue-item';
+    q2.innerHTML = '<div class="queue-statement">"Every even number &gt; 2 is the sum of two primes"</div><div class="queue-status" id="q2status" style="color:var(--muted);">Queued</div>';
+    area.appendChild(q2);
+
+    // Item 3: Twin primes
+    var q3 = document.createElement('div');
+    q3.className = 'queue-item';
+    q3.innerHTML = '<div class="queue-statement">"There are infinitely many twin primes"</div><div class="queue-status" id="q3status" style="color:var(--muted);">Queued</div>';
+    area.appendChild(q3);
+
+    // Animate sequence
+    setTimeout(function() {
+        document.getElementById('q1status').innerHTML = '<span class="spinner"></span>Working...';
+        document.getElementById('q1status').className = 'queue-status spinning';
+    }, 600);
+
+    setTimeout(function() {
+        document.getElementById('q1status').innerHTML = 'PROVED &#x2713;';
+        document.getElementById('q1status').className = 'queue-status solved';
+        q1.style.borderColor = 'rgba(251,191,36,0.3)';
+        q1.style.background = 'rgba(251,191,36,0.04)';
+    }, 2200);
+
+    setTimeout(function() {
+        document.getElementById('q2status').innerHTML = '<span class="spinner"></span>Working...';
+        document.getElementById('q2status').className = 'queue-status spinning';
+        q2.innerHTML = '<div class="queue-statement">"Every even number &gt; 2 is the sum of two primes"<div class="progress-bar-wrap"><div class="progress-bar-inner"></div></div></div><div class="queue-status spinning" id="q2status"><span class="spinner"></span>Working...</div>';
+    }, 3000);
+
+    setTimeout(function() {
+        document.getElementById('q3status').innerHTML = '<span class="spinner"></span>Working...';
+        document.getElementById('q3status').className = 'queue-status spinning';
+        q3.innerHTML = '<div class="queue-statement">"There are infinitely many twin primes"<div class="progress-bar-wrap"><div class="progress-bar-inner"></div></div></div><div class="queue-status spinning" id="q3status"><span class="spinner"></span>Working...</div>';
+    }, 4000);
+
+    // Show toggle after a pause
+    setTimeout(function() {
+        document.getElementById('toggleArea').style.display = 'block';
+        var btns = document.getElementById('toggleBtns');
+        btns.innerHTML = '';
+
+        var b1 = document.createElement('button');
+        b1.className = 'toggle-btn';
+        b1.textContent = 'The machine just needs more time. With enough patience, it will solve them.';
+        b1.onclick = function() { handleToggle('time', b1); };
+        btns.appendChild(b1);
+
+        var b2 = document.createElement('button');
+        b2.className = 'toggle-btn';
+        b2.textContent = 'It can never find the answer. Some problems may be beyond the machine.';
+        b2.onclick = function() { handleToggle('never', b2); };
+        btns.appendChild(b2);
+    }, 5500);
+}
+
+function handleToggle(choice, el) {
+    var btns = document.querySelectorAll('#toggleBtns .toggle-btn');
+    for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+    el.className = 'toggle-btn chosen';
+
+    var resp = document.getElementById('toggleResponse');
+    resp.style.display = 'block';
+
+    if (choice === 'time') {
+        resp.innerHTML = '<div class="toggle-response">Hilbert believed exactly that. With a big enough machine and enough patience, every problem would eventually yield. It was an optimistic, magnificent vision.</div>';
+    } else {
+        resp.innerHTML = '<div class="toggle-response">You have the instinct that Godel would confirm &mdash; thirty years later. Something profound is hiding in those spinning gears.</div>';
+    }
+
+    setTimeout(function() {
+        document.getElementById('completenessReveal').style.display = 'block';
+        document.getElementById('s2Next').disabled = false;
+    }, 1200);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN 3 — Vocabulary Matching
+   ═══════════════════════════════════════════════════════════════ */
+
+var vocabTerms = [
+    { term: 'Complete', def: 'Every true statement can be proved' },
+    { term: 'Consistent', def: 'The system never proves a contradiction' },
+    { term: 'Decidable', def: 'There is a procedure to determine truth for any statement' }
+];
+var vocabMatched = 0;
+var selectedDef = null;
+
+function initVocab() {
+    vocabMatched = 0;
+    selectedDef = null;
+
+    var grid = document.getElementById('vocabGrid');
+    grid.innerHTML = '';
+
+    vocabTerms.forEach(function(v, idx) {
+        var row = document.createElement('div');
+        row.className = 'vocab-row';
+        row.innerHTML = '<div class="vocab-term">' + v.term + '</div>' +
+            '<div class="vocab-drop" id="vdrop-' + idx + '" onclick="dropDef(' + idx + ')">Tap to place definition</div>';
+        grid.appendChild(row);
+    });
+
+    var bank = document.getElementById('defBank');
+    bank.innerHTML = '';
+    // Shuffle definitions
+    var shuffled = vocabTerms.map(function(v, i) { return { def: v.def, idx: i }; })
+        .sort(function() { return Math.random() - 0.5; });
+    shuffled.forEach(function(item) {
+        var chip = document.createElement('div');
+        chip.className = 'def-chip';
+        chip.id = 'defchip-' + item.idx;
+        chip.textContent = item.def;
+        chip.onclick = function() { selectDef(item.idx, chip); };
+        bank.appendChild(chip);
+    });
+
+    document.getElementById('vocabTray').style.display = 'none';
+    document.getElementById('vocabTray').innerHTML = '';
+    document.getElementById('vocabObservation').style.display = 'none';
+    document.getElementById('s3Next').disabled = true;
+    document.getElementById('vocabHint').textContent = 'Select a definition below, then tap the matching term.';
+}
+
+function selectDef(idx, chip) {
+    if (chip.classList.contains('used')) return;
+    // Deselect previous
+    var chips = document.querySelectorAll('.def-chip');
+    for (var i = 0; i < chips.length; i++) chips[i].classList.remove('selected');
+    chip.classList.add('selected');
+    selectedDef = idx;
+
+    // Highlight drops
+    var drops = document.querySelectorAll('.vocab-drop');
+    for (var i = 0; i < drops.length; i++) {
+        if (!drops[i].classList.contains('filled')) drops[i].classList.add('hover');
+    }
+}
+
+function dropDef(termIdx) {
+    if (selectedDef === null) return;
+    var drop = document.getElementById('vdrop-' + termIdx);
+    if (drop.classList.contains('filled')) return;
+
+    if (selectedDef === termIdx) {
+        // Correct match
+        drop.textContent = vocabTerms[termIdx].def;
+        drop.classList.add('filled');
+        drop.classList.remove('hover');
+
+        var chip = document.getElementById('defchip-' + selectedDef);
+        chip.classList.remove('selected');
+        chip.classList.add('used');
+
+        selectedDef = null;
+        vocabMatched++;
+
+        // Add stamp
+        var tray = document.getElementById('vocabTray');
+        tray.style.display = 'block';
+        var s = document.createElement('div');
+        s.innerHTML = '<span class="stamp understood">UNDERSTOOD &#x2713;</span> <span style="font-family:\'Lora\',serif;font-size:0.88em;color:var(--green);margin-left:6px;">' + vocabTerms[termIdx].term + '</span>';
+        s.style.marginBottom = '6px';
+        tray.appendChild(s);
+
+        // Remove hover from all drops
+        var drops = document.querySelectorAll('.vocab-drop');
+        for (var i = 0; i < drops.length; i++) drops[i].classList.remove('hover');
+
+        if (vocabMatched === 3) {
+            document.getElementById('vocabObservation').style.display = 'block';
+            document.getElementById('s3Next').disabled = false;
+            document.getElementById('vocabHint').textContent = 'All three matched. The machine would need all three to work forever.';
+            launchMiniConfetti();
+        }
+    } else {
+        // Wrong — flash
+        drop.style.borderColor = 'var(--rose)';
+        drop.style.background = 'var(--rose-dim)';
+        setTimeout(function() {
+            drop.style.borderColor = '';
+            drop.style.background = '';
+        }, 500);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN 4 — Peano Arithmetic Proofs
+   ═══════════════════════════════════════════════════════════════ */
+
+var peanoProofs = [
+    {
+        goal: 'Prove: S(0) is a natural number',
+        steps: [
+            { text: '0 is a natural number', rule: 'Axiom 1', type: 'axiom', auto: true },
+            { text: 'If n is a natural number, then S(n) is a natural number', rule: 'Axiom 2', type: 'axiom', auto: true },
+            { text: 'Apply Axiom 2 with n = 0', ruleNeeded: 'Substitution', type: 'infer' },
+            { text: 'S(0) is a natural number', rule: 'Result', type: 'axiom', auto: true, final: true }
+        ]
+    },
+    {
+        goal: 'Prove: S(S(0)) is a natural number',
+        steps: [
+            { text: 'S(0) is a natural number', rule: 'Previous theorem', type: 'axiom', auto: true },
+            { text: 'If n is a natural number, then S(n) is a natural number', rule: 'Axiom 2', type: 'axiom', auto: true },
+            { text: 'Apply Axiom 2 with n = S(0)', ruleNeeded: 'Substitution', type: 'infer' },
+            { text: 'S(S(0)) is a natural number', rule: 'Result', type: 'axiom', auto: true, final: true }
+        ]
+    },
+    {
+        goal: 'Prove: S(0) ≠ 0',
+        steps: [
+            { text: 'For any natural number n: S(n) ≠ 0', rule: 'Axiom 3', type: 'axiom', auto: true },
+            { text: 'Apply Axiom 3 with n = 0', ruleNeeded: 'Substitution', type: 'infer' },
+            { text: 'S(0) ≠ 0', rule: 'Result', type: 'axiom', auto: true, final: true }
+        ]
+    }
+];
+var ppIndex = 0;
+var ppStepIndex = 0;
+var ppSolved = 0;
+
+function initProofs() {
+    ppIndex = 0;
+    ppSolved = 0;
+    document.getElementById('proofInsight').style.display = 'none';
+    document.getElementById('s4Next').disabled = true;
+    showProofChallenge();
+}
+
+function showProofChallenge() {
+    if (ppIndex >= peanoProofs.length) {
+        document.getElementById('proofChallenges').innerHTML = '<div style="text-align:center;padding:20px;"><div class="stamp proved" style="font-size:1em;">ALL THEOREMS PROVED &#x2713;</div><div style="color:var(--gold);font-family:\'Lora\',serif;margin-top:10px;">The machine works. Every step mechanical. Every result certain.</div></div>';
+        document.getElementById('proofInsight').style.display = 'block';
+        document.getElementById('s4Next').disabled = false;
+        launchMiniConfetti();
+        return;
+    }
+
+    var proof = peanoProofs[ppIndex];
+    ppStepIndex = 0;
+    var area = document.getElementById('proofChallenges');
+    area.innerHTML = '<div style="font-family:\'Lora\',serif;font-size:1.05em;color:var(--silver);margin-bottom:14px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;"><strong>Goal:</strong> ' + proof.goal + ' <span style="font-size:0.75em;color:var(--muted);margin-left:8px;">(' + (ppIndex + 1) + ' of ' + peanoProofs.length + ')</span></div>';
+    area.innerHTML += '<div id="proofSteps"></div>';
+    area.innerHTML += '<div id="proofRuleArea"></div>';
+
+    advanceProofStep();
+}
+
+function advanceProofStep() {
+    var proof = peanoProofs[ppIndex];
+    if (ppStepIndex >= proof.steps.length) {
+        // Proof complete
+        ppIndex++;
+        ppSolved++;
+        setTimeout(showProofChallenge, 800);
+        return;
+    }
+
+    var step = proof.steps[ppStepIndex];
+    var stepsDiv = document.getElementById('proofSteps');
+
+    if (step.auto) {
+        // Auto-show step
+        var el = document.createElement('div');
+        el.className = 'proof-step' + (step.final ? ' glowing' : ' complete');
+        el.innerHTML = '<div class="proof-num">' + (ppStepIndex + 1) + '</div>' +
+            '<div class="proof-text">' + step.text + '</div>' +
+            '<div class="proof-rule ' + step.type + '">' + step.rule + '</div>';
+        stepsDiv.appendChild(el);
+
+        if (step.final) {
+            // Gold stamp
+            var stamp = document.createElement('div');
+            stamp.style.cssText = 'text-align:center;margin-top:10px;';
+            stamp.innerHTML = '<span class="stamp proved">PROVED &#x2713;</span>';
+            stepsDiv.appendChild(stamp);
+        }
+
+        ppStepIndex++;
+        setTimeout(function() { advanceProofStep(); }, step.final ? 600 : 400);
+    } else {
+        // Need user to pick rule
+        var pending = document.createElement('div');
+        pending.className = 'proof-step';
+        pending.id = 'pendingStep';
+        pending.innerHTML = '<div class="proof-num" style="border-color:rgba(34,211,238,0.3);color:var(--cyan);">' + (ppStepIndex + 1) + '</div>' +
+            '<div class="proof-text" style="color:var(--muted);">' + step.text + '</div>' +
+            '<div class="proof-rule" style="background:var(--cyan-dim);color:var(--cyan);">?</div>';
+        stepsDiv.appendChild(pending);
+
+        // Show rule selector
+        var ruleArea = document.getElementById('proofRuleArea');
+        ruleArea.innerHTML = '<div style="font-size:0.82em;color:var(--muted);text-align:center;margin:10px 0;">Which inference rule applies?</div>';
+        var selector = document.createElement('div');
+        selector.className = 'rule-selector';
+
+        var rules = ['Substitution', 'Modus Ponens'];
+        rules.forEach(function(r) {
+            var btn = document.createElement('button');
+            btn.className = 'rule-btn';
+            btn.textContent = r;
+            btn.onclick = function() { tryProofRule(r, step.ruleNeeded, btn); };
+            selector.appendChild(btn);
+        });
+        ruleArea.appendChild(selector);
+    }
+}
+
+function tryProofRule(chosen, needed, btn) {
+    if (chosen === needed) {
+        // Correct
+        var pending = document.getElementById('pendingStep');
+        if (pending) {
+            pending.className = 'proof-step complete';
+            pending.querySelector('.proof-rule').textContent = chosen;
+            pending.querySelector('.proof-rule').className = 'proof-rule infer';
+            pending.querySelector('.proof-text').style.color = '';
+            pending.id = '';
+        }
+        document.getElementById('proofRuleArea').innerHTML = '';
+        ppStepIndex++;
+        setTimeout(function() { advanceProofStep(); }, 400);
+    } else {
+        btn.style.borderColor = 'var(--rose)';
+        btn.style.color = 'var(--rose)';
+        setTimeout(function() {
+            btn.style.borderColor = '';
+            btn.style.color = '';
+        }, 500);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN 5 — Connection: Hilbert's Speech & Warning Light
+   ═══════════════════════════════════════════════════════════════ */
+
+var connectionTriggered = false;
+
+function initConnection() {
+    connectionTriggered = false;
+    document.getElementById('warningLight').className = 'warning-light';
+    document.getElementById('connectionReveal').style.display = 'none';
+    document.getElementById('connectionCTA').style.display = 'none';
+    document.getElementById('connectionBtn').style.display = 'block';
+}
+
+function triggerWarningLight() {
+    if (connectionTriggered) return;
+    connectionTriggered = true;
+
+    document.getElementById('connectionBtn').style.display = 'none';
+
+    // Blink the rose warning light
+    var light = document.getElementById('warningLight');
+    light.className = 'warning-light blink';
+
+    // After blink, show the reveal
+    setTimeout(function() {
+        light.style.opacity = '0';
+        document.getElementById('connectionReveal').style.display = 'block';
+    }, 1400);
+
+    setTimeout(function() {
+        document.getElementById('connectionCTA').style.display = 'block';
+    }, 2400);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACT COMPLETION
+   ═══════════════════════════════════════════════════════════════ */
+
+function completeAct1() {
+    // Mark complete in localStorage
+    try {
+        var progress = JSON.parse(localStorage.getItem('broken_machine_progress') || '{}');
+        progress.act1_complete = true;
+        progress.act1_completed_at = new Date().toISOString();
+        localStorage.setItem('broken_machine_progress', JSON.stringify(progress));
+    } catch (e) {}
+
+    launchConfetti();
+    setTimeout(function() {
+        window.location.href = 'broken_machine_act2.html';
+    }, 1200);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NARRATOR — Guided Tour
+   ═══════════════════════════════════════════════════════════════ */
+
+window.narratorActions = {
+    goToScreen0: function() { goToScreen(0); },
+    goToScreen1: function() { goToScreen(1); },
+    goToScreen2: function() { goToScreen(2); },
+    goToScreen3: function() { goToScreen(3); },
+    goToScreen4: function() { goToScreen(4); },
+    goToScreen5: function() { goToScreen(5); },
+};
+
+var tourNarrator = null;
+function startGuidedTour() {
+    if (tourNarrator) tourNarrator.stop();
+    goToScreen(0);
+
+    tourNarrator = new Narrator({
+        characters: {
+            narrator: { name: "Guide", color: "#fbbf24", icon: "\u2699" },
+            hilbert: { name: "David Hilbert", color: "#fbbf24", icon: "\uD83C\uDFDB" },
+        },
+        typewriterSpeed: 25,
+        script: [
+            {
+                text: "Welcome to The Broken Machine. This is a story about the most ambitious dream in mathematics \u2014 and the young man who proved it could never come true.",
+                character: "narrator",
+                highlight: ".act-title",
+            },
+            {
+                text: "The year is 1900. I stand before the greatest mathematicians in the world, and I make a declaration: every mathematical problem can be solved. Every truth can be proved.",
+                character: "hilbert",
+            },
+            {
+                text: "For thirty years, this dream dominated mathematics. Let\u2019s see it in action\u2026",
+                character: "narrator",
+                action: "goToScreen1",
+                delay: 500,
+                autoAdvance: 2000,
+            },
+            {
+                text: "This is the proof machine. Feed in axioms, apply inference rules, and theorems come out the other end. Try it \u2014 pick the right word for each logical chain.",
+                character: "narrator",
+                highlight: "#proofMachine",
+            },
+            {
+                text: "Complete all six proofs to see the machine at full power. Every answer is certain. Every step mechanical.",
+                character: "narrator",
+            },
+            {
+                text: "Beautiful, isn\u2019t it? The machine works. But now we feed it harder problems\u2026",
+                character: "narrator",
+                action: "goToScreen2",
+                delay: 500,
+                autoAdvance: 2000,
+            },
+            {
+                text: "Watch the queue. Some problems solve instantly. Others spin forever. This is the question at the heart of Hilbert\u2019s programme: is the spinning because we need more time \u2014 or because the answer can never come?",
+                character: "narrator",
+            },
+            {
+                text: "Make your choice. There is no wrong answer yet \u2014 this is a genuine question that haunted mathematics for decades.",
+                character: "narrator",
+            },
+            {
+                text: "In Act II, you will meet the man who answered it. But first, let\u2019s name the three hopes that Hilbert\u2019s dream depends on.",
+                character: "narrator",
+                action: "goToScreen3",
+                delay: 500,
+                autoAdvance: 2000,
+            },
+            {
+                text: "Completeness, consistency, decidability \u2014 three pillars holding up the entire edifice. Match each to its definition.",
+                character: "narrator",
+            },
+            {
+                text: "If all three hold, mathematics is a machine. You would never need creativity or genius \u2014 just patience.",
+                character: "hilbert",
+            },
+            {
+                text: "Now let\u2019s step inside a real formal system and build proofs from raw axioms.",
+                character: "narrator",
+                action: "goToScreen4",
+                delay: 500,
+                autoAdvance: 2000,
+            },
+            {
+                text: "Peano arithmetic \u2014 the foundation of all number theory. Three axioms, two rules. From these simple starting points, all of arithmetic can be derived.",
+                character: "narrator",
+            },
+            {
+                text: "Choose the correct inference rule at each step. You are not \u201Cthinking\u201D \u2014 you are following mechanical rules. That is exactly the point.",
+                character: "narrator",
+            },
+            {
+                text: "The proofs are complete. The machine works perfectly. Now hear the words I spoke in 1930\u2026",
+                character: "hilbert",
+                action: "goToScreen5",
+                delay: 500,
+                autoAdvance: 2000,
+            },
+            {
+                text: "We must know. We will know. Those were my words. I believed them with absolute certainty.",
+                character: "hilbert",
+                highlight: ".hilbert-quote",
+            },
+            {
+                text: "Watch the machine carefully\u2026",
+                character: "narrator",
+                autoAdvance: 3000,
+            },
+        ],
+        onComplete: function() {
+            // Tour done, user continues manually
+        }
+    });
+
+    tourNarrator.start();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONFETTI
+   ═══════════════════════════════════════════════════════════════ */
+
+var cc = document.getElementById('confetti'), cxc = cc.getContext('2d'), parts = [], afr = null;
+
+function launchConfetti() {
+    cc.width = innerWidth; cc.height = innerHeight; parts = [];
+    for (var i = 0; i < 90; i++) parts.push({
+        x: Math.random() * cc.width, y: -20,
+        vx: (Math.random() - 0.5) * 5, vy: 2 + Math.random() * 4,
+        c: ['#fbbf24', '#22d3ee', '#10b981', '#e2e8f0', '#fb7185'][Math.floor(Math.random() * 5)],
+        s: 5 + Math.random() * 7, r: Math.random() * Math.PI * 2,
+        vr: (Math.random() - 0.5) * 0.2, l: 1
+    });
+    if (afr) cancelAnimationFrame(afr);
+    animC();
+    setTimeout(function() { parts = []; }, 3500);
+}
+
+function launchMiniConfetti() {
+    cc.width = innerWidth; cc.height = innerHeight;
+    for (var i = 0; i < 22; i++) parts.push({
+        x: innerWidth / 2 + (Math.random() - 0.5) * 220,
+        y: innerHeight * 0.4,
+        vx: (Math.random() - 0.5) * 8, vy: -(3 + Math.random() * 6),
+        c: ['#fbbf24', '#22d3ee', '#10b981'][Math.floor(Math.random() * 3)],
+        s: 4 + Math.random() * 5, r: 0, vr: (Math.random() - 0.5) * 0.3, l: 1
+    });
+    if (!afr) animC();
+}
+
+function animC() {
+    cxc.clearRect(0, 0, cc.width, cc.height);
+    parts = parts.filter(function(p) { return p.l > 0.01; });
+    parts.forEach(function(p) {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.r += p.vr; p.l -= 0.012;
+        cxc.save(); cxc.globalAlpha = p.l;
+        cxc.translate(p.x, p.y); cxc.rotate(p.r);
+        cxc.fillStyle = p.c;
+        cxc.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.6);
+        cxc.restore();
+    });
+    if (parts.length > 0) afr = requestAnimationFrame(animC); else afr = null;
+}
+</script>
+</body>
+</html>
