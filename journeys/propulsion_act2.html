@@ -234,16 +234,15 @@
 
         #confetti {
             position: fixed; inset: 0; z-index: 50; pointer-events: none;
+            background: transparent; border: none; border-radius: 0; margin: 0;
         }
 
         .bottom-pad { height: 20px; }
 
-        a[href="../index.html"] {
-            position: fixed; top: 12px; left: 16px;
-            color: var(--muted); text-decoration: none;
-            font-size: 0.85em; z-index: 1000;
-            font-family: 'Crimson Pro', serif; font-style: italic;
+        .header-logo a {
+            color: inherit; text-decoration: none;
         }
+        .header-logo a:hover { color: var(--accent); }
 
         footer {
             text-align: center;
@@ -263,12 +262,11 @@
   <meta name="description" content="Learn about Propulsion Act2 in Mathematics Education">
   </head>
 <body>
-<a href="../index.html">← mathsedu.org</a>
 <canvas id="confetti"></canvas>
 <div id="stars"></div>
 <div id="app">
   <header class="app-header">
-    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="header-logo"><a href="../index.html">← mathsedu<span>.org</span></a></div>
     <div class="progress-dots">
         <div class="dot done"></div>
         <div class="dot active"></div>
@@ -381,7 +379,7 @@
       <p style="margin-top:10px">This shape accelerates the exhaust to supersonic speeds, far faster than you'd get from an open hole. It's one of the most elegant discoveries in physics.</p>
     </div>
 
-    <canvas id="nozzleCanvas" width="400" height="250" style="max-height:250px;"></canvas>
+    <canvas id="nozzleCanvas" width="400" height="300" style="max-height:300px;"></canvas>
 
     <div class="insight">
       <div class="lbl">The Mach number effect</div>
@@ -419,211 +417,616 @@ function celebrate() {
   setTimeout(() => window.location.href = 'propulsion_act3.html', 900);
 }
 
-// ── Momentum visualization ──
+/* ═══════════════════════════════════════════
+   HiDPI canvas helper
+   ═══════════════════════════════════════════ */
+function setupHiDPI(canvas, cssW, cssH) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w: cssW, h: cssH, dpr };
+}
+
+/* ═══════════════════════════════════════════
+   Rounded rectangle helper
+   ═══════════════════════════════════════════ */
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+/* Draw an arrowhead at (tipX, tipY) pointing in direction angle */
+function drawArrowhead(ctx, tipX, tipY, angle, size, colour) {
+  ctx.save();
+  ctx.translate(tipX, tipY);
+  ctx.rotate(angle);
+  ctx.fillStyle = colour;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(-size, -size * 0.45);
+  ctx.lineTo(-size, size * 0.45);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+/* ═══════════════════════════════════════════
+   MOMENTUM / THRUST DIAGRAM
+   ═══════════════════════════════════════════ */
+let exhaustParticles = [];
+let momentumAnimId = null;
+
+function initExhaustParticles(count) {
+  exhaustParticles = [];
+  for (let i = 0; i < count; i++) {
+    exhaustParticles.push({
+      x: Math.random(),         // 0-1 normalised progress
+      y: (Math.random() - 0.5), // -0.5 to 0.5 spread
+      speed: 0.004 + Math.random() * 0.006,
+      size: 2 + Math.random() * 3,
+      hue: Math.random()        // 0 = orange, 1 = yellow
+    });
+  }
+}
+
 function drawMomentum() {
   const cv = document.getElementById('momentumCanvas');
   if (!cv) return;
-  const ctx = cv.getContext('2d');
-  const w = cv.width, h = cv.height;
-  ctx.clearRect(0, 0, w, h);
+  const cssW = 400, cssH = 280;
+  const { ctx, w, h } = setupHiDPI(cv, cssW, cssH);
 
   const exhaustVel = parseFloat(document.getElementById('exhaustVel').value);
+  const velNorm = (exhaustVel - 2) / 8; // 0 to 1
 
-  // Rocket
-  const rocketX = w * 0.3;
-  const rocketY = h / 2;
-  ctx.fillStyle = 'rgba(34,211,238,0.6)';
-  ctx.fillRect(rocketX - 25, rocketY - 20, 50, 40);
+  // Initialise particles if needed
+  if (exhaustParticles.length === 0) initExhaustParticles(50);
 
-  // Rocket direction arrow
-  ctx.fillStyle = 'rgba(251,146,60,0.8)';
-  ctx.beginPath();
-  ctx.moveTo(rocketX + 35, rocketY);
-  ctx.lineTo(rocketX + 55, rocketY - 8);
-  ctx.lineTo(rocketX + 55, rocketY + 8);
-  ctx.closePath();
-  ctx.fill();
+  function frame() {
+    ctx.clearRect(0, 0, w, h);
 
-  // Velocity vector
-  const arrowLen = exhaustVel * 8;
-  ctx.strokeStyle = 'rgba(251,146,60,0.7)';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(rocketX + 25, rocketY);
-  ctx.lineTo(rocketX + 25 + arrowLen, rocketY);
-  ctx.stroke();
+    const PAD = { left: 30, right: 30, top: 50, bottom: 30 };
+    const areaW = w - PAD.left - PAD.right;
+    const areaH = h - PAD.top - PAD.bottom;
+    const centerY = PAD.top + areaH / 2;
 
-  ctx.fillStyle = 'rgba(251,146,60,0.8)';
-  ctx.font = 'bold 13px Nunito';
-  ctx.fillText(`v_rocket = ${(exhaustVel * 0.3).toFixed(1)} km/s`, rocketX + 40, rocketY - 35);
+    // Rocket position shifts right with exhaust velocity
+    const rocketX = PAD.left + areaW * (0.45 + velNorm * 0.15);
+    const rocketW = 70;
+    const rocketH = 36;
 
-  // Exhaust stream
-  const exhaustVelVisual = exhaustVel * 5;
-  for (let i = 0; i < 5; i++) {
-    const offsetY = -15 + i * 7;
-    ctx.fillStyle = `rgba(255,150,0,${0.7 - i * 0.1})`;
+    /* ── Colour-coded formula at top ── */
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const fmX = w / 2;
+    const fmY = 10;
+    const fSize = 20;
+    // "F" in white
+    ctx.font = `bold ${fSize}px Nunito`;
+    ctx.fillStyle = '#ffffff';
+    const parts_f = [
+      { text: 'F', colour: '#ffffff', bold: true },
+      { text: ' = ', colour: '#9898c0', bold: false },
+      { text: 'ṁ', colour: '#22d3ee', bold: true },
+      { text: ' × ', colour: '#9898c0', bold: false },
+      { text: 'vₑ', colour: '#fb923c', bold: true }
+    ];
+    // Measure total width
+    let totalFmW = 0;
+    parts_f.forEach(p => {
+      ctx.font = `${p.bold ? 'bold ' : ''}${fSize}px Nunito`;
+      totalFmW += ctx.measureText(p.text).width;
+    });
+    let fmCursor = fmX - totalFmW / 2;
+    ctx.textAlign = 'left';
+    parts_f.forEach(p => {
+      ctx.font = `${p.bold ? 'bold ' : ''}${fSize}px Nunito`;
+      ctx.fillStyle = p.colour;
+      ctx.fillText(p.text, fmCursor, fmY);
+      fmCursor += ctx.measureText(p.text).width;
+    });
+
+    /* ── Exhaust particles ── */
+    const exhaustLen = 60 + velNorm * 120;
+    const spreadMax = 22 + velNorm * 10;
+    exhaustParticles.forEach(p => {
+      p.x += p.speed * (0.6 + velNorm * 1.2);
+      if (p.x > 1) {
+        p.x = 0;
+        p.y = (Math.random() - 0.5);
+        p.size = 2 + Math.random() * 3;
+      }
+      const px = rocketX - rocketW / 2 - 4 - p.x * exhaustLen;
+      const py = centerY + p.y * spreadMax * (0.5 + p.x);
+      const alpha = (1 - p.x) * (0.6 + velNorm * 0.4);
+      const r = 255;
+      const g = Math.floor(120 + p.hue * 100);
+      const b = Math.floor(p.hue * 40);
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(px, py, p.size * (0.5 + p.x * 0.8), 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Exhaust glow
+    const glowGrad = ctx.createRadialGradient(
+      rocketX - rocketW / 2 - 6, centerY, 2,
+      rocketX - rocketW / 2 - 6, centerY, 30 + velNorm * 40
+    );
+    glowGrad.addColorStop(0, 'rgba(255,140,30,0.35)');
+    glowGrad.addColorStop(1, 'rgba(255,140,30,0)');
+    ctx.fillStyle = glowGrad;
     ctx.beginPath();
-    ctx.arc(rocketX - 30 - exhaustVelVisual + i * 5, rocketY + offsetY, 3 + i * 0.5, 0, Math.PI * 2);
+    ctx.arc(rocketX - rocketW / 2 - 6, centerY, 30 + velNorm * 40, 0, Math.PI * 2);
     ctx.fill();
+
+    /* ── Rocket body ── */
+    // Main fuselage
+    const rx = rocketX - rocketW / 2;
+    const ry = centerY - rocketH / 2;
+    const bodyGrad = ctx.createLinearGradient(rx, ry, rx, ry + rocketH);
+    bodyGrad.addColorStop(0, '#3ae8ff');
+    bodyGrad.addColorStop(0.5, '#1ab8d4');
+    bodyGrad.addColorStop(1, '#0e8a9e');
+    ctx.fillStyle = bodyGrad;
+    roundRect(ctx, rx, ry, rocketW, rocketH, 6);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(34,211,238,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Nose cone (triangle on right)
+    const noseLen = 22;
+    ctx.fillStyle = '#2cd4ee';
+    ctx.beginPath();
+    ctx.moveTo(rx + rocketW, ry + 3);
+    ctx.lineTo(rx + rocketW + noseLen, centerY);
+    ctx.lineTo(rx + rocketW, ry + rocketH - 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(34,211,238,0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Nozzle (left side)
+    ctx.fillStyle = '#666688';
+    ctx.beginPath();
+    ctx.moveTo(rx, ry + 4);
+    ctx.lineTo(rx - 10, ry - 4);
+    ctx.lineTo(rx - 10, ry + rocketH + 4);
+    ctx.lineTo(rx, ry + rocketH - 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // Window
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(rx + rocketW * 0.6, centerY, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    /* ── Rocket velocity arrow (pointing right) ── */
+    const vRocket = exhaustVel * 0.3;
+    const rArrowLen = 40 + velNorm * 60;
+    const rArrowStartX = rx + rocketW + noseLen + 12;
+    const rArrowY = centerY;
+
+    ctx.strokeStyle = '#fb923c';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(rArrowStartX, rArrowY);
+    ctx.lineTo(rArrowStartX + rArrowLen, rArrowY);
+    ctx.stroke();
+    drawArrowhead(ctx, rArrowStartX + rArrowLen, rArrowY, 0, 12, '#fb923c');
+
+    ctx.fillStyle = '#fb923c';
+    ctx.font = 'bold 14px Nunito';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`v = ${vRocket.toFixed(1)} km/s`, rArrowStartX + rArrowLen / 2, rArrowY - 10);
+
+    /* ── Exhaust velocity arrow (pointing left) ── */
+    const eArrowLen = 40 + velNorm * 80;
+    const eArrowStartX = rocketX - rocketW / 2 - 14;
+    const eArrowY = centerY + rocketH / 2 + 28;
+
+    ctx.strokeStyle = '#ff9933';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(eArrowStartX, eArrowY);
+    ctx.lineTo(eArrowStartX - eArrowLen, eArrowY);
+    ctx.stroke();
+    drawArrowhead(ctx, eArrowStartX - eArrowLen, eArrowY, Math.PI, 10, '#ff9933');
+
+    ctx.fillStyle = '#ffaa44';
+    ctx.font = '13px Nunito';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`vₑ = ${exhaustVel.toFixed(1)} km/s`, eArrowStartX - eArrowLen / 2, eArrowY + 6);
+
+    momentumAnimId = requestAnimationFrame(frame);
   }
 
-  // Exhaust label
-  ctx.fillStyle = 'rgba(255,150,0,0.8)';
-  ctx.font = '12px Nunito';
-  ctx.textAlign = 'center';
-  ctx.fillText(`Exhaust: ${exhaustVel.toFixed(1)} km/s`, rocketX - 45, rocketY + 50);
-
-  // Equation
-  ctx.fillStyle = '#c8c8e8';
-  ctx.font = '12px Crimson Pro';
-  ctx.textAlign = 'left';
-  ctx.fillText('F = ṁ × vₑ', 20, 30);
+  if (momentumAnimId) cancelAnimationFrame(momentumAnimId);
+  frame();
 }
 
 function updateMomentum() {
   const vel = parseFloat(document.getElementById('exhaustVel').value);
   document.getElementById('velValue').textContent = vel.toFixed(1);
-  drawMomentum();
+  // The animation loop already runs; just let it pick up the new value
+  // But re-init to reset particle positions relative to new velocity
 }
 
-// ── Specific Impulse comparison ──
+/* ═══════════════════════════════════════════
+   ISP COMPARISON BAR CHART
+   ═══════════════════════════════════════════ */
 function drawIsp() {
   const cv = document.getElementById('ispCanvas');
   if (!cv) return;
-  const ctx = cv.getContext('2d');
-  const w = cv.width, h = cv.height;
+  const cssW = 400, cssH = 320;
+  const { ctx, w, h } = setupHiDPI(cv, cssW, cssH);
+
   ctx.clearRect(0, 0, w, h);
 
+  const PAD = { left: 70, right: 30, top: 40, bottom: 60 };
+  const chartW = w - PAD.left - PAD.right;
+  const chartH = h - PAD.top - PAD.bottom;
+  const maxIsp = 3500;
+
   const engines = [
-    { name: 'Solid\nRocket', isp: 265, x: 60 },
-    { name: 'Liquid\n(LOX/LH₂)', isp: 450, x: 160 },
-    { name: 'Nuclear\nThermal', isp: 900, x: 260 },
-    { name: 'Ion\nThruster', isp: 3000, x: 360 }
+    { name: 'Solid Rocket', isp: 265 },
+    { name: 'LOX/LH\u2082', isp: 450 },
+    { name: 'Nuclear\nThermal', isp: 900 },
+    { name: 'Ion\nThruster', isp: 3000 }
   ];
 
-  const maxIsp = 3000;
-  const barMaxHeight = h - 100;
+  const barCount = engines.length;
+  const barGap = chartW / barCount;
+  const barW = Math.min(52, barGap * 0.6);
 
-  engines.forEach(e => {
-    const barHeight = (e.isp / maxIsp) * barMaxHeight;
-
-    // Bar
-    ctx.fillStyle = `rgba(251,146,60,${0.3 + (e.isp / maxIsp) * 0.6})`;
-    ctx.fillRect(e.x - 25, h - 50 - barHeight, 50, barHeight);
-
-    ctx.strokeStyle = 'rgba(251,146,60,0.8)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(e.x - 25, h - 50 - barHeight, 50, barHeight);
-
+  /* ── Y-axis gridlines ── */
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  ctx.font = '12px Nunito';
+  for (let v = 0; v <= maxIsp; v += 500) {
+    const y = PAD.top + chartH - (v / maxIsp) * chartH;
+    // Gridline
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD.left, y);
+    ctx.lineTo(PAD.left + chartW, y);
+    ctx.stroke();
     // Label
-    ctx.fillStyle = '#c8c8e8';
-    ctx.font = '11px Nunito';
-    ctx.textAlign = 'center';
-    ctx.fillText(e.name, e.x, h - 10);
+    ctx.fillStyle = '#7070a0';
+    ctx.fillText(v + 's', PAD.left - 10, y);
+  }
 
-    // Isp value
-    ctx.fillStyle = 'rgba(251,146,60,0.9)';
-    ctx.font = 'bold 12px Nunito';
-    ctx.fillText(e.isp + 's', e.x, h - 55 - barHeight);
-  });
-
-  // Y-axis
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-  ctx.lineWidth = 1;
+  /* ── Y-axis line ── */
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(30, 30);
-  ctx.lineTo(30, h - 50);
+  ctx.moveTo(PAD.left, PAD.top);
+  ctx.lineTo(PAD.left, PAD.top + chartH);
   ctx.stroke();
 
+  /* ── Y-axis title ── */
+  ctx.save();
+  ctx.translate(16, PAD.top + chartH / 2);
+  ctx.rotate(-Math.PI / 2);
   ctx.fillStyle = '#7070a0';
-  ctx.font = '10px Nunito';
-  ctx.textAlign = 'right';
-  ctx.fillText('3000s', 25, 35);
-  ctx.fillText('0s', 25, h - 45);
+  ctx.font = '11px Nunito';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Specific Impulse (Isp)', 0, 0);
+  ctx.restore();
+
+  /* ── Bars ── */
+  engines.forEach((e, i) => {
+    const cx = PAD.left + barGap * (i + 0.5);
+    const barH = (e.isp / maxIsp) * chartH;
+    const bx = cx - barW / 2;
+    const by = PAD.top + chartH - barH;
+
+    // Gradient fill
+    const grad = ctx.createLinearGradient(bx, by, bx, by + barH);
+    const intensity = 0.4 + (e.isp / maxIsp) * 0.6;
+    grad.addColorStop(0, `rgba(251,146,60,${intensity.toFixed(2)})`);
+    grad.addColorStop(1, `rgba(200,90,20,${(intensity * 0.6).toFixed(2)})`);
+    ctx.fillStyle = grad;
+    roundRect(ctx, bx, by, barW, barH, 4);
+    ctx.fill();
+
+    // Bar border
+    ctx.strokeStyle = 'rgba(251,146,60,0.7)';
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, bx, by, barW, barH, 4);
+    ctx.stroke();
+
+    // Value above bar
+    ctx.fillStyle = '#fb923c';
+    ctx.font = 'bold 13px Nunito';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(e.isp + 's', cx, by - 6);
+
+    // Name below axis
+    ctx.fillStyle = '#c8c8e8';
+    ctx.font = '11px Nunito';
+    ctx.textBaseline = 'top';
+    const lines = e.name.split('\n');
+    lines.forEach((line, li) => {
+      ctx.fillText(line, cx, PAD.top + chartH + 8 + li * 15);
+    });
+  });
+
+  /* ── X-axis line ── */
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(PAD.left, PAD.top + chartH);
+  ctx.lineTo(PAD.left + chartW, PAD.top + chartH);
+  ctx.stroke();
 }
 
-// ── Nozzle visualization ──
+/* ═══════════════════════════════════════════
+   DE LAVAL NOZZLE
+   ═══════════════════════════════════════════ */
+let nozzleParticles = [];
+let nozzleAnimId = null;
+
+function initNozzleParticles(count) {
+  nozzleParticles = [];
+  for (let i = 0; i < count; i++) {
+    nozzleParticles.push({
+      t: Math.random(),              // 0-1 progress along nozzle
+      yOff: (Math.random() - 0.5),   // -0.5 to 0.5
+      speed: 0.002 + Math.random() * 0.003,
+      size: 1.5 + Math.random() * 2
+    });
+  }
+}
+
 function drawNozzle() {
   const cv = document.getElementById('nozzleCanvas');
   if (!cv) return;
-  const ctx = cv.getContext('2d');
-  const w = cv.width, h = cv.height;
-  ctx.clearRect(0, 0, w, h);
+  const cssW = 400, cssH = 300;
+  const { ctx, w, h } = setupHiDPI(cv, cssW, cssH);
 
-  const centerX = w / 2;
-  const centerY = h / 2;
+  if (nozzleParticles.length === 0) initNozzleParticles(60);
 
-  // De Laval nozzle shape
-  ctx.fillStyle = 'rgba(20,30,50,0.8)';
-  ctx.beginPath();
-  // Left chamber (combustion)
-  ctx.rect(centerX - 120, centerY - 30, 60, 60);
-  // Narrow throat
-  ctx.moveTo(centerX - 60, centerY - 20);
-  ctx.lineTo(centerX - 40, centerY - 10);
-  ctx.lineTo(centerX - 40, centerY + 10);
-  ctx.lineTo(centerX - 60, centerY + 20);
-  // Expanding bell
-  ctx.lineTo(centerX + 80, centerY + 50);
-  ctx.lineTo(centerX + 80, centerY - 50);
-  ctx.lineTo(centerX - 40, centerY - 10);
-  ctx.closePath();
-  ctx.fill();
+  const PAD = { left: 40, right: 40, top: 40, bottom: 55 };
 
-  // Nozzle outline
-  ctx.strokeStyle = 'rgba(251,146,60,0.6)';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(centerX - 120, centerY - 30);
-  ctx.lineTo(centerX - 60, centerY - 20);
-  ctx.lineTo(centerX - 40, centerY - 10);
-  ctx.lineTo(centerX + 80, centerY - 50);
-  ctx.moveTo(centerX + 80, centerY + 50);
-  ctx.lineTo(centerX - 40, centerY + 10);
-  ctx.lineTo(centerX - 60, centerY + 20);
-  ctx.lineTo(centerX - 120, centerY + 30);
-  ctx.stroke();
-
-  // Hot gas inside (animated)
-  ctx.fillStyle = 'rgba(255,100,0,0.3)';
-  ctx.beginPath();
-  ctx.rect(centerX - 110, centerY - 20, 50, 40);
-  ctx.fill();
-
-  // Exhaust stream
-  ctx.fillStyle = 'rgba(255,150,0,0.5)';
-  for (let i = 0; i < 4; i++) {
-    const size = 2 + i * 1;
-    ctx.beginPath();
-    ctx.arc(centerX + 60 + i * 15, centerY - 10 + i * 2, size, 0, Math.PI * 2);
-    ctx.fill();
+  /* Nozzle geometry — define the profile as a function of t (0 to 1)
+     t=0: left edge of combustion chamber
+     t=0.35: start of convergence
+     t=0.55: throat (narrowest)
+     t=1.0: bell exit (widest after throat) */
+  function nozzleRadius(t) {
+    if (t < 0.35) return 50;                           // Chamber
+    if (t < 0.55) {                                    // Converging
+      const s = (t - 0.35) / 0.2;
+      return 50 - s * 34;                              // 50 -> 16
+    }
+    // Diverging bell
+    const s = (t - 0.55) / 0.45;
+    return 16 + s * s * 52;                            // 16 -> 68
   }
 
-  // Labels
-  ctx.fillStyle = '#c8c8e8';
-  ctx.font = '11px Nunito';
-  ctx.textAlign = 'center';
-  ctx.fillText('Combustion', centerX - 90, centerY - 45);
-  ctx.fillText('Throat\n(Mach 1)', centerX - 40, centerY + 35);
-  ctx.fillText('Bell\n(Mach 3–4)', centerX + 40, centerY - 70);
+  function nozzleX(t) {
+    return PAD.left + 20 + t * (w - PAD.left - PAD.right - 40);
+  }
 
-  // Pressure curve
-  ctx.strokeStyle = 'rgba(251,146,60,0.5)';
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([3, 3]);
-  ctx.beginPath();
-  ctx.moveTo(centerX - 110, h - 30);
-  ctx.quadraticCurveTo(centerX - 50, h - 50, centerX - 40, h - 60);
-  ctx.quadraticCurveTo(centerX + 20, h - 40, centerX + 80, h - 25);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  const centerY = PAD.top + (h - PAD.top - PAD.bottom) / 2 - 5;
 
-  ctx.fillStyle = '#7070a0';
-  ctx.font = '9px Nunito';
-  ctx.fillText('Pressure drops in throat, accelerates in bell', w / 2, h - 5);
+  function frame() {
+    ctx.clearRect(0, 0, w, h);
+
+    /* ── Draw nozzle walls ── */
+    const steps = 80;
+
+    // Fill interior
+    ctx.fillStyle = 'rgba(15,20,40,0.85)';
+    ctx.beginPath();
+    ctx.moveTo(nozzleX(0), centerY - nozzleRadius(0));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      ctx.lineTo(nozzleX(t), centerY - nozzleRadius(t));
+    }
+    for (let i = steps; i >= 0; i--) {
+      const t = i / steps;
+      ctx.lineTo(nozzleX(t), centerY + nozzleRadius(t));
+    }
+    ctx.closePath();
+    ctx.fill();
+
+    // Hot gas glow in combustion chamber
+    const chamberGrad = ctx.createRadialGradient(
+      nozzleX(0.15), centerY, 5,
+      nozzleX(0.15), centerY, 50
+    );
+    chamberGrad.addColorStop(0, 'rgba(255,80,20,0.25)');
+    chamberGrad.addColorStop(1, 'rgba(255,80,20,0)');
+    ctx.fillStyle = chamberGrad;
+    ctx.beginPath();
+    ctx.arc(nozzleX(0.15), centerY, 50, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* ── Animated flow particles ── */
+    nozzleParticles.forEach(p => {
+      // Speed increases through the nozzle
+      let speedMult = 1;
+      if (p.t > 0.55) speedMult = 2 + (p.t - 0.55) * 4;
+      else if (p.t > 0.35) speedMult = 1 + (p.t - 0.35) * 3;
+
+      p.t += p.speed * speedMult;
+      if (p.t > 1.05) {
+        p.t = 0;
+        p.yOff = (Math.random() - 0.5);
+        p.size = 1.5 + Math.random() * 2;
+      }
+
+      const px = nozzleX(p.t);
+      const maxR = nozzleRadius(Math.min(p.t, 1)) * 0.85;
+      const py = centerY + p.yOff * maxR;
+
+      // Colour: orange in chamber, brighter yellow as it accelerates
+      const r = 255;
+      const g = Math.floor(100 + Math.min(p.t * 1.5, 1) * 120);
+      const b = Math.floor(Math.min(p.t * 1.5, 1) * 50);
+      const alpha = p.t > 1 ? Math.max(0, 1 - (p.t - 1) * 20) : 0.7;
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+      ctx.beginPath();
+      ctx.arc(px, py, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    /* ── Draw nozzle outline (on top of particles) ── */
+    // Top wall
+    ctx.strokeStyle = '#fb923c';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(nozzleX(0), centerY - nozzleRadius(0));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      ctx.lineTo(nozzleX(t), centerY - nozzleRadius(t));
+    }
+    ctx.stroke();
+
+    // Bottom wall
+    ctx.beginPath();
+    ctx.moveTo(nozzleX(0), centerY + nozzleRadius(0));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      ctx.lineTo(nozzleX(t), centerY + nozzleRadius(t));
+    }
+    ctx.stroke();
+
+    // Left wall (chamber back)
+    ctx.beginPath();
+    ctx.moveTo(nozzleX(0), centerY - nozzleRadius(0));
+    ctx.lineTo(nozzleX(0), centerY + nozzleRadius(0));
+    ctx.stroke();
+
+    /* ── Region labels ── */
+    ctx.fillStyle = '#c8c8e8';
+    ctx.font = '12px Nunito';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+
+    // Combustion Chamber
+    const chamberLabelX = nozzleX(0.17);
+    ctx.fillText('Combustion', chamberLabelX, centerY - nozzleRadius(0.17) - 12);
+    ctx.fillText('Chamber', chamberLabelX, centerY - nozzleRadius(0.17) + 2);
+
+    // Throat
+    const throatX = nozzleX(0.55);
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = 'bold 12px Nunito';
+    ctx.fillText('Throat', throatX, centerY - nozzleRadius(0.55) - 14);
+    ctx.font = '11px Nunito';
+    ctx.fillText('Mach 1', throatX, centerY - nozzleRadius(0.55) + 0);
+
+    // Dashed line at throat
+    ctx.strokeStyle = 'rgba(34,211,238,0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(throatX, centerY - nozzleRadius(0.55));
+    ctx.lineTo(throatX, centerY + nozzleRadius(0.55));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Bell / expansion
+    const bellLabelX = nozzleX(0.82);
+    ctx.fillStyle = '#fb923c';
+    ctx.font = 'bold 12px Nunito';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('Bell', bellLabelX, centerY - nozzleRadius(0.82) - 12);
+    ctx.font = '11px Nunito';
+    ctx.fillText('Mach 3\u20134', bellLabelX, centerY - nozzleRadius(0.82) + 2);
+
+    /* ── Pressure / Velocity annotation curves below nozzle ── */
+    const annoY = centerY + 70;
+    const annoLeft = nozzleX(0);
+    const annoRight = nozzleX(1);
+    const annoW = annoRight - annoLeft;
+
+    // Pressure curve (high left, drops at throat, low right)
+    ctx.strokeStyle = 'rgba(251,146,60,0.6)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    for (let i = 0; i <= 60; i++) {
+      const t = i / 60;
+      const x = annoLeft + t * annoW;
+      let pVal;
+      if (t < 0.35) pVal = 0.9;
+      else if (t < 0.55) pVal = 0.9 - ((t - 0.35) / 0.2) * 0.5;
+      else pVal = 0.4 - ((t - 0.55) / 0.45) * 0.3;
+      const y = annoY + 15 - pVal * 25;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Velocity curve (low left, rises at throat, high right)
+    ctx.strokeStyle = 'rgba(34,211,238,0.5)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    for (let i = 0; i <= 60; i++) {
+      const t = i / 60;
+      const x = annoLeft + t * annoW;
+      let vVal;
+      if (t < 0.35) vVal = 0.1;
+      else if (t < 0.55) vVal = 0.1 + ((t - 0.35) / 0.2) * 0.4;
+      else vVal = 0.5 + ((t - 0.55) / 0.45) * 0.45;
+      const y = annoY + 15 - vVal * 25;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Legend
+    ctx.font = '11px Nunito';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const legendY = annoY + 22;
+    // Pressure
+    ctx.fillStyle = 'rgba(251,146,60,0.8)';
+    ctx.fillRect(annoLeft, legendY, 14, 2);
+    ctx.fillText('Pressure', annoLeft + 18, legendY - 5);
+    // Velocity
+    ctx.fillStyle = 'rgba(34,211,238,0.7)';
+    ctx.fillRect(annoLeft + 100, legendY, 14, 2);
+    ctx.fillText('Velocity', annoLeft + 118, legendY - 5);
+
+    nozzleAnimId = requestAnimationFrame(frame);
+  }
+
+  if (nozzleAnimId) cancelAnimationFrame(nozzleAnimId);
+  frame();
 }
 
-// ── Confetti ──
+/* ═══════════════════════════════════════════
+   CONFETTI
+   ═══════════════════════════════════════════ */
 const cc = document.getElementById('confetti');
 const cxc = cc.getContext('2d');
 let parts = [];
@@ -669,6 +1072,9 @@ function animateConfetti() {
   if (parts.length > 0) requestAnimationFrame(animateConfetti);
 }
 
+/* ═══════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════ */
 window.addEventListener('load', () => {
   drawMomentum();
   drawIsp();

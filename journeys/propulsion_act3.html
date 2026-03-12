@@ -266,16 +266,15 @@
 
         #confetti {
             position: fixed; inset: 0; z-index: 50; pointer-events: none;
+            background: transparent; border: none; border-radius: 0; margin: 0;
         }
 
         .bottom-pad { height: 20px; }
 
-        a[href="../index.html"] {
-            position: fixed; top: 12px; left: 16px;
-            color: var(--muted); text-decoration: none;
-            font-size: 0.85em; z-index: 1000;
-            font-family: 'Crimson Pro', serif; font-style: italic;
+        .header-logo a {
+            color: inherit; text-decoration: none;
         }
+        .header-logo a:hover { color: var(--accent); }
 
         footer {
             text-align: center;
@@ -295,12 +294,11 @@
   <meta name="description" content="Learn about Propulsion Act3 in Mathematics Education">
   </head>
 <body>
-<a href="../index.html">← mathsedu.org</a>
 <canvas id="confetti"></canvas>
 <div id="stars"></div>
 <div id="app">
   <header class="app-header">
-    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="header-logo"><a href="../index.html">← mathsedu<span>.org</span></a></div>
     <div class="progress-dots">
         <div class="dot done"></div>
         <div class="dot done"></div>
@@ -367,31 +365,31 @@
     <div class="bottom-pad"></div>
   </section>
 
-  <!-- SCREEN 2: ORBIT SIMULATOR -->
+  <!-- SCREEN 2: HOHMANN TRANSFER -->
   <section class="screen" id="screen-2">
     <div class="act-title">
       <div class="act-label">Orbital Mechanics</div>
-      <div class="act-name">The <em>Vis-Viva</em> Equation</div>
+      <div class="act-name">The <em>Hohmann</em> Transfer</div>
     </div>
     <div class="narrator">
-      <p>The vis-viva equation (a beautiful Latin phrase: "living force") describes velocity at any point in an orbit:</p>
-      <p style="margin-top:10px"><strong>v² = GM(2/r − 1/a)</strong></p>
-      <p style="margin-top:10px">where r is your distance from the centre and a is the semi-major axis of your orbit. Adjust the velocity slider to see different orbital shapes appear.</p>
+      <p>To move between circular orbits efficiently, we use a <em>Hohmann transfer</em> — an elliptical path that touches both orbits.</p>
+      <p style="margin-top:10px">Two burns are needed: <strong>Burn 1</strong> speeds you up to enter the transfer ellipse, and <strong>Burn 2</strong> circularises you at the target orbit. The total Δv determines how much fuel you need.</p>
+      <p style="margin-top:10px">Adjust the target orbit multiplier to see how the transfer changes.</p>
     </div>
 
-    <canvas id="orbitCanvas" width="400" height="350" style="max-height:350px;"></canvas>
+    <canvas id="orbitCanvas" width="400" height="380" style="max-height:380px;"></canvas>
 
     <div class="slider-container">
-      <label class="slider-label">Velocity at current altitude (km/s)</label>
-      <input type="range" id="orbitVel" class="slider-input" min="5" max="15" step="0.5" value="7.8" oninput="updateOrbit()">
+      <label class="slider-label">Target orbit radius multiplier</label>
+      <input type="range" id="orbitVel" class="slider-input" min="1.5" max="10" step="0.5" value="3" oninput="updateOrbit()">
       <div class="slider-value" id="orbitLabel">
-        v = <strong id="orbVelValue">7.8</strong> km/s
+        Target: <strong id="orbVelValue">3.0</strong>× LEO &nbsp;|&nbsp; Burn 1: <strong id="burn1Value">—</strong> km/s &nbsp;|&nbsp; Burn 2: <strong id="burn2Value">—</strong> km/s &nbsp;|&nbsp; Total Δv: <strong id="totalDvValue">—</strong> km/s
       </div>
     </div>
 
     <div class="insight">
-      <div class="lbl">The orbit types</div>
-      <p>Too slow: the craft falls back to Earth (0–7.8 km/s). Circular orbit: 7.8 km/s, the craft never falls. Elliptical: 7.8–11.2 km/s, the craft reaches a higher point. Parabolic and hyperbolic (11.2+ km/s) lead to escape.</p>
+      <div class="lbl">Why Hohmann transfers matter</div>
+      <p>The Hohmann transfer is the most fuel-efficient two-burn manoeuvre between coplanar circular orbits. Real missions from low Earth orbit to geostationary orbit (6.6× LEO radius) use exactly this technique. The total <strong>Δv ≈ 3.9 km/s</strong> for that journey.</p>
     </div>
 
     <button class="cta-btn" onclick="goToScreen(3)">Energy and speed →</button>
@@ -460,12 +458,33 @@ let currentScreen = 0;
 let currentPlanet = 'earth';
 
 const planets = {
-  earth: { mass: 1, radius: 1, name: 'Earth', esc: 11.2 },
-  moon: { mass: 0.012, radius: 0.27, name: 'Moon', esc: 2.4 },
-  mars: { mass: 0.107, radius: 0.532, name: 'Mars', esc: 5.0 },
-  jupiter: { mass: 318, radius: 11.21, name: 'Jupiter', esc: 60.0 }
+  earth:   { mass: 1,     radius: 1,     name: 'Earth',   esc: 11.2, color: '#22d3ee' },
+  moon:    { mass: 0.012, radius: 0.27,  name: 'Moon',    esc: 2.4,  color: '#a0a0b8' },
+  mars:    { mass: 0.107, radius: 0.532, name: 'Mars',    esc: 5.0,  color: '#f97316' },
+  jupiter: { mass: 318,   radius: 11.21, name: 'Jupiter', esc: 60.0, color: '#d4a054' }
 };
 
+/* ── Hex colour to rgba helper ── */
+function hexRGBA(hex, a) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+/* ── HiDPI canvas setup ── */
+function setupHiDPI(cv, cssW, cssH) {
+  const dpr = window.devicePixelRatio || 1;
+  cv.width  = Math.round(cssW * dpr);
+  cv.height = Math.round(cssH * dpr);
+  cv.style.width  = cssW + 'px';
+  cv.style.height = cssH + 'px';
+  const ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w: cssW, h: cssH };
+}
+
+/* ── Navigation ── */
 function goToScreen(n) {
   document.getElementById(`screen-${currentScreen}`).classList.remove('active');
   currentScreen = n;
@@ -494,168 +513,403 @@ function updateWell() {
   drawWell(relEsc);
 }
 
-// ── Gravity well visualization ──
+/* ═══════════════════════════════════════════════════════
+   GRAVITY WELL — Escape Velocity Explorer (Screen 1)
+   ═══════════════════════════════════════════════════════ */
 function drawWell(escapeVel) {
   const cv = document.getElementById('wellCanvas');
   if (!cv) return;
-  const ctx = cv.getContext('2d');
-  const w = cv.width, h = cv.height;
-  ctx.clearRect(0, 0, w, h);
+  const cssW = Math.min(cv.parentElement.clientWidth - 2, 600);
+  const cssH = 300;
+  const { ctx, w, h } = setupHiDPI(cv, cssW, cssH);
 
-  const centerX = w / 2;
-  const centerY = h - 60;
+  const PAD = { left: 50, right: 50, top: 52, bottom: 58 };
+  const planet = planets[currentPlanet];
+  const pColor = planet.color;
 
-  // Draw the well (parabolic shape)
-  ctx.fillStyle = 'rgba(251,146,60,0.15)';
-  ctx.beginPath();
-  ctx.moveTo(20, centerY);
-  for (let x = 20; x <= w - 20; x += 2) {
-    const dist = Math.abs(x - centerX);
-    const y = centerY - (dist * dist) / 200;
-    ctx.lineTo(x, y);
+  /* Background */
+  const bg = ctx.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, '#0f1428');
+  bg.addColorStop(1, '#0a0a14');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+
+  const plotL = PAD.left, plotR = w - PAD.right;
+  const plotT = PAD.top,  plotB = h - PAD.bottom;
+  const plotW = plotR - plotL, plotH = plotB - plotT;
+  const cx = plotL + plotW / 2;
+  const wellBottom = plotB;
+  const wellDepth = plotH * 0.88;
+
+  /* Gravity well curve: 1/r-shaped depression */
+  function wellY(px) {
+    const norm = (px - cx) / (plotW * 0.48);        // -1..+1 across plot
+    const absN = Math.abs(norm);
+    if (absN < 0.04) return wellBottom;               // flat at very centre
+    const depth = wellDepth / (absN * 2.0 + 0.18);
+    return wellBottom - Math.min(depth, wellDepth);
   }
-  ctx.lineTo(w - 20, centerY);
+
+  /* Subtle grid lines */
+  ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 4; i++) {
+    const gy = plotT + plotH * i / 5;
+    ctx.beginPath(); ctx.moveTo(plotL, gy); ctx.lineTo(plotR, gy); ctx.stroke();
+  }
+
+  /* Well fill gradient */
+  const wFill = ctx.createLinearGradient(0, plotT, 0, plotB);
+  wFill.addColorStop(0, 'rgba(0,0,0,0)');
+  wFill.addColorStop(0.5, hexRGBA(pColor, 0.05));
+  wFill.addColorStop(1, hexRGBA(pColor, 0.18));
+  ctx.beginPath();
+  ctx.moveTo(plotL, wellY(plotL));
+  for (let x = plotL; x <= plotR; x++) ctx.lineTo(x, wellY(x));
+  ctx.lineTo(plotR, plotB + 2);
+  ctx.lineTo(plotL, plotB + 2);
   ctx.closePath();
+  ctx.fillStyle = wFill;
   ctx.fill();
 
-  // Outline
-  ctx.strokeStyle = 'rgba(251,146,60,0.5)';
-  ctx.lineWidth = 2;
+  /* Well outline */
   ctx.beginPath();
-  ctx.moveTo(20, centerY);
-  for (let x = 20; x <= w - 20; x += 2) {
-    const dist = Math.abs(x - centerX);
-    const y = centerY - (dist * dist) / 200;
-    ctx.lineTo(x, y);
-  }
+  ctx.moveTo(plotL, wellY(plotL));
+  for (let x = plotL; x <= plotR; x++) ctx.lineTo(x, wellY(x));
+  ctx.strokeStyle = hexRGBA(pColor, 0.65);
+  ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  // Planet at centre
-  ctx.fillStyle = 'rgba(34,211,238,0.8)';
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Escape velocity indicator (orbit at the top)
-  const escapeY = centerY - 150;
-  ctx.strokeStyle = 'rgba(251,146,60,0.6)';
+  /* ── Escape trajectory (dashed green, curves up and out) ── */
+  ctx.save();
+  ctx.setLineDash([8, 5]);
+  ctx.strokeStyle = '#10b981';
   ctx.lineWidth = 2;
-  ctx.setLineDash([5, 5]);
   ctx.beginPath();
-  ctx.arc(centerX, centerY, 150, 0, Math.PI * 2);
+  const esX0 = cx + 14, esY0 = wellBottom - 6;
+  ctx.moveTo(esX0, esY0);
+  for (let t = 0; t <= 1; t += 0.015) {
+    const ex = esX0 + t * (plotR - esX0 - 8);
+    const ey = esY0 - t * wellDepth * 0.65 - t * t * 25;
+    ctx.lineTo(ex, Math.max(ey, plotT - 4));
+  }
   ctx.stroke();
   ctx.setLineDash([]);
+  /* Arrow tip */
+  const aX = plotR - 12, aY = plotT + 2;
+  ctx.beginPath();
+  ctx.moveTo(aX - 6, aY + 7); ctx.lineTo(aX + 2, aY - 1); ctx.lineTo(aX - 1, aY + 1);
+  ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#10b981'; ctx.font = '600 11px Nunito'; ctx.textAlign = 'right';
+  ctx.fillText('Escapes', plotR - 6, plotT + 18);
+  ctx.restore();
 
-  // Label
-  ctx.fillStyle = '#c8c8e8';
-  ctx.font = 'bold 12px Nunito';
+  /* ── Falling-back trajectory (dotted pink, arcs back) ── */
+  ctx.save();
+  ctx.setLineDash([3, 4]);
+  ctx.strokeStyle = '#f472b6';
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  const fbX0 = cx - 10, fbY0 = wellBottom - 6;
+  ctx.moveTo(fbX0, fbY0);
+  const fbPeak = wellDepth * 0.38;
+  for (let t = 0; t <= 1; t += 0.015) {
+    const ang = t * Math.PI;
+    ctx.lineTo(fbX0 - Math.sin(ang) * plotW * 0.2, fbY0 - Math.sin(ang) * fbPeak);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#f472b6'; ctx.font = '600 11px Nunito'; ctx.textAlign = 'left';
+  ctx.fillText('Falls back', plotL + 6, plotT + plotH * 0.38);
+  ctx.restore();
+
+  /* ── Planet sphere at bottom of well ── */
+  const pR = Math.max(10, Math.min(18, plotW * 0.03));
+  const pGrad = ctx.createRadialGradient(cx - pR * 0.3, wellBottom - pR * 0.3, pR * 0.1, cx, wellBottom, pR);
+  pGrad.addColorStop(0, hexRGBA(pColor, 1));
+  pGrad.addColorStop(0.7, hexRGBA(pColor, 0.75));
+  pGrad.addColorStop(1, hexRGBA(pColor, 0.25));
+  ctx.beginPath(); ctx.arc(cx, wellBottom, pR, 0, Math.PI * 2);
+  ctx.fillStyle = pGrad; ctx.fill();
+  /* glow */
+  ctx.beginPath(); ctx.arc(cx, wellBottom, pR + 7, 0, Math.PI * 2);
+  ctx.fillStyle = hexRGBA(pColor, 0.1); ctx.fill();
+  /* name */
+  ctx.fillStyle = hexRGBA(pColor, 0.9);
+  ctx.font = '600 11px Nunito'; ctx.textAlign = 'center';
+  ctx.fillText(planet.name, cx, wellBottom + pR + 15);
+
+  /* ── Prominent escape velocity at top ── */
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 22px Nunito';
   ctx.textAlign = 'center';
-  ctx.fillText(`Escape: ${escapeVel.toFixed(1)} km/s`, w / 2, 25);
+  ctx.fillText('v' + '\u2091\u209B\u2091' + ' = ' + escapeVel.toFixed(1) + ' km/s', cx, 34);
 
-  ctx.font = '11px Crimson Pro';
-  ctx.fillStyle = '#7070a0';
-  ctx.fillText('v_esc = √(2GM/r)', w / 2, h - 10);
+  /* ── Colour-coded formula at bottom ── */
+  const fY = h - 14;
+  ctx.font = '15px Crimson Pro'; ctx.textAlign = 'left';
+  const parts_f = [
+    { t: 'v',   c: '#fb923c' },
+    { t: 'esc', c: '#fb923c', small: true },
+    { t: ' = \u221A(2', c: '#e2e2f0' },
+    { t: 'G',   c: '#22d3ee' },
+    { t: 'M',   c: pColor },
+    { t: ' / ', c: '#e2e2f0' },
+    { t: 'r',   c: '#10b981' },
+    { t: ')',   c: '#e2e2f0' }
+  ];
+  /* measure total width */
+  let tw = 0;
+  parts_f.forEach(p => {
+    ctx.font = p.small ? '11px Crimson Pro' : '15px Crimson Pro';
+    tw += ctx.measureText(p.t).width;
+  });
+  let dx = cx - tw / 2;
+  parts_f.forEach(p => {
+    ctx.font = p.small ? '11px Crimson Pro' : '15px Crimson Pro';
+    ctx.fillStyle = p.c;
+    ctx.fillText(p.t, dx, p.small ? fY + 2 : fY);
+    dx += ctx.measureText(p.t).width;
+  });
 }
 
-// ── Orbit visualization ──
-function drawOrbit() {
+/* ═══════════════════════════════════════════════════════
+   HOHMANN TRANSFER ORBIT (Screen 2) — animated
+   ═══════════════════════════════════════════════════════ */
+let hohmannT = 0;          // 0‒3: 0‒1 inner coast, 1‒2 transfer, 2‒3 outer coast
+let hohmannAnim = null;
+let hohmannTrail = [];
+
+function drawHohmann() {
   const cv = document.getElementById('orbitCanvas');
   if (!cv) return;
-  const ctx = cv.getContext('2d');
-  const w = cv.width, h = cv.height;
-  ctx.clearRect(0, 0, w, h);
+  const cssW = Math.min(cv.parentElement.clientWidth - 2, 600);
+  const cssH = 400;
+  const { ctx, w, h } = setupHiDPI(cv, cssW, cssH);
 
-  const earthX = w / 2;
-  const earthY = h / 2;
-  const baseRadius = 40;
+  const PAD = { left: 30, right: 30, top: 50, bottom: 40 };
+  const plotW = w - PAD.left - PAD.right;
+  const plotH = h - PAD.top - PAD.bottom;
+  const cx = PAD.left + plotW / 2;
+  const cy = PAD.top + plotH / 2;
+  const maxR = Math.min(plotW, plotH) / 2 - 4;
 
-  // Earth
-  ctx.fillStyle = 'rgba(34,211,238,0.8)';
-  ctx.beginPath();
-  ctx.arc(earthX, earthY, baseRadius, 0, Math.PI * 2);
-  ctx.fill();
+  const mult = parseFloat(document.getElementById('orbitVel').value) || 3;
 
-  ctx.strokeStyle = 'rgba(34,211,238,0.5)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([3, 3]);
-  ctx.beginPath();
-  ctx.arc(earthX, earthY, baseRadius + 30, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  /* Physics */
+  const mu = 398600, r1 = 6571, r2 = r1 * mult;
+  const dv1 = Math.abs(Math.sqrt(mu / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1));
+  const dv2 = Math.abs(Math.sqrt(mu / r2) * (1 - Math.sqrt(2 * r1 / (r1 + r2))));
+  const dvTotal = dv1 + dv2;
 
-  const vel = parseFloat(document.getElementById('orbitVel').value);
-  let orbitType = '';
-  let color = '';
-  let radius = 0;
+  /* Visual radii — inner is small, outer scales up */
+  const visInner = maxR * 0.22;
+  const visOuter = Math.min(visInner * mult, maxR * 0.95);
+  const aVis = (visInner + visOuter) / 2;
+  const cOff = aVis - visInner;
+  const bVis = Math.sqrt(Math.max(1, aVis * aVis - cOff * cOff));
 
-  if (vel < 7.8) {
-    orbitType = 'Ballistic\n(falls to Earth)';
-    color = 'rgba(244,63,94,0.5)';
-    radius = baseRadius + 10 + (vel - 5) * 5;
-  } else if (Math.abs(vel - 7.8) < 0.2) {
-    orbitType = 'Circular\nLEO';
-    color = 'rgba(16,185,129,0.5)';
-    radius = baseRadius + 30;
-  } else if (vel < 11.2) {
-    orbitType = 'Elliptical\n(reaches higher)';
-    color = 'rgba(251,146,60,0.5)';
-    radius = baseRadius + 30 + (vel - 7.8) * 15;
-  } else {
-    orbitType = 'Hyperbolic\n(escapes)';
-    color = 'rgba(168,85,247,0.5)';
-    radius = baseRadius + 30 + (vel - 7.8) * 15;
+  /* Spacecraft position based on hohmannT */
+  function craftPos(t) {
+    if (t < 1) {
+      // Coasting on inner orbit (counter-clockwise from right, going up)
+      const a = -t * Math.PI * 0.4;  // partial arc
+      return { x: cx + visInner * Math.cos(a), y: cy + visInner * Math.sin(a) };
+    } else if (t < 2) {
+      // Transfer ellipse: angle goes from 0 (right/periapsis) counter-clockwise to PI (left/apoapsis)
+      const frac = t - 1;
+      const angle = Math.PI + frac * Math.PI;  // PI to 2*PI (bottom half = transfer going CCW)
+      // Ellipse centred at cx+cOff
+      return {
+        x: cx + cOff + aVis * Math.cos(angle),
+        y: cy + bVis * Math.sin(angle)
+      };
+    } else {
+      // Coasting on outer orbit
+      const frac = t - 2;
+      const a = Math.PI + frac * Math.PI * 0.4;
+      return { x: cx + visOuter * Math.cos(a), y: cy + visOuter * Math.sin(a) };
+    }
   }
 
-  // Orbit shape
-  if (vel < 11.2) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.ellipse(earthX, earthY, radius, radius * 0.6, 0, 0, Math.PI * 2);
+  function frame() {
+    ctx.clearRect(0, 0, w, h);
+
+    /* Background */
+    const bg = ctx.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#0c1020');
+    bg.addColorStop(1, '#080810');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    /* Starfield */
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    for (let i = 0; i < 60; i++) {
+      const sx = PAD.left + ((i * 97 + 31) % plotW);
+      const sy = PAD.top + ((i * 73 + 17) % plotH);
+      ctx.beginPath();
+      ctx.arc(sx, sy, 0.4 + (i % 3) * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    /* ── Outer orbit (green, thin) ── */
+    ctx.beginPath(); ctx.arc(cx, cy, visOuter, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(16,185,129,0.3)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
-  } else {
-    // Hyperbolic approximation
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(earthX, earthY, radius, -Math.PI / 6, Math.PI / 6);
+
+    /* ── Inner orbit (cyan, thin) ── */
+    ctx.beginPath(); ctx.arc(cx, cy, visInner, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(34,211,238,0.4)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
+
+    /* ── Transfer ellipse (orange dashed, upper half only) ── */
+    ctx.save();
+    ctx.setLineDash([8, 5]);
+    ctx.strokeStyle = 'rgba(251,146,60,0.6)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(cx + cOff, cy, aVis, bVis, 0, Math.PI, 2 * Math.PI);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    /* ── Earth (small) ── */
+    const eR = Math.max(5, visInner * 0.22);
+    const eGrad = ctx.createRadialGradient(cx - eR * 0.3, cy - eR * 0.3, eR * 0.1, cx, cy, eR);
+    eGrad.addColorStop(0, '#5aeafa');
+    eGrad.addColorStop(0.5, '#1888c0');
+    eGrad.addColorStop(1, '#0a3060');
+    ctx.beginPath(); ctx.arc(cx, cy, eR, 0, Math.PI * 2);
+    ctx.fillStyle = eGrad; ctx.fill();
+    /* glow */
+    ctx.beginPath(); ctx.arc(cx, cy, eR + 4, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(34,211,238,0.06)'; ctx.fill();
+
+    /* ── Burn markers ── */
+    // Burn 1: right side of inner orbit
+    const b1x = cx + visInner, b1y = cy;
+    ctx.beginPath(); ctx.arc(b1x, b1y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#fbbf24'; ctx.fill();
+    ctx.beginPath(); ctx.arc(b1x, b1y, 9, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(251,191,36,0.15)'; ctx.fill();
+
+    // Burn 2: left side of outer orbit
+    const b2x = cx - visOuter, b2y = cy;
+    ctx.beginPath(); ctx.arc(b2x, b2y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#fbbf24'; ctx.fill();
+    ctx.beginPath(); ctx.arc(b2x, b2y, 9, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(251,191,36,0.15)'; ctx.fill();
+
+    /* ── Labels (positioned to avoid overlap) ── */
+    ctx.font = '600 11px Nunito';
+
+    // Inner orbit label — top-right of orbit
+    ctx.fillStyle = 'rgba(34,211,238,0.8)';
+    ctx.textAlign = 'left';
+    const ilx = cx + visInner * 0.7 + 8, ily = cy - visInner * 0.7 - 4;
+    ctx.fillText('LEO', ilx, ily);
+
+    // Outer orbit label — top-left of orbit
+    ctx.fillStyle = 'rgba(16,185,129,0.8)';
+    ctx.textAlign = 'right';
+    const olx = cx - visOuter * 0.7 - 8, oly = cy - visOuter * 0.7 - 4;
+    ctx.fillText('Target ' + mult.toFixed(1) + '\u00d7', olx, oly);
+
+    // Transfer label — above the ellipse peak
+    ctx.fillStyle = 'rgba(251,146,60,0.85)';
+    ctx.textAlign = 'center';
+    ctx.fillText('Transfer orbit', cx + cOff, cy - bVis - 10);
+
+    // Burn 1 label — below-right
+    ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 11px Nunito'; ctx.textAlign = 'left';
+    ctx.fillText('Burn 1', b1x + 14, b1y + 18);
+    ctx.fillStyle = '#c0c0d8'; ctx.font = '10px Nunito';
+    ctx.fillText('\u0394v = ' + dv1.toFixed(2) + ' km/s', b1x + 14, b1y + 32);
+
+    // Burn 2 label — below-left
+    ctx.fillStyle = '#fbbf24'; ctx.font = 'bold 11px Nunito'; ctx.textAlign = 'right';
+    ctx.fillText('Burn 2', b2x - 14, b2y + 18);
+    ctx.fillStyle = '#c0c0d8'; ctx.font = '10px Nunito';
+    ctx.fillText('\u0394v = ' + dv2.toFixed(2) + ' km/s', b2x - 14, b2y + 32);
+
+    /* ── Animated spacecraft ── */
+    const pos = craftPos(hohmannT);
+
+    // Trail
+    hohmannTrail.push({ x: pos.x, y: pos.y, age: 0 });
+    if (hohmannTrail.length > 40) hohmannTrail.shift();
+    hohmannTrail.forEach((pt, i) => {
+      pt.age++;
+      const alpha = (1 - pt.age / 50) * 0.5;
+      if (alpha <= 0) return;
+      const phase = hohmannT < 1 ? '#22d3ee' : hohmannT < 2 ? '#fb923c' : '#10b981';
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+      ctx.fillStyle = phase.slice(0, 7) + Math.round(alpha * 255).toString(16).padStart(2, '0');
+      ctx.fill();
+    });
+
+    // Spacecraft dot
+    const scColor = hohmannT < 1 ? '#22d3ee' : hohmannT < 2 ? '#fb923c' : '#10b981';
+    ctx.beginPath(); ctx.arc(pos.x, pos.y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = scColor; ctx.fill();
+    // Glow
+    ctx.beginPath(); ctx.arc(pos.x, pos.y, 12, 0, Math.PI * 2);
+    ctx.fillStyle = scColor.slice(0, 7) + '30';
+    ctx.fill();
+
+    // Phase label near craft
+    ctx.font = '600 10px Nunito'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillStyle = scColor;
+    const phaseLabel = hohmannT < 1 ? 'Coasting' : hohmannT < 2 ? 'Transferring' : 'Arrived';
+    ctx.fillText(phaseLabel, pos.x, pos.y - 16);
+    ctx.textBaseline = 'alphabetic';
+
+    /* ── Total Δv at top ── */
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px Nunito'; ctx.textAlign = 'center';
+    ctx.fillText('Total \u0394v = ' + dvTotal.toFixed(2) + ' km/s', cx, 30);
+
+    /* ── Caption at bottom ── */
+    ctx.fillStyle = '#606080';
+    ctx.font = '11px Crimson Pro'; ctx.textAlign = 'center';
+    ctx.fillText('LEO (' + (r1 - 6371) + ' km) \u2192 ' + (r2 - 6371).toFixed(0) + ' km altitude', cx, h - 10);
+
+    /* Advance animation */
+    hohmannT += 0.008;
+    if (hohmannT >= 3) {
+      hohmannT = 0;
+      hohmannTrail = [];
+    }
+
+    hohmannAnim = requestAnimationFrame(frame);
   }
 
-  // Spacecraft
-  const angle = Date.now() / 5000;
-  const scX = earthX + radius * Math.cos(angle);
-  const scY = earthY + radius * 0.6 * Math.sin(angle);
-
-  ctx.fillStyle = 'rgba(251,146,60,0.9)';
-  ctx.beginPath();
-  ctx.arc(scX, scY, 5, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Label
-  ctx.fillStyle = '#c8c8e8';
-  ctx.font = 'bold 11px Nunito';
-  ctx.textAlign = 'center';
-  ctx.fillText(orbitType, w - 60, h - 30);
-
-  ctx.font = '10px Crimson Pro';
-  ctx.fillStyle = '#7070a0';
-  ctx.fillText('v² = GM(2/r − 1/a)', w / 2, h - 10);
-
-  requestAnimationFrame(drawOrbit);
+  if (hohmannAnim) cancelAnimationFrame(hohmannAnim);
+  hohmannT = 0;
+  hohmannTrail = [];
+  frame();
 }
 
 function updateOrbit() {
-  const vel = parseFloat(document.getElementById('orbitVel').value);
-  let msg = '';
-  if (vel < 7.8) msg = 'Falls back to Earth';
-  else if (vel < 7.9) msg = 'Circular orbit (LEO)';
-  else if (vel < 11.2) msg = 'Elliptical orbit';
-  else msg = 'Hyperbolic (escape)';
-  document.getElementById('orbitLabel').textContent = `v = ${vel.toFixed(1)} km/s — ${msg}`;
+  const mult = parseFloat(document.getElementById('orbitVel').value) || 3;
+  const mu = 398600, r1 = 6571, r2 = r1 * mult;
+
+  const dv1 = Math.abs(Math.sqrt(mu / r1) * (Math.sqrt(2 * r2 / (r1 + r2)) - 1));
+  const dv2 = Math.abs(Math.sqrt(mu / r2) * (1 - Math.sqrt(2 * r1 / (r1 + r2))));
+  const dvTotal = dv1 + dv2;
+
+  document.getElementById('orbVelValue').textContent = mult.toFixed(1);
+  document.getElementById('burn1Value').textContent    = dv1.toFixed(2);
+  document.getElementById('burn2Value').textContent    = dv2.toFixed(2);
+  document.getElementById('totalDvValue').textContent  = dvTotal.toFixed(2);
+
+  drawHohmann();
 }
 
-// ── Confetti ──
+/* ── Confetti ── */
 const cc = document.getElementById('confetti');
 const cxc = cc.getContext('2d');
 let parts = [];
@@ -701,10 +955,17 @@ function animateConfetti() {
   if (parts.length > 0) requestAnimationFrame(animateConfetti);
 }
 
+/* ── Resize handler for HiDPI redraw ── */
+let _resizeT;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeT);
+  _resizeT = setTimeout(() => { updateWell(); updateOrbit(); }, 150);
+});
+
+/* ── Init ── */
 window.addEventListener('load', () => {
   drawWell(11.2);
   updateOrbit();
-  drawOrbit();
 });
 </script>
 </body>

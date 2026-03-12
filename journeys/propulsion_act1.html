@@ -136,7 +136,7 @@
             display: block; margin: 0 auto; border-radius: var(--radius);
             border: 1px solid var(--border);
             background: linear-gradient(to bottom, rgba(15,20,40,0.9), rgba(10,10,20,0.95));
-            width: 100%; max-width: 100%;
+            max-width: 100%;
             margin-bottom: 20px;
         }
 
@@ -268,16 +268,15 @@
 
         #confetti {
             position: fixed; inset: 0; z-index: 50; pointer-events: none;
+            background: transparent; border: none; border-radius: 0; margin: 0;
         }
 
         .bottom-pad { height: 20px; }
 
-        a[href="../index.html"] {
-            position: fixed; top: 12px; left: 16px;
-            color: var(--muted); text-decoration: none;
-            font-size: 0.85em; z-index: 1000;
-            font-family: 'Crimson Pro', serif; font-style: italic;
+        .header-logo a {
+            color: inherit; text-decoration: none;
         }
+        .header-logo a:hover { color: var(--accent); }
 
         footer {
             text-align: center;
@@ -297,12 +296,11 @@
   <meta name="description" content="Learn about Propulsion Act1 in Mathematics Education">
   </head>
 <body>
-<a href="../index.html">← mathsedu.org</a>
 <canvas id="confetti"></canvas>
 <div id="stars"></div>
 <div id="app">
   <header class="app-header">
-    <div class="header-logo">mathsedu<span>.org</span></div>
+    <div class="header-logo"><a href="../index.html">← mathsedu<span>.org</span></a></div>
     <div class="progress-dots">
         <div class="dot active"></div>
         <div class="dot"></div>
@@ -344,7 +342,7 @@
       <p style="margin-top:10px">The change in velocity depends on the <em>exhaust velocity</em> and the <em>natural logarithm</em> of the mass ratio. To go twice as fast, you don't need twice the fuel. You need exponentially more.</p>
     </div>
 
-    <canvas id="rocketCanvas" width="400" height="300" style="max-height:300px;"></canvas>
+    <canvas id="rocketCanvas"></canvas>
 
     <div class="slider-container">
       <label class="slider-label">Payload mass vs fuel mass</label>
@@ -373,7 +371,7 @@
       <p>Here are the fuel-to-payload ratios for history's most famous rockets. They cluster around the same horrifying percentage.</p>
     </div>
 
-    <canvas id="comparisonCanvas" width="400" height="350" style="max-height:350px;"></canvas>
+    <canvas id="comparisonCanvas"></canvas>
 
     <div class="comparison-table">
       <div class="table-row">
@@ -460,142 +458,312 @@ function celebrate() {
   setTimeout(() => window.location.href = 'propulsion_act2.html', 900);
 }
 
+// ── HiDPI canvas helper ──
+function setupHiDPI(canvas, cssWidth, cssHeight) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = cssWidth * dpr;
+  canvas.height = cssHeight * dpr;
+  canvas.style.width = cssWidth + 'px';
+  canvas.style.height = cssHeight + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w: cssWidth, h: cssHeight };
+}
+
 // ── Rocket visualization ──
 function drawRocket() {
   const cv = document.getElementById('rocketCanvas');
   if (!cv) return;
-  const ctx = cv.getContext('2d');
-  const w = cv.width, h = cv.height;
+  const cssW = cv.parentElement.offsetWidth - 40; // account for screen padding
+  const cssH = 340;
+  const { ctx, w, h } = setupHiDPI(cv, Math.min(cssW, 500), cssH);
+
   ctx.clearRect(0, 0, w, h);
 
-  // Draw fuel/payload
   const ratio = parseFloat(document.getElementById('massRatio').value);
-  const fuelHeight = (h * 0.65) * (ratio / (ratio + 1));
-  const payloadHeight = (h * 0.65) - fuelHeight;
+  const fuelFrac = ratio / (ratio + 1);
+  const payloadFrac = 1 - fuelFrac;
 
-  // Rocket body
-  const rocketX = w / 2;
-  const rocketTop = 40;
-  const rocketWidth = 60;
+  // Layout constants
+  const PAD = 50;
+  const cx = w / 2;
+  const rocketW = 70;
+  const halfW = rocketW / 2;
+  const noseH = 50;         // nose cone height
+  const bodyTop = PAD + noseH;
+  const bodyH = h - PAD - noseH - 90; // leave room for equation + fins/flame
+  const bodyBot = bodyTop + bodyH;
+  const finH = 30;
+  const finW = 22;
+  const flameH = 35;
 
-  // Fuel section
-  ctx.fillStyle = 'rgba(251,146,60,0.4)';
-  ctx.fillRect(rocketX - rocketWidth/2, rocketTop, rocketWidth, fuelHeight);
-  ctx.strokeStyle = 'rgba(251,146,60,0.8)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(rocketX - rocketWidth/2, rocketTop, rocketWidth, fuelHeight);
+  // Fuel and payload heights within the body
+  const fuelH = bodyH * fuelFrac;
+  const payloadH = bodyH * payloadFrac;
 
-  // Payload section
-  ctx.fillStyle = 'rgba(34,211,238,0.4)';
-  ctx.fillRect(rocketX - rocketWidth/2, rocketTop + fuelHeight, rocketWidth, payloadHeight);
-  ctx.strokeStyle = 'rgba(34,211,238,0.8)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(rocketX - rocketWidth/2, rocketTop + fuelHeight, rocketWidth, payloadHeight);
+  // ── Subtle glow behind the rocket ──
+  const glowGrad = ctx.createRadialGradient(cx, bodyTop + bodyH / 2, 10, cx, bodyTop + bodyH / 2, rocketW * 2);
+  glowGrad.addColorStop(0, 'rgba(251,146,60,0.12)');
+  glowGrad.addColorStop(0.5, 'rgba(251,146,60,0.04)');
+  glowGrad.addColorStop(1, 'transparent');
+  ctx.fillStyle = glowGrad;
+  ctx.fillRect(0, 0, w, h);
 
-  // Nose cone
-  ctx.fillStyle = 'rgba(34,211,238,0.6)';
+  // ── Exhaust flame ──
+  const flameTop = bodyBot + finH * 0.3;
+  const flameGrad = ctx.createLinearGradient(cx, flameTop, cx, flameTop + flameH);
+  flameGrad.addColorStop(0, '#fb923c');
+  flameGrad.addColorStop(0.4, '#fbbf24');
+  flameGrad.addColorStop(1, 'rgba(251,146,60,0)');
+  ctx.fillStyle = flameGrad;
   ctx.beginPath();
-  ctx.moveTo(rocketX - rocketWidth/2, rocketTop + fuelHeight + payloadHeight);
-  ctx.lineTo(rocketX, rocketTop + fuelHeight + payloadHeight - 20);
-  ctx.lineTo(rocketX + rocketWidth/2, rocketTop + fuelHeight + payloadHeight);
+  ctx.moveTo(cx - halfW * 0.5, flameTop);
+  ctx.quadraticCurveTo(cx - halfW * 0.6, flameTop + flameH * 0.6, cx, flameTop + flameH);
+  ctx.quadraticCurveTo(cx + halfW * 0.6, flameTop + flameH * 0.6, cx + halfW * 0.5, flameTop);
   ctx.closePath();
   ctx.fill();
 
-  // Fins
-  ctx.fillStyle = 'rgba(251,146,60,0.6)';
+  // Outer flame glow
+  ctx.save();
+  ctx.globalAlpha = 0.25;
+  const outerFlameGrad = ctx.createLinearGradient(cx, flameTop, cx, flameTop + flameH * 1.3);
+  outerFlameGrad.addColorStop(0, '#fb923c');
+  outerFlameGrad.addColorStop(1, 'rgba(251,146,60,0)');
+  ctx.fillStyle = outerFlameGrad;
   ctx.beginPath();
-  ctx.moveTo(rocketX - rocketWidth/2, rocketTop + fuelHeight + payloadHeight + 5);
-  ctx.lineTo(rocketX - rocketWidth/2 - 15, rocketTop + fuelHeight + payloadHeight + 25);
-  ctx.lineTo(rocketX - rocketWidth/2, rocketTop + fuelHeight + payloadHeight + 15);
+  ctx.moveTo(cx - halfW * 0.7, flameTop);
+  ctx.quadraticCurveTo(cx - halfW * 0.8, flameTop + flameH * 0.8, cx, flameTop + flameH * 1.3);
+  ctx.quadraticCurveTo(cx + halfW * 0.8, flameTop + flameH * 0.8, cx + halfW * 0.7, flameTop);
   ctx.closePath();
   ctx.fill();
+  ctx.restore();
 
+  // ── Fins ──
+  ctx.fillStyle = 'rgba(200,200,230,0.15)';
+  ctx.strokeStyle = 'rgba(200,200,230,0.3)';
+  ctx.lineWidth = 1.5;
+  // Left fin
   ctx.beginPath();
-  ctx.moveTo(rocketX + rocketWidth/2, rocketTop + fuelHeight + payloadHeight + 5);
-  ctx.lineTo(rocketX + rocketWidth/2 + 15, rocketTop + fuelHeight + payloadHeight + 25);
-  ctx.lineTo(rocketX + rocketWidth/2, rocketTop + fuelHeight + payloadHeight + 15);
+  ctx.moveTo(cx - halfW, bodyBot - 5);
+  ctx.lineTo(cx - halfW - finW, bodyBot + finH);
+  ctx.lineTo(cx - halfW - finW * 0.3, bodyBot + finH);
+  ctx.lineTo(cx - halfW, bodyBot + finH * 0.4);
   ctx.closePath();
   ctx.fill();
+  ctx.stroke();
+  // Right fin
+  ctx.beginPath();
+  ctx.moveTo(cx + halfW, bodyBot - 5);
+  ctx.lineTo(cx + halfW + finW, bodyBot + finH);
+  ctx.lineTo(cx + halfW + finW * 0.3, bodyBot + finH);
+  ctx.lineTo(cx + halfW, bodyBot + finH * 0.4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
 
-  // Labels
-  ctx.fillStyle = 'rgba(251,146,60,0.8)';
-  ctx.font = 'bold 12px Nunito';
-  ctx.fillText('Fuel', rocketX - 20, rocketTop + fuelHeight/2);
+  // ── Rocket body (cylindrical) ──
+  // Fuel section (top of body = bottom of nose)
+  const fuelGrad = ctx.createLinearGradient(cx - halfW, 0, cx + halfW, 0);
+  fuelGrad.addColorStop(0, 'rgba(251,146,60,0.25)');
+  fuelGrad.addColorStop(0.3, 'rgba(251,146,60,0.55)');
+  fuelGrad.addColorStop(0.7, 'rgba(251,146,60,0.55)');
+  fuelGrad.addColorStop(1, 'rgba(251,146,60,0.25)');
+  ctx.fillStyle = fuelGrad;
+  ctx.fillRect(cx - halfW, bodyTop, rocketW, fuelH);
 
-  ctx.fillStyle = 'rgba(34,211,238,0.8)';
-  ctx.fillText('Payload', rocketX - 25, rocketTop + fuelHeight + payloadHeight/2);
+  // Payload section (below fuel)
+  const payloadGrad = ctx.createLinearGradient(cx - halfW, 0, cx + halfW, 0);
+  payloadGrad.addColorStop(0, 'rgba(34,211,238,0.2)');
+  payloadGrad.addColorStop(0.3, 'rgba(34,211,238,0.5)');
+  payloadGrad.addColorStop(0.7, 'rgba(34,211,238,0.5)');
+  payloadGrad.addColorStop(1, 'rgba(34,211,238,0.2)');
+  ctx.fillStyle = payloadGrad;
+  ctx.fillRect(cx - halfW, bodyTop + fuelH, rocketW, payloadH);
 
-  // Equation at bottom
-  ctx.fillStyle = '#c8c8e8';
-  ctx.font = '12px Crimson Pro';
+  // Body outline
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(cx - halfW, bodyTop, rocketW, bodyH);
+
+  // Divider line between fuel and payload
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(cx - halfW, bodyTop + fuelH);
+  ctx.lineTo(cx + halfW, bodyTop + fuelH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Nose cone ──
+  const noseGrad = ctx.createLinearGradient(cx - halfW, bodyTop, cx + halfW, bodyTop);
+  noseGrad.addColorStop(0, 'rgba(200,200,230,0.15)');
+  noseGrad.addColorStop(0.4, 'rgba(200,200,230,0.35)');
+  noseGrad.addColorStop(0.6, 'rgba(200,200,230,0.35)');
+  noseGrad.addColorStop(1, 'rgba(200,200,230,0.15)');
+  ctx.fillStyle = noseGrad;
+  ctx.beginPath();
+  ctx.moveTo(cx, PAD);
+  ctx.quadraticCurveTo(cx - halfW * 0.3, PAD + noseH * 0.7, cx - halfW, bodyTop);
+  ctx.lineTo(cx + halfW, bodyTop);
+  ctx.quadraticCurveTo(cx + halfW * 0.3, PAD + noseH * 0.7, cx, PAD);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // ── Body detail: horizontal bands ──
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 1;
+  for (let y = bodyTop + 15; y < bodyBot; y += 20) {
+    ctx.beginPath();
+    ctx.moveTo(cx - halfW, y);
+    ctx.lineTo(cx + halfW, y);
+    ctx.stroke();
+  }
+
+  // ── Labels ──
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+
+  // Fuel label (to the right of the rocket)
+  if (fuelH > 18) {
+    ctx.font = 'bold 13px Nunito, sans-serif';
+    ctx.fillStyle = '#fb923c';
+    const fuelPct = (fuelFrac * 100).toFixed(0);
+    ctx.fillText('Fuel ' + fuelPct + '%', cx + halfW + 14, bodyTop + fuelH / 2);
+  }
+
+  // Payload label
+  if (payloadH > 18) {
+    ctx.font = 'bold 13px Nunito, sans-serif';
+    ctx.fillStyle = '#22d3ee';
+    const payPct = (payloadFrac * 100).toFixed(0);
+    ctx.fillText('Payload ' + payPct + '%', cx + halfW + 14, bodyTop + fuelH + payloadH / 2);
+  }
+
+  // ── Equation below the rocket ──
   ctx.textAlign = 'center';
-  ctx.fillText('Δv = vₑ · ln(m₀/mf)', w/2, h - 10);
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = '16px Crimson Pro, serif';
+  ctx.fillStyle = '#c8c8e8';
+  ctx.fillText('\u0394v = v\u2091 \u00B7 ln(m\u2080/m\u1D66)', w / 2, h - 12);
 }
 
 function updateRocket() {
   const ratio = parseFloat(document.getElementById('massRatio').value);
   document.getElementById('ratioValue').textContent = ratio.toFixed(1);
   drawRocket();
-  drawComparison();
 }
 
 // ── Comparison chart ──
 function drawComparison() {
   const cv = document.getElementById('comparisonCanvas');
   if (!cv) return;
-  const ctx = cv.getContext('2d');
-  const w = cv.width, h = cv.height;
+  const cssW = cv.parentElement.offsetWidth - 40;
+  const cssH = 360;
+  const { ctx, w, h } = setupHiDPI(cv, Math.min(cssW, 500), cssH);
+
   ctx.clearRect(0, 0, w, h);
 
   const rockets = [
     { name: 'Saturn V', fuel: 96 },
     { name: 'Falcon 9', fuel: 95 },
-    { name: 'Shuttle', fuel: 85 },
+    { name: 'Space Shuttle', fuel: 85 },
     { name: 'Soyuz', fuel: 91 }
   ];
 
-  const barWidth = 50;
-  const spacing = w / (rockets.length + 1);
+  const PAD = { left: 80, right: 30, top: 40, bottom: 60 };
+  const chartW = w - PAD.left - PAD.right;
+  const chartH = h - PAD.top - PAD.bottom;
+  const barCount = rockets.length;
+  const barGap = chartW / barCount;
+  const barW = barGap * 0.55;
+  const barR = 6; // rounded top radius
 
+  // ── Gridlines and Y-axis labels ──
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  ctx.font = '12px Nunito, sans-serif';
+
+  for (let pct = 0; pct <= 100; pct += 25) {
+    const y = PAD.top + chartH - (pct / 100) * chartH;
+
+    // Gridline
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PAD.left, y);
+    ctx.lineTo(w - PAD.right, y);
+    ctx.stroke();
+
+    // Y-axis label
+    ctx.fillStyle = '#7070a0';
+    ctx.fillText(pct + '%', PAD.left - 12, y);
+  }
+
+  // ── Bars ──
   rockets.forEach((r, i) => {
-    const x = spacing * (i + 1);
-    const barHeight = (r.fuel / 100) * (h - 80);
+    const cx = PAD.left + barGap * (i + 0.5);
+    const barH = (r.fuel / 100) * chartH;
+    const barTop = PAD.top + chartH - barH;
+    const barLeft = cx - barW / 2;
 
-    // Bar
-    ctx.fillStyle = `rgba(251,146,60,${0.3 + (r.fuel/100) * 0.5})`;
-    ctx.fillRect(x - barWidth/2, h - 60 - barHeight, barWidth, barHeight);
+    // Bar gradient fill
+    const grad = ctx.createLinearGradient(0, barTop, 0, PAD.top + chartH);
+    grad.addColorStop(0, '#fb923c');
+    grad.addColorStop(1, 'rgba(200,100,20,0.6)');
 
-    ctx.strokeStyle = 'rgba(251,146,60,0.8)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x - barWidth/2, h - 60 - barHeight, barWidth, barHeight);
+    // Draw bar with rounded top
+    ctx.beginPath();
+    ctx.moveTo(barLeft, PAD.top + chartH);
+    ctx.lineTo(barLeft, barTop + barR);
+    ctx.arcTo(barLeft, barTop, barLeft + barR, barTop, barR);
+    ctx.lineTo(barLeft + barW - barR, barTop);
+    ctx.arcTo(barLeft + barW, barTop, barLeft + barW, barTop + barR, barR);
+    ctx.lineTo(barLeft + barW, PAD.top + chartH);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
 
-    // Label
-    ctx.fillStyle = '#c8c8e8';
-    ctx.font = '12px Nunito';
+    // Subtle highlight on left edge
+    ctx.save();
+    ctx.clip();
+    const highlightGrad = ctx.createLinearGradient(barLeft, 0, barLeft + barW, 0);
+    highlightGrad.addColorStop(0, 'rgba(255,255,255,0.12)');
+    highlightGrad.addColorStop(0.3, 'rgba(255,255,255,0)');
+    highlightGrad.addColorStop(1, 'rgba(0,0,0,0.1)');
+    ctx.fillStyle = highlightGrad;
+    ctx.fillRect(barLeft, barTop, barW, barH);
+    ctx.restore();
+
+    // Fuel % above bar (bold white)
     ctx.textAlign = 'center';
-    ctx.fillText(r.name, x, h - 25);
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = 'bold 14px Nunito, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(r.fuel + '%', cx, barTop - 10);
 
-    // Percentage
-    ctx.fillStyle = 'rgba(251,146,60,0.9)';
-    ctx.font = 'bold 13px Nunito';
-    ctx.fillText(r.fuel + '%', x, h - 60 - barHeight - 8);
+    // Rocket name below bar
+    ctx.textBaseline = 'top';
+    ctx.font = '12px Nunito, sans-serif';
+    ctx.fillStyle = '#c8c8e8';
+    ctx.fillText(r.name, cx, PAD.top + chartH + 10);
   });
 
-  // Axes
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-  ctx.lineWidth = 1;
+  // ── Baseline ──
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(30, 20);
-  ctx.lineTo(30, h - 60);
-  ctx.lineTo(w - 10, h - 60);
+  ctx.moveTo(PAD.left, PAD.top + chartH);
+  ctx.lineTo(w - PAD.right, PAD.top + chartH);
   ctx.stroke();
 
-  // Y-axis label
-  ctx.fillStyle = '#7070a0';
-  ctx.font = '11px Nunito';
-  ctx.textAlign = 'right';
-  ctx.fillText('100%', 25, 25);
-  ctx.fillText('0%', 25, h - 55);
+  // ── Y-axis line ──
+  ctx.beginPath();
+  ctx.moveTo(PAD.left, PAD.top);
+  ctx.lineTo(PAD.left, PAD.top + chartH);
+  ctx.stroke();
 }
 
 // ── Confetti ──
@@ -644,10 +812,18 @@ function animateConfetti() {
   if (parts.length > 0) requestAnimationFrame(animateConfetti);
 }
 
-// Initialize on load
+// Initialize on load and handle resize
 window.addEventListener('load', () => {
   drawRocket();
   drawComparison();
+});
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    drawRocket();
+    drawComparison();
+  }, 150);
 });
 </script>
 </body>
