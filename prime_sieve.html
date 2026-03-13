@@ -52,15 +52,14 @@
         .concept{border-left:3px solid #fbbf24;padding-left:20px}
         .concept p{color:#a0a0b8;font-size:0.92em;line-height:1.75}
 
-        .grid-wrap{display:flex;justify-content:center;margin-bottom:24px}
-        .grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px}
-        .cell{width:45px;height:45px;display:flex;align-items:center;justify-content:center;font-size:0.88em;border-radius:4px;background:rgba(255,255,255,0.04);color:#c8c8d8;transition:background 0.15s,color 0.15s,transform 0.12s;position:relative;cursor:default;font-family:'Courier New',monospace}
-        .cell.one{color:#404058;background:rgba(255,255,255,0.015)}
-        .cell.current-prime{color:#fbbf24;background:rgba(251,191,36,0.12);box-shadow:0 0 12px rgba(251,191,36,0.3);animation:pulse 0.8s ease-in-out infinite alternate}
-        .cell.crossing{color:#e74c3c;background:rgba(231,76,60,0.18);transform:scale(1.15);z-index:2}
-        .cell.crossed{color:#404058;background:rgba(255,255,255,0.015);text-decoration:line-through}
-        .cell.confirmed{color:#fbbf24;background:rgba(251,191,36,0.08);text-shadow:0 0 6px rgba(251,191,36,0.3)}
-        @keyframes pulse{from{box-shadow:0 0 8px rgba(251,191,36,0.2)}to{box-shadow:0 0 18px rgba(251,191,36,0.45)}}
+        .canvas-wrap{display:flex;justify-content:center;margin-bottom:24px;position:relative}
+        #sieveCanvas{border-radius:10px;background:#0a0a1a;width:100%;max-width:900px}
+
+        .counter-bar{display:flex;justify-content:center;align-items:center;gap:28px;margin-bottom:18px;flex-wrap:wrap}
+        .counter-item{text-align:center}
+        .counter-label{font-size:0.75em;color:#606078;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}
+        .counter-value{font-size:1.6em;color:#fbbf24;font-family:'Courier New',monospace;font-weight:400;min-width:40px;display:inline-block}
+        .counter-value.large{font-size:1.3em}
 
         .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:24px}
         .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:7px 18px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
@@ -74,6 +73,10 @@
         .size-wrap label{font-size:0.82em;color:#808098;margin-right:2px}
         .size-btn{padding:4px 12px;font-size:0.84em}
         .size-btn.active{background:rgba(251,191,36,0.13);border-color:rgba(251,191,36,0.4);color:#fbbf24}
+
+        .legend{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-bottom:18px}
+        .legend-item{display:flex;align-items:center;gap:6px;font-size:0.78em;color:#808098}
+        .legend-swatch{width:14px;height:14px;border-radius:3px}
 
         .status{margin-bottom:24px}
         .status-line{font-size:0.88em;color:#808098;margin-bottom:6px}
@@ -93,10 +96,10 @@
         .insight .hl{color:#fbbf24}
 
         @media(max-width:560px){
-            .grid{grid-template-columns:repeat(5,1fr)}
-            .cell{width:52px;height:48px;font-size:0.85em}
             .controls{flex-direction:column;align-items:stretch}
             .speed-wrap{margin-left:0}
+            .counter-bar{gap:14px}
+            .counter-value{font-size:1.2em}
         }
     </style>
 <link rel="canonical" href="https://mathsedu.org/prime_sieve.html">
@@ -115,7 +118,34 @@
         <p>A prime number is divisible only by 1 and itself. The Sieve of Eratosthenes (c. 240 BCE) finds all primes up to N by systematically crossing out multiples of each prime, starting from 2.</p>
     </div>
 
-    <div class="grid-wrap"><div class="grid" id="grid"></div></div>
+    <div class="counter-bar" id="counterBar">
+        <div class="counter-item">
+            <div class="counter-label">Primes found</div>
+            <div class="counter-value" id="primeCounter">0</div>
+        </div>
+        <div class="counter-item">
+            <div class="counter-label">Eliminated</div>
+            <div class="counter-value" id="elimCounter">0</div>
+        </div>
+        <div class="counter-item">
+            <div class="counter-label">Sieving by</div>
+            <div class="counter-value" id="currentPrimeDisplay">&mdash;</div>
+        </div>
+        <div class="counter-item">
+            <div class="counter-label">Remaining</div>
+            <div class="counter-value" id="remainingCounter">0</div>
+        </div>
+    </div>
+
+    <div class="legend" id="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#fb7185"></div>Multiples of 2</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div>Multiples of 3</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div>Multiples of 5</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div>Multiples of 7</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#4ade80"></div>Confirmed prime</div>
+    </div>
+
+    <div class="canvas-wrap"><canvas id="sieveCanvas"></canvas></div>
 
     <div class="controls">
         <button class="btn" id="startBtn" onclick="toggleRun()">Start Sieve</button>
@@ -125,7 +155,8 @@
             <label>Grid:</label>
             <button class="btn size-btn" data-n="100" onclick="setSize(100)">100</button>
             <button class="btn size-btn active" data-n="200" onclick="setSize(200)">200</button>
-            <button class="btn size-btn" data-n="400" onclick="setSize(400)">400</button>
+            <button class="btn size-btn" data-n="500" onclick="setSize(500)">500</button>
+            <button class="btn size-btn" data-n="1000" onclick="setSize(1000)">1000</button>
         </div>
         <div class="speed-wrap">
             <label>Slow</label>
@@ -150,72 +181,286 @@
 </div>
 
 <script>
+// roundRect polyfill for older browsers
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, radii) {
+        var r = typeof radii === 'number' ? radii : (Array.isArray(radii) ? radii[0] : 0);
+        if (r > w / 2) r = w / 2;
+        if (r > h / 2) r = h / 2;
+        this.moveTo(x + r, y);
+        this.lineTo(x + w - r, y);
+        this.arcTo(x + w, y, x + w, y + r, r);
+        this.lineTo(x + w, y + h - r);
+        this.arcTo(x + w, y + h, x + w - r, y + h, r);
+        this.lineTo(x + r, y + h);
+        this.arcTo(x, y + h, x, y + h - r, r);
+        this.lineTo(x, y + r);
+        this.arcTo(x, y, x + r, y, r);
+        this.closePath();
+        return this;
+    };
+}
+
+// ── State ──
 let N = 200;
-let cells = [];        // DOM elements
-let state = [];        // 0=unmarked, 1=crossed, 2=current-prime, 3=confirmed
-let primes = [];       // found primes
+let cellData = [];     // { num, state, crossedBy, glowStrength, ripple }
+let primes = [];
 let running = false;
 let paused = false;
-let timer = null;
-let sieveGen = null;   // generator for the sieve steps
+let sieveGen = null;
 let complete = false;
+let elimCount = 0;
+let animFrameId = null;
 
+// Ripple effects queued for animation
+let ripples = [];      // { cx, cy, startTime, colour, maxRadius }
+
+// Per-prime colours
+const primeColours = {
+    2:  { r: 251, g: 113, b: 133, hex: '#fb7185' },  // rose
+    3:  { r: 251, g: 191, b: 36,  hex: '#fbbf24' },  // gold
+    5:  { r: 34,  g: 211, b: 238, hex: '#22d3ee' },  // cyan
+    7:  { r: 167, g: 139, b: 250, hex: '#a78bfa' },  // violet
+    11: { r: 249, g: 115, b: 22,  hex: '#f97316' },  // orange
+    13: { r: 244, g: 114, b: 182, hex: '#f472b6' },  // pink
+    17: { r: 56,  g: 189, b: 248, hex: '#38bdf8' },  // sky
+    19: { r: 163, g: 230, b: 53,  hex: '#a3e635' },  // lime
+    23: { r: 232, g: 121, b: 249, hex: '#e879f9' },  // fuchsia
+    29: { r: 251, g: 146, b: 60,  hex: '#fb923c' },  // amber
+    31: { r: 45,  g: 212, b: 191, hex: '#2dd4bf' },  // teal
+};
+const fallbackColour = { r: 200, g: 160, b: 80, hex: '#c8a050' };
+
+function getColour(p) {
+    return primeColours[p] || fallbackColour;
+}
+
+// Confirmed prime colour
+const confirmedColour = { r: 74, g: 222, b: 128 }; // #4ade80
+
+// ── Canvas ──
+const canvas = document.getElementById('sieveCanvas');
+const ctx = canvas.getContext('2d');
+let dpr = 1;
+let cols = 10;
+let cellSize = 45;
+let gap = 3;
+let canvasW = 0;
+let canvasH = 0;
+let rows = 0;
+
+function setupCanvas() {
+    dpr = window.devicePixelRatio || 1;
+    const wrap = canvas.parentElement;
+    const maxW = Math.min(wrap.clientWidth, 900);
+
+    // Determine columns and cell size based on N and viewport
+    if (N <= 100) {
+        cols = window.innerWidth <= 560 ? 5 : 10;
+    } else if (N <= 200) {
+        cols = window.innerWidth <= 560 ? 10 : 10;
+    } else if (N <= 500) {
+        cols = window.innerWidth <= 560 ? 10 : 20;
+    } else {
+        cols = window.innerWidth <= 560 ? 20 : 25;
+    }
+
+    rows = Math.ceil(N / cols);
+
+    // Calculate cell size to fit
+    gap = N <= 200 ? 3 : 2;
+    cellSize = Math.floor((maxW - gap * (cols + 1)) / cols);
+    if (N > 500) cellSize = Math.min(cellSize, 30);
+    else if (N > 200) cellSize = Math.min(cellSize, 36);
+    else cellSize = Math.min(cellSize, 45);
+
+    canvasW = cols * (cellSize + gap) + gap;
+    canvasH = rows * (cellSize + gap) + gap;
+
+    canvas.style.width = canvasW + 'px';
+    canvas.style.height = canvasH + 'px';
+    canvas.width = canvasW * dpr;
+    canvas.height = canvasH * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function cellRect(index) {
+    // index is 0-based (number i maps to index i-1)
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    return {
+        x: gap + col * (cellSize + gap),
+        y: gap + row * (cellSize + gap),
+        w: cellSize,
+        h: cellSize
+    };
+}
+
+// ── Drawing ──
+let lastDrawTime = 0;
+
+function drawFrame(timestamp) {
+    animFrameId = requestAnimationFrame(drawFrame);
+    const dt = timestamp - lastDrawTime;
+    if (dt < 16) return; // cap ~60fps
+    lastDrawTime = timestamp;
+
+    ctx.clearRect(0, 0, canvasW, canvasH);
+
+    const now = performance.now();
+    const fontSize = N > 500 ? 10 : N > 200 ? 12 : 14;
+    ctx.font = fontSize + 'px Courier New, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Draw cells
+    for (let i = 1; i <= N; i++) {
+        const d = cellData[i];
+        const r = cellRect(i - 1);
+        const cx = r.x + r.w / 2;
+        const cy = r.y + r.h / 2;
+
+        // Background
+        let bgR = 255, bgG = 255, bgB = 255, bgA = 0.04;
+        let textR = 200, textG = 200, textB = 216, textA = 1;
+
+        if (d.state === -1) {
+            // 1 — dimmed
+            bgA = 0.015;
+            textR = 64; textG = 64; textB = 88; textA = 0.6;
+        } else if (d.state === 1) {
+            // Crossed out — use crossedBy colour, dimmed
+            const c = getColour(d.crossedBy);
+            bgR = c.r; bgG = c.g; bgB = c.b; bgA = 0.06;
+            textR = c.r; textG = c.g; textB = c.b; textA = 0.3;
+        } else if (d.state === 2) {
+            // Current prime being sieved
+            bgR = 251; bgG = 191; bgB = 36; bgA = 0.15;
+            textR = 251; textG = 191; textB = 36; textA = 1;
+        } else if (d.state === 9) {
+            // Being crossed out right now
+            const c = getColour(d.crossedBy);
+            bgR = c.r; bgG = c.g; bgB = c.b; bgA = 0.25;
+            textR = c.r; textG = c.g; textB = c.b; textA = 1;
+        } else if (d.state === 3) {
+            // Confirmed prime — green glow
+            const glow = d.glowStrength || 1;
+            const intensity = 0.08 + glow * 0.04;
+            bgR = confirmedColour.r; bgG = confirmedColour.g; bgB = confirmedColour.b;
+            bgA = Math.min(intensity, 0.35);
+            textR = confirmedColour.r; textG = confirmedColour.g; textB = confirmedColour.b;
+            textA = 1;
+        } else if (d.state === 0) {
+            // Unmarked, surviving — subtle glow increases with each sieve round
+            const glow = d.glowStrength || 0;
+            if (glow > 0) {
+                const pulse = 0.5 + 0.5 * Math.sin(now / 800 + i);
+                bgA = 0.04 + glow * 0.02 + pulse * 0.015;
+                textA = 0.7 + glow * 0.06;
+            }
+        }
+
+        // Draw background
+        ctx.fillStyle = 'rgba(' + bgR + ',' + bgG + ',' + bgB + ',' + bgA + ')';
+        const cornerR = N > 500 ? 2 : 4;
+        ctx.beginPath();
+        ctx.roundRect(r.x, r.y, r.w, r.h, cornerR);
+        ctx.fill();
+
+        // Glow shadow for current-prime and confirmed
+        if (d.state === 2) {
+            const pulse = 0.4 + 0.3 * Math.sin(now / 400);
+            ctx.shadowColor = 'rgba(251,191,36,' + pulse + ')';
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = 'rgba(251,191,36,0.05)';
+            ctx.beginPath();
+            ctx.roundRect(r.x, r.y, r.w, r.h, cornerR);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        } else if (d.state === 3) {
+            const glow = d.glowStrength || 1;
+            const pulse = 0.15 + 0.1 * Math.sin(now / 600 + i * 0.3);
+            ctx.shadowColor = 'rgba(' + confirmedColour.r + ',' + confirmedColour.g + ',' + confirmedColour.b + ',' + (pulse * Math.min(glow * 0.3, 1)) + ')';
+            ctx.shadowBlur = 6 + glow * 2;
+            ctx.fillStyle = 'rgba(' + confirmedColour.r + ',' + confirmedColour.g + ',' + confirmedColour.b + ',0.02)';
+            ctx.beginPath();
+            ctx.roundRect(r.x, r.y, r.w, r.h, cornerR);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        } else if (d.state === 9) {
+            const c = getColour(d.crossedBy);
+            ctx.shadowColor = 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',0.5)';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',0.03)';
+            ctx.beginPath();
+            ctx.roundRect(r.x, r.y, r.w, r.h, cornerR);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // Number text
+        ctx.fillStyle = 'rgba(' + textR + ',' + textG + ',' + textB + ',' + textA + ')';
+        if (N <= 500) {
+            ctx.fillText(i, cx, cy);
+        } else if (N <= 1000 && cellSize >= 20) {
+            ctx.fillText(i, cx, cy);
+        }
+
+        // Strikethrough for crossed-out
+        if (d.state === 1) {
+            const c = getColour(d.crossedBy);
+            ctx.strokeStyle = 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',0.25)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(r.x + 4, cy);
+            ctx.lineTo(r.x + r.w - 4, cy);
+            ctx.stroke();
+        }
+    }
+
+    // Draw ripples
+    for (let ri = ripples.length - 1; ri >= 0; ri--) {
+        const rp = ripples[ri];
+        const elapsed = now - rp.startTime;
+        const duration = 600;
+        const progress = elapsed / duration;
+        if (progress > 1) {
+            ripples.splice(ri, 1);
+            continue;
+        }
+        const radius = rp.maxRadius * progress;
+        const alpha = 0.3 * (1 - progress);
+        ctx.beginPath();
+        ctx.arc(rp.cx, rp.cy, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(' + rp.colour.r + ',' + rp.colour.g + ',' + rp.colour.b + ',' + alpha + ')';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+}
+
+// ── Sieve Logic ──
 function getDelay() {
     const v = document.getElementById("speedSlider").value;
-    return 220 - v * 20;
+    return 280 - v * 26;
 }
 
-function buildGrid() {
-    const grid = document.getElementById("grid");
-    grid.innerHTML = "";
-    const cols = window.innerWidth <= 560 ? 5 : 10;
-    grid.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
-    cells = [];
-    state = new Array(N + 1).fill(0);
-    primes = [];
-    complete = false;
-    for (let i = 1; i <= N; i++) {
-        const d = document.createElement("div");
-        d.className = "cell";
-        d.textContent = i;
-        if (i === 1) { d.classList.add("one"); state[i] = -1; }
-        grid.appendChild(d);
-        cells[i] = d;
+function initCellData() {
+    cellData = [];
+    for (let i = 0; i <= N; i++) {
+        cellData[i] = { num: i, state: 0, crossedBy: 0, glowStrength: 0 };
     }
-    updateStatus("Press <span class='hl'>Start Sieve</span> or <span class='hl'>Step</span> to begin.");
-    document.getElementById("primesList").textContent = "";
-    document.getElementById("statsRow").innerHTML = "";
-    document.getElementById("factsPanel").classList.remove("show");
-    document.getElementById("insightPanel").innerHTML = "<span class='hl'>How it works:</span> Each new prime eliminates its multiples. We start crossing out from p&sup2;, since smaller multiples of p were already eliminated by smaller primes. Any number that survives all crossings must be prime.";
-    document.getElementById("startBtn").textContent = "Start Sieve";
-    running = false;
-    paused = false;
-    sieveGen = null;
+    cellData[1].state = -1;
+    primes = [];
+    elimCount = 0;
+    complete = false;
+    ripples = [];
+    updateCounters();
 }
 
-function setSize(n) {
-    if (running && !paused) toggleRun();
-    N = n;
-    document.querySelectorAll(".size-btn").forEach(b => {
-        b.classList.toggle("active", parseInt(b.dataset.n) === n);
-    });
-    clearTimeout(timer);
-    running = false;
-    paused = false;
-    sieveGen = null;
-    buildGrid();
-}
-
-function setCellState(i, s) {
-    if (i < 1 || i > N) return;
-    state[i] = s;
-    const c = cells[i];
-    c.className = "cell";
-    if (s === -1) c.classList.add("one");
-    else if (s === 1) c.classList.add("crossed");
-    else if (s === 2) c.classList.add("current-prime");
-    else if (s === 3) c.classList.add("confirmed");
-    else if (s === 9) c.classList.add("crossing");
+function updateCounters() {
+    document.getElementById('primeCounter').textContent = primes.length;
+    document.getElementById('elimCounter').textContent = elimCount;
+    document.getElementById('remainingCounter').textContent = Math.max(0, N - 1 - primes.length - elimCount);
 }
 
 function updateStatus(html) {
@@ -238,43 +483,92 @@ function updateStats() {
         "<div class='stat'>Largest: <span class='val'>" + largest + "</span></div>";
 }
 
+// Increase glow for all currently unmarked survivors
+function boostSurvivorGlow() {
+    for (let i = 2; i <= N; i++) {
+        if (cellData[i].state === 0) {
+            cellData[i].glowStrength = (cellData[i].glowStrength || 0) + 1;
+        }
+    }
+}
+
+function spawnRipple(primeNum) {
+    const idx = primeNum - 1;
+    const r = cellRect(idx);
+    const c = getColour(primeNum);
+    const maxR = Math.max(canvasW, canvasH) * 0.6;
+    ripples.push({
+        cx: r.x + r.w / 2,
+        cy: r.y + r.h / 2,
+        startTime: performance.now(),
+        colour: c,
+        maxRadius: maxR
+    });
+}
+
+let sieveRound = 0; // tracks how many primes we've sieved by
+
 function* sieveSteps() {
     const limit = Math.floor(Math.sqrt(N));
     // Phase 1: cross out multiples of each prime up to sqrt(N)
     for (let p = 2; p <= limit; p++) {
-        if (state[p] === 1) continue;
+        if (cellData[p].state === 1) continue;
+
+        sieveRound++;
+
         // Mark p as current prime
-        setCellState(p, 2);
+        cellData[p].state = 2;
         primes.push(p);
         updatePrimesList();
         updateStats();
-        updateStatus("Crossing out multiples of <span class='hl'>" + p + "</span>...");
+        updateCounters();
+        document.getElementById('currentPrimeDisplay').textContent = p;
+
+        const c = getColour(p);
+        document.getElementById('currentPrimeDisplay').style.color = c.hex;
+        updateStatus("Crossing out multiples of <span class='hl' style='color:" + c.hex + "'>" + p + "</span>...");
+
+        // Spawn ripple from this prime
+        spawnRipple(p);
+
         yield { type: "prime", p: p };
 
         const start = p * p;
         for (let m = start; m <= N; m += p) {
-            if (state[m] !== 1) {
-                setCellState(m, 9);
+            if (cellData[m].state !== 1) {
+                cellData[m].state = 9;
+                cellData[m].crossedBy = p;
                 yield { type: "cross", p: p, m: m };
-                setCellState(m, 1);
+                cellData[m].state = 1;
+                elimCount++;
+                updateCounters();
             } else {
-                setCellState(m, 9);
+                // Already crossed — briefly flash
+                cellData[m].state = 9;
                 yield { type: "cross-already", p: p, m: m };
-                setCellState(m, 1);
+                cellData[m].state = 1;
             }
         }
-        setCellState(p, 3);
+        cellData[p].state = 3;
+        cellData[p].glowStrength = sieveRound;
+
+        // Boost glow of survivors
+        boostSurvivorGlow();
     }
-    // Phase 2: all remaining unmarked numbers are prime -- reveal them
+    // Phase 2: all remaining unmarked numbers are prime — reveal them
     updateStatus("Past &radic;" + N + " &mdash; all surviving numbers are prime. Revealing...");
+    document.getElementById('currentPrimeDisplay').innerHTML = '&mdash;';
+    document.getElementById('currentPrimeDisplay').style.color = '#fbbf24';
     for (let p = limit + 1; p <= N; p++) {
-        if (state[p] === 0) {
+        if (cellData[p].state === 0) {
             primes.push(p);
-            setCellState(p, 3);
+            cellData[p].state = 3;
+            cellData[p].glowStrength = sieveRound + 1;
         }
     }
     updatePrimesList();
     updateStats();
+    updateCounters();
     yield { type: "done" };
 }
 
@@ -282,13 +576,13 @@ function finishSieve() {
     complete = true;
     running = false;
     paused = false;
-    clearTimeout(timer);
     document.getElementById("startBtn").textContent = "Start Sieve";
     document.getElementById("startBtn").disabled = true;
     document.getElementById("stepBtn").disabled = true;
 
     updateStatus("Sieve complete. <span class='hl'>" + primes.length + "</span> primes found up to " + N + ".");
     updateStats();
+    updateCounters();
     showFacts();
 
     document.getElementById("insightPanel").innerHTML = "<span class='hl'>The primes thin out</span> as numbers grow larger, but they never stop entirely. They are the atoms of arithmetic &mdash; every positive integer greater than 1 is either prime itself or can be expressed as a unique product of primes.";
@@ -298,7 +592,6 @@ function showFacts() {
     const panel = document.getElementById("factsPanel");
     const lnN = Math.log(N);
     const estimate = (N / lnN).toFixed(1);
-    // Find twin primes
     const twins = [];
     for (let i = 0; i < primes.length - 1; i++) {
         if (primes[i + 1] - primes[i] === 2) {
@@ -308,7 +601,11 @@ function showFacts() {
     let html = "";
     html += "<div class='fact'>There are <span class='hl'>" + primes.length + "</span> primes up to " + N + ".</div>";
     html += "<div class='fact'>The Prime Number Theorem estimates &pi;(N) &approx; N/ln(N). For N=" + N + ": " + N + "/ln(" + N + ") &approx; " + estimate + " &mdash; the actual count (" + primes.length + ") is higher, but they converge for large N.</div>";
-    html += "<div class='fact'>Twin primes found: <span class='hl'>" + twins.join(", ") + "</span></div>";
+    if (twins.length <= 30) {
+        html += "<div class='fact'>Twin primes found: <span class='hl'>" + twins.join(", ") + "</span></div>";
+    } else {
+        html += "<div class='fact'>Twin primes found: <span class='hl'>" + twins.length + " pairs</span> (first five: " + twins.slice(0, 5).join(", ") + " &hellip;)</div>";
+    }
     html += "<div class='fact'>Euclid proved there are infinitely many primes (c. 300 BCE).</div>";
     document.getElementById("factsContent").innerHTML = html;
     panel.classList.add("show");
@@ -324,11 +621,13 @@ function advance() {
     return true;
 }
 
+let stepTimer = null;
+
 function runLoop() {
     if (!running || paused) return;
     const more = advance();
     if (more) {
-        timer = setTimeout(runLoop, getDelay());
+        stepTimer = setTimeout(runLoop, getDelay());
     }
 }
 
@@ -341,7 +640,7 @@ function toggleRun() {
         runLoop();
     } else if (!paused) {
         paused = true;
-        clearTimeout(timer);
+        clearTimeout(stepTimer);
         document.getElementById("startBtn").textContent = "Resume";
     } else {
         paused = false;
@@ -354,7 +653,7 @@ function stepOnce() {
     if (complete) return;
     if (running && !paused) {
         paused = true;
-        clearTimeout(timer);
+        clearTimeout(stepTimer);
         document.getElementById("startBtn").textContent = "Resume";
     }
     if (!sieveGen) {
@@ -367,17 +666,64 @@ function stepOnce() {
 }
 
 function resetSieve() {
-    clearTimeout(timer);
+    clearTimeout(stepTimer);
     running = false;
     paused = false;
     sieveGen = null;
+    sieveRound = 0;
     complete = false;
     document.getElementById("startBtn").disabled = false;
     document.getElementById("stepBtn").disabled = false;
-    buildGrid();
+    document.getElementById("startBtn").textContent = "Start Sieve";
+    document.getElementById('currentPrimeDisplay').innerHTML = '&mdash;';
+    document.getElementById('currentPrimeDisplay').style.color = '#fbbf24';
+    document.getElementById("primesList").textContent = "";
+    document.getElementById("statsRow").innerHTML = "";
+    document.getElementById("factsPanel").classList.remove("show");
+    document.getElementById("insightPanel").innerHTML = "<span class='hl'>How it works:</span> Each new prime eliminates its multiples. We start crossing out from p&sup2;, since smaller multiples of p were already eliminated by smaller primes. Any number that survives all crossings must be prime.";
+    updateStatus("Press <span class='hl'>Start Sieve</span> or <span class='hl'>Step</span> to begin.");
+    initCellData();
+    setupCanvas();
 }
 
-buildGrid();
+function setSize(n) {
+    if (running && !paused) toggleRun();
+    N = n;
+    document.querySelectorAll(".size-btn").forEach(function(b) {
+        b.classList.toggle("active", parseInt(b.dataset.n) === n);
+    });
+    clearTimeout(stepTimer);
+    running = false;
+    paused = false;
+    sieveGen = null;
+    sieveRound = 0;
+    complete = false;
+    document.getElementById("startBtn").disabled = false;
+    document.getElementById("stepBtn").disabled = false;
+    document.getElementById("startBtn").textContent = "Start Sieve";
+    document.getElementById('currentPrimeDisplay').innerHTML = '&mdash;';
+    document.getElementById('currentPrimeDisplay').style.color = '#fbbf24';
+    document.getElementById("primesList").textContent = "";
+    document.getElementById("statsRow").innerHTML = "";
+    document.getElementById("factsPanel").classList.remove("show");
+    document.getElementById("insightPanel").innerHTML = "<span class='hl'>How it works:</span> Each new prime eliminates its multiples. We start crossing out from p&sup2;, since smaller multiples of p were already eliminated by smaller primes. Any number that survives all crossings must be prime.";
+    updateStatus("Press <span class='hl'>Start Sieve</span> or <span class='hl'>Step</span> to begin.");
+    initCellData();
+    setupCanvas();
+}
+
+// ── Initialise ──
+function init() {
+    initCellData();
+    setupCanvas();
+    animFrameId = requestAnimationFrame(drawFrame);
+}
+
+window.addEventListener('resize', function() {
+    setupCanvas();
+});
+
+init();
 </script>
 <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
     <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>

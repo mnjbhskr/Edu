@@ -220,6 +220,7 @@
             border-radius: 4px;
             display: block;
             margin: 16px 0;
+            max-width: 100%;
         }
 
         .insight-box {
@@ -323,6 +324,67 @@
             margin-top: 8px;
             font-style: italic;
         }
+
+        /* Animation controls */
+        .anim-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+        .anim-controls .btn {
+            min-width: 70px;
+            text-align: center;
+        }
+        .anim-status {
+            font-size: 0.85em;
+            color: #a0a0b8;
+            font-style: italic;
+            margin-left: 8px;
+        }
+
+        /* Before/after wipe container */
+        .wipe-container {
+            position: relative;
+            display: inline-block;
+            cursor: ew-resize;
+            touch-action: none;
+            margin: 16px 0;
+        }
+        .wipe-container canvas {
+            margin: 0;
+        }
+        .wipe-divider {
+            position: absolute;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: #22d3ee;
+            pointer-events: none;
+            box-shadow: 0 0 10px rgba(34,211,238,0.6);
+            z-index: 2;
+        }
+        .wipe-label {
+            position: absolute;
+            top: 8px;
+            padding: 2px 8px;
+            font-size: 0.78em;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 3;
+            font-family: Georgia, serif;
+        }
+        .wipe-label-left {
+            left: 8px;
+            background: rgba(34,211,238,0.2);
+            color: #22d3ee;
+        }
+        .wipe-label-right {
+            right: 8px;
+            background: rgba(251,113,133,0.2);
+            color: #fb7185;
+        }
     </style>
 <link rel="canonical" href="https://mathsedu.org/image_compression.html">
   </head>
@@ -380,7 +442,7 @@
         <p>The Discrete Cosine Transform is a fundamental technique in signal processing. It decomposes any signal into a sum of cosine functions at different frequencies. Rather than storing pixel values directly, JPEG stores the coefficients of these cosines.</p>
 
         <div class="formula-block">
-            X(k) = Σ<sub style="vertical-align: sub;">n=0 to N-1</sub> x(n) cos[π(2n+1)k / 2N]
+            X(k) = &Sigma;<sub style="vertical-align: sub;">n=0 to N-1</sub> x(n) cos[&pi;(2n+1)k / 2N]
         </div>
 
         <p>This formula transforms a sequence of N values <em>x(n)</em> into N frequency coefficients <em>X(k)</em>. The low-frequency coefficients (small k) represent the broad patterns in the signal, whilst high-frequency coefficients capture fine details.</p>
@@ -437,7 +499,7 @@
             </div>
         </div>
 
-        <!-- Section 3: The 8×8 Block -->
+        <!-- Section 3: The 8x8 Block -->
         <h2>The 8×8 Block — Heart of JPEG</h2>
         <p>JPEG compression operates on 8×8 blocks of pixels. The image is divided into a grid of these blocks, and each block is processed independently. This allows for a good balance between compression and artefacts.</p>
 
@@ -450,6 +512,24 @@
             <canvas id="canvasBasis8x8" width="800" height="550"></canvas>
 
             <p style="margin-top: 20px; font-size: 0.93em; color: #a0a0b8;">Above: the 64 2D DCT basis patterns. Top-left is the DC (constant) basis; patterns grow more oscillatory towards the bottom-right.</p>
+        </div>
+
+        <!-- NEW: Animated DCT Decomposition -->
+        <div class="panel">
+            <h3>Animated: 8×8 Block Decomposing into Basis Functions</h3>
+            <p>Watch a sample block decompose into its 64 frequency basis patterns. Each pattern fades in and combines, rebuilding the image from low to high frequency. <span style="color:#22d3ee">Cyan</span> = low frequency, <span style="color:#f0c040">gold</span> = high frequency.</p>
+
+            <div class="anim-controls">
+                <button class="btn active" id="dctAnimPlayBtn" onclick="dctAnim.toggle()">Pause</button>
+                <button class="btn" onclick="dctAnim.reset()">Reset</button>
+                <span class="anim-status" id="dctAnimStatus">Basis 0 of 64</span>
+            </div>
+
+            <canvas id="canvasDCTAnim" width="800" height="400"></canvas>
+
+            <div class="insight-box">
+                <strong>Try this:</strong> Watch how the first few basis functions capture most of the image. The later high-frequency patterns (gold) contribute very little — which is precisely why JPEG can discard them.
+            </div>
         </div>
 
         <!-- Section 4: Quantisation -->
@@ -485,6 +565,20 @@
             <div class="insight-box">
                 <strong>Lossy Compression:</strong> Notice how the reconstructed block differs from the original. At quality 75%, this is mostly imperceptible. At quality 10%, artefacts become obvious. This is the trade-off JPEG makes: smaller file size at the cost of some image degradation.
             </div>
+        </div>
+
+        <!-- NEW: Animated Quantisation -->
+        <div class="panel">
+            <h3>Animated: Coefficients Being Rounded and Zeroed</h3>
+            <p>Watch quality degrade in real time as the quantisation divisor increases. Coefficients flash <span style="color:#fb7185">rose</span> as they are rounded to zero, whilst surviving coefficients glow <span style="color:#22d3ee">cyan</span>.</p>
+
+            <div class="anim-controls">
+                <button class="btn active" id="quantAnimPlayBtn" onclick="quantAnim.toggle()">Pause</button>
+                <button class="btn" onclick="quantAnim.reset()">Reset</button>
+                <span class="anim-status" id="quantAnimStatus">Quality: 100%</span>
+            </div>
+
+            <canvas id="canvasQuantAnim" width="800" height="420"></canvas>
         </div>
 
         <!-- Section 5: The Complete JPEG Pipeline -->
@@ -547,6 +641,39 @@
             </div>
         </div>
 
+        <!-- NEW: Animated Compression Artefacts Slider -->
+        <div class="panel">
+            <h3>Animated: Compression Artefacts Appearing</h3>
+            <p>Watch quality animate from 100% down to 10%. Block boundaries and colour banding become visible as quality drops. <span style="color:#fb7185">Rose</span> highlights show where artefacts are worst.</p>
+
+            <div class="anim-controls">
+                <button class="btn active" id="artefactAnimPlayBtn" onclick="artefactAnim.toggle()">Pause</button>
+                <button class="btn" onclick="artefactAnim.reset()">Reset</button>
+                <span class="anim-status" id="artefactAnimStatus">Quality: 100%</span>
+            </div>
+
+            <canvas id="canvasArtefactAnim" width="800" height="440"></canvas>
+        </div>
+
+        <!-- NEW: Before/After Wipe Comparison -->
+        <div class="panel">
+            <h3>Before/After: Drag to Reveal Compression Artefacts</h3>
+            <p>Drag the cyan divider left and right to compare the original image with heavy JPEG compression (quality 15%). Look for block boundaries and colour shifts.</p>
+
+            <div class="slider-row">
+                <label>Compression quality:</label>
+                <input type="range" id="wipeQuality" min="1" max="100" value="15" step="1">
+                <span class="value-display" id="wipeQualityValue">15%</span>
+            </div>
+
+            <div class="wipe-container" id="wipeContainer">
+                <canvas id="canvasWipe" width="800" height="400"></canvas>
+                <div class="wipe-divider" id="wipeDivider" style="left:400px"></div>
+                <span class="wipe-label wipe-label-left">Original</span>
+                <span class="wipe-label wipe-label-right">Compressed</span>
+            </div>
+        </div>
+
         <!-- Summary Section -->
         <h2>Why This Matters</h2>
         <p>The Discrete Cosine Transform is elegant mathematics in action. By recognising that natural images are sparse in the frequency domain (they contain mostly low frequencies with some mid and high frequencies), JPEG compression achieves extraordinary reduction whilst preserving visual fidelity.</p>
@@ -570,6 +697,18 @@
 </footer>
 
     <script>
+        // ===== HiDPI CANVAS HELPER =====
+        function setupHiDPI(canvas, w, h) {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            return ctx;
+        }
+
         // ===== SECTION 1: FILE SIZE CALCULATOR =====
         function updateFileSizes() {
             const width = parseInt(document.getElementById('sliderWidth').value);
@@ -582,7 +721,7 @@
             const rawMB = (rawBytes / (1024 * 1024)).toFixed(2);
             document.getElementById('rawSize').textContent = `${rawMB} MB`;
 
-            const compressionRatio = 20 + Math.random() * 10; // 20-30:1
+            const compressionRatio = 20 + Math.random() * 10;
             const jpegBytes = rawBytes / compressionRatio;
             const jpegMB = (jpegBytes / (1024 * 1024)).toFixed(2);
             const ratio = compressionRatio.toFixed(1);
@@ -593,16 +732,15 @@
 
         function drawSizeComparison(width, height, rawBytes, jpegBytes) {
             const canvas = document.getElementById('canvasSizes');
-            const ctx = canvas.getContext('2d');
+            const ctx = setupHiDPI(canvas, 800, 280);
             ctx.fillStyle = '#0a0a1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, 800, 280);
 
             const maxBytes = rawBytes * 1.2;
-            const scale = (canvas.width - 100) / maxBytes;
+            const scale = (800 - 100) / maxBytes;
             const barHeight = 40;
             const spacing = 80;
 
-            // Raw bar
             ctx.fillStyle = '#606078';
             const rawWidth = rawBytes * scale;
             ctx.fillRect(40, spacing, rawWidth, barHeight);
@@ -612,7 +750,6 @@
             ctx.fillText('Raw', 10, spacing + 25);
             ctx.fillText((rawBytes / (1024*1024)).toFixed(1) + ' MB', rawWidth + 50, spacing + 25);
 
-            // JPEG bar
             ctx.fillStyle = '#22d3ee';
             const jpegWidth = jpegBytes * scale;
             ctx.fillRect(40, spacing + 80, jpegWidth, barHeight);
@@ -621,10 +758,9 @@
             ctx.fillText('JPEG', 10, spacing + 105);
             ctx.fillText((jpegBytes / (1024*1024)).toFixed(2) + ' MB', jpegWidth + 50, spacing + 105);
 
-            // Labels
             ctx.fillStyle = '#a0a0b8';
             ctx.font = 'italic 12px Georgia';
-            ctx.fillText(width + ' × ' + height + ' pixels', 40, 30);
+            ctx.fillText(width + ' \u00d7 ' + height + ' pixels', 40, 30);
         }
 
         document.getElementById('sliderWidth').addEventListener('input', updateFileSizes);
@@ -662,11 +798,10 @@
 
         function drawDCT1D() {
             const canvas = document.getElementById('canvasDCT1D');
-            const ctx = canvas.getContext('2d');
+            const ctx = setupHiDPI(canvas, 800, 380);
             ctx.fillStyle = '#0a0a1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, 800, 380);
 
-            // Get coefficients from sliders
             const coeffs = [];
             for (let i = 0; i < 8; i++) {
                 const val = parseFloat(document.getElementById(`dctCoeff${i}`).value);
@@ -676,13 +811,11 @@
 
             const reconstructed = inverseDCT1D(coeffs);
 
-            // Draw grid
             const margin = 40;
-            const graphWidth = canvas.width - 2 * margin;
+            const graphWidth = 800 - 2 * margin;
             const graphHeight = 120;
             const topOffset = 20;
 
-            // Background grid
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
             ctx.lineWidth = 1;
             for (let i = 0; i <= 8; i++) {
@@ -693,7 +826,6 @@
                 ctx.stroke();
             }
 
-            // Axes
             ctx.strokeStyle = '#505068';
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -702,7 +834,6 @@
             ctx.lineTo(margin + graphWidth, topOffset + graphHeight);
             ctx.stroke();
 
-            // Draw each basis function faintly
             for (let basis = 0; basis < 8; basis++) {
                 ctx.strokeStyle = `rgba(176, 176, 196, ${0.1 + basis * 0.03})`;
                 ctx.lineWidth = 1;
@@ -717,20 +848,18 @@
                 ctx.stroke();
             }
 
-            // Draw reconstructed signal as thick cyan line
             ctx.strokeStyle = '#22d3ee';
             ctx.lineWidth = 3;
             ctx.beginPath();
             for (let i = 0; i < 8; i++) {
                 const x = margin + (i / 8) * graphWidth;
-                const normalized = (reconstructed[i] + 255) / 510; // Normalise to 0-1
+                const normalized = (reconstructed[i] + 255) / 510;
                 const y = topOffset + graphHeight - normalized * graphHeight;
                 if (i === 0) ctx.moveTo(x, y);
                 else ctx.lineTo(x, y);
             }
             ctx.stroke();
 
-            // Draw sample points as circles
             ctx.fillStyle = '#22d3ee';
             for (let i = 0; i < 8; i++) {
                 const x = margin + (i / 8) * graphWidth;
@@ -741,7 +870,6 @@
                 ctx.fill();
             }
 
-            // Labels
             ctx.fillStyle = '#a0a0b8';
             ctx.font = '11px Georgia';
             ctx.textAlign = 'center';
@@ -755,35 +883,55 @@
             ctx.fillText('0', margin - 5, topOffset + graphHeight / 2 + 4);
             ctx.fillText('-255', margin - 5, topOffset + graphHeight);
 
-            // Title
             ctx.fillStyle = '#e0e0e0';
             ctx.font = 'bold 13px Georgia';
             ctx.textAlign = 'left';
             ctx.fillText('Reconstructed signal (cyan)', margin, topOffset - 5);
         }
 
-        // Update 1D DCT on slider changes
         for (let i = 0; i < 8; i++) {
             document.getElementById(`dctCoeff${i}`).addEventListener('input', drawDCT1D);
         }
         drawDCT1D();
 
-        // ===== SECTION 3: 8×8 DCT BASIS FUNCTIONS =====
+        // ===== SECTION 3: 8x8 DCT BASIS FUNCTIONS =====
         function dct2D(block) {
             const N = 8;
             const result = Array(N).fill(0).map(() => Array(N).fill(0));
             for (let u = 0; u < N; u++) {
                 for (let v = 0; v < N; v++) {
                     let sum = 0;
+                    const cu = (u === 0) ? 1/Math.sqrt(2) : 1;
+                    const cv = (v === 0) ? 1/Math.sqrt(2) : 1;
                     for (let i = 0; i < N; i++) {
                         for (let j = 0; j < N; j++) {
-                            const cu = (u === 0) ? 1/Math.sqrt(2) : 1;
-                            const cv = (v === 0) ? 1/Math.sqrt(2) : 1;
-                            const angle = Math.PI * (2*i + 1) * u / 16 + Math.PI * (2*j + 1) * v / 16;
-                            sum += block[i][j] * Math.cos(angle);
+                            sum += block[i][j] *
+                                Math.cos(Math.PI * (2*i + 1) * u / 16) *
+                                Math.cos(Math.PI * (2*j + 1) * v / 16);
                         }
                     }
-                    result[u][v] = sum * 2/8 * 1 * 1; // Simplified normalization
+                    result[u][v] = sum * cu * cv / 4;
+                }
+            }
+            return result;
+        }
+
+        function inverseDCT2D(block) {
+            const N = 8;
+            const result = Array(N).fill(0).map(() => Array(N).fill(0));
+            for (let i = 0; i < N; i++) {
+                for (let j = 0; j < N; j++) {
+                    let sum = 0;
+                    for (let u = 0; u < N; u++) {
+                        for (let v = 0; v < N; v++) {
+                            const cu = (u === 0) ? 1/Math.sqrt(2) : 1;
+                            const cv = (v === 0) ? 1/Math.sqrt(2) : 1;
+                            sum += cu * cv * block[u][v] *
+                                Math.cos(Math.PI * (2*i + 1) * u / 16) *
+                                Math.cos(Math.PI * (2*j + 1) * v / 16);
+                        }
+                    }
+                    result[i][j] = sum / 4;
                 }
             }
             return result;
@@ -791,51 +939,265 @@
 
         function drawBasis8x8() {
             const canvas = document.getElementById('canvasBasis8x8');
-            const ctx = canvas.getContext('2d');
+            const ctx = setupHiDPI(canvas, 800, 550);
             ctx.fillStyle = '#0a0a1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, 800, 550);
 
             const cellSize = 40;
             const padding = 40;
-            const cols = 8;
-            const rows = 8;
 
-            for (let u = 0; u < rows; u++) {
-                for (let v = 0; v < cols; v++) {
+            for (let u = 0; u < 8; u++) {
+                for (let v = 0; v < 8; v++) {
                     const x = padding + v * cellSize;
                     const y = padding + u * cellSize;
+                    const freq = u + v;
 
-                    // Draw basis function as a heatmap
                     for (let i = 0; i < 8; i++) {
                         for (let j = 0; j < 8; j++) {
                             const cu = (u === 0) ? 1/Math.sqrt(2) : 1;
                             const cv = (v === 0) ? 1/Math.sqrt(2) : 1;
-                            const angle = Math.PI * (2*i + 1) * u / 16 + Math.PI * (2*j + 1) * v / 16;
-                            const value = Math.cos(angle) * cu * cv;
+                            const value = Math.cos(Math.PI * (2*i + 1) * u / 16) *
+                                          Math.cos(Math.PI * (2*j + 1) * v / 16) * cu * cv;
 
-                            // Map to greyscale: -1 to 1 -> 0 to 255
                             const grey = Math.floor(128 + value * 100);
                             ctx.fillStyle = `rgb(${grey}, ${grey}, ${grey})`;
                             ctx.fillRect(x + j * 5, y + i * 5, 5, 5);
                         }
                     }
 
-                    // Border
-                    ctx.strokeStyle = 'rgba(34, 211, 238, 0.3)';
+                    // Colour border by frequency: cyan (low) to gold (high)
+                    const t = freq / 14;
+                    const r = Math.round(34 + t * (240 - 34));
+                    const g = Math.round(211 + t * (192 - 211));
+                    const b = Math.round(238 + t * (64 - 238));
+                    ctx.strokeStyle = `rgba(${r},${g},${b},0.5)`;
                     ctx.lineWidth = 1;
                     ctx.strokeRect(x, y, cellSize, cellSize);
                 }
             }
 
-            // Title
             ctx.fillStyle = '#a0a0b8';
             ctx.font = '11px Georgia';
             ctx.textAlign = 'center';
-            ctx.fillText('Low freq →', canvas.width / 2, padding - 15);
-            ctx.fillText('← High freq', canvas.width / 2, canvas.height - 10);
+            ctx.fillText('Low freq \u2192', 800 / 2, padding - 15);
+            ctx.fillText('\u2190 High freq', 800 / 2, 550 - 10);
         }
 
         drawBasis8x8();
+
+        // ===== NEW: ANIMATED DCT DECOMPOSITION =====
+        const dctAnim = (function() {
+            let animId = null;
+            let playing = true;
+            let basisIndex = 0;
+            let fadeAlpha = 0;
+            const totalBases = 64;
+            const speed = 0.04; // fade speed per frame
+
+            // Generate a richer sample block
+            const sampleBlock = [];
+            for (let i = 0; i < 8; i++) {
+                sampleBlock[i] = [];
+                for (let j = 0; j < 8; j++) {
+                    sampleBlock[i][j] = 80 + 100 * Math.sin(i * 0.6) * Math.cos(j * 0.8) +
+                        40 * Math.sin((i+j)*1.2) + 20 * Math.cos(i*2.5 - j*1.8);
+                    sampleBlock[i][j] = Math.max(0, Math.min(255, sampleBlock[i][j]));
+                }
+            }
+            const dctCoeffs = dct2D(sampleBlock);
+
+            // Pre-compute partial reconstructions
+            const partials = [];
+            for (let count = 0; count <= totalBases; count++) {
+                const partial = Array(8).fill(0).map(() => Array(8).fill(0));
+                let idx = 0;
+                for (let u = 0; u < 8; u++) {
+                    for (let v = 0; v < 8; v++) {
+                        if (idx < count) {
+                            const cu = (u === 0) ? 1/Math.sqrt(2) : 1;
+                            const cv = (v === 0) ? 1/Math.sqrt(2) : 1;
+                            for (let i = 0; i < 8; i++) {
+                                for (let j = 0; j < 8; j++) {
+                                    partial[i][j] += cu * cv * dctCoeffs[u][v] *
+                                        Math.cos(Math.PI * (2*i + 1) * u / 16) *
+                                        Math.cos(Math.PI * (2*j + 1) * v / 16) / 4;
+                                }
+                            }
+                        }
+                        idx++;
+                    }
+                }
+                partials.push(partial);
+            }
+
+            function drawBlock(ctx, block, x, y, size, label) {
+                const ps = size / 8;
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        const v = Math.max(0, Math.min(255, Math.round(block[i][j])));
+                        ctx.fillStyle = `rgb(${v},${v},${v})`;
+                        ctx.fillRect(x + j * ps, y + i * ps, ps - 0.5, ps - 0.5);
+                    }
+                }
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, y, size, size);
+                if (label) {
+                    ctx.fillStyle = '#a0a0b8';
+                    ctx.font = '11px Georgia';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(label, x + size/2, y + size + 16);
+                }
+            }
+
+            function drawBasisPattern(ctx, u, v, x, y, size, alpha) {
+                const ps = size / 8;
+                const cu = (u === 0) ? 1/Math.sqrt(2) : 1;
+                const cv = (v === 0) ? 1/Math.sqrt(2) : 1;
+                const freq = u + v;
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        const val = Math.cos(Math.PI * (2*i + 1) * u / 16) *
+                                    Math.cos(Math.PI * (2*j + 1) * v / 16) * cu * cv;
+                        const grey = Math.floor(128 + val * 100);
+                        ctx.globalAlpha = alpha;
+                        ctx.fillStyle = `rgb(${grey},${grey},${grey})`;
+                        ctx.fillRect(x + j * ps, y + i * ps, ps - 0.5, ps - 0.5);
+                    }
+                }
+                ctx.globalAlpha = alpha;
+                // Frequency colour: cyan to gold
+                const t = freq / 14;
+                const r = Math.round(34 + t * (240 - 34));
+                const g = Math.round(211 + t * (192 - 211));
+                const b = Math.round(238 + t * (64 - 238));
+                ctx.strokeStyle = `rgb(${r},${g},${b})`;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, size, size);
+                ctx.globalAlpha = 1;
+            }
+
+            function frame() {
+                const canvas = document.getElementById('canvasDCTAnim');
+                const ctx = setupHiDPI(canvas, 800, 400);
+                const W = 800, H = 400;
+                ctx.fillStyle = '#0a0a1a';
+                ctx.fillRect(0, 0, W, H);
+
+                // Current basis u,v
+                const u = Math.floor(basisIndex / 8);
+                const v = basisIndex % 8;
+                const freq = u + v;
+
+                // Interpolate between partials[basisIndex] and partials[basisIndex+1]
+                const current = partials[basisIndex];
+                const next = (basisIndex < totalBases) ? partials[basisIndex + 1] : partials[totalBases];
+                const interp = Array(8).fill(0).map((_, i) =>
+                    Array(8).fill(0).map((_, j) =>
+                        current[i][j] * (1 - fadeAlpha) + next[i][j] * fadeAlpha
+                    )
+                );
+
+                const blockSize = 200;
+                // Original
+                drawBlock(ctx, sampleBlock, 30, 90, blockSize, 'Original');
+
+                // Current reconstruction
+                drawBlock(ctx, interp, 300, 90, blockSize, `Reconstruction (${basisIndex + (fadeAlpha > 0.5 ? 1 : 0)} of 64 bases)`);
+
+                // Current basis pattern fading in
+                if (basisIndex < totalBases) {
+                    drawBasisPattern(ctx, u, v, 570, 90, 200, fadeAlpha);
+                    const t = freq / 14;
+                    const cr = Math.round(34 + t * (240 - 34));
+                    const cg = Math.round(211 + t * (192 - 211));
+                    const cb = Math.round(238 + t * (64 - 238));
+                    ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
+                    ctx.font = '12px Georgia';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`Basis (${u},${v})`, 670, 306);
+                    ctx.fillStyle = '#a0a0b8';
+                    ctx.fillText(`Coeff: ${dctCoeffs[u][v].toFixed(1)}`, 670, 322);
+
+                    // Frequency bar
+                    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                    ctx.fillRect(570, 340, 200, 8);
+                    ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
+                    ctx.fillRect(570, 340, (basisIndex / totalBases) * 200, 8);
+                    ctx.fillStyle = '#a0a0b8';
+                    ctx.font = '10px Georgia';
+                    ctx.fillText('Low freq \u2192 High freq', 670, 362);
+                }
+
+                // Title
+                ctx.fillStyle = '#e0e0e0';
+                ctx.font = 'bold 13px Georgia';
+                ctx.textAlign = 'left';
+                ctx.fillText('DCT Basis Decomposition', 30, 30);
+
+                // Coefficient magnitude bar chart (mini)
+                const barW = 6, barGap = 2, barArea = 30;
+                ctx.fillStyle = '#a0a0b8';
+                ctx.font = '10px Georgia';
+                ctx.textAlign = 'left';
+                ctx.fillText('Coefficient magnitudes (zigzag order):', 30, 55);
+                for (let idx = 0; idx < 64; idx++) {
+                    const bu = Math.floor(idx / 8), bv = idx % 8;
+                    const mag = Math.min(1, Math.abs(dctCoeffs[bu][bv]) / 500);
+                    const active = idx <= basisIndex;
+                    const tf = (bu + bv) / 14;
+                    if (active) {
+                        const cr2 = Math.round(34 + tf * (240 - 34));
+                        const cg2 = Math.round(211 + tf * (192 - 211));
+                        const cb2 = Math.round(238 + tf * (64 - 238));
+                        ctx.fillStyle = `rgb(${cr2},${cg2},${cb2})`;
+                    } else {
+                        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+                    }
+                    ctx.fillRect(30 + idx * (barW + barGap), 75 - mag * barArea, barW, mag * barArea);
+                }
+
+                document.getElementById('dctAnimStatus').textContent =
+                    `Basis ${Math.min(basisIndex + 1, 64)} of 64 \u2014 freq (${u},${v})`;
+
+                // Advance
+                if (playing) {
+                    fadeAlpha += speed;
+                    if (fadeAlpha >= 1) {
+                        fadeAlpha = 0;
+                        basisIndex++;
+                        if (basisIndex >= totalBases) {
+                            basisIndex = totalBases - 1;
+                            fadeAlpha = 1;
+                            playing = false;
+                            document.getElementById('dctAnimPlayBtn').textContent = 'Play';
+                            document.getElementById('dctAnimPlayBtn').classList.remove('active');
+                            document.getElementById('dctAnimStatus').textContent = 'Complete \u2014 all 64 bases combined';
+                        }
+                    }
+                }
+
+                animId = requestAnimationFrame(frame);
+            }
+
+            frame();
+
+            return {
+                toggle() {
+                    playing = !playing;
+                    const btn = document.getElementById('dctAnimPlayBtn');
+                    btn.textContent = playing ? 'Pause' : 'Play';
+                    btn.classList.toggle('active', playing);
+                },
+                reset() {
+                    basisIndex = 0;
+                    fadeAlpha = 0;
+                    playing = true;
+                    document.getElementById('dctAnimPlayBtn').textContent = 'Pause';
+                    document.getElementById('dctAnimPlayBtn').classList.add('active');
+                }
+            };
+        })();
 
         // ===== SECTION 4: QUANTISATION =====
         function getQuantisationMatrix(quality) {
@@ -858,7 +1220,6 @@
         }
 
         function generateSampleBlock() {
-            // Create a simple gradient block with some variation
             const block = [];
             for (let i = 0; i < 8; i++) {
                 block[i] = [];
@@ -893,26 +1254,6 @@
             return result;
         }
 
-        function inverseDCT2D(block) {
-            const N = 8;
-            const result = Array(N).fill(0).map(() => Array(N).fill(0));
-            for (let i = 0; i < N; i++) {
-                for (let j = 0; j < N; j++) {
-                    let sum = 0;
-                    for (let u = 0; u < N; u++) {
-                        for (let v = 0; v < N; v++) {
-                            const cu = (u === 0) ? 1/Math.sqrt(2) : 1;
-                            const cv = (v === 0) ? 1/Math.sqrt(2) : 1;
-                            const angle = Math.PI * (2*i + 1) * u / 16 + Math.PI * (2*j + 1) * v / 16;
-                            sum += cu * cv * block[u][v] * Math.cos(angle);
-                        }
-                    }
-                    result[i][j] = sum * 2/8 * 1 * 1;
-                }
-            }
-            return result;
-        }
-
         function updateQuantisation() {
             const quality = parseInt(document.getElementById('qualitySlider').value);
             document.getElementById('qualityValue').textContent = quality + '%';
@@ -924,13 +1265,11 @@
             const dequantCoeffs = dequantise(quantCoeffs, quantMatrix);
             const reconstructedBlock = inverseDCT2D(dequantCoeffs);
 
-            // Update grids
             updateGrid('gridOriginal', originalBlock, 0, 255);
             updateGrid('gridDCT', dctCoeffs, -1000, 1000);
             updateGrid('gridQuantised', quantCoeffs, -100, 100);
             updateGrid('gridReconstructed', reconstructedBlock, 0, 255);
 
-            // Draw comparison
             drawQuantComparison(originalBlock, reconstructedBlock, quality);
         }
 
@@ -944,7 +1283,6 @@
                     const value = data[i][j];
                     cell.textContent = Math.round(value);
 
-                    // Color based on magnitude
                     const normalised = (value - min) / (max - min);
                     const hue = Math.max(0, Math.min(1, normalised)) * 180;
                     const sat = 50;
@@ -957,15 +1295,14 @@
 
         function drawQuantComparison(original, reconstructed, quality) {
             const canvas = document.getElementById('canvasQuantComparison');
-            const ctx = canvas.getContext('2d');
+            const ctx = setupHiDPI(canvas, 800, 350);
             ctx.fillStyle = '#0a0a1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, 800, 350);
 
             const pixelSize = 30;
             const padding = 40;
             const gap = 50;
 
-            // Original
             ctx.fillStyle = '#a0a0b8';
             ctx.font = '12px Georgia';
             ctx.fillText('Original', padding, padding - 10);
@@ -978,7 +1315,6 @@
                 }
             }
 
-            // Reconstructed
             const offsetX = padding + 8 * pixelSize + gap;
             ctx.fillStyle = '#a0a0b8';
             ctx.fillText('Reconstructed (Quality ' + quality + '%)', offsetX, padding - 10);
@@ -991,7 +1327,6 @@
                 }
             }
 
-            // Error map
             const offsetX2 = offsetX + 8 * pixelSize + gap;
             ctx.fillStyle = '#a0a0b8';
             ctx.fillText('Difference', offsetX2, padding - 10);
@@ -1016,15 +1351,185 @@
         document.getElementById('qualitySlider').addEventListener('input', updateQuantisation);
         updateQuantisation();
 
+        // ===== NEW: ANIMATED QUANTISATION =====
+        const quantAnim = (function() {
+            let animId = null;
+            let playing = true;
+            let qualityT = 1.0; // 1 = 100%, decreasing to 0.01 = 1%
+            const decayRate = 0.003;
+
+            const block = generateSampleBlock();
+            const dctCoeffs = dct2D(block);
+
+            function frame() {
+                const canvas = document.getElementById('canvasQuantAnim');
+                const ctx = setupHiDPI(canvas, 800, 420);
+                const W = 800, H = 420;
+                ctx.fillStyle = '#0a0a1a';
+                ctx.fillRect(0, 0, W, H);
+
+                const quality = Math.max(1, Math.round(qualityT * 100));
+                const quantMatrix = getQuantisationMatrix(quality);
+                const quantCoeffs = quantise(dctCoeffs, quantMatrix);
+                const dequantCoeffs = dequantise(quantCoeffs, quantMatrix);
+                const recon = inverseDCT2D(dequantCoeffs);
+
+                const ps = 22; // pixel size for block rendering
+                const pad = 30;
+
+                // Title
+                ctx.fillStyle = '#e0e0e0';
+                ctx.font = 'bold 13px Georgia';
+                ctx.textAlign = 'left';
+                ctx.fillText('Quantisation: Coefficients Rounded to Zero', pad, 22);
+
+                // DCT coefficients grid with colour coding
+                ctx.fillStyle = '#a0a0b8';
+                ctx.font = '11px Georgia';
+                ctx.fillText('DCT coefficients (zeroed = rose)', pad, 50);
+
+                let zeroCount = 0;
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        const qv = quantCoeffs[i][j];
+                        const isZero = qv === 0;
+                        if (isZero) zeroCount++;
+
+                        const x = pad + j * (ps + 2);
+                        const y = 60 + i * (ps + 2);
+
+                        if (isZero) {
+                            ctx.fillStyle = 'rgba(251,113,133,0.25)';
+                        } else {
+                            const mag = Math.min(1, Math.abs(qv) / 50);
+                            ctx.fillStyle = `rgba(34,211,238,${0.15 + mag * 0.6})`;
+                        }
+                        ctx.fillRect(x, y, ps, ps);
+
+                        ctx.fillStyle = isZero ? '#fb7185' : '#22d3ee';
+                        ctx.font = '9px Courier New';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(qv, x + ps/2, y + ps/2 + 3);
+                    }
+                }
+
+                // Original block
+                const ox = 250;
+                ctx.fillStyle = '#a0a0b8';
+                ctx.font = '11px Georgia';
+                ctx.textAlign = 'left';
+                ctx.fillText('Original', ox, 50);
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        const v = Math.max(0, Math.min(255, Math.round(block[i][j])));
+                        ctx.fillStyle = `rgb(${v},${v},${v})`;
+                        ctx.fillRect(ox + j * ps, 60 + i * ps, ps - 1, ps - 1);
+                    }
+                }
+
+                // Reconstructed block
+                const rx = 470;
+                ctx.fillStyle = '#a0a0b8';
+                ctx.font = '11px Georgia';
+                ctx.textAlign = 'left';
+                ctx.fillText(`Reconstructed (Q=${quality}%)`, rx, 50);
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        const v = Math.max(0, Math.min(255, Math.round(recon[i][j])));
+                        ctx.fillStyle = `rgb(${v},${v},${v})`;
+                        ctx.fillRect(rx + j * ps, 60 + i * ps, ps - 1, ps - 1);
+                    }
+                }
+
+                // Error heatmap
+                const ex = 690;
+                ctx.fillStyle = '#a0a0b8';
+                ctx.font = '11px Georgia';
+                ctx.textAlign = 'left';
+                ctx.fillText('Error', ex, 50);
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        const err = Math.abs(block[i][j] - recon[i][j]);
+                        const intensity = Math.min(255, Math.round(err * 3));
+                        ctx.fillStyle = `rgb(${intensity},${Math.round(intensity*0.2)},${Math.round(intensity*0.4)})`;
+                        ctx.fillRect(ex + j * 12, 60 + i * 12, 11, 11);
+                    }
+                }
+
+                // Quality bar
+                const barY = 290;
+                ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                ctx.fillRect(pad, barY, 740, 20);
+                const barColour = quality > 50 ? '#22d3ee' : quality > 20 ? '#f0c040' : '#fb7185';
+                ctx.fillStyle = barColour;
+                ctx.fillRect(pad, barY, 740 * (quality / 100), 20);
+                ctx.fillStyle = '#e0e0e0';
+                ctx.font = '12px Georgia';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Quality: ${quality}%`, pad + 370, barY + 15);
+
+                // Stats
+                ctx.fillStyle = '#a0a0b8';
+                ctx.font = '12px Georgia';
+                ctx.textAlign = 'left';
+                ctx.fillText(`Coefficients zeroed: ${zeroCount} / 64 (${Math.round(zeroCount/64*100)}%)`, pad, barY + 50);
+                const ratio = 64 / Math.max(1, 64 - zeroCount);
+                ctx.fillText(`Effective compression: ${ratio.toFixed(1)}:1`, pad, barY + 70);
+
+                // PSNR approximation
+                let mse = 0;
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        const d = block[i][j] - recon[i][j];
+                        mse += d * d;
+                    }
+                }
+                mse /= 64;
+                const psnr = mse > 0 ? 10 * Math.log10(255*255/mse) : 99;
+                ctx.fillText(`PSNR: ${psnr.toFixed(1)} dB${psnr > 40 ? ' (excellent)' : psnr > 30 ? ' (good)' : psnr > 20 ? ' (noticeable)' : ' (poor)'}`, pad + 400, barY + 50);
+
+                document.getElementById('quantAnimStatus').textContent = `Quality: ${quality}% \u2014 ${zeroCount}/64 zeroed`;
+
+                if (playing) {
+                    qualityT -= decayRate;
+                    if (qualityT <= 0.01) {
+                        qualityT = 0.01;
+                        playing = false;
+                        document.getElementById('quantAnimPlayBtn').textContent = 'Play';
+                        document.getElementById('quantAnimPlayBtn').classList.remove('active');
+                    }
+                }
+
+                animId = requestAnimationFrame(frame);
+            }
+
+            frame();
+
+            return {
+                toggle() {
+                    playing = !playing;
+                    const btn = document.getElementById('quantAnimPlayBtn');
+                    btn.textContent = playing ? 'Pause' : 'Play';
+                    btn.classList.toggle('active', playing);
+                },
+                reset() {
+                    qualityT = 1.0;
+                    playing = true;
+                    document.getElementById('quantAnimPlayBtn').textContent = 'Pause';
+                    document.getElementById('quantAnimPlayBtn').classList.add('active');
+                }
+            };
+        })();
+
         // ===== SECTION 5: PIPELINE =====
         const pipelineStages = ['original', '8x8', 'dct', 'quant', 'reconstructed'];
         let currentStage = 0;
 
         function drawPipelineStage(stage) {
             const canvas = document.getElementById('canvasPipeline');
-            const ctx = canvas.getContext('2d');
+            const ctx = setupHiDPI(canvas, 800, 300);
             ctx.fillStyle = '#0a0a1a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, 800, 300);
 
             const block = generateSampleBlock();
             const dctCoeffs = dct2D(block);
@@ -1035,11 +1540,11 @@
 
             let dataToDisplay = block;
             let min = 0, max = 255;
-            let title = 'Original image (8×8 block)';
+            let title = 'Original image (8\u00d78 block)';
 
             if (stage === '8x8') {
                 dataToDisplay = block;
-                title = '8×8 block extracted from image';
+                title = '8\u00d78 block extracted from image';
             } else if (stage === 'dct') {
                 dataToDisplay = dctCoeffs;
                 min = -1000;
@@ -1055,12 +1560,10 @@
                 title = 'After Inverse DCT (reconstructed)';
             }
 
-            // Draw title
             ctx.fillStyle = '#22d3ee';
             ctx.font = 'bold 14px Georgia';
             ctx.fillText(title, 40, 30);
 
-            // Draw block
             const pixelSize = 24;
             const padding = 60;
             for (let i = 0; i < 8; i++) {
@@ -1068,7 +1571,6 @@
                     let val = dataToDisplay[i][j];
 
                     if (stage === 'dct') {
-                        // Heatmap for coefficients
                         const normalised = (val - min) / (max - min);
                         const hue = Math.max(0, Math.min(1, normalised)) * 200;
                         const sat = 60;
@@ -1081,7 +1583,6 @@
                         const light = 35 + normalised * 35;
                         ctx.fillStyle = `hsl(${hue}, ${sat}%, ${light}%)`;
                     } else {
-                        // Greyscale
                         const clamped = Math.max(0, Math.min(255, val));
                         const grey = Math.round(clamped);
                         ctx.fillStyle = `rgb(${grey}, ${grey}, ${grey})`;
@@ -1091,15 +1592,13 @@
                 }
             }
 
-            // Border
             ctx.strokeStyle = '#22d3ee';
             ctx.lineWidth = 2;
             ctx.strokeRect(padding, padding, 8 * pixelSize - 1, 8 * pixelSize - 1);
 
-            // Info
             ctx.fillStyle = '#a0a0b8';
             ctx.font = '11px Georgia';
-            ctx.fillText('Data representation changes at each stage of JPEG compression', 40, canvas.height - 15);
+            ctx.fillText('Data representation changes at each stage of JPEG compression', 40, 300 - 15);
         }
 
         document.querySelectorAll('[data-stage]').forEach(btn => {
@@ -1114,20 +1613,18 @@
         drawPipelineStage('original');
 
         // ===== SECTION 6: QUALITY COMPARISON =====
-        function generateProceduralImage(width, height, quality) {
+        function generateProceduralImage(width, height) {
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
 
-            // Gradient background
             const grad = ctx.createLinearGradient(0, 0, width, height);
             grad.addColorStop(0, '#1a1a3a');
             grad.addColorStop(1, '#0a3a2a');
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, width, height);
 
-            // Add some shapes
             ctx.fillStyle = '#22d3ee';
             ctx.fillRect(width * 0.1, height * 0.1, width * 0.3, height * 0.3);
             ctx.fillStyle = '#e0e0e0';
@@ -1142,7 +1639,20 @@
             ctx.lineTo(width * 0.4, height * 0.7);
             ctx.fill();
 
-            // Add texture with noise
+            // Fine details: concentric rings
+            ctx.strokeStyle = '#f0c040';
+            ctx.lineWidth = 1;
+            for (let r = 10; r < width * 0.15; r += 6) {
+                ctx.beginPath();
+                ctx.arc(width * 0.6, height * 0.65, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Text-like features
+            ctx.fillStyle = '#b0b0c4';
+            ctx.font = `${Math.round(height * 0.04)}px Georgia`;
+            ctx.fillText('JPEG', width * 0.15, height * 0.55);
+
             const imageData = ctx.getImageData(0, 0, width, height);
             const data = imageData.data;
             for (let i = 0; i < data.length; i += 4) {
@@ -1161,20 +1671,15 @@
             targetCanvas.width = sourceCanvas.width;
             targetCanvas.height = sourceCanvas.height;
             const ctx = targetCanvas.getContext('2d');
-
-            // Copy source
             ctx.drawImage(sourceCanvas, 0, 0);
 
-            // Apply block-wise DCT compression simulation
             const blockSize = 8;
             const imageData = ctx.getImageData(0, 0, targetCanvas.width, targetCanvas.height);
             const data = imageData.data;
             const width = targetCanvas.width;
 
             const qualityScale = quality / 100;
-            const blurAmount = (1 - qualityScale) * 2;
 
-            // Simple blur simulation for lossy compression
             const tempData = new Uint8ClampedArray(data);
             for (let i = 0; i < width; i += blockSize) {
                 for (let j = 0; j < targetCanvas.height; j += blockSize) {
@@ -1190,14 +1695,12 @@
                     const avgG = blockData.reduce((a, p) => a + p.g, 0) / blockData.length;
                     const avgB = blockData.reduce((a, p) => a + p.b, 0) / blockData.length;
 
-                    let idx = 0;
                     for (let bi = 0; bi < blockSize && i + bi < width; bi++) {
                         for (let bj = 0; bj < blockSize && j + bj < targetCanvas.height; bj++) {
                             const pixelIdx = ((j + bj) * width + (i + bi)) * 4;
                             data[pixelIdx] = Math.round(tempData[pixelIdx] * qualityScale + avgR * (1 - qualityScale));
                             data[pixelIdx+1] = Math.round(tempData[pixelIdx+1] * qualityScale + avgG * (1 - qualityScale));
                             data[pixelIdx+2] = Math.round(tempData[pixelIdx+2] * qualityScale + avgB * (1 - qualityScale));
-                            idx++;
                         }
                     }
                 }
@@ -1207,27 +1710,248 @@
             return targetCanvas;
         }
 
+        // Cache the procedural image so it doesn't regenerate with new noise each time
+        const cachedOriginal = generateProceduralImage(350, 350);
+
         function updateQualityComparison() {
             const quality = parseInt(document.getElementById('qualityCompare').value);
             document.getElementById('qualityCompareValue').textContent = quality + '%';
             document.getElementById('qualityLabel').textContent = `JPEG at ${quality}%`;
 
-            const fileSize = Math.round(50 * (100 / quality) / 2); // Rough estimate
+            const fileSize = Math.round(50 * (100 / quality) / 2);
             document.getElementById('estimatedSize').textContent = `~${fileSize} KB at ${quality}% quality`;
 
-            // Generate original
-            const originalCanvas = generateProceduralImage(350, 350, 100);
             const originalCtx = document.getElementById('canvasQualityOriginal').getContext('2d');
-            originalCtx.drawImage(originalCanvas, 0, 0, 350, 350);
+            originalCtx.drawImage(cachedOriginal, 0, 0, 350, 350);
 
-            // Generate compressed
-            const compressedCanvas = simulateJPEGCompression(originalCanvas, quality);
+            const compressedCanvas = simulateJPEGCompression(cachedOriginal, quality);
             const compressedCtx = document.getElementById('canvasQualityCompressed').getContext('2d');
             compressedCtx.drawImage(compressedCanvas, 0, 0, 350, 350);
         }
 
         document.getElementById('qualityCompare').addEventListener('input', updateQualityComparison);
         updateQualityComparison();
+
+        // ===== NEW: ANIMATED COMPRESSION ARTEFACTS =====
+        const artefactAnim = (function() {
+            let playing = true;
+            let qualityT = 1.0;
+            const decayRate = 0.002;
+            const imgW = 360, imgH = 360;
+
+            // Generate a more detailed test image
+            const testImg = generateProceduralImage(imgW, imgH);
+
+            function frame() {
+                const canvas = document.getElementById('canvasArtefactAnim');
+                const ctx = setupHiDPI(canvas, 800, 440);
+                const W = 800, H = 440;
+                ctx.fillStyle = '#0a0a1a';
+                ctx.fillRect(0, 0, W, H);
+
+                const quality = Math.max(1, Math.round(qualityT * 100));
+
+                // Draw original (small)
+                const origSize = 180;
+                ctx.drawImage(testImg, 20, 50, origSize, origSize);
+                ctx.fillStyle = '#a0a0b8';
+                ctx.font = '11px Georgia';
+                ctx.textAlign = 'center';
+                ctx.fillText('Original', 20 + origSize/2, 45);
+
+                // Compressed version (large)
+                const compImg = simulateJPEGCompression(testImg, quality);
+                const compSize = 300;
+                const compX = 240, compY = 30;
+                ctx.drawImage(compImg, compX, compY, compSize, compSize);
+
+                // Draw block grid overlay showing 8x8 boundaries
+                if (quality < 50) {
+                    const gridAlpha = Math.min(0.5, (50 - quality) / 50 * 0.5);
+                    ctx.strokeStyle = `rgba(251,113,133,${gridAlpha})`;
+                    ctx.lineWidth = 0.5;
+                    const blockPx = compSize / (imgW / 8);
+                    for (let x = 0; x <= compSize; x += blockPx) {
+                        ctx.beginPath();
+                        ctx.moveTo(compX + x, compY);
+                        ctx.lineTo(compX + x, compY + compSize);
+                        ctx.stroke();
+                    }
+                    for (let y = 0; y <= compSize; y += blockPx) {
+                        ctx.beginPath();
+                        ctx.moveTo(compX, compY + y);
+                        ctx.lineTo(compX + compSize, compY + y);
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.fillStyle = '#e0e0e0';
+                ctx.font = 'bold 12px Georgia';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Quality: ${quality}%`, compX + compSize/2, compY + compSize + 18);
+
+                // Artefact heatmap (difference)
+                const heatX = 580, heatY = 50, heatSize = 180;
+                const origData = testImg.getContext('2d').getImageData(0, 0, imgW, imgH).data;
+                const compData = compImg.getContext('2d').getImageData(0, 0, imgW, imgH).data;
+
+                const heatCanvas = document.createElement('canvas');
+                heatCanvas.width = imgW;
+                heatCanvas.height = imgH;
+                const hctx = heatCanvas.getContext('2d');
+                const heatImgData = hctx.createImageData(imgW, imgH);
+                for (let p = 0; p < origData.length; p += 4) {
+                    const dr = origData[p] - compData[p];
+                    const dg = origData[p+1] - compData[p+1];
+                    const db = origData[p+2] - compData[p+2];
+                    const err = Math.sqrt(dr*dr + dg*dg + db*db);
+                    const intensity = Math.min(255, err * 4);
+                    heatImgData.data[p] = intensity;
+                    heatImgData.data[p+1] = Math.round(intensity * 0.3);
+                    heatImgData.data[p+2] = Math.round(intensity * 0.5);
+                    heatImgData.data[p+3] = 255;
+                }
+                hctx.putImageData(heatImgData, 0, 0);
+                ctx.drawImage(heatCanvas, heatX, heatY, heatSize, heatSize);
+                ctx.fillStyle = '#fb7185';
+                ctx.font = '11px Georgia';
+                ctx.textAlign = 'center';
+                ctx.fillText('Artefact map (rose = error)', heatX + heatSize/2, 45);
+
+                // Quality bar
+                const barY = 360;
+                ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                ctx.fillRect(20, barY, 760, 16);
+                const barCol = quality > 50 ? '#22d3ee' : quality > 20 ? '#f0c040' : '#fb7185';
+                ctx.fillStyle = barCol;
+                ctx.fillRect(20, barY, 760 * (quality / 100), 16);
+
+                // MSE
+                let mse = 0;
+                for (let p = 0; p < origData.length; p += 4) {
+                    const dr = origData[p] - compData[p];
+                    const dg = origData[p+1] - compData[p+1];
+                    const db = origData[p+2] - compData[p+2];
+                    mse += (dr*dr + dg*dg + db*db) / 3;
+                }
+                mse /= (imgW * imgH);
+                const psnr = mse > 0 ? 10 * Math.log10(255*255/mse) : 99;
+                ctx.fillStyle = '#a0a0b8';
+                ctx.font = '12px Georgia';
+                ctx.textAlign = 'left';
+                ctx.fillText(`PSNR: ${psnr.toFixed(1)} dB`, 20, barY + 40);
+                ctx.fillText(`Est. file size: ~${Math.round(50 * (100/quality) / 2)} KB`, 250, barY + 40);
+                const comprRatio = Math.max(1, Math.round(100 / quality * 3));
+                ctx.fillText(`Compression: ~${comprRatio}:1`, 500, barY + 40);
+
+                document.getElementById('artefactAnimStatus').textContent =
+                    `Quality: ${quality}% \u2014 PSNR: ${psnr.toFixed(1)} dB`;
+
+                if (playing) {
+                    qualityT -= decayRate;
+                    if (qualityT <= 0.01) {
+                        qualityT = 0.01;
+                        playing = false;
+                        document.getElementById('artefactAnimPlayBtn').textContent = 'Play';
+                        document.getElementById('artefactAnimPlayBtn').classList.remove('active');
+                    }
+                }
+
+                requestAnimationFrame(frame);
+            }
+
+            frame();
+
+            return {
+                toggle() {
+                    playing = !playing;
+                    const btn = document.getElementById('artefactAnimPlayBtn');
+                    btn.textContent = playing ? 'Pause' : 'Play';
+                    btn.classList.toggle('active', playing);
+                },
+                reset() {
+                    qualityT = 1.0;
+                    playing = true;
+                    document.getElementById('artefactAnimPlayBtn').textContent = 'Pause';
+                    document.getElementById('artefactAnimPlayBtn').classList.add('active');
+                }
+            };
+        })();
+
+        // ===== NEW: BEFORE/AFTER WIPE COMPARISON =====
+        (function() {
+            const container = document.getElementById('wipeContainer');
+            const canvas = document.getElementById('canvasWipe');
+            const divider = document.getElementById('wipeDivider');
+            const W = 800, H = 400;
+
+            const wipeOriginal = generateProceduralImage(W, H);
+            let wipeQuality = 15;
+            let wipeX = W / 2;
+
+            function drawWipe() {
+                const ctx = setupHiDPI(canvas, W, H);
+                const compressed = simulateJPEGCompression(wipeOriginal, wipeQuality);
+
+                // Draw compressed on right
+                ctx.drawImage(compressed, 0, 0, W, H);
+
+                // Block grid overlay on compressed side
+                if (wipeQuality < 50) {
+                    const gridAlpha = Math.min(0.3, (50 - wipeQuality) / 50 * 0.3);
+                    ctx.strokeStyle = `rgba(251,113,133,${gridAlpha})`;
+                    ctx.lineWidth = 0.5;
+                    for (let x = 0; x < W; x += 8) {
+                        ctx.beginPath();
+                        ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+                    }
+                    for (let y = 0; y < H; y += 8) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+                    }
+                }
+
+                // Clip and draw original on left
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(0, 0, wipeX, H);
+                ctx.clip();
+                ctx.drawImage(wipeOriginal, 0, 0, W, H);
+                ctx.restore();
+
+                // Divider shadow
+                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(wipeX, 0); ctx.lineTo(wipeX, H); ctx.stroke();
+
+                divider.style.left = wipeX + 'px';
+            }
+
+            function handleMove(clientX) {
+                const rect = canvas.getBoundingClientRect();
+                wipeX = Math.max(0, Math.min(W, (clientX - rect.left) / rect.width * W));
+                drawWipe();
+            }
+
+            let dragging = false;
+            container.addEventListener('mousedown', () => { dragging = true; });
+            window.addEventListener('mouseup', () => { dragging = false; });
+            window.addEventListener('mousemove', (e) => { if (dragging) handleMove(e.clientX); });
+            container.addEventListener('touchstart', (e) => { dragging = true; e.preventDefault(); });
+            window.addEventListener('touchend', () => { dragging = false; });
+            window.addEventListener('touchmove', (e) => {
+                if (dragging && e.touches[0]) handleMove(e.touches[0].clientX);
+            });
+
+            document.getElementById('wipeQuality').addEventListener('input', function() {
+                wipeQuality = parseInt(this.value);
+                document.getElementById('wipeQualityValue').textContent = wipeQuality + '%';
+                drawWipe();
+            });
+
+            drawWipe();
+        })();
     </script><script src="js/mathematician-cards.js" defer></script>
 </body>
 </html>

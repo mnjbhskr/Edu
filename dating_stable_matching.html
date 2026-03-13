@@ -121,6 +121,7 @@
         .match-state{font-family:'Courier New',monospace;font-size:0.85em;color:#a0a0b8;line-height:2}
         .match-state .matched{color:#10b981}
         .match-state .free{color:#808098;font-style:italic}
+        #algoCanvas{width:100%;cursor:default;touch-action:none;margin-bottom:10px}
         .controls-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
         .stats-row{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
         .stat-box{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px 14px;text-align:center;flex:1;min-width:120px}
@@ -220,6 +221,16 @@
                 <input type="range" id="speedSlider" min="1" max="8" value="4">
                 <span class="slider-val" id="speedVal">1&times;</span>
             </div>
+        </div>
+        <div class="canvas-wrap">
+            <canvas id="algoCanvas" width="700" height="400"></canvas>
+        </div>
+        <div class="legend-row" style="margin-bottom:12px">
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div> proposal</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div> accepted</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div> rejected</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div> tentative hold</div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f59e0b;height:3px;box-shadow:0 0 6px #f59e0b"></div> stable pair</div>
         </div>
         <div class="algo-layout">
             <div>
@@ -393,6 +404,7 @@ let algoSteps = [];
 let algoStepIdx = -1;
 let algoRunning = false;
 let algoTimer = null;
+let algoLastStepTime = 0;
 
 // ─── PROPOSER ADVANTAGE STATE ──────────────────────────────────
 let currentProposer = 'A';
@@ -859,43 +871,319 @@ function renderPrefMatrix() {
 // INTERACTIVE 2: STEP-THROUGH ALGORITHM
 // ═══════════════════════════════════════════════════════════════
 
+// ─── ANIMATION ENGINE ─────────────────────────────────────────
+let algoCanvasEl, algoCanvasCtx;
+let animArrows = [];       // active animated arrows
+let stableLinks = [];      // final golden links
+let animFrameId = null;
+let animTime = 0;
+
+function getAlgoPositions() {
+    const w = 700;
+    const h = groupSize <= 4 ? 320 : 400;
+    const leftX = w * 0.15;
+    const rightX = w * 0.85;
+    const positions = {a: [], b: []};
+    for (let i = 0; i < groupSize; i++) {
+        const y = 55 + i * ((h - 110) / (groupSize - 1 || 1));
+        positions.a.push({x: leftX, y: y});
+        positions.b.push({x: rightX, y: y});
+    }
+    return positions;
+}
+
+function initAlgoCanvas() {
+    algoCanvasEl = document.getElementById('algoCanvas');
+    algoCanvasCtx = algoCanvasEl.getContext('2d');
+    startAlgoAnimLoop();
+}
+
+function startAlgoAnimLoop() {
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+    function tick(ts) {
+        animTime = ts;
+        drawAlgoCanvas();
+        animFrameId = requestAnimationFrame(tick);
+    }
+    animFrameId = requestAnimationFrame(tick);
+}
+
+function drawAlgoCanvas() {
+    const c = algoCanvasEl;
+    const dpr = window.devicePixelRatio || 1;
+    const logicalW = 700;
+    const logicalH = groupSize <= 4 ? 320 : 400;
+    if (c.width !== logicalW * dpr || c.height !== logicalH * dpr) {
+        c.width = logicalW * dpr;
+        c.height = logicalH * dpr;
+        c.style.height = logicalH + 'px';
+    }
+    const ctx = algoCanvasCtx;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, logicalW, logicalH);
+    ctx.fillStyle = '#0a0a1a';
+    ctx.fillRect(0, 0, logicalW, logicalH);
+
+    const pos = getAlgoPositions();
+    const step = algoSteps[algoStepIdx] || algoSteps[0];
+    clearOldArrows();
+
+    // Draw existing tentative match lines (cyan, subtle)
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 4]);
+    for (let i = 0; i < groupSize; i++) {
+        if (step.matching[i] !== -1) {
+            const j = step.matching[i];
+            ctx.strokeStyle = 'rgba(34,211,238,0.35)';
+            ctx.beginPath();
+            ctx.moveTo(pos.a[i].x + 26, pos.a[i].y);
+            ctx.lineTo(pos.b[j].x - 26, pos.b[j].y);
+            ctx.stroke();
+        }
+    }
+    ctx.setLineDash([]);
+
+    // Draw stable golden links (final state)
+    for (const link of stableLinks) {
+        const pulse = 0.6 + 0.4 * Math.sin(animTime * 0.003 + link.i);
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = 'rgba(245,158,11,' + pulse.toFixed(2) + ')';
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 8 * pulse;
+        ctx.beginPath();
+        ctx.moveTo(pos.a[link.i].x + 26, pos.a[link.i].y);
+        ctx.lineTo(pos.b[link.j].x - 26, pos.b[link.j].y);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+    }
+
+    // Draw animated arrows
+    for (const arrow of animArrows) {
+        const elapsed = animTime - arrow.startTime;
+        const dur = arrow.duration;
+        let t = Math.min(1, elapsed / dur);
+        if (t < 0) t = 0;
+
+        const ax = pos.a[arrow.proposer].x + 26;
+        const ay = pos.a[arrow.proposer].y;
+        const bx = pos.b[arrow.receiver].x - 26;
+        const by = pos.b[arrow.receiver].y;
+
+        if (arrow.result === 'accept' || arrow.result === 'upgrade') {
+            // Gold arrow travelling to receiver, then glows green
+            const headX = ax + (bx - ax) * t;
+            const headY = ay + (by - ay) * t;
+            const green = t >= 1;
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = green ? '#10b981' : '#fbbf24';
+            ctx.shadowColor = green ? '#10b981' : '#fbbf24';
+            ctx.shadowBlur = green ? 10 : 6;
+            ctx.beginPath();
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(headX, headY);
+            ctx.stroke();
+            // Arrowhead
+            const angle = Math.atan2(by - ay, bx - ax);
+            ctx.beginPath();
+            ctx.moveTo(headX, headY);
+            ctx.lineTo(headX - 10 * Math.cos(angle - 0.35), headY - 10 * Math.sin(angle - 0.35));
+            ctx.moveTo(headX, headY);
+            ctx.lineTo(headX - 10 * Math.cos(angle + 0.35), headY - 10 * Math.sin(angle + 0.35));
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            // Acceptance glow at receiver
+            if (green) {
+                const glowPulse = 0.3 + 0.7 * Math.sin(animTime * 0.006);
+                ctx.beginPath();
+                ctx.arc(bx, by, 30, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(16,185,129,' + (0.12 * glowPulse).toFixed(3) + ')';
+                ctx.fill();
+            }
+        } else if (arrow.result === 'reject') {
+            // Gold arrow out, then rose bounce back
+            const outPhase = Math.min(1, t * 2);       // first half: travel out
+            const backPhase = Math.max(0, (t - 0.5) * 2); // second half: bounce back
+            if (backPhase <= 0) {
+                // Travelling out
+                const headX = ax + (bx - ax) * outPhase;
+                const headY = ay + (by - ay) * outPhase;
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#fbbf24';
+                ctx.shadowColor = '#fbbf24';
+                ctx.shadowBlur = 6;
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(headX, headY);
+                ctx.stroke();
+                const angle = Math.atan2(by - ay, bx - ax);
+                ctx.beginPath();
+                ctx.moveTo(headX, headY);
+                ctx.lineTo(headX - 10 * Math.cos(angle - 0.35), headY - 10 * Math.sin(angle - 0.35));
+                ctx.moveTo(headX, headY);
+                ctx.lineTo(headX - 10 * Math.cos(angle + 0.35), headY - 10 * Math.sin(angle + 0.35));
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            } else {
+                // Bouncing back in rose
+                const bounceT = backPhase;
+                const bounce = Math.sin(bounceT * Math.PI) * 20; // arc bounce
+                const headX = bx + (ax - bx) * bounceT;
+                const headY = by + (ay - by) * bounceT - bounce;
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#f472b6';
+                ctx.shadowColor = '#f472b6';
+                ctx.shadowBlur = 6;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(bx, by);
+                ctx.lineTo(headX, headY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                // X mark at receiver
+                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = '#f472b6';
+                ctx.beginPath();
+                ctx.moveTo(bx - 8, by - 8); ctx.lineTo(bx + 8, by + 8);
+                ctx.moveTo(bx + 8, by - 8); ctx.lineTo(bx - 8, by + 8);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+        }
+    }
+
+    // Draw nodes
+    for (let i = 0; i < groupSize; i++) {
+        const isFree = step.matching[i] === -1;
+        const isActiveProposer = step.type !== 'start' && step.type !== 'done' && step.proposer === i;
+        // Group A
+        ctx.fillStyle = isActiveProposer ? '#f472b6' : (isFree ? 'rgba(244,114,182,0.12)' : 'rgba(244,114,182,0.25)');
+        ctx.strokeStyle = '#f472b6';
+        ctx.lineWidth = isActiveProposer ? 2.5 : 1;
+        ctx.beginPath();
+        ctx.arc(pos.a[i].x, pos.a[i].y, 24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Georgia';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(NAMES_A[i], pos.a[i].x, pos.a[i].y);
+
+        // Group B
+        const bMatched = step.matchingB && step.matchingB[i] !== -1;
+        const isActiveReceiver = step.type !== 'start' && step.type !== 'done' && step.receiver === i;
+        ctx.fillStyle = isActiveReceiver ? 'rgba(34,211,238,0.35)' : (bMatched ? 'rgba(34,211,238,0.2)' : 'rgba(34,211,238,0.08)');
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = isActiveReceiver ? 2.5 : 1;
+        ctx.beginPath();
+        ctx.arc(pos.b[i].x, pos.b[i].y, 24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#fff';
+        ctx.fillText(NAMES_B[i], pos.b[i].x, pos.b[i].y);
+    }
+
+    // Labels
+    ctx.fillStyle = '#808098';
+    ctx.font = '11px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillText('Group A (proposers)', pos.a[0].x, 18);
+    ctx.fillText('Group B (receivers)', pos.b[0].x, 18);
+
+    // Round counter
+    if (step.type !== 'start') {
+        ctx.fillStyle = '#505068';
+        ctx.font = '11px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText('Step ' + algoStepIdx + ' / ' + (algoSteps.length - 1), 350, logicalH - 10);
+    }
+}
+
+function spawnArrow(proposer, receiver, result) {
+    const speed = parseFloat(document.getElementById('speedSlider').value);
+    const dur = 700 / (speed / 4);
+    animArrows.push({
+        proposer: proposer,
+        receiver: receiver,
+        result: result,
+        startTime: animTime,
+        duration: dur
+    });
+}
+
+function clearOldArrows() {
+    animArrows = animArrows.filter(function(a) {
+        return (animTime - a.startTime) < a.duration + 800;
+    });
+}
+
 function algoReset() {
-    if (algoTimer) { clearTimeout(algoTimer); algoTimer = null; }
     algoRunning = false;
+    animArrows = [];
+    stableLinks = [];
     const result = runGaleShapley(prefsA, prefsB, groupSize);
     algoSteps = result.steps;
     algoStepIdx = 0;
+    document.getElementById('algoRun').textContent = 'Run to end';
     renderAlgoState();
 }
 
 function algoStep(dir) {
     if (algoRunning) return;
+    const prevIdx = algoStepIdx;
     algoStepIdx = Math.max(0, Math.min(algoSteps.length - 1, algoStepIdx + dir));
+    if (dir > 0 && algoStepIdx !== prevIdx) triggerStepAnimation();
+    if (dir < 0) { animArrows = []; stableLinks = []; }
     renderAlgoState();
 }
 
 function algoRunToEnd() {
     if (algoRunning) {
         algoRunning = false;
-        if (algoTimer) { clearTimeout(algoTimer); algoTimer = null; }
+        document.getElementById('algoRun').textContent = 'Run to end';
         return;
     }
     algoRunning = true;
+    algoLastStepTime = performance.now();
     document.getElementById('algoRun').textContent = 'Pause';
-    algoAutoStep();
+    requestAnimationFrame(algoAutoStep);
 }
 
-function algoAutoStep() {
+function algoAutoStep(ts) {
     if (!algoRunning || algoStepIdx >= algoSteps.length - 1) {
         algoRunning = false;
         document.getElementById('algoRun').textContent = 'Run to end';
         return;
     }
-    algoStepIdx++;
-    renderAlgoState();
     const speed = parseFloat(document.getElementById('speedSlider').value);
-    const delay = 800 / (speed / 4);
-    algoTimer = setTimeout(algoAutoStep, delay);
+    const delay = 900 / (speed / 4);
+    if (ts - algoLastStepTime >= delay) {
+        algoLastStepTime = ts;
+        algoStepIdx++;
+        triggerStepAnimation();
+        renderAlgoState();
+    }
+    requestAnimationFrame(algoAutoStep);
+}
+
+function triggerStepAnimation() {
+    clearOldArrows();
+    const step = algoSteps[algoStepIdx];
+    if (!step) return;
+    if (step.type === 'accept' || step.type === 'upgrade') {
+        spawnArrow(step.proposer, step.receiver, 'accept');
+    } else if (step.type === 'reject') {
+        spawnArrow(step.proposer, step.receiver, 'reject');
+    } else if (step.type === 'done') {
+        // Final stable state: golden glowing links
+        animArrows = [];
+        stableLinks = [];
+        for (let i = 0; i < groupSize; i++) {
+            if (step.matching[i] !== -1) {
+                stableLinks.push({i: i, j: step.matching[i]});
+            }
+        }
+    }
 }
 
 function renderAlgoState() {
@@ -1232,6 +1520,7 @@ function toggleCollapsible(el) {
 
 window.addEventListener('DOMContentLoaded', function() {
     initDetector();
+    initAlgoCanvas();
     algoReset();
     updateAdvantage();
 });

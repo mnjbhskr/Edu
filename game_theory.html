@@ -81,8 +81,10 @@
         .matrix-table{border-collapse:collapse;margin:10px auto}
         .matrix-table td,.matrix-table th{padding:6px 10px;text-align:center;font-size:0.88em}
         .matrix-table th{color:#808098;font-weight:400}
-        .ne-cell{background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.35);border-radius:4px}
+        .ne-cell{background:rgba(251,191,36,0.10);border:1px solid rgba(251,191,36,0.35);border-radius:4px}
         .dom-marker{color:#f59e0b;font-size:0.7em;margin-left:3px}
+        .pause-btn{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#b0b0c4;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.82em;transition:all 0.2s;z-index:2}
+        .pause-btn:hover{background:rgba(255,255,255,0.1);color:#e0e0ef}
         @media(max-width:600px){
             canvas{width:100%!important;height:auto!important}
             .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
@@ -111,6 +113,7 @@
     <p class="section-note">Two suspects are interrogated separately. Each can <em>cooperate</em> (stay silent) or <em>defect</em> (betray). Edit the payoffs below, then watch two players reason through their choices.</p>
     <div class="canvas-wrap">
         <canvas id="cvPD" width="900" height="420"></canvas>
+        <button class="pause-btn" id="pdPause">Pause</button>
     </div>
     <div class="panel">
         <h3>Payoff Matrix (Player 1 , Player 2)</h3>
@@ -163,6 +166,7 @@
     </div>
     <div class="canvas-wrap">
         <canvas id="cvClassic" width="900" height="400"></canvas>
+        <button class="pause-btn" id="classicPause">Pause</button>
     </div>
     <div id="classicExplain" class="explain">
         <div class="explain-name" id="classicName">Prisoner&rsquo;s Dilemma</div>
@@ -203,14 +207,18 @@
             <input type="range" id="mixedSlider" min="0" max="100" value="50">
             <span class="slider-val" id="mixedVal">0.50</span>
         </div>
+        <div class="btn-row">
+            <button class="btn" id="mixedAnimate">Animate Sweep</button>
+        </div>
     </div>
     <div class="canvas-wrap">
         <canvas id="cvMixed" width="900" height="360"></canvas>
+        <button class="pause-btn" id="mixedPause">Pause</button>
     </div>
     <div class="legend-row">
-        <div class="legend-item"><div class="legend-swatch" style="background:#8b5cf6"></div> P2 expected payoff from A</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#e74c8e"></div> P2 expected payoff from A</div>
         <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div> P2 expected payoff from B</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:#f59e0b"></div> Nash equilibrium</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div> Nash equilibrium</div>
     </div>
     <div class="insight-box">
         <strong style="color:#8b5cf6">Key insight:</strong> At the mixed NE, each player chooses probabilities that make the <em>other</em> player indifferent between their strategies. Neither player can gain by shifting their mix.
@@ -233,6 +241,7 @@
     </div>
     <div class="canvas-wrap">
         <canvas id="cvBR" width="900" height="440"></canvas>
+        <button class="pause-btn" id="brPause">Pause</button>
     </div>
     <div class="btn-row" style="margin-top:10px">
         <button class="btn" id="brAnimate">Animate Best Response</button>
@@ -253,11 +262,12 @@
     </div>
     <div class="canvas-wrap">
         <canvas id="cvPareto" width="900" height="440"></canvas>
+        <button class="pause-btn" id="paretoPause">Pause</button>
     </div>
     <div class="legend-row">
         <div class="legend-item"><div class="legend-swatch" style="background:#8b5cf6"></div> Game outcomes</div>
         <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div> Pareto frontier</div>
-        <div class="legend-item"><div class="legend-swatch" style="background:#f59e0b"></div> Nash equilibrium</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div> Nash equilibrium</div>
     </div>
     <div id="paretoExplain" class="insight-box">
         <strong style="color:#8b5cf6">Prisoner&rsquo;s Dilemma:</strong> The Nash equilibrium (1,1) is strictly dominated by mutual cooperation (3,3). Both players could be better off, but individual rationality prevents it.
@@ -280,6 +290,8 @@
 // ═══════════════════════════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════
+const ROSE = '#f4508d', GOLD = '#fbbf24', CYAN = '#22d3ee', VIOLET = '#8b5cf6', GREEN = '#10b981';
+
 function setupCanvas(canvas) {
     const rect = canvas.parentElement.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
@@ -294,11 +306,16 @@ function setupCanvas(canvas) {
     return { ctx, w, h };
 }
 
+// Easing helpers
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function easeInOutQuad(t) { return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2; }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
 const GAMES = {
     pd: {
         name: "Prisoner's Dilemma",
         labels: [['Cooperate','Defect'],['Cooperate','Defect']],
-        payoffs: [[3,3],[0,5],[5,0],[1,1]], // [CC, CD, DC, DD] each [p1,p2]
+        payoffs: [[3,3],[0,5],[5,0],[1,1]],
         text: "Both players have a dominant strategy to defect. The single Nash equilibrium (Defect, Defect) leaves both worse off than mutual cooperation \u2014 the core tension of social dilemmas."
     },
     chicken: {
@@ -347,8 +364,6 @@ function findPureNE(game) {
 
 function findMixedNE(game) {
     const m = getPayoffMatrix(game);
-    // P1 mixes to make P2 indifferent: p*b[0][0] + (1-p)*b[1][0] = p*b[0][1] + (1-p)*b[1][1]
-    // p*(b00 - b10 - b01 + b11) = b11 - b10
     const denom2 = m.b[0][0] - m.b[1][0] - m.b[0][1] + m.b[1][1];
     const denom1 = m.a[0][0] - m.a[0][1] - m.a[1][0] + m.a[1][1];
     let p = null, q = null;
@@ -359,11 +374,14 @@ function findMixedNE(game) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SECTION 1: PRISONER'S DILEMMA
+// SECTION 1: PRISONER'S DILEMMA — animated story
 // ═══════════════════════════════════════════════════════════════
 (function() {
     const canvas = document.getElementById('cvPD');
     let { ctx, w, h } = setupCanvas(canvas);
+    let paused = false;
+    const pauseBtn = document.getElementById('pdPause');
+    pauseBtn.addEventListener('click', () => { paused = !paused; pauseBtn.textContent = paused ? 'Play' : 'Pause'; });
 
     function readPayoffs() {
         return {
@@ -376,9 +394,18 @@ function findMixedNE(game) {
         };
     }
 
+    // Animation state
     let animState = { phase: 0, t: 0, running: false, choice1: -1, choice2: -1 };
+    // Entrance animation state
+    let entranceT = 0, entranceRunning = true, neGlowT = 0;
+    let rafId = null;
 
-    function draw() {
+    function drawRoundRect(x, y, w2, h2, r) {
+        ctx.beginPath();
+        ctx.roundRect(x, y, w2, h2, r);
+    }
+
+    function draw(timestamp) {
         ctx.clearRect(0, 0, w, h);
         const game = readPayoffs();
         const ne = findPureNE({ payoffs: game.payoffs });
@@ -386,59 +413,150 @@ function findMixedNE(game) {
         const cellW = 130, cellH = 60;
         const tableX = mx - cellW, tableY = my + 50;
 
+        // Animate entrance
+        const entryEase = easeOutCubic(Math.min(entranceT, 1));
+
         // Title
+        ctx.globalAlpha = entryEase;
         ctx.fillStyle = '#808098';
         ctx.font = '13px Georgia';
         ctx.textAlign = 'center';
         ctx.fillText('Payoff Matrix', mx, my + 10);
 
         // Column headers
-        ctx.fillStyle = '#22d3ee';
+        ctx.fillStyle = CYAN;
         ctx.font = '12px Georgia';
         ctx.fillText('P2: Cooperate', tableX + cellW * 0.5, tableY - 8);
         ctx.fillText('P2: Defect', tableX + cellW * 1.5, tableY - 8);
 
         // Row headers
-        ctx.fillStyle = '#8b5cf6';
+        ctx.fillStyle = VIOLET;
         ctx.textAlign = 'right';
         ctx.fillText('P1: Cooperate', tableX - 10, tableY + cellH * 0.5 + 4);
         ctx.fillText('P1: Defect', tableX - 10, tableY + cellH * 1.5 + 4);
 
-        // Cells
+        // Cells — staggered entrance
         for (let i = 0; i < 2; i++) {
             for (let j = 0; j < 2; j++) {
+                const cellIdx = i * 2 + j;
+                const cellDelay = cellIdx * 0.15;
+                const cellT = easeOutCubic(Math.max(0, Math.min(1, entranceT - cellDelay)));
                 const cx = tableX + j * cellW;
                 const cy = tableY + i * cellH;
                 const isNE = ne.some(n => n[0] === i && n[1] === j);
-                ctx.fillStyle = isNE ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.03)';
-                ctx.strokeStyle = isNE ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.08)';
-                ctx.lineWidth = isNE ? 2 : 1;
-                ctx.beginPath();
-                ctx.roundRect(cx + 2, cy + 2, cellW - 4, cellH - 4, 6);
+
+                ctx.globalAlpha = cellT;
+                const scale = 0.8 + 0.2 * cellT;
+                ctx.save();
+                ctx.translate(cx + cellW/2, cy + cellH/2);
+                ctx.scale(scale, scale);
+                ctx.translate(-(cx + cellW/2), -(cy + cellH/2));
+
+                // NE glow pulse — vibrant double-ring effect
+                if (isNE) {
+                    const pulse = 0.5 + 0.5 * Math.sin(neGlowT * 2.5);
+                    const glowAlpha = 0.10 + 0.15 * pulse;
+                    ctx.shadowColor = GOLD;
+                    ctx.shadowBlur = 16 + 12 * pulse;
+                    ctx.fillStyle = 'rgba(251,191,36,' + glowAlpha + ')';
+                    ctx.strokeStyle = 'rgba(251,191,36,' + (0.35 + 0.35 * pulse) + ')';
+                    ctx.lineWidth = 2.5;
+                } else {
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+                    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                    ctx.lineWidth = 1;
+                }
+                drawRoundRect(cx + 2, cy + 2, cellW - 4, cellH - 4, 6);
                 ctx.fill();
                 ctx.stroke();
+                ctx.shadowBlur = 0;
 
                 const idx = i * 2 + j;
                 ctx.textAlign = 'center';
                 ctx.font = '14px Courier New';
-                ctx.fillStyle = '#8b5cf6';
+                ctx.fillStyle = ROSE;
                 ctx.fillText(game.payoffs[idx][0], cx + cellW * 0.35, cy + cellH / 2 + 5);
                 ctx.fillStyle = '#808098';
                 ctx.fillText(',', cx + cellW * 0.5, cy + cellH / 2 + 5);
-                ctx.fillStyle = '#22d3ee';
+                ctx.fillStyle = CYAN;
                 ctx.fillText(game.payoffs[idx][1], cx + cellW * 0.65, cy + cellH / 2 + 5);
 
                 if (isNE) {
-                    ctx.fillStyle = '#f59e0b';
-                    ctx.font = '9px Georgia';
-                    ctx.fillText('NE', cx + cellW - 16, cy + 16);
+                    ctx.fillStyle = GOLD;
+                    ctx.font = '10px Georgia';
+                    ctx.fillText('\u2605 NE', cx + cellW - 22, cy + 16);
                 }
+                ctx.restore();
             }
         }
+        ctx.globalAlpha = 1;
 
-        // Find dominant strategies
+        // Best response arrows (animated draw)
         const m = { a: [[game.payoffs[0][0], game.payoffs[1][0]], [game.payoffs[2][0], game.payoffs[3][0]]],
                      b: [[game.payoffs[0][1], game.payoffs[1][1]], [game.payoffs[2][1], game.payoffs[3][1]]] };
+
+        // Draw best-response arrows along columns for P1
+        const arrowT = easeOutCubic(Math.max(0, Math.min(1, entranceT - 0.8)));
+        if (arrowT > 0) {
+            ctx.globalAlpha = arrowT;
+            ctx.save();
+            for (let j = 0; j < 2; j++) {
+                const bestRow = m.a[0][j] >= m.a[1][j] ? 0 : 1;
+                const fromRow = 1 - bestRow;
+                const fx = tableX + j * cellW + cellW * 0.25;
+                const fy = tableY + fromRow * cellH + cellH / 2;
+                const ty = tableY + bestRow * cellH + cellH / 2;
+                const curTy = lerp(fy, ty, arrowT);
+                // Arrow shaft
+                ctx.strokeStyle = ROSE;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(fx, fy);
+                ctx.lineTo(fx, curTy);
+                ctx.stroke();
+                // Arrowhead
+                if (arrowT > 0.8) {
+                    const dir = bestRow < fromRow ? -1 : 1;
+                    ctx.beginPath();
+                    ctx.moveTo(fx, curTy + dir * 2);
+                    ctx.lineTo(fx - 4, curTy - dir * 6);
+                    ctx.lineTo(fx + 4, curTy - dir * 6);
+                    ctx.closePath();
+                    ctx.fillStyle = ROSE;
+                    ctx.fill();
+                }
+            }
+            // P2 best response arrows along rows
+            for (let i = 0; i < 2; i++) {
+                const bestCol = m.b[i][0] >= m.b[i][1] ? 0 : 1;
+                const fromCol = 1 - bestCol;
+                const fy2 = tableY + i * cellH + cellH * 0.75;
+                const fx2 = tableX + fromCol * cellW + cellW / 2;
+                const tx2 = tableX + bestCol * cellW + cellW / 2;
+                const curTx = lerp(fx2, tx2, arrowT);
+                ctx.strokeStyle = CYAN;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(fx2, fy2);
+                ctx.lineTo(curTx, fy2);
+                ctx.stroke();
+                if (arrowT > 0.8) {
+                    const dir = bestCol < fromCol ? -1 : 1;
+                    ctx.beginPath();
+                    ctx.moveTo(curTx + dir * 2, fy2);
+                    ctx.lineTo(curTx - dir * 6, fy2 - 4);
+                    ctx.lineTo(curTx - dir * 6, fy2 + 4);
+                    ctx.closePath();
+                    ctx.fillStyle = CYAN;
+                    ctx.fill();
+                }
+            }
+            ctx.restore();
+            ctx.globalAlpha = 1;
+        }
+
+        // Dominant strategies + NE summary
         let p1dom = null, p2dom = null;
         if (m.a[0][0] > m.a[1][0] && m.a[0][1] > m.a[1][1]) p1dom = 0;
         else if (m.a[1][0] > m.a[0][0] && m.a[1][1] > m.a[0][1]) p1dom = 1;
@@ -450,29 +568,30 @@ function findMixedNE(game) {
         const infoY = tableY + cellH * 2 + 30;
         ctx.fillStyle = '#808098';
         ctx.fillText('Dominant strategy P1: ', 40, infoY);
-        ctx.fillStyle = '#8b5cf6';
+        ctx.fillStyle = ROSE;
         ctx.fillText(p1dom !== null ? ['Cooperate','Defect'][p1dom] : 'None', 200, infoY);
         ctx.fillStyle = '#808098';
         ctx.fillText('Dominant strategy P2: ', 40, infoY + 22);
-        ctx.fillStyle = '#22d3ee';
+        ctx.fillStyle = CYAN;
         ctx.fillText(p2dom !== null ? ['Cooperate','Defect'][p2dom] : 'None', 200, infoY + 22);
         ctx.fillStyle = '#808098';
         ctx.fillText('Pure Nash Equilibria: ', 40, infoY + 44);
-        ctx.fillStyle = '#f59e0b';
+        ctx.fillStyle = GOLD;
         if (ne.length === 0) ctx.fillText('None (see Mixed Strategies)', 200, infoY + 44);
         else ctx.fillText(ne.map(n => '(' + ['Coop','Defect'][n[0]] + ', ' + ['Coop','Defect'][n[1]] + ')').join('  '), 200, infoY + 44);
 
-        // Animation: two player icons
+        // ── Animated story: two player icons ──
         const p1x = 80, p2x = w - 80, py = infoY + 100;
+
         // Player 1 circle
         ctx.beginPath();
         ctx.arc(p1x, py, 24, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(139,92,246,0.15)';
+        ctx.fillStyle = 'rgba(231,76,142,0.12)';
         ctx.fill();
-        ctx.strokeStyle = '#8b5cf6';
+        ctx.strokeStyle = ROSE;
         ctx.lineWidth = 2;
         ctx.stroke();
-        ctx.fillStyle = '#8b5cf6';
+        ctx.fillStyle = ROSE;
         ctx.font = '11px Georgia';
         ctx.textAlign = 'center';
         ctx.fillText('P1', p1x, py + 4);
@@ -480,65 +599,107 @@ function findMixedNE(game) {
         // Player 2 circle
         ctx.beginPath();
         ctx.arc(p2x, py, 24, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(34,211,238,0.1)';
+        ctx.fillStyle = 'rgba(34,211,238,0.08)';
         ctx.fill();
-        ctx.strokeStyle = '#22d3ee';
+        ctx.strokeStyle = CYAN;
         ctx.lineWidth = 2;
         ctx.stroke();
-        ctx.fillStyle = '#22d3ee';
+        ctx.fillStyle = CYAN;
         ctx.fillText('P2', p2x, py + 4);
 
         // Thought bubbles during animation
         if (animState.running || animState.phase >= 4) {
             const labels = ['Cooperate', 'Defect'];
             if (animState.phase >= 1) {
-                ctx.fillStyle = 'rgba(139,92,246,0.08)';
-                ctx.beginPath();
-                ctx.roundRect(p1x - 60, py - 70, 120, 30, 8);
+                // Thinking bubble P1 — fade in
+                const bubT = easeOutCubic(Math.min(1, animState.t));
+                ctx.globalAlpha = bubT;
+                ctx.fillStyle = 'rgba(231,76,142,0.08)';
+                drawRoundRect(p1x - 60, py - 70, 120, 30, 8);
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(139,92,246,0.2)';
+                ctx.strokeStyle = 'rgba(231,76,142,0.25)';
                 ctx.lineWidth = 1;
                 ctx.stroke();
-                ctx.fillStyle = '#a0a0b8';
+                ctx.fillStyle = '#c0c0d8';
                 ctx.font = '10px Georgia';
                 ctx.fillText(animState.phase < 3 ? 'Thinking...' : labels[animState.choice1], p1x, py - 51);
+                ctx.globalAlpha = 1;
             }
             if (animState.phase >= 2) {
+                const bubT = easeOutCubic(Math.min(1, animState.t));
+                ctx.globalAlpha = bubT;
                 ctx.fillStyle = 'rgba(34,211,238,0.06)';
-                ctx.beginPath();
-                ctx.roundRect(p2x - 60, py - 70, 120, 30, 8);
+                drawRoundRect(p2x - 60, py - 70, 120, 30, 8);
                 ctx.fill();
                 ctx.strokeStyle = 'rgba(34,211,238,0.2)';
                 ctx.lineWidth = 1;
                 ctx.stroke();
-                ctx.fillStyle = '#a0a0b8';
+                ctx.fillStyle = '#c0c0d8';
                 ctx.font = '10px Georgia';
                 ctx.fillText(animState.phase < 3 ? 'Thinking...' : labels[animState.choice2], p2x, py - 51);
+                ctx.globalAlpha = 1;
             }
             if (animState.phase >= 4) {
+                const revealT = easeOutCubic(Math.min(1, animState.t));
+                ctx.globalAlpha = revealT;
                 const idx = animState.choice1 * 2 + animState.choice2;
                 const pay = game.payoffs[idx];
-                ctx.fillStyle = '#f59e0b';
-                ctx.font = '13px Courier New';
-                ctx.fillText('Payoff: (' + pay[0] + ', ' + pay[1] + ')', w / 2, py + 50);
+                // Payoff reveal with scale
+                ctx.save();
+                const sc = 0.6 + 0.4 * revealT;
+                ctx.translate(w/2, py + 50);
+                ctx.scale(sc, sc);
+                ctx.fillStyle = GOLD;
+                ctx.font = '14px Courier New';
+                ctx.fillText('Payoff: (' + pay[0] + ', ' + pay[1] + ')', 0, 0);
+                ctx.restore();
+
                 const isNEResult = ne.some(n => n[0] === animState.choice1 && n[1] === animState.choice2);
-                ctx.fillStyle = isNEResult ? '#10b981' : '#808098';
+                ctx.fillStyle = isNEResult ? GREEN : '#808098';
                 ctx.font = '11px Georgia';
+                ctx.textAlign = 'center';
                 ctx.fillText(isNEResult ? 'This is a Nash Equilibrium' : 'Not a Nash Equilibrium', w / 2, py + 70);
+                ctx.globalAlpha = 1;
             }
         }
     }
 
+    let lastTs = 0;
+    function tick(ts) {
+        const dt = lastTs ? ts - lastTs : 16;
+        lastTs = ts;
+        if (!paused) {
+            if (entranceRunning) {
+                entranceT += 0.025;
+                if (entranceT > 2) entranceRunning = false;
+            }
+            neGlowT += 0.016;
+            if (animState.running) animState.t += 0.03;
+            // Drive step sequencer via rAF instead of setInterval
+            if (animStepIndex > 0 && animStepIndex < animSteps.length) {
+                animStepTimer += dt;
+                if (animStepTimer >= STEP_DURATION) {
+                    animStepTimer = 0;
+                    animSteps[animStepIndex++]();
+                }
+            }
+        }
+        draw(ts);
+        rafId = requestAnimationFrame(tick);
+    }
+    rafId = requestAnimationFrame(tick);
+
+    // rAF-based step sequencer (replaces setInterval)
+    let animStepTimer = 0, animStepIndex = 0, animSteps = [];
+    const STEP_DURATION = 1200; // ms per reasoning step
+
     function animate() {
         animState = { phase: 0, t: 0, running: true, choice1: -1, choice2: -1 };
         const game = readPayoffs();
-        const ne = findPureNE({ payoffs: game.payoffs });
         const m = { a: [[game.payoffs[0][0], game.payoffs[1][0]], [game.payoffs[2][0], game.payoffs[3][0]]],
                      b: [[game.payoffs[0][1], game.payoffs[1][1]], [game.payoffs[2][1], game.payoffs[3][1]]] };
         const explain = document.getElementById('pdExplain');
 
-        // Determine choices through dominant strategy reasoning
-        // P1: pick row that is best regardless of P2's column
         let c1 = 0, c2 = 0;
         if (m.a[1][0] >= m.a[0][0] && m.a[1][1] >= m.a[0][1]) c1 = 1;
         else if (m.a[0][0] >= m.a[1][0] && m.a[0][1] >= m.a[1][1]) c1 = 0;
@@ -547,17 +708,15 @@ function findMixedNE(game) {
         else if (m.b[0][1] >= m.b[0][0] && m.b[1][1] >= m.b[1][0]) c2 = 1;
         else c2 = Math.random() < 0.5 ? 0 : 1;
 
-        const steps = [
-            () => { animState.phase = 1; explain.innerHTML = '<span class="accent">P1 reasons:</span> "If P2 cooperates I get ' + m.a[0][0] + ' vs ' + m.a[1][0] + '. If P2 defects I get ' + m.a[0][1] + ' vs ' + m.a[1][1] + '."'; draw(); },
-            () => { animState.phase = 2; explain.innerHTML = '<span class="accent">P2 reasons:</span> "If P1 cooperates I get ' + m.b[0][0] + ' vs ' + m.b[0][1] + '. If P1 defects I get ' + m.b[1][0] + ' vs ' + m.b[1][1] + '."'; draw(); },
-            () => { animState.phase = 3; animState.choice1 = c1; animState.choice2 = c2; explain.innerHTML = '<span class="accent">Choices revealed!</span> P1 picks ' + ['Cooperate','Defect'][c1] + ', P2 picks ' + ['Cooperate','Defect'][c2]; draw(); },
-            () => { animState.phase = 4; animState.running = false; draw(); }
+        animSteps = [
+            () => { animState.phase = 1; animState.t = 0; explain.innerHTML = '<span class="accent">P1 reasons:</span> "If P2 cooperates I get ' + m.a[0][0] + ' vs ' + m.a[1][0] + '. If P2 defects I get ' + m.a[0][1] + ' vs ' + m.a[1][1] + '."'; },
+            () => { animState.phase = 2; animState.t = 0; explain.innerHTML = '<span class="accent">P2 reasons:</span> "If P1 cooperates I get ' + m.b[0][0] + ' vs ' + m.b[0][1] + '. If P1 defects I get ' + m.b[1][0] + ' vs ' + m.b[1][1] + '."'; },
+            () => { animState.phase = 3; animState.t = 0; animState.choice1 = c1; animState.choice2 = c2; explain.innerHTML = '<span class="accent">Choices revealed!</span> P1 picks ' + ['Cooperate','Defect'][c1] + ', P2 picks ' + ['Cooperate','Defect'][c2]; },
+            () => { animState.phase = 4; animState.t = 0; animState.running = false; }
         ];
-        let i = 0;
-        const timer = setInterval(() => {
-            if (i < steps.length) steps[i++]();
-            else clearInterval(timer);
-        }, 1000);
+        animStepIndex = 0;
+        animStepTimer = 0;
+        animSteps[animStepIndex++]();
     }
 
     document.getElementById('pdAnimate').addEventListener('click', animate);
@@ -566,25 +725,29 @@ function findMixedNE(game) {
             document.getElementById(id).value = [3,3,0,5,5,0,1,1][i];
         });
         animState = { phase: 0, t: 0, running: false, choice1: -1, choice2: -1 };
+        entranceT = 0; entranceRunning = true;
         document.getElementById('pdExplain').innerHTML = '';
-        draw();
     });
     document.querySelectorAll('.payoff-input').forEach(el => el.addEventListener('input', () => {
         animState = { phase: 0, t: 0, running: false, choice1: -1, choice2: -1 };
-        draw();
+        entranceT = 0; entranceRunning = true;
     }));
 
-    draw();
-    window.addEventListener('resize', () => { ({ ctx, w, h } = setupCanvas(canvas)); draw(); });
+    window.addEventListener('resize', () => { ({ ctx, w, h } = setupCanvas(canvas)); });
 })();
 
 // ═══════════════════════════════════════════════════════════════
-// SECTION 2: CLASSIC GAMES
+// SECTION 2: CLASSIC GAMES — animated matrix + best response arrows
 // ═══════════════════════════════════════════════════════════════
 (function() {
     const canvas = document.getElementById('cvClassic');
     let { ctx, w, h } = setupCanvas(canvas);
     let currentGame = 'pd';
+    let paused = false, entryT = 0, neGlowT = 0, arrowDrawT = 0;
+    const pauseBtn = document.getElementById('classicPause');
+    pauseBtn.addEventListener('click', () => { paused = !paused; pauseBtn.textContent = paused ? 'Play' : 'Pause'; });
+
+    function resetEntry() { entryT = 0; arrowDrawT = 0; }
 
     function draw() {
         ctx.clearRect(0, 0, w, h);
@@ -596,55 +759,124 @@ function findMixedNE(game) {
         const cellH = 65;
         const tableX = mx - cellW;
         const tableY = 50;
+        const entryEase = easeOutCubic(Math.min(entryT, 1));
 
         // Title
+        ctx.globalAlpha = entryEase;
         ctx.fillStyle = '#fff';
         ctx.font = '15px Georgia';
         ctx.textAlign = 'center';
         ctx.fillText(game.name, mx, 30);
 
         // Column headers
-        ctx.fillStyle = '#22d3ee';
+        ctx.fillStyle = CYAN;
         ctx.font = '12px Georgia';
         ctx.fillText('P2: ' + game.labels[1][0], tableX + cellW * 0.5, tableY - 8);
         ctx.fillText('P2: ' + game.labels[1][1], tableX + cellW * 1.5, tableY - 8);
 
         // Row headers
-        ctx.fillStyle = '#8b5cf6';
+        ctx.fillStyle = VIOLET;
         ctx.textAlign = 'right';
         ctx.fillText('P1: ' + game.labels[0][0], tableX - 12, tableY + cellH * 0.5 + 4);
         ctx.fillText('P1: ' + game.labels[0][1], tableX - 12, tableY + cellH * 1.5 + 4);
 
+        const m = getPayoffMatrix(game);
+
         for (let i = 0; i < 2; i++) {
             for (let j = 0; j < 2; j++) {
+                const cIdx = i*2+j;
+                const cT = easeOutCubic(Math.max(0, Math.min(1, entryT - cIdx * 0.12)));
                 const cx = tableX + j * cellW;
                 const cy = tableY + i * cellH;
                 const isNE = ne.some(n => n[0] === i && n[1] === j);
 
-                ctx.fillStyle = isNE ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.03)';
-                ctx.strokeStyle = isNE ? 'rgba(139,92,246,0.4)' : 'rgba(255,255,255,0.08)';
-                ctx.lineWidth = isNE ? 2 : 1;
+                ctx.globalAlpha = cT;
+                ctx.save();
+                const sc = 0.85 + 0.15 * cT;
+                ctx.translate(cx + cellW/2, cy + cellH/2);
+                ctx.scale(sc, sc);
+                ctx.translate(-(cx + cellW/2), -(cy + cellH/2));
+
+                if (isNE) {
+                    const pulse = 0.5 + 0.5 * Math.sin(neGlowT * 2.5);
+                    ctx.shadowColor = GOLD;
+                    ctx.shadowBlur = 16 + 12 * pulse;
+                    ctx.fillStyle = 'rgba(251,191,36,' + (0.08 + 0.14 * pulse) + ')';
+                    ctx.strokeStyle = 'rgba(251,191,36,' + (0.35 + 0.35 * pulse) + ')';
+                    ctx.lineWidth = 2.5;
+                } else {
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+                    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+                    ctx.lineWidth = 1;
+                }
                 ctx.beginPath();
                 ctx.roundRect(cx + 2, cy + 2, cellW - 4, cellH - 4, 6);
                 ctx.fill();
                 ctx.stroke();
+                ctx.shadowBlur = 0;
 
                 const idx = i * 2 + j;
                 ctx.textAlign = 'center';
                 ctx.font = '15px Courier New';
-                ctx.fillStyle = '#8b5cf6';
+                ctx.fillStyle = ROSE;
                 ctx.fillText(game.payoffs[idx][0], cx + cellW * 0.35, cy + cellH / 2 + 5);
                 ctx.fillStyle = '#606078';
                 ctx.fillText(',', cx + cellW * 0.5, cy + cellH / 2 + 5);
-                ctx.fillStyle = '#22d3ee';
+                ctx.fillStyle = CYAN;
                 ctx.fillText(game.payoffs[idx][1], cx + cellW * 0.65, cy + cellH / 2 + 5);
 
                 if (isNE) {
-                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillStyle = GOLD;
                     ctx.font = '10px Georgia';
-                    ctx.fillText('NE', cx + cellW - 18, cy + 18);
+                    ctx.fillText('\u2605 NE', cx + cellW - 24, cy + 18);
+                }
+                ctx.restore();
+            }
+        }
+        ctx.globalAlpha = 1;
+
+        // Animated best-response arrows
+        const aT = easeOutCubic(Math.max(0, Math.min(1, arrowDrawT)));
+        if (aT > 0) {
+            ctx.globalAlpha = aT;
+            // P1 best response arrows (vertical, within columns)
+            for (let j = 0; j < 2; j++) {
+                if (m.a[0][j] === m.a[1][j]) continue;
+                const bestRow = m.a[0][j] > m.a[1][j] ? 0 : 1;
+                const fromRow = 1 - bestRow;
+                const ax = tableX + j * cellW + cellW * 0.2;
+                const ay = tableY + fromRow * cellH + cellH / 2;
+                const by = tableY + bestRow * cellH + cellH / 2;
+                const curBy = lerp(ay, by, aT);
+                ctx.strokeStyle = ROSE;
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax, curBy); ctx.stroke();
+                if (aT > 0.85) {
+                    const d = bestRow < fromRow ? -1 : 1;
+                    ctx.beginPath(); ctx.moveTo(ax, curBy + d*2); ctx.lineTo(ax-4, curBy-d*6); ctx.lineTo(ax+4, curBy-d*6); ctx.closePath();
+                    ctx.fillStyle = ROSE; ctx.fill();
                 }
             }
+            // P2 best response arrows (horizontal, within rows)
+            for (let i = 0; i < 2; i++) {
+                if (m.b[i][0] === m.b[i][1]) continue;
+                const bestCol = m.b[i][0] > m.b[i][1] ? 0 : 1;
+                const fromCol = 1 - bestCol;
+                const ay2 = tableY + i * cellH + cellH * 0.8;
+                const ax2 = tableX + fromCol * cellW + cellW / 2;
+                const bx2 = tableX + bestCol * cellW + cellW / 2;
+                const curBx = lerp(ax2, bx2, aT);
+                ctx.strokeStyle = CYAN;
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(ax2, ay2); ctx.lineTo(curBx, ay2); ctx.stroke();
+                if (aT > 0.85) {
+                    const d = bestCol < fromCol ? -1 : 1;
+                    ctx.beginPath(); ctx.moveTo(curBx+d*2, ay2); ctx.lineTo(curBx-d*6, ay2-4); ctx.lineTo(curBx-d*6, ay2+4); ctx.closePath();
+                    ctx.fillStyle = CYAN; ctx.fill();
+                }
+            }
+            ctx.globalAlpha = 1;
         }
 
         // Summary
@@ -653,7 +885,7 @@ function findMixedNE(game) {
         ctx.font = '12px Georgia';
         ctx.fillStyle = '#808098';
         ctx.fillText('Pure Nash Equilibria: ', 40, summY);
-        ctx.fillStyle = '#f59e0b';
+        ctx.fillStyle = GOLD;
         ctx.font = '12px Courier New';
         if (ne.length === 0) {
             ctx.fillText('None', 200, summY);
@@ -664,7 +896,7 @@ function findMixedNE(game) {
         ctx.fillStyle = '#808098';
         ctx.font = '12px Georgia';
         ctx.fillText('Mixed NE: ', 40, summY + 24);
-        ctx.fillStyle = '#22d3ee';
+        ctx.fillStyle = CYAN;
         ctx.font = '12px Courier New';
         if (mixed) {
             ctx.fillText('p\u2081(' + game.labels[0][0] + ') = ' + mixed.p.toFixed(3) + ',  p\u2082(' + game.labels[1][0] + ') = ' + mixed.q.toFixed(3), 200, summY + 24);
@@ -672,31 +904,46 @@ function findMixedNE(game) {
             ctx.fillText('N/A (pure NE is strict)', 200, summY + 24);
         }
 
-        // Arrows showing best responses
+        // Arrow legend
         ctx.font = '11px Georgia';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = ROSE;
+        ctx.fillText('\u2192 P1 best response', 40, summY + 56);
+        ctx.fillStyle = CYAN;
+        ctx.fillText('\u2192 P2 best response', 200, summY + 56);
         ctx.fillStyle = '#505068';
         ctx.textAlign = 'center';
-        ctx.fillText('Highlighted cells = Nash Equilibria (no player can unilaterally improve)', mx, summY + 56);
+        ctx.fillText('Highlighted cells = Nash Equilibria (no player can unilaterally improve)', mx, summY + 78);
 
         document.getElementById('classicName').textContent = game.name;
         document.getElementById('classicText').textContent = game.text;
     }
+
+    function tick() {
+        if (!paused) {
+            entryT += 0.025;
+            neGlowT += 0.016;
+            if (entryT > 0.7) arrowDrawT += 0.02;
+        }
+        draw();
+        requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
 
     document.querySelectorAll('#gamePresets .btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('#gamePresets .btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentGame = btn.dataset.game;
-            draw();
+            resetEntry();
         });
     });
 
-    draw();
-    window.addEventListener('resize', () => { ({ ctx, w, h } = setupCanvas(canvas)); draw(); });
+    window.addEventListener('resize', () => { ({ ctx, w, h } = setupCanvas(canvas)); });
 })();
 
 // ═══════════════════════════════════════════════════════════════
-// SECTION 3: MIXED STRATEGIES
+// SECTION 3: MIXED STRATEGIES — animated slider sweep + smooth curves
 // ═══════════════════════════════════════════════════════════════
 (function() {
     const canvas = document.getElementById('cvMixed');
@@ -704,14 +951,22 @@ function findMixedNE(game) {
     const slider = document.getElementById('mixedSlider');
     const valSpan = document.getElementById('mixedVal');
     let currentGame = 'mp';
+    let paused = false, sweepAnim = null, curveDrawT = 0, neGlowT = 0;
+    const pauseBtn = document.getElementById('mixedPause');
+    pauseBtn.addEventListener('click', () => { paused = !paused; pauseBtn.textContent = paused ? 'Play' : 'Pause'; });
 
-    // Listen to classic game presets to sync
     document.querySelectorAll('#gamePresets .btn').forEach(btn => {
         btn.addEventListener('click', () => {
             currentGame = btn.dataset.game;
             document.getElementById('mixedGameLabel').textContent = GAMES[currentGame].name;
-            draw();
+            curveDrawT = 0;
         });
+    });
+
+    // Animate sweep button
+    document.getElementById('mixedAnimate').addEventListener('click', () => {
+        if (sweepAnim) return;
+        sweepAnim = { t: 0, dir: 1 };
     });
 
     function draw() {
@@ -725,9 +980,6 @@ function findMixedNE(game) {
         const pw = w - margin.l - margin.r;
         const ph = h - margin.t - margin.b;
 
-        // Calculate expected payoffs for P2's strategies as function of p (P1's mix)
-        // If P1 plays row 0 with prob p: P2's payoff from col 0 = p*b[0][0] + (1-p)*b[1][0]
-        // P2's payoff from col 1 = p*b[0][1] + (1-p)*b[1][1]
         const steps = 200;
         const ep2A = [], ep2B = [];
         let minY = Infinity, maxY = -Infinity;
@@ -758,7 +1010,6 @@ function findMixedNE(game) {
         ctx.lineTo(margin.l, margin.t);
         ctx.stroke();
 
-        // Axis labels
         ctx.fillStyle = '#606078';
         ctx.font = '10px Courier New';
         ctx.textAlign = 'center';
@@ -785,36 +1036,51 @@ function findMixedNE(game) {
             ctx.stroke();
         }
 
-        // EP2 from choosing A (col 0)
-        ctx.strokeStyle = '#8b5cf6';
-        ctx.lineWidth = 2.5;
+        // Animated curve draw — reveal portion
+        const drawFrac = easeOutCubic(Math.min(curveDrawT, 1));
+        const drawSteps = Math.floor(drawFrac * steps);
+
+        // EP2 from choosing A (col 0) — ROSE with soft under-glow
+        ctx.save();
+        ctx.shadowColor = ROSE;
+        ctx.shadowBlur = 6;
+        ctx.strokeStyle = ROSE;
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        for (let i = 0; i <= steps; i++) {
+        for (let i = 0; i <= drawSteps; i++) {
             const x = toX(i / steps);
             const y = toY(ep2A[i]);
             i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.stroke();
+        ctx.restore();
 
-        // EP2 from choosing B (col 1)
-        ctx.strokeStyle = '#22d3ee';
-        ctx.lineWidth = 2.5;
+        // EP2 from choosing B (col 1) — CYAN with soft under-glow
+        ctx.save();
+        ctx.shadowColor = CYAN;
+        ctx.shadowBlur = 6;
+        ctx.strokeStyle = CYAN;
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        for (let i = 0; i <= steps; i++) {
+        for (let i = 0; i <= drawSteps; i++) {
             const x = toX(i / steps);
             const y = toY(ep2B[i]);
             i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
         }
         ctx.stroke();
+        ctx.restore();
 
-        // Find crossing point (mixed NE)
+        // NE dot with glow
         const mixed = findMixedNE(game);
-        if (mixed) {
+        if (mixed && drawFrac > 0.5) {
             const neX = toX(mixed.p);
             const neY = toY(mixed.p * m.b[0][0] + (1 - mixed.p) * m.b[1][0]);
+            const neAlpha = easeOutCubic(Math.min(1, (drawFrac - 0.5) * 2));
+            ctx.globalAlpha = neAlpha;
+
             // Dashed vertical
             ctx.setLineDash([4, 4]);
-            ctx.strokeStyle = 'rgba(245,158,11,0.4)';
+            ctx.strokeStyle = 'rgba(251,191,36,0.4)';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(neX, h - margin.b);
@@ -822,15 +1088,27 @@ function findMixedNE(game) {
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // NE dot
+            // Pulsing NE dot — double glow ring
+            const pulse = 0.5 + 0.5 * Math.sin(neGlowT * 3);
+            ctx.shadowColor = GOLD;
+            ctx.shadowBlur = 14 + 14 * pulse;
+            // Outer halo
             ctx.beginPath();
-            ctx.arc(neX, neY, 6, 0, Math.PI * 2);
-            ctx.fillStyle = '#f59e0b';
+            ctx.arc(neX, neY, 14 + 4 * pulse, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(251,191,36,' + (0.06 + 0.06 * pulse) + ')';
             ctx.fill();
-            ctx.fillStyle = '#f59e0b';
+            // Inner dot
+            ctx.beginPath();
+            ctx.arc(neX, neY, 6 + 2 * pulse, 0, Math.PI * 2);
+            ctx.fillStyle = GOLD;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = GOLD;
             ctx.font = '11px Georgia';
             ctx.textAlign = 'left';
-            ctx.fillText('NE: p = ' + mixed.p.toFixed(3), neX + 10, neY - 8);
+            ctx.fillText('NE: p = ' + mixed.p.toFixed(3), neX + 12, neY - 10);
+            ctx.globalAlpha = 1;
         }
 
         // Current p indicator
@@ -847,23 +1125,21 @@ function findMixedNE(game) {
         const curA = p * m.b[0][0] + (1 - p) * m.b[1][0];
         const curB = p * m.b[0][1] + (1 - p) * m.b[1][1];
         ctx.beginPath();
-        ctx.arc(curX, toY(curA), 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#8b5cf6';
+        ctx.arc(curX, toY(curA), 5, 0, Math.PI * 2);
+        ctx.fillStyle = ROSE;
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(curX, toY(curB), 4, 0, Math.PI * 2);
-        ctx.fillStyle = '#22d3ee';
+        ctx.arc(curX, toY(curB), 5, 0, Math.PI * 2);
+        ctx.fillStyle = CYAN;
         ctx.fill();
 
-        // Label current values
         ctx.font = '10px Courier New';
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#8b5cf6';
+        ctx.fillStyle = ROSE;
         ctx.fillText(game.labels[1][0] + ': ' + curA.toFixed(2), curX + 8, toY(curA) + (curA > curB ? -8 : 14));
-        ctx.fillStyle = '#22d3ee';
+        ctx.fillStyle = CYAN;
         ctx.fillText(game.labels[1][1] + ': ' + curB.toFixed(2), curX + 8, toY(curB) + (curB > curA ? -8 : 14));
 
-        // P2's best response at current p
         ctx.fillStyle = '#a0a0b8';
         ctx.font = '11px Georgia';
         ctx.textAlign = 'center';
@@ -874,37 +1150,49 @@ function findMixedNE(game) {
         }
     }
 
-    slider.addEventListener('input', draw);
-    draw();
-    window.addEventListener('resize', () => { ({ ctx, w, h } = setupCanvas(canvas)); draw(); });
+    function tick() {
+        if (!paused) {
+            curveDrawT += 0.018;
+            neGlowT += 0.016;
+            if (sweepAnim) {
+                sweepAnim.t += 0.008;
+                const sv = easeInOutQuad(sweepAnim.t);
+                if (sweepAnim.dir === 1) {
+                    slider.value = Math.round(sv * 100);
+                } else {
+                    slider.value = Math.round((1 - sv) * 100);
+                }
+                slider.dispatchEvent(new Event('input'));
+                if (sweepAnim.t >= 1) {
+                    if (sweepAnim.dir === 1) {
+                        sweepAnim = { t: 0, dir: -1 };
+                    } else {
+                        sweepAnim = null;
+                    }
+                }
+            }
+        }
+        draw();
+        requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    slider.addEventListener('input', () => {});
+    window.addEventListener('resize', () => { ({ ctx, w, h } = setupCanvas(canvas)); });
 })();
 
 // ═══════════════════════════════════════════════════════════════
-// SECTION 4: BEST RESPONSE DYNAMICS
+// SECTION 4: BEST RESPONSE DYNAMICS — animated path drawing
 // ═══════════════════════════════════════════════════════════════
 (function() {
     const canvas = document.getElementById('cvBR');
     let { ctx, w, h } = setupCanvas(canvas);
     let currentGame = 'pd';
     let path = [];
-    let animTimer = null;
-
-    function bestResponseP1(q, game) {
-        // P1 best response given P2 plays col 0 with prob q
-        const m = getPayoffMatrix(game);
-        const eu0 = q * m.a[0][0] + (1 - q) * m.a[0][1]; // P1 plays row 0
-        const eu1 = q * m.a[1][0] + (1 - q) * m.a[1][1]; // P1 plays row 1
-        if (Math.abs(eu0 - eu1) < 1e-9) return null; // indifferent
-        return eu0 > eu1 ? 1 : 0; // return prob of playing row 0
-    }
-
-    function bestResponseP2(p, game) {
-        const m = getPayoffMatrix(game);
-        const eu0 = p * m.b[0][0] + (1 - p) * m.b[1][0]; // P2 plays col 0
-        const eu1 = p * m.b[0][1] + (1 - p) * m.b[1][1]; // P2 plays col 1
-        if (Math.abs(eu0 - eu1) < 1e-9) return null;
-        return eu0 > eu1 ? 1 : 0;
-    }
+    let paused = false, pathAnimT = 0, brCurveDrawT = 0, neGlowT = 0;
+    let animRunning = false, animStep = 0, animP = 0, animQ = 0;
+    const pauseBtn = document.getElementById('brPause');
+    pauseBtn.addEventListener('click', () => { paused = !paused; pauseBtn.textContent = paused ? 'Play' : 'Pause'; });
 
     function draw() {
         ctx.clearRect(0, 0, w, h);
@@ -922,24 +1210,16 @@ function findMixedNE(game) {
         ctx.lineWidth = 1;
         for (let i = 0; i <= 4; i++) {
             const v = i / 4;
-            ctx.beginPath();
-            ctx.moveTo(toX(v), margin.t);
-            ctx.lineTo(toX(v), h - margin.b);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(margin.l, toY(v));
-            ctx.lineTo(w - margin.r, toY(v));
-            ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(toX(v), margin.t); ctx.lineTo(toX(v), h - margin.b); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(margin.l, toY(v)); ctx.lineTo(w - margin.r, toY(v)); ctx.stroke();
         }
 
         // Axes
         ctx.strokeStyle = 'rgba(255,255,255,0.12)';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(margin.l, h - margin.b);
-        ctx.lineTo(w - margin.r, h - margin.b);
-        ctx.moveTo(margin.l, h - margin.b);
-        ctx.lineTo(margin.l, margin.t);
+        ctx.moveTo(margin.l, h - margin.b); ctx.lineTo(w - margin.r, h - margin.b);
+        ctx.moveTo(margin.l, h - margin.b); ctx.lineTo(margin.l, margin.t);
         ctx.stroke();
 
         ctx.fillStyle = '#606078';
@@ -959,180 +1239,200 @@ function findMixedNE(game) {
         ctx.fillText('0', margin.l - 6, h - margin.b + 4);
         ctx.fillText('1', margin.l - 6, margin.t + 4);
 
-        // Draw best response curves
-        // BR1(q): P1's best response as function of q
-        // EU for P1 row 0: q*a[0][0] + (1-q)*a[0][1]
-        // EU for P1 row 1: q*a[1][0] + (1-q)*a[1][1]
-        // Equal when q*(a00 - a10 - a01 + a11) = a11 - a01
+        // Animated BR curve drawing
+        const brDrawFrac = easeOutCubic(Math.min(brCurveDrawT, 1));
+
+        // BR1(q) — P1 best response
         const denom1 = m.a[0][0] - m.a[1][0] - m.a[0][1] + m.a[1][1];
         const qStar = Math.abs(denom1) > 1e-9 ? (m.a[1][1] - m.a[0][1]) / denom1 : null;
 
-        // BR2(p): P2's best response as function of p
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = ROSE;
+        if (brDrawFrac > 0) {
+            ctx.globalAlpha = brDrawFrac;
+            ctx.shadowColor = ROSE;
+            ctx.shadowBlur = 5;
+            if (qStar !== null && qStar >= 0 && qStar <= 1) {
+                const testQ = qStar - 0.01;
+                const eu0 = testQ * m.a[0][0] + (1 - testQ) * m.a[0][1];
+                const eu1 = testQ * m.a[1][0] + (1 - testQ) * m.a[1][1];
+                const lowP = eu0 > eu1 ? 1 : 0;
+                const highP = 1 - lowP;
+                ctx.beginPath(); ctx.moveTo(toX(0), toY(lowP)); ctx.lineTo(toX(qStar * brDrawFrac), toY(lowP)); ctx.stroke();
+                if (brDrawFrac > 0.5) {
+                    const f2 = (brDrawFrac - 0.5) * 2;
+                    ctx.beginPath(); ctx.moveTo(toX(qStar), toY(0)); ctx.lineTo(toX(qStar), toY(f2)); ctx.stroke();
+                }
+                if (brDrawFrac > 0.7) {
+                    const f3 = (brDrawFrac - 0.7) / 0.3;
+                    ctx.beginPath(); ctx.moveTo(toX(qStar), toY(highP)); ctx.lineTo(toX(lerp(qStar, 1, f3)), toY(highP)); ctx.stroke();
+                }
+            } else {
+                const eu0 = 0.5 * m.a[0][0] + 0.5 * m.a[0][1];
+                const eu1 = 0.5 * m.a[1][0] + 0.5 * m.a[1][1];
+                const brP = eu0 >= eu1 ? 1 : 0;
+                ctx.beginPath(); ctx.moveTo(toX(0), toY(brP)); ctx.lineTo(toX(brDrawFrac), toY(brP)); ctx.stroke();
+            }
+        }
+
+        ctx.shadowBlur = 0;
+
+        // BR2(p) — P2 best response
         const denom2 = m.b[0][0] - m.b[1][0] - m.b[0][1] + m.b[1][1];
         const pStar = Math.abs(denom2) > 1e-9 ? (m.b[1][1] - m.b[1][0]) / denom2 : null;
 
-        // Draw BR1: mapping q -> p (P1's best response)
-        ctx.lineWidth = 2.5;
-        ctx.strokeStyle = '#8b5cf6';
-        if (qStar !== null && qStar >= 0 && qStar <= 1) {
-            // At q < qStar, check which row is better
-            const testQ = qStar - 0.01;
-            const eu0 = testQ * m.a[0][0] + (1 - testQ) * m.a[0][1];
-            const eu1 = testQ * m.a[1][0] + (1 - testQ) * m.a[1][1];
-            const lowP = eu0 > eu1 ? 1 : 0;
-            const highP = 1 - lowP;
-            // Left segment
-            ctx.beginPath();
-            ctx.moveTo(toX(0), toY(lowP));
-            ctx.lineTo(toX(qStar), toY(lowP));
-            ctx.stroke();
-            // Vertical at qStar
-            ctx.beginPath();
-            ctx.moveTo(toX(qStar), toY(0));
-            ctx.lineTo(toX(qStar), toY(1));
-            ctx.stroke();
-            // Right segment
-            ctx.beginPath();
-            ctx.moveTo(toX(qStar), toY(highP));
-            ctx.lineTo(toX(1), toY(highP));
-            ctx.stroke();
-        } else {
-            // No interior crossing, constant BR
-            const eu0 = 0.5 * m.a[0][0] + 0.5 * m.a[0][1];
-            const eu1 = 0.5 * m.a[1][0] + 0.5 * m.a[1][1];
-            const brP = eu0 >= eu1 ? 1 : 0;
-            ctx.beginPath();
-            ctx.moveTo(toX(0), toY(brP));
-            ctx.lineTo(toX(1), toY(brP));
-            ctx.stroke();
+        ctx.strokeStyle = CYAN;
+        ctx.lineWidth = 3;
+        if (brDrawFrac > 0) {
+            ctx.shadowColor = CYAN;
+            ctx.shadowBlur = 5;
+            if (pStar !== null && pStar >= 0 && pStar <= 1) {
+                const testP = pStar - 0.01;
+                const eu0 = testP * m.b[0][0] + (1 - testP) * m.b[1][0];
+                const eu1 = testP * m.b[0][1] + (1 - testP) * m.b[1][1];
+                const lowQ = eu0 > eu1 ? 1 : 0;
+                const highQ = 1 - lowQ;
+                ctx.beginPath(); ctx.moveTo(toX(lowQ), toY(0)); ctx.lineTo(toX(lowQ), toY(pStar * brDrawFrac)); ctx.stroke();
+                if (brDrawFrac > 0.5) {
+                    const f2 = (brDrawFrac - 0.5) * 2;
+                    ctx.beginPath(); ctx.moveTo(toX(0), toY(pStar)); ctx.lineTo(toX(f2), toY(pStar)); ctx.stroke();
+                }
+                if (brDrawFrac > 0.7) {
+                    const f3 = (brDrawFrac - 0.7) / 0.3;
+                    ctx.beginPath(); ctx.moveTo(toX(highQ), toY(pStar)); ctx.lineTo(toX(highQ), toY(lerp(pStar, 1, f3))); ctx.stroke();
+                }
+            } else {
+                const eu0 = 0.5 * m.b[0][0] + 0.5 * m.b[1][0];
+                const eu1 = 0.5 * m.b[0][1] + 0.5 * m.b[1][1];
+                const brQ = eu0 >= eu1 ? 1 : 0;
+                ctx.beginPath(); ctx.moveTo(toX(brQ), toY(0)); ctx.lineTo(toX(brQ), toY(brDrawFrac)); ctx.stroke();
+            }
         }
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
 
-        // Draw BR2: mapping p -> q (P2's best response), but plotted as q vs p
-        ctx.strokeStyle = '#22d3ee';
-        if (pStar !== null && pStar >= 0 && pStar <= 1) {
-            const testP = pStar - 0.01;
-            const eu0 = testP * m.b[0][0] + (1 - testP) * m.b[1][0];
-            const eu1 = testP * m.b[0][1] + (1 - testP) * m.b[1][1];
-            const lowQ = eu0 > eu1 ? 1 : 0;
-            const highQ = 1 - lowQ;
-            // Bottom segment
-            ctx.beginPath();
-            ctx.moveTo(toX(lowQ), toY(0));
-            ctx.lineTo(toX(lowQ), toY(pStar));
-            ctx.stroke();
-            // Horizontal at pStar
-            ctx.beginPath();
-            ctx.moveTo(toX(0), toY(pStar));
-            ctx.lineTo(toX(1), toY(pStar));
-            ctx.stroke();
-            // Top segment
-            ctx.beginPath();
-            ctx.moveTo(toX(highQ), toY(pStar));
-            ctx.lineTo(toX(highQ), toY(1));
-            ctx.stroke();
-        } else {
-            const eu0 = 0.5 * m.b[0][0] + 0.5 * m.b[1][0];
-            const eu1 = 0.5 * m.b[0][1] + 0.5 * m.b[1][1];
-            const brQ = eu0 >= eu1 ? 1 : 0;
-            ctx.beginPath();
-            ctx.moveTo(toX(brQ), toY(0));
-            ctx.lineTo(toX(brQ), toY(1));
-            ctx.stroke();
-        }
-
-        // Mark NE intersections
+        // NE dots with glow
         const pureNE = findPureNE(game);
         const mixedNE = findMixedNE(game);
         const nePoints = [];
-        pureNE.forEach(n => {
-            // n[0]=row, n[1]=col. p = 1 if row 0, 0 if row 1. q = 1 if col 0, 0 if col 1.
-            nePoints.push({ p: 1 - n[0], q: 1 - n[1] });
-        });
+        pureNE.forEach(n => { nePoints.push({ p: 1 - n[0], q: 1 - n[1] }); });
         if (mixedNE) nePoints.push({ p: mixedNE.p, q: mixedNE.q });
 
-        nePoints.forEach(ne => {
-            ctx.beginPath();
-            ctx.arc(toX(ne.q), toY(ne.p), 7, 0, Math.PI * 2);
-            ctx.fillStyle = '#f59e0b';
-            ctx.fill();
-            ctx.fillStyle = '#f59e0b';
-            ctx.font = '10px Courier New';
-            ctx.textAlign = 'left';
-            ctx.fillText('(' + ne.q.toFixed(2) + ', ' + ne.p.toFixed(2) + ')', toX(ne.q) + 10, toY(ne.p) + 4);
-        });
+        if (brDrawFrac > 0.8) {
+            const neFade = (brDrawFrac - 0.8) / 0.2;
+            ctx.globalAlpha = neFade;
+            nePoints.forEach(ne => {
+                const pulse = 0.5 + 0.5 * Math.sin(neGlowT * 3);
+                ctx.shadowColor = GOLD;
+                ctx.shadowBlur = 14 + 12 * pulse;
+                // Outer halo
+                ctx.beginPath();
+                ctx.arc(toX(ne.q), toY(ne.p), 16 + 4 * pulse, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(251,191,36,' + (0.05 + 0.07 * pulse) + ')';
+                ctx.fill();
+                // Inner dot
+                ctx.beginPath();
+                ctx.arc(toX(ne.q), toY(ne.p), 7 + 2 * pulse, 0, Math.PI * 2);
+                ctx.fillStyle = GOLD;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = GOLD;
+                ctx.font = '10px Courier New';
+                ctx.textAlign = 'left';
+                ctx.fillText('(' + ne.q.toFixed(2) + ', ' + ne.p.toFixed(2) + ')', toX(ne.q) + 12, toY(ne.p) + 4);
+            });
+            ctx.globalAlpha = 1;
+        }
 
-        // Draw iteration path
+        // Animated iteration path
         if (path.length > 1) {
-            ctx.strokeStyle = 'rgba(245,158,11,0.4)';
+            const drawCount = Math.min(path.length, Math.floor(pathAnimT * 4) + 1);
+            ctx.strokeStyle = 'rgba(251,191,36,0.5)';
             ctx.lineWidth = 1.5;
             ctx.setLineDash([3, 3]);
             ctx.beginPath();
             ctx.moveTo(toX(path[0].q), toY(path[0].p));
-            for (let i = 1; i < path.length; i++) {
+            for (let i = 1; i < drawCount; i++) {
                 ctx.lineTo(toX(path[i].q), toY(path[i].p));
             }
             ctx.stroke();
             ctx.setLineDash([]);
 
-            // Start and end dots
             ctx.beginPath();
             ctx.arc(toX(path[0].q), toY(path[0].p), 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#10b981';
+            ctx.fillStyle = GREEN;
             ctx.fill();
-            ctx.beginPath();
-            ctx.arc(toX(path[path.length - 1].q), toY(path[path.length - 1].p), 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#ef4444';
-            ctx.fill();
+            if (drawCount > 1) {
+                ctx.beginPath();
+                ctx.arc(toX(path[drawCount - 1].q), toY(path[drawCount - 1].p), 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#ef4444';
+                ctx.fill();
+            }
         }
 
         // Legend
         ctx.font = '11px Georgia';
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#8b5cf6';
+        ctx.fillStyle = ROSE;
         ctx.fillText('-- BR\u2081(q)', w - margin.r - 120, margin.t + 14);
-        ctx.fillStyle = '#22d3ee';
+        ctx.fillStyle = CYAN;
         ctx.fillText('-- BR\u2082(p)', w - margin.r - 120, margin.t + 30);
-        ctx.fillStyle = '#f59e0b';
+        ctx.fillStyle = GOLD;
         ctx.fillText('\u25cf NE', w - margin.r - 120, margin.t + 46);
     }
 
     function animateBR() {
-        if (animTimer) clearInterval(animTimer);
         path = [];
+        pathAnimT = 0;
         const game = GAMES[currentGame];
         let p = Math.random() * 0.8 + 0.1;
         let q = Math.random() * 0.8 + 0.1;
         path.push({ p, q });
-
-        let step = 0;
-        animTimer = setInterval(() => {
-            if (step > 30) { clearInterval(animTimer); animTimer = null; return; }
-            const m = getPayoffMatrix(game);
-            // P1 best response to q
-            const eu0p = q * m.a[0][0] + (1 - q) * m.a[0][1];
-            const eu1p = q * m.a[1][0] + (1 - q) * m.a[1][1];
-            let newP;
-            if (Math.abs(eu0p - eu1p) < 1e-9) newP = p;
-            else newP = eu0p > eu1p ? 1 : 0;
-            // Smooth towards best response
-            newP = p + 0.5 * (newP - p);
-            path.push({ p: newP, q });
-
-            // P2 best response to new p
-            const eu0q = newP * m.b[0][0] + (1 - newP) * m.b[1][0];
-            const eu1q = newP * m.b[0][1] + (1 - newP) * m.b[1][1];
-            let newQ;
-            if (Math.abs(eu0q - eu1q) < 1e-9) newQ = q;
-            else newQ = eu0q > eu1q ? 1 : 0;
-            newQ = q + 0.5 * (newQ - q);
-            path.push({ p: newP, q: newQ });
-
-            p = newP;
-            q = newQ;
-            step++;
-            draw();
-        }, 150);
+        animRunning = true;
+        animStep = 0;
+        animP = p;
+        animQ = q;
     }
+
+    function tick() {
+        if (!paused) {
+            brCurveDrawT += 0.018;
+            neGlowT += 0.016;
+            pathAnimT += 0.05;
+
+            // Iterative BR animation step
+            if (animRunning && pathAnimT > 0.3) {
+                if (animStep > 30) { animRunning = false; }
+                else {
+                    const game = GAMES[currentGame];
+                    const m2 = getPayoffMatrix(game);
+                    const eu0p = animQ * m2.a[0][0] + (1 - animQ) * m2.a[0][1];
+                    const eu1p = animQ * m2.a[1][0] + (1 - animQ) * m2.a[1][1];
+                    let newP;
+                    if (Math.abs(eu0p - eu1p) < 1e-9) newP = animP;
+                    else newP = eu0p > eu1p ? 1 : 0;
+                    newP = animP + 0.5 * (newP - animP);
+                    path.push({ p: newP, q: animQ });
+
+                    const eu0q = newP * m2.b[0][0] + (1 - newP) * m2.b[1][0];
+                    const eu1q = newP * m2.b[0][1] + (1 - newP) * m2.b[1][1];
+                    let newQ;
+                    if (Math.abs(eu0q - eu1q) < 1e-9) newQ = animQ;
+                    else newQ = eu0q > eu1q ? 1 : 0;
+                    newQ = animQ + 0.5 * (newQ - animQ);
+                    path.push({ p: newP, q: newQ });
+
+                    animP = newP;
+                    animQ = newQ;
+                    animStep++;
+                    pathAnimT = 0;
+                }
+            }
+        }
+        draw();
+        requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
 
     document.querySelectorAll('#brPresets .btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1140,29 +1440,31 @@ function findMixedNE(game) {
             btn.classList.add('active');
             currentGame = btn.dataset.game;
             path = [];
-            if (animTimer) { clearInterval(animTimer); animTimer = null; }
-            draw();
+            pathAnimT = 0;
+            brCurveDrawT = 0;
+            animRunning = false;
         });
     });
     document.getElementById('brAnimate').addEventListener('click', animateBR);
     document.getElementById('brClear').addEventListener('click', () => {
         path = [];
-        if (animTimer) { clearInterval(animTimer); animTimer = null; }
-        draw();
+        pathAnimT = 0;
+        animRunning = false;
     });
 
-    draw();
-    window.addEventListener('resize', () => { ({ ctx, w, h } = setupCanvas(canvas)); draw(); });
+    window.addEventListener('resize', () => { ({ ctx, w, h } = setupCanvas(canvas)); });
 })();
 
 // ═══════════════════════════════════════════════════════════════
-// SECTION 5: PARETO EFFICIENCY
+// SECTION 5: PARETO EFFICIENCY — animated points + frontier
 // ═══════════════════════════════════════════════════════════════
 (function() {
     const canvas = document.getElementById('cvPareto');
     let { ctx, w, h } = setupCanvas(canvas);
     let currentGame = 'pd';
-    let dragIdx = -1;
+    let paused = false, entryT = 0, neGlowT = 0;
+    const pauseBtn = document.getElementById('paretoPause');
+    pauseBtn.addEventListener('click', () => { paused = !paused; pauseBtn.textContent = paused ? 'Play' : 'Pause'; });
 
     function draw() {
         ctx.clearRect(0, 0, w, h);
@@ -1170,7 +1472,6 @@ function findMixedNE(game) {
         const ne = findPureNE(game);
         const mixedNE = findMixedNE(game);
 
-        // Collect all outcome points
         const points = game.payoffs.map((p, i) => ({
             x: p[0], y: p[1],
             label: game.labels[0][Math.floor(i / 2)] + ', ' + game.labels[1][i % 2],
@@ -1178,7 +1479,6 @@ function findMixedNE(game) {
             idx: i
         }));
 
-        // Add mixed NE expected payoff
         if (mixedNE) {
             const m = getPayoffMatrix(game);
             const ep1 = mixedNE.p * mixedNE.q * m.a[0][0] + mixedNE.p * (1 - mixedNE.q) * m.a[0][1]
@@ -1188,49 +1488,38 @@ function findMixedNE(game) {
             points.push({ x: ep1, y: ep2, label: 'Mixed NE', isNE: true, idx: -1, isMixed: true });
         }
 
-        // Calculate bounds
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        let minX = Infinity, maxX = -Infinity, minY2 = Infinity, maxY2 = -Infinity;
         points.forEach(p => {
-            minX = Math.min(minX, p.x);
-            maxX = Math.max(maxX, p.x);
-            minY = Math.min(minY, p.y);
-            maxY = Math.max(maxY, p.y);
+            minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+            minY2 = Math.min(minY2, p.y); maxY2 = Math.max(maxY2, p.y);
         });
         const padX = (maxX - minX) * 0.3 || 1;
-        const padY = (maxY - minY) * 0.3 || 1;
+        const padY = (maxY2 - minY2) * 0.3 || 1;
         minX -= padX; maxX += padX;
-        minY -= padY; maxY += padY;
+        minY2 -= padY; maxY2 += padY;
 
         const margin = { l: 60, r: 40, t: 30, b: 50 };
         const pw = w - margin.l - margin.r;
         const ph = h - margin.t - margin.b;
 
         function toSX(v) { return margin.l + ((v - minX) / (maxX - minX)) * pw; }
-        function toSY(v) { return h - margin.b - ((v - minY) / (maxY - minY)) * ph; }
+        function toSY(v) { return h - margin.b - ((v - minY2) / (maxY2 - minY2)) * ph; }
 
         // Grid
         ctx.strokeStyle = 'rgba(255,255,255,0.04)';
         ctx.lineWidth = 1;
         for (let i = 0; i <= 4; i++) {
             const vx = minX + (maxX - minX) * i / 4;
-            const vy = minY + (maxY - minY) * i / 4;
-            ctx.beginPath();
-            ctx.moveTo(toSX(vx), margin.t);
-            ctx.lineTo(toSX(vx), h - margin.b);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(margin.l, toSY(vy));
-            ctx.lineTo(w - margin.r, toSY(vy));
-            ctx.stroke();
+            const vy = minY2 + (maxY2 - minY2) * i / 4;
+            ctx.beginPath(); ctx.moveTo(toSX(vx), margin.t); ctx.lineTo(toSX(vx), h - margin.b); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(margin.l, toSY(vy)); ctx.lineTo(w - margin.r, toSY(vy)); ctx.stroke();
         }
 
         // Axes
         ctx.strokeStyle = 'rgba(255,255,255,0.12)';
         ctx.beginPath();
-        ctx.moveTo(margin.l, h - margin.b);
-        ctx.lineTo(w - margin.r, h - margin.b);
-        ctx.moveTo(margin.l, h - margin.b);
-        ctx.lineTo(margin.l, margin.t);
+        ctx.moveTo(margin.l, h - margin.b); ctx.lineTo(w - margin.r, h - margin.b);
+        ctx.moveTo(margin.l, h - margin.b); ctx.lineTo(margin.l, margin.t);
         ctx.stroke();
 
         ctx.fillStyle = '#606078';
@@ -1243,75 +1532,106 @@ function findMixedNE(game) {
         ctx.fillText('Player 2 payoff', 0, 0);
         ctx.restore();
 
-        // Pareto frontier: find non-dominated points
+        // Pareto frontier
         const purePoints = points.filter(p => !p.isMixed);
         const paretoPoints = purePoints.filter(p => {
             return !purePoints.some(q => q !== p && q.x >= p.x && q.y >= p.y && (q.x > p.x || q.y > p.y));
         });
-
-        // Sort Pareto points by x for drawing frontier line
         paretoPoints.sort((a, b) => a.x - b.x);
 
-        // Draw Pareto frontier
-        if (paretoPoints.length > 1) {
-            ctx.strokeStyle = '#10b981';
-            ctx.lineWidth = 2.5;
+        const frontierT = easeOutCubic(Math.max(0, Math.min(1, entryT - 0.6)));
+
+        // Draw Pareto frontier line (animated)
+        if (paretoPoints.length > 1 && frontierT > 0) {
+            ctx.globalAlpha = frontierT;
+            ctx.save();
+            ctx.shadowColor = GREEN;
+            ctx.shadowBlur = 6;
+            ctx.strokeStyle = GREEN;
+            ctx.lineWidth = 3;
             ctx.setLineDash([6, 4]);
             ctx.beginPath();
             ctx.moveTo(toSX(paretoPoints[0].x), toSY(paretoPoints[0].y));
             for (let i = 1; i < paretoPoints.length; i++) {
-                ctx.lineTo(toSX(paretoPoints[i].x), toSY(paretoPoints[i].y));
+                const frac = Math.min(1, frontierT * paretoPoints.length / i);
+                const tx = lerp(toSX(paretoPoints[i-1].x), toSX(paretoPoints[i].x), frac);
+                const ty = lerp(toSY(paretoPoints[i-1].y), toSY(paretoPoints[i].y), frac);
+                ctx.lineTo(tx, ty);
             }
             ctx.stroke();
             ctx.setLineDash([]);
+            ctx.restore();
+            ctx.globalAlpha = 1;
         }
 
         // Shade dominated region
-        if (paretoPoints.length > 0) {
-            ctx.fillStyle = 'rgba(16,185,129,0.04)';
+        if (paretoPoints.length > 0 && frontierT > 0.5) {
+            ctx.fillStyle = 'rgba(16,185,129,' + (0.04 * frontierT) + ')';
             ctx.beginPath();
             ctx.moveTo(toSX(paretoPoints[0].x), toSY(paretoPoints[0].y));
             for (let i = 1; i < paretoPoints.length; i++) {
                 ctx.lineTo(toSX(paretoPoints[i].x), toSY(paretoPoints[i].y));
             }
-            ctx.lineTo(toSX(paretoPoints[paretoPoints.length - 1].x), toSY(maxY));
-            ctx.lineTo(toSX(maxX), toSY(maxY));
+            ctx.lineTo(toSX(paretoPoints[paretoPoints.length - 1].x), toSY(maxY2));
+            ctx.lineTo(toSX(maxX), toSY(maxY2));
             ctx.lineTo(toSX(maxX), toSY(paretoPoints[paretoPoints.length - 1].y));
             ctx.closePath();
             ctx.fill();
         }
 
-        // Draw points
+        // Animated points appearance
         points.forEach((p, i) => {
+            const delay = i * 0.12;
+            const pT = easeOutCubic(Math.max(0, Math.min(1, entryT - delay)));
+            if (pT <= 0) return;
+            ctx.globalAlpha = pT;
+
             const sx = toSX(p.x);
             const sy = toSY(p.y);
             const isPareto = paretoPoints.includes(p);
             const r = p.isNE ? 9 : 7;
+            const scale = 0.5 + 0.5 * pT;
 
-            // Glow for NE
+            ctx.save();
+            ctx.translate(sx, sy);
+            ctx.scale(scale, scale);
+
+            // Glow for NE — vibrant double halo
             if (p.isNE) {
+                const pulse = 0.5 + 0.5 * Math.sin(neGlowT * 3);
+                ctx.shadowColor = GOLD;
+                ctx.shadowBlur = 16 + 14 * pulse;
+                // Outer halo
                 ctx.beginPath();
-                ctx.arc(sx, sy, 16, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(245,158,11,0.08)';
+                ctx.arc(0, 0, 22 + 4 * pulse, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(251,191,36,' + (0.04 + 0.05 * pulse) + ')';
+                ctx.fill();
+                // Inner halo
+                ctx.beginPath();
+                ctx.arc(0, 0, 16, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(251,191,36,' + (0.08 + 0.10 * pulse) + ')';
                 ctx.fill();
             }
 
             ctx.beginPath();
-            ctx.arc(sx, sy, r, 0, Math.PI * 2);
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
             if (p.isNE) {
-                ctx.fillStyle = '#f59e0b';
+                ctx.fillStyle = GOLD;
             } else if (isPareto) {
-                ctx.fillStyle = '#10b981';
+                ctx.fillStyle = GREEN;
             } else {
-                ctx.fillStyle = '#8b5cf6';
+                ctx.fillStyle = VIOLET;
             }
             ctx.fill();
+            ctx.shadowBlur = 0;
 
             if (isPareto && !p.isNE) {
-                ctx.strokeStyle = '#10b981';
+                ctx.strokeStyle = GREEN;
                 ctx.lineWidth = 2;
                 ctx.stroke();
             }
+
+            ctx.restore();
 
             // Label
             ctx.fillStyle = '#c0c0d8';
@@ -1323,49 +1643,58 @@ function findMixedNE(game) {
             ctx.fillText('(' + p.x.toFixed(1) + ', ' + p.y.toFixed(1) + ')', sx, sy + r + 14);
 
             if (p.isNE) {
-                ctx.fillStyle = '#f59e0b';
+                ctx.fillStyle = GOLD;
                 ctx.font = '9px Georgia';
                 ctx.fillText('NE', sx + r + 8, sy + 3);
             }
+            ctx.globalAlpha = 1;
         });
 
-        // Dominance arrows between points
-        ctx.strokeStyle = 'rgba(139,92,246,0.15)';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < purePoints.length; i++) {
-            for (let j = 0; j < purePoints.length; j++) {
-                if (i === j) continue;
-                const a = purePoints[i], b = purePoints[j];
-                if (b.x >= a.x && b.y >= a.y && (b.x > a.x || b.y > a.y)) {
-                    // b dominates a, draw arrow from a to b
-                    const ax = toSX(a.x), ay = toSY(a.y);
-                    const bx = toSX(b.x), by = toSY(b.y);
-                    const dx = bx - ax, dy = by - ay;
-                    const len = Math.sqrt(dx * dx + dy * dy);
-                    if (len < 20) continue;
-                    const ux = dx / len, uy = dy / len;
-                    ctx.setLineDash([3, 3]);
-                    ctx.beginPath();
-                    ctx.moveTo(ax + ux * 14, ay + uy * 14);
-                    ctx.lineTo(bx - ux * 14, by - uy * 14);
-                    ctx.stroke();
-                    // Arrow head
-                    ctx.setLineDash([]);
-                    const hx = bx - ux * 14, hy = by - uy * 14;
-                    ctx.beginPath();
-                    ctx.moveTo(hx, hy);
-                    ctx.lineTo(hx - ux * 6 + uy * 3, hy - uy * 6 - ux * 3);
-                    ctx.lineTo(hx - ux * 6 - uy * 3, hy - uy * 6 + ux * 3);
-                    ctx.closePath();
-                    ctx.fillStyle = 'rgba(139,92,246,0.2)';
-                    ctx.fill();
+        // Dominance arrows
+        const arrowFade = Math.max(0, Math.min(1, entryT - 0.8));
+        if (arrowFade > 0) {
+            ctx.globalAlpha = arrowFade * 0.6;
+            ctx.strokeStyle = 'rgba(139,92,246,0.2)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < purePoints.length; i++) {
+                for (let j = 0; j < purePoints.length; j++) {
+                    if (i === j) continue;
+                    const a = purePoints[i], b = purePoints[j];
+                    if (b.x >= a.x && b.y >= a.y && (b.x > a.x || b.y > a.y)) {
+                        const ax = toSX(a.x), ay = toSY(a.y);
+                        const bx = toSX(b.x), by = toSY(b.y);
+                        const dx = bx - ax, dy = by - ay;
+                        const len = Math.sqrt(dx * dx + dy * dy);
+                        if (len < 20) continue;
+                        const ux = dx / len, uy = dy / len;
+                        const aDrawT = easeOutCubic(Math.min(1, arrowFade));
+                        const endX = lerp(ax + ux * 14, bx - ux * 14, aDrawT);
+                        const endY = lerp(ay + uy * 14, by - uy * 14, aDrawT);
+                        ctx.setLineDash([3, 3]);
+                        ctx.beginPath();
+                        ctx.moveTo(ax + ux * 14, ay + uy * 14);
+                        ctx.lineTo(endX, endY);
+                        ctx.stroke();
+                        if (aDrawT > 0.9) {
+                            ctx.setLineDash([]);
+                            ctx.beginPath();
+                            ctx.moveTo(endX, endY);
+                            ctx.lineTo(endX - ux * 6 + uy * 3, endY - uy * 6 - ux * 3);
+                            ctx.lineTo(endX - ux * 6 - uy * 3, endY - uy * 6 + ux * 3);
+                            ctx.closePath();
+                            ctx.fillStyle = 'rgba(139,92,246,0.25)';
+                            ctx.fill();
+                        }
+                    }
                 }
             }
+            ctx.setLineDash([]);
+            ctx.globalAlpha = 1;
         }
 
         // Pareto frontier label
-        if (paretoPoints.length > 0) {
-            ctx.fillStyle = '#10b981';
+        if (paretoPoints.length > 0 && frontierT > 0.3) {
+            ctx.fillStyle = GREEN;
             ctx.font = '11px Georgia';
             ctx.textAlign = 'left';
             ctx.fillText('Pareto frontier', w - margin.r - 110, margin.t + 16);
@@ -1386,17 +1715,26 @@ function findMixedNE(game) {
         explainEl.innerHTML = html;
     }
 
+    function tick() {
+        if (!paused) {
+            entryT += 0.018;
+            neGlowT += 0.016;
+        }
+        draw();
+        requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
     document.querySelectorAll('#paretoPresets .btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('#paretoPresets .btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentGame = btn.dataset.game;
-            draw();
+            entryT = 0;
         });
     });
 
-    draw();
-    window.addEventListener('resize', () => { ({ ctx, w, h } = setupCanvas(canvas)); draw(); });
+    window.addEventListener('resize', () => { ({ ctx, w, h } = setupCanvas(canvas)); });
 })();
 </script><script src="js/mathematician-cards.js" defer></script>
 </body>

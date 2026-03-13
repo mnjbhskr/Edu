@@ -78,6 +78,24 @@
         .const-card .desc{color:#606078;font-size:0.7em;margin-top:2px}
         .const-card.hidden{display:none}
 
+        .anim-row{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0;align-items:center}
+        .anim-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);
+            color:#b0b0c4;padding:7px 18px;border-radius:6px;cursor:pointer;
+            font-family:Georgia,serif;font-size:0.95em;transition:all 0.2s}
+        .anim-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .anim-btn.running{background:rgba(168,85,247,0.13);border-color:rgba(168,85,247,0.4);
+            color:#a855f7;box-shadow:0 0 8px rgba(168,85,247,0.15)}
+        .pause-btn{background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);
+            color:#fbbf24;padding:7px 18px;border-radius:6px;cursor:pointer;
+            font-family:Georgia,serif;font-size:0.95em;transition:all 0.2s}
+        .pause-btn:hover{background:rgba(251,191,36,0.15)}
+        .op-select{background:#111122;border:1px solid rgba(255,255,255,0.1);color:#b0b0c4;
+            padding:7px 12px;border-radius:6px;font-family:Georgia,serif;font-size:0.9em;
+            cursor:pointer;appearance:none;-webkit-appearance:none}
+        .op-input{background:#111122;border:1px solid rgba(255,255,255,0.1);color:#e0e0ef;
+            padding:7px 12px;border-radius:6px;font-family:Georgia,serif;font-size:0.9em;
+            width:80px;text-align:center}
+
         .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);
             border-radius:10px;padding:20px 24px;margin-bottom:18px}
         .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;
@@ -97,6 +115,9 @@
             .container{padding:16px 12px}
             .cards-row{gap:6px}
             .const-card{min-width:72px;padding:8px 10px}
+            .anim-row{gap:6px}
+            .anim-btn,.pause-btn{padding:6px 12px;font-size:0.85em}
+            .op-input{width:60px}
         }
     </style>
 <link rel="canonical" href="https://mathsedu.org/number_line.html">
@@ -114,6 +135,20 @@
     <canvas id="cv" width="904" height="400"></canvas>
 
     <div class="toggle-row" id="toggles"></div>
+
+    <div class="anim-row" id="animControls">
+        <button class="anim-btn" id="btnAutoAnimate">&#9654; Auto Tour</button>
+        <button class="anim-btn" id="btnDensity">Density Zoom</button>
+        <button class="anim-btn" id="btnOperation">Operation Journey</button>
+        <select class="op-select" id="opSelect">
+            <option value="add">Add</option>
+            <option value="sub">Subtract</option>
+        </select>
+        <input class="op-input" id="opStart" type="number" value="2" step="0.5" placeholder="Start">
+        <input class="op-input" id="opValue" type="number" value="3" step="0.5" placeholder="Amount">
+        <button class="pause-btn" id="btnPause">&#10074;&#10074; Pause</button>
+    </div>
+
     <div class="cards-row" id="cards"></div>
 
     <div class="panel" id="propsPanel">
@@ -131,18 +166,38 @@
 </div>
 
 <script>
-/* ---- Setup ---- */
+/* ---- HiDPI Setup ---- */
 const cvs = document.getElementById("cv");
 const ctx = cvs.getContext("2d");
-const W = cvs.width, H = cvs.height;
+const dpr = window.devicePixelRatio || 1;
+const cssW = 904, cssH = 400;
+cvs.width = cssW * dpr;
+cvs.height = cssH * dpr;
+cvs.style.width = cssW + "px";
+cvs.style.height = "auto";
+ctx.scale(dpr, dpr);
+const W = cssW, H = cssH;
+
+/* ---- Vibrant Colours ---- */
+const GOLD   = "#fbbf24";
+const CYAN   = "#22d3ee";
+const ROSE   = "#fb7185";
+const VIOLET = "#a855f7";
 
 /* ---- State ---- */
-let cx = 0, cy = 0;            /* canvas-space offset (pan) */
-let zoom = 40;                  /* pixels per unit */
+let cx = 0, cy = 0;
+let zoom = 40;
 let dragging = false, dragX = 0, dragY = 0, dragCX = 0, dragCY = 0;
+let paused = false;
+let globalTime = 0;
 
 const families = { N: true, Z: false, Q: false, R: false, C: false };
-const COL = { N: "#2ecc71", Z: "#3b82f6", Q: "#f97316", R: "#fbbf24", C: "#c084fc" };
+const COL = { N: "#2ecc71", Z: "#3b82f6", Q: "#f97316", R: GOLD, C: "#c084fc" };
+
+/* ---- Animation State ---- */
+let autoAnim = null;      /* { phase, t, ... } */
+let densityAnim = null;   /* { t, centreA, centreB, targetZoom } */
+let opAnim = null;        /* { start, end, t, trail } */
 
 /* ---- Data ---- */
 const SPECIALS = [
@@ -187,18 +242,18 @@ function s2w(sx, sy) { return [(sx - W/2 - cx)/zoom, -(sy - H/2 - cy)/zoom]; }
 
 /* ---- Utilities ---- */
 function gcd(a, b) { while (b) { [a, b] = [b, a % b]; } return a; }
-
 function tooClose(arr, v, minDist) {
     for (const x of arr) if (Math.abs(x - v) < minDist) return true;
     return false;
 }
-
 function niceStep(ppu) {
     const steps = [0.001,0.002,0.005, 0.01,0.02,0.05, 0.1,0.2,0.5,
                    1,2,5, 10,20,50, 100,200,500, 1000];
     for (const s of steps) if (s * ppu >= 60) return s;
     return 1000;
 }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function easeInOut(t) { return t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2; }
 
 function drawStar(x, y, r, pts) {
     ctx.beginPath();
@@ -209,6 +264,21 @@ function drawStar(x, y, r, pts) {
         i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
     }
     ctx.closePath(); ctx.fill();
+}
+
+function drawGlow(x, y, radius, colour, intensity) {
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    grad.addColorStop(0, colour.replace(")", "," + intensity + ")").replace("rgb","rgba"));
+    grad.addColorStop(1, "transparent");
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI*2); ctx.fill();
+}
+
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return "rgba("+r+","+g+","+b+","+alpha+")";
 }
 
 /* ============================================================
@@ -266,7 +336,7 @@ function drawNumberLine() {
                 if (tooClose(usedX, sx, 12)) continue;
                 usedX.push(sx);
                 const r = Math.max(1.5, 4 - d * 0.12);
-                ctx.fillStyle = COL.Q;
+                ctx.fillStyle = CYAN;
                 ctx.globalAlpha = Math.max(0.25, 1 - d / maxDen * 0.7);
                 ctx.beginPath(); ctx.arc(sx, axY, r, 0, Math.PI * 2); ctx.fill();
                 if (d <= 6 && zoom > 18) {
@@ -281,7 +351,7 @@ function drawNumberLine() {
     /* ---- Integers (negative only if N also on) ---- */
     if (families.Z) {
         for (let v = Math.floor(wl); v <= Math.ceil(wr); v++) {
-            if (v >= 0 && families.N) continue;           /* naturals draw these */
+            if (v >= 0 && families.N) continue;
             const [sx] = w2s(v, 0);
             if (sx < 0 || sx > W) continue;
             ctx.fillStyle = COL.Z;
@@ -298,12 +368,24 @@ function drawNumberLine() {
         for (let v = Math.max(0, Math.floor(wl)); v <= Math.ceil(wr); v++) {
             const [sx] = w2s(v, 0);
             if (sx < 0 || sx > W) continue;
-            ctx.fillStyle = COL.N;
-            ctx.beginPath(); ctx.arc(sx, axY, 4.5, 0, Math.PI * 2); ctx.fill();
-            if (zoom > 15) {
-                ctx.font = "10px Georgia"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
-                ctx.fillStyle = COL.N; ctx.fillText(String(v), sx, axY - 8);
+
+            /* Auto-animate: pop-in effect */
+            let scale = 1, alpha = 1;
+            if (autoAnim && autoAnim.phase === 0) {
+                const revealIdx = v;
+                const revealT = (autoAnim.t * 12) - revealIdx;
+                if (revealT < 0) { scale = 0; alpha = 0; }
+                else if (revealT < 1) { scale = easeInOut(revealT); alpha = revealT; }
             }
+
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = GOLD;
+            ctx.beginPath(); ctx.arc(sx, axY, 4.5 * scale, 0, Math.PI * 2); ctx.fill();
+            if (zoom > 15 && scale > 0.5) {
+                ctx.font = "10px Georgia"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+                ctx.fillStyle = GOLD; ctx.fillText(String(v), sx, axY - 8);
+            }
+            ctx.globalAlpha = 1;
         }
     }
 
@@ -316,17 +398,101 @@ function drawNumberLine() {
             { v: (1+Math.sqrt(5))/2, l: "\u03C6" }
         ];
         const usedLabels = [];
-        irr.forEach(s => {
+        irr.forEach((s, idx) => {
             const [sx] = w2s(s.v, 0);
             if (sx < 5 || sx > W - 5) return;
             if (tooClose(usedLabels, sx, 70)) return;
             usedLabels.push(sx);
-            ctx.fillStyle = COL.R;
+
+            /* Pulsing glow for irrationals */
+            const pulse = 0.6 + 0.4 * Math.sin(globalTime * 2 + idx * 1.5);
+            ctx.save();
+            const glowGrad = ctx.createRadialGradient(sx, axY, 0, sx, axY, 18);
+            glowGrad.addColorStop(0, hexToRgba(ROSE, 0.3 * pulse));
+            glowGrad.addColorStop(1, "transparent");
+            ctx.fillStyle = glowGrad;
+            ctx.beginPath(); ctx.arc(sx, axY, 18, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+
+            ctx.fillStyle = ROSE;
             drawStar(sx, axY, 7, 5);
             ctx.font = "12px Georgia"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
-            ctx.fillStyle = COL.R;
+            ctx.fillStyle = ROSE;
             ctx.fillText(s.l + " \u2248 " + s.v.toFixed(5), sx, axY - 12);
         });
+    }
+
+    /* ---- Operation journey dot ---- */
+    if (opAnim) {
+        const pos = lerp(opAnim.start, opAnim.end, easeInOut(opAnim.t));
+        const [sx] = w2s(pos, 0);
+
+        /* Draw trail */
+        ctx.strokeStyle = hexToRgba(VIOLET, 0.5);
+        ctx.lineWidth = 3;
+        ctx.setLineDash([4, 4]);
+        const [startSx] = w2s(opAnim.start, 0);
+        const [endSx] = w2s(lerp(opAnim.start, opAnim.end, easeInOut(opAnim.t)), 0);
+        ctx.beginPath(); ctx.moveTo(startSx, axY - 20); ctx.lineTo(endSx, axY - 20); ctx.stroke();
+        ctx.setLineDash([]);
+
+        /* Arc hops */
+        const numHops = Math.max(1, Math.round(Math.abs(opAnim.end - opAnim.start)));
+        const hopW = (opAnim.end - opAnim.start) / numHops;
+        for (let h = 0; h < numHops; h++) {
+            const hopStart = opAnim.start + h * hopW;
+            const hopEnd = hopStart + hopW;
+            const hopProgress = (opAnim.t * numHops) - h;
+            if (hopProgress < 0 || hopProgress > 1) continue;
+            const [hsx] = w2s(hopStart, 0);
+            const [hex2] = w2s(hopEnd, 0);
+            const midX = (hsx + hex2) / 2;
+            const arcHeight = 25;
+            ctx.strokeStyle = hexToRgba(VIOLET, 0.3);
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(hsx, axY - 20);
+            ctx.quadraticCurveTo(midX, axY - 20 - arcHeight, hex2, axY - 20);
+            ctx.stroke();
+        }
+
+        /* Glowing dot */
+        const glowGrad = ctx.createRadialGradient(sx, axY - 20, 0, sx, axY - 20, 20);
+        glowGrad.addColorStop(0, hexToRgba(VIOLET, 0.6));
+        glowGrad.addColorStop(1, "transparent");
+        ctx.fillStyle = glowGrad;
+        ctx.beginPath(); ctx.arc(sx, axY - 20, 20, 0, Math.PI*2); ctx.fill();
+
+        ctx.fillStyle = VIOLET;
+        ctx.beginPath(); ctx.arc(sx, axY - 20, 6, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(sx, axY - 20, 6, 0, Math.PI*2); ctx.stroke();
+
+        /* Labels */
+        ctx.font = "11px Georgia"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+        ctx.fillStyle = VIOLET;
+        const opSymbol = opAnim.end > opAnim.start ? "+" : "\u2212";
+        const amount = Math.abs(opAnim.end - opAnim.start);
+        ctx.fillText(opAnim.start + " " + opSymbol + " " + amount + " = " + opAnim.end, sx, axY - 32);
+    }
+
+    /* ---- Density animation overlay ---- */
+    if (densityAnim) {
+        const [sa] = w2s(densityAnim.centreA, 0);
+        const [sb] = w2s(densityAnim.centreB, 0);
+        ctx.strokeStyle = hexToRgba(CYAN, 0.4 + 0.3 * Math.sin(globalTime * 3));
+        ctx.lineWidth = 2;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(sa, axY - 30); ctx.lineTo(sa, axY + 30); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sb, axY - 30); ctx.lineTo(sb, axY + 30); ctx.stroke();
+        ctx.setLineDash([]);
+
+        /* Label */
+        ctx.font = "11px Georgia"; ctx.fillStyle = CYAN;
+        ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+        const mid = (densityAnim.centreA + densityAnim.centreB) / 2;
+        const [smid] = w2s(mid, 0);
+        ctx.fillText("Always another rational between these two", smid, axY - 35);
     }
 
     /* Zoom indicator */
@@ -337,6 +503,13 @@ function drawNumberLine() {
     /* Hint */
     ctx.textAlign = "left";
     ctx.fillText("Scroll to zoom \u00B7 Drag to pan", 12, 12);
+
+    /* Paused indicator */
+    if (paused) {
+        ctx.font = "14px Georgia"; ctx.fillStyle = GOLD;
+        ctx.textAlign = "center"; ctx.textBaseline = "top";
+        ctx.fillText("\u275A\u275A Paused", W/2, 12);
+    }
 }
 
 /* ============================================================
@@ -399,7 +572,6 @@ function drawComplexPlane() {
     ctx.setLineDash([5, 5]);
     ctx.beginPath(); ctx.arc(ox, oy, zoom, 0, Math.PI * 2); ctx.stroke();
     ctx.setLineDash([]);
-    /* Label the unit circle */
     const ucLabelAngle = Math.PI / 6;
     const ucx = ox + zoom * Math.cos(ucLabelAngle);
     const ucy = oy - zoom * Math.sin(ucLabelAngle);
@@ -413,10 +585,8 @@ function drawComplexPlane() {
         if (sx < -20 || sx > W + 20 || sy < -20 || sy > H + 20) return;
         ctx.fillStyle = COL.C;
         ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI * 2); ctx.fill();
-        /* White ring */
         ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(sx, sy, 5, 0, Math.PI * 2); ctx.stroke();
-        /* Label */
         ctx.font = "12px Georgia"; ctx.fillStyle = COL.C;
         ctx.textAlign = "left"; ctx.textBaseline = "bottom";
         ctx.fillText(p.label, sx + 8, sy - 4);
@@ -428,6 +598,151 @@ function drawComplexPlane() {
     ctx.fillText("Zoom: " + zoom.toFixed(zoom < 10 ? 1 : 0) + "x  [\u2102 plane]", W - 12, 12);
     ctx.textAlign = "left";
     ctx.fillText("Scroll to zoom \u00B7 Drag to pan", 12, 12);
+
+    if (paused) {
+        ctx.font = "14px Georgia"; ctx.fillStyle = GOLD;
+        ctx.textAlign = "center"; ctx.textBaseline = "top";
+        ctx.fillText("\u275A\u275A Paused", W/2, 12);
+    }
+}
+
+/* ============================================================
+   ANIMATED SEQUENCES
+   ============================================================ */
+
+/* Auto Tour: integers appear → zoom to rationals → zoom to irrationals */
+function startAutoAnimate() {
+    stopAllAnims();
+    families.N = true; families.Z = false; families.Q = false; families.R = false; families.C = false;
+    renderToggles(); renderCards(); renderProps();
+    cx = 0; cy = 0; zoom = 40;
+    autoAnim = { phase: 0, t: 0 };
+    document.getElementById("btnAutoAnimate").classList.add("running");
+}
+
+function updateAutoAnim(dt) {
+    if (!autoAnim) return;
+    autoAnim.t += dt;
+
+    switch (autoAnim.phase) {
+        case 0: /* Naturals appearing one by one */
+            if (autoAnim.t > 2.0) {
+                autoAnim.phase = 1; autoAnim.t = 0;
+                families.Z = true; renderToggles(); renderProps();
+            }
+            break;
+        case 1: /* Show integers, pan left */
+            cx = lerp(0, 120, easeInOut(Math.min(1, autoAnim.t / 1.5)));
+            if (autoAnim.t > 2.0) {
+                autoAnim.phase = 2; autoAnim.t = 0;
+                families.Q = true; renderToggles(); renderProps();
+            }
+            break;
+        case 2: /* Zoom into rationals */
+            zoom = lerp(40, 140, easeInOut(Math.min(1, autoAnim.t / 2.5)));
+            cx = lerp(120, -W/2 + W/2 - 1.5*zoom, easeInOut(Math.min(1, autoAnim.t / 2.5)));
+            if (autoAnim.t > 3.0) {
+                autoAnim.phase = 3; autoAnim.t = 0;
+                families.R = true; renderToggles(); renderProps();
+            }
+            break;
+        case 3: /* Zoom to irrationals */
+            {
+                const targetZoom = 200;
+                const targetCx = W/2 - (W/2 + Math.PI * targetZoom);
+                zoom = lerp(140, targetZoom, easeInOut(Math.min(1, autoAnim.t / 2.5)));
+                cx = lerp(-W/2 + W/2 - 1.5*140, targetCx, easeInOut(Math.min(1, autoAnim.t / 2.5)));
+            }
+            if (autoAnim.t > 3.5) {
+                autoAnim = null;
+                document.getElementById("btnAutoAnimate").classList.remove("running");
+            }
+            break;
+    }
+}
+
+/* Density zoom: pick two rationals and keep zooming in */
+function startDensityZoom() {
+    stopAllAnims();
+    families.Q = true; families.N = true; renderToggles(); renderProps();
+    densityAnim = { t: 0, centreA: 0.3, centreB: 0.7, startZoom: zoom, iteration: 0 };
+    document.getElementById("btnDensity").classList.add("running");
+}
+
+function updateDensityAnim(dt) {
+    if (!densityAnim) return;
+    densityAnim.t += dt;
+
+    const phaseDuration = 2.5;
+    const phaseT = (densityAnim.t % phaseDuration) / phaseDuration;
+    const eased = easeInOut(phaseT);
+
+    /* Each iteration: zoom in on the midpoint, then pick new pair */
+    if (densityAnim.t > phaseDuration) {
+        densityAnim.t -= phaseDuration;
+        densityAnim.iteration++;
+        const mid = (densityAnim.centreA + densityAnim.centreB) / 2;
+        const span = (densityAnim.centreB - densityAnim.centreA) / 3;
+        densityAnim.centreA = mid - span;
+        densityAnim.centreB = mid + span;
+        densityAnim.startZoom = zoom;
+        if (densityAnim.iteration > 8) {
+            densityAnim = null;
+            document.getElementById("btnDensity").classList.remove("running");
+            return;
+        }
+    }
+
+    const targetZoom = densityAnim.startZoom * 2.2;
+    zoom = lerp(densityAnim.startZoom, targetZoom, eased);
+    const mid = (densityAnim.centreA + densityAnim.centreB) / 2;
+    cx = W/2 - (W/2 + mid * zoom);
+}
+
+/* Operation journey */
+function startOperationJourney() {
+    stopAllAnims();
+    families.N = true; renderToggles(); renderProps();
+
+    const startVal = parseFloat(document.getElementById("opStart").value) || 2;
+    const amount = parseFloat(document.getElementById("opValue").value) || 3;
+    const op = document.getElementById("opSelect").value;
+    const endVal = op === "add" ? startVal + amount : startVal - amount;
+
+    if (op === "sub" && endVal < 0) {
+        families.Z = true; renderToggles(); renderProps();
+    }
+
+    /* Centre view on the range */
+    const midVal = (startVal + endVal) / 2;
+    const rangeVal = Math.abs(endVal - startVal);
+    zoom = Math.min(120, Math.max(30, (W - 100) / (rangeVal + 4)));
+    cx = W/2 - (W/2 + midVal * zoom);
+
+    opAnim = { start: startVal, end: endVal, t: 0 };
+    document.getElementById("btnOperation").classList.add("running");
+}
+
+function updateOpAnim(dt) {
+    if (!opAnim) return;
+    opAnim.t += dt * 0.4;
+    if (opAnim.t >= 1) {
+        opAnim.t = 1;
+        /* Hold for a moment then clear */
+        setTimeout(() => {
+            opAnim = null;
+            document.getElementById("btnOperation").classList.remove("running");
+        }, 1500);
+        /* Stop updating */
+        opAnim.done = true;
+    }
+}
+
+function stopAllAnims() {
+    if (autoAnim) document.getElementById("btnAutoAnimate").classList.remove("running");
+    if (densityAnim) document.getElementById("btnDensity").classList.remove("running");
+    if (opAnim) document.getElementById("btnOperation").classList.remove("running");
+    autoAnim = null; densityAnim = null; opAnim = null;
 }
 
 /* ============================================================
@@ -468,10 +783,10 @@ function renderCards() {
             const s = SPECIALS[parseInt(cd.dataset.i)];
             if (s.complex) {
                 if (!families.C) { families.C = true; renderToggles(); renderCards(); renderProps(); }
-                zoom = 80; cx = 0; cy = 0;     /* center origin for complex plane */
+                zoom = 80; cx = 0; cy = 0;
             } else {
                 zoom = 80;
-                cx = W/2 - (W/2 + s.val * zoom);  /* center the value */
+                cx = W/2 - (W/2 + s.val * zoom);
                 cy = 0;
             }
         });
@@ -492,7 +807,6 @@ function renderProps() {
     });
     document.getElementById("pTags").innerHTML = tags;
 
-    /* Containment hierarchy with active families highlighted */
     const chain = ["\u2115","\u2124","\u211A","\u211D","\u2102"];
     const keys  = ["N","Z","Q","R","C"];
     let hier = "";
@@ -542,11 +856,12 @@ window.addEventListener("mouseup", () => { dragging = false; });
 
 cvs.addEventListener("wheel", e => {
     e.preventDefault();
-    const mx = e.offsetX, my = e.offsetY;
+    const rect = cvs.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    const my = (e.clientY - rect.top) * (H / rect.height);
     const [wx, wy] = s2w(mx, my);
     const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
     zoom = Math.max(0.5, Math.min(1000, zoom * factor));
-    /* Keep the world point under the mouse fixed */
     cx = mx - W/2 - wx * zoom;
     if (families.C) cy = my - H/2 + wy * zoom;
     renderInsight();
@@ -592,9 +907,41 @@ cvs.addEventListener("touchend", e => {
 });
 
 /* ============================================================
+   BUTTON HANDLERS
+   ============================================================ */
+document.getElementById("btnAutoAnimate").addEventListener("click", () => {
+    if (autoAnim) { stopAllAnims(); return; }
+    startAutoAnimate();
+});
+document.getElementById("btnDensity").addEventListener("click", () => {
+    if (densityAnim) { stopAllAnims(); return; }
+    startDensityZoom();
+});
+document.getElementById("btnOperation").addEventListener("click", () => {
+    if (opAnim) { stopAllAnims(); return; }
+    startOperationJourney();
+});
+document.getElementById("btnPause").addEventListener("click", () => {
+    paused = !paused;
+    document.getElementById("btnPause").innerHTML = paused ? "&#9654; Play" : "&#10074;&#10074; Pause";
+});
+
+/* ============================================================
    ANIMATION LOOP
    ============================================================ */
-function frame() {
+let lastFrameTime = 0;
+
+function frame(timestamp) {
+    const dt = lastFrameTime ? Math.min((timestamp - lastFrameTime) / 1000, 0.1) : 0.016;
+    lastFrameTime = timestamp;
+
+    if (!paused) {
+        globalTime += dt;
+        if (autoAnim) updateAutoAnim(dt);
+        if (densityAnim) updateDensityAnim(dt);
+        if (opAnim && !opAnim.done) updateOpAnim(dt);
+    }
+
     if (families.C) drawComplexPlane();
     else drawNumberLine();
     requestAnimationFrame(frame);
@@ -602,7 +949,7 @@ function frame() {
 
 /* ---- Init ---- */
 renderToggles(); renderCards(); renderProps();
-frame();
+requestAnimationFrame(frame);
 </script>
 <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
     <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>

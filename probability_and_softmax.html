@@ -104,10 +104,10 @@
     <div class="panel">
         <h3>Logits vs softmax output</h3>
         <canvas id="canvas1" width="700" height="350"></canvas>
-        <p class="micro-note">Drag the bars on the left panel to change the raw logit scores. The right panel updates live.</p>
+        <p class="micro-note">Drag the bars on the left panel to change the raw logit scores. The right panel updates live with smooth animation.</p>
         <div class="grid-legend">
             <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Raw logits</span></div>
-            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Softmax probabilities</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:linear-gradient(90deg,#f472b6,#fbbf24,#22d3ee)"></div><span style="color:#fbbf24">Softmax probabilities (gold = highest)</span></div>
         </div>
         <div class="slider-row">
             <label>Number of classes:</label>
@@ -152,6 +152,7 @@
         </div>
         <div class="btn-row">
             <button class="btn" id="btnRandomise2">Randomise logits</button>
+            <button class="btn" id="btnSweep">&#9654; Auto-sweep</button>
         </div>
         <div class="result-box">
             <div id="s2Results" class="math-line"></div>
@@ -166,6 +167,37 @@
             When you set ChatGPT's &lsquo;temperature&rsquo; to 0, you get deterministic responses &mdash; it always picks the most likely next token. At high temperature, it gets creative &mdash; and occasionally wrong. Temperature is not a metaphor; it is literally this parameter in the softmax function.
         </div>
         <p class="section-summary">Temperature is the single dial that controls the confidence-creativity tradeoff in every language model.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2b: Softmax Transformation — The Squishing Effect
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2b. The Softmax Transformation &mdash; Watch the Squish</h2>
+    <div class="panel">
+        <h3>Animated logit &rarr; exp &rarr; normalise pipeline</h3>
+        <canvas id="canvas2b" width="700" height="320"></canvas>
+        <p class="micro-note">Watch raw logits pass through exp() and get normalised. Raise one logit and see probability flow towards it from every other bar.</p>
+        <div class="slider-row">
+            <label>Boost class:</label>
+            <input type="range" id="sBoost" min="0" max="3" step="1" value="0">
+            <span class="slider-val" id="vBoost">cat</span>
+        </div>
+        <div class="slider-row">
+            <label>Boost amount:</label>
+            <input type="range" id="sBoostAmt" min="0" max="60" step="1" value="0">
+            <span class="slider-val" id="vBoostAmt">+0.0</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnPlayTransform">&#9654; Play transformation</button>
+            <button class="btn" id="btnResetTransform">Reset</button>
+        </div>
+        <div class="result-box">
+            <div id="s2bResults" class="math-line"></div>
+        </div>
+        <div class="insight-box">
+            The exponential function is the secret ingredient: it makes large logits <em>enormously</em> larger, while small or negative logits get squished toward zero. This is why a small change in the top logit can dramatically redistribute probability away from every other class.
+        </div>
+        <p class="section-summary">Exponentiation amplifies differences &mdash; the mathematical engine behind the winner-take-most behaviour of softmax.</p>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════
@@ -248,26 +280,65 @@ function softmax(logits, temperature) {
     return exps.map(function(e) { return e / sumExp; });
 }
 
+/* Ease-out cubic for smooth bar animation */
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+/* Lerp between two arrays */
+function lerpArray(a, b, t) {
+    return a.map(function(v, i) { return v + (b[i] - v) * t; });
+}
+
+/* HiDPI canvas setup */
+function setupHiDPI(canvas, w, h) {
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return ctx;
+}
+
+/* Vibrant bar colour: gold for highest, rose-to-cyan gradient for others */
+var BAR_COLORS_PROB = ['#f472b6', '#e879a0', '#d98060', '#fbbf24', '#7dd3a0', '#22d3ee', '#38bdf8', '#818cf8'];
+function getProbBarColor(i, n, maxIdx) {
+    if (i === maxIdx) return '#fbbf24'; /* gold for highest */
+    /* rose-to-cyan gradient across remaining bars */
+    var t = n <= 2 ? 0.5 : i / (n - 1);
+    var r = Math.round(244 - t * 210);
+    var g = Math.round(114 + t * 97);
+    var b = Math.round(182 + t * 56);
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+
 var CLASS_NAMES = ['cat', 'dog', 'bird', 'fish', 'car', 'tree', 'star', 'moon'];
 var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87171', '#38bdf8', '#fb923c'];
 
 /* ================================================================
-   Section 1: From Scores to Probabilities
+   Section 1: From Scores to Probabilities (animated bars)
    ================================================================ */
 (function() {
+    var W = 700, H = 350;
     var cvs = document.getElementById('canvas1');
-    var ctx = cvs.getContext('2d');
-    var W = cvs.width, H = cvs.height;
+    var ctx = setupHiDPI(cvs, W, H);
 
     var numClasses = 4;
     var logits = [2.0, 1.0, 0.1, -1.0];
     var dragging = -1;
-    var dragStartY = 0;
-    var dragStartVal = 0;
 
-    /* Layout constants */
+    /* Animated bar heights */
+    var displayProbs = softmax(logits);
+    var targetProbs = displayProbs.slice();
+    var displayLogits = logits.slice();
+    var targetLogits = logits.slice();
+    var animating = false;
+    var animStart = 0;
+    var animDur = 400; /* ms */
+    var startProbs, startLogits;
+
     var PAD = { top: 30, bottom: 50, left: 50, right: 30 };
-    var GAP = 60; /* gap between left and right panels */
+    var GAP = 60;
 
     function getLayout() {
         var plotW = (W - PAD.left - PAD.right - GAP) / 2;
@@ -281,11 +352,46 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         };
     }
 
+    function startAnimation() {
+        targetProbs = softmax(logits);
+        targetLogits = logits.slice();
+        /* Pad arrays if numClasses changed */
+        while (displayProbs.length < numClasses) displayProbs.push(0);
+        while (displayLogits.length < numClasses) displayLogits.push(0);
+        while (targetProbs.length < numClasses) targetProbs.push(0);
+        while (targetLogits.length < numClasses) targetLogits.push(0);
+        displayProbs.length = numClasses;
+        displayLogits.length = numClasses;
+        targetProbs.length = numClasses;
+        targetLogits.length = numClasses;
+        startProbs = displayProbs.slice();
+        startLogits = displayLogits.slice();
+        animStart = performance.now();
+        if (!animating) { animating = true; tick(); }
+    }
+
+    function tick() {
+        var t = Math.min(1, (performance.now() - animStart) / animDur);
+        var e = easeOutCubic(t);
+        displayProbs = lerpArray(startProbs, targetProbs, e);
+        displayLogits = lerpArray(startLogits, targetLogits, e);
+        draw();
+        if (t < 1) {
+            requestAnimationFrame(tick);
+        } else {
+            displayProbs = targetProbs.slice();
+            displayLogits = targetLogits.slice();
+            animating = false;
+            draw();
+        }
+    }
+
     function randomiseLogits() {
         logits = [];
         for (var i = 0; i < numClasses; i++) {
             logits.push((Math.random() - 0.3) * 6);
         }
+        startAnimation();
     }
 
     function draw() {
@@ -294,15 +400,22 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         ctx.fillRect(0, 0, W, H);
 
         var L = getLayout();
-        var probs = softmax(logits);
+        var probs = displayProbs;
+        var logitVals = displayLogits;
         var maxLogit = Math.max(Math.abs(Math.min.apply(null, logits)), Math.abs(Math.max.apply(null, logits)), 3);
         maxLogit = Math.ceil(maxLogit) + 1;
 
-        /* ── Left panel: Logits ── */
-        drawPanel(L.leftX, L.plotW, L.plotH, 'Raw Logits', logits, -maxLogit, maxLogit, false, '#a78bfa', true);
+        /* Find max prob index */
+        var maxIdx = 0;
+        for (var i = 1; i < probs.length; i++) {
+            if (probs[i] > probs[maxIdx]) maxIdx = i;
+        }
 
-        /* ── Right panel: Probabilities ── */
-        drawPanel(L.rightX, L.plotW, L.plotH, 'Softmax Output', probs, 0, 1.0, true, '#10b981', false);
+        /* Left panel: Logits */
+        drawPanel(L.leftX, L.plotW, L.plotH, 'Raw Logits', logitVals, -maxLogit, maxLogit, false, null, true, -1);
+
+        /* Right panel: Probabilities with vibrant colours */
+        drawPanel(L.rightX, L.plotW, L.plotH, 'Softmax Output', probs, 0, 1.0, true, null, false, maxIdx);
 
         /* Arrow between panels */
         var arrowY = PAD.top + L.plotH / 2;
@@ -322,18 +435,15 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         ctx.fillStyle = '#808098';
         ctx.fill();
 
-        /* softmax label on arrow */
         ctx.fillStyle = '#a78bfa';
         ctx.font = '11px Georgia, serif';
         ctx.textAlign = 'center';
         ctx.fillText('softmax', (arrowX1 + arrowX2) / 2, arrowY - 10);
 
-        /* Update results */
-        updateResults(probs);
+        updateResults(softmax(logits));
     }
 
-    function drawPanel(startX, plotW, plotH, title, values, minVal, maxVal, showSum, barColor, isLogit) {
-        /* Background */
+    function drawPanel(startX, plotW, plotH, title, values, minVal, maxVal, showSum, barColor, isLogit, maxIdx) {
         ctx.fillStyle = 'rgba(255,255,255,0.015)';
         ctx.strokeStyle = 'rgba(255,255,255,0.05)';
         ctx.lineWidth = 1;
@@ -342,7 +452,6 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         ctx.fill();
         ctx.stroke();
 
-        /* Title */
         ctx.fillStyle = '#808098';
         ctx.font = '11px Georgia, serif';
         ctx.textAlign = 'center';
@@ -355,15 +464,12 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         var zeroY;
 
         if (isLogit) {
-            /* Logits: zero line in middle */
             var range = maxVal - minVal;
             zeroY = PAD.top + plotH * (maxVal / range);
         } else {
-            /* Probabilities: zero at bottom */
             zeroY = PAD.top + plotH;
         }
 
-        /* Grid lines */
         ctx.strokeStyle = 'rgba(255,255,255,0.04)';
         ctx.lineWidth = 0.5;
         var nTicks = isLogit ? 6 : 5;
@@ -375,7 +481,6 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
             ctx.stroke();
         }
 
-        /* Zero line for logits */
         if (isLogit) {
             ctx.strokeStyle = 'rgba(255,255,255,0.15)';
             ctx.lineWidth = 1;
@@ -387,7 +492,6 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
             ctx.setLineDash([]);
         }
 
-        /* Y-axis labels */
         ctx.fillStyle = '#808098';
         ctx.font = '10px Courier New, monospace';
         ctx.textAlign = 'right';
@@ -402,7 +506,6 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
             ctx.fillText(val.toFixed(1), startX - 4, y + 3);
         }
 
-        /* Bars */
         for (var i = 0; i < n; i++) {
             var x = startX + 10 + barSpacing + i * (barW + barSpacing);
             var val = values[i];
@@ -421,20 +524,35 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
                 barY = PAD.top + plotH - barH;
             }
 
-            /* Bar fill */
+            /* Colour selection */
+            var color;
+            if (isLogit) {
+                color = '#a78bfa';
+            } else {
+                color = getProbBarColor(i, n, maxIdx);
+            }
+
             var gradient = ctx.createLinearGradient(x, barY, x, barY + barH);
-            gradient.addColorStop(0, barColor);
-            gradient.addColorStop(1, barColor + '66');
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(1, color + '66');
             ctx.fillStyle = gradient;
             ctx.fillRect(x, barY, barW, barH);
 
-            /* Bar outline */
-            ctx.strokeStyle = barColor;
+            ctx.strokeStyle = color;
             ctx.lineWidth = 1;
             ctx.strokeRect(x, barY, barW, barH);
 
-            /* Value label */
-            ctx.fillStyle = barColor;
+            /* Glow on highest probability */
+            if (!isLogit && i === maxIdx) {
+                ctx.shadowColor = '#fbbf24';
+                ctx.shadowBlur = 12;
+                ctx.strokeStyle = '#fbbf24';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, barY, barW, barH);
+                ctx.shadowBlur = 0;
+            }
+
+            ctx.fillStyle = color;
             ctx.font = 'bold 11px Courier New, monospace';
             ctx.textAlign = 'center';
             if (isLogit) {
@@ -444,13 +562,11 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
                 ctx.fillText(val.toFixed(3), x + barW / 2, barY - 5);
             }
 
-            /* Class name */
             ctx.fillStyle = '#a0a0b8';
             ctx.font = '10px Georgia, serif';
             ctx.fillText(CLASS_NAMES[i], x + barW / 2, PAD.top + plotH + 16);
         }
 
-        /* Sum label for probabilities */
         if (showSum) {
             var sum = values.reduce(function(a, b) { return a + b; }, 0);
             ctx.fillStyle = '#10b981';
@@ -470,11 +586,11 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
             html += '<span class="cyan">' + logits[i].toFixed(2) + '</span>';
             if (i < logits.length - 1) html += ', ';
         }
-        html += '] &rarr; <span class="green">Prediction: ' + CLASS_NAMES[maxIdx] + ' (' + (probs[maxIdx] * 100).toFixed(1) + '%)</span>';
+        html += '] &rarr; <span class="gold">Prediction: ' + CLASS_NAMES[maxIdx] + ' (' + (probs[maxIdx] * 100).toFixed(1) + '%)</span>';
         document.getElementById('s1Results').innerHTML = html;
     }
 
-    /* ── Mouse / touch interaction for dragging logit bars ── */
+    /* Mouse / touch interaction */
     function getBarHitInfo(mx, my) {
         var L = getLayout();
         var n = numClasses;
@@ -526,8 +642,6 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         var hit = getBarHitInfo(pos.x, pos.y);
         if (hit >= 0) {
             dragging = hit;
-            dragStartY = pos.y;
-            dragStartVal = logits[hit];
         }
     }
 
@@ -537,7 +651,7 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         var pos = getCanvasPos(e);
         var newVal = yToLogitValue(pos.y);
         logits[dragging] = clamp(newVal, -8, 8);
-        draw();
+        startAnimation();
     }
 
     function onPointerUp(e) {
@@ -552,19 +666,19 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
     cvs.addEventListener('touchmove', onPointerMove, { passive: false });
     cvs.addEventListener('touchend', onPointerUp);
 
-    /* ── Controls ── */
     document.getElementById('btnRandomise').addEventListener('click', function() {
-        randomiseLogits();
-        draw();
+        logits = [];
+        for (var i = 0; i < numClasses; i++) {
+            logits.push((Math.random() - 0.3) * 6);
+        }
+        startAnimation();
     });
 
     document.getElementById('sClasses').addEventListener('input', function() {
         numClasses = parseInt(this.value);
         document.getElementById('vClasses').textContent = numClasses;
-        /* Adjust logits array */
         while (logits.length < numClasses) logits.push((Math.random() - 0.3) * 4);
         while (logits.length > numClasses) logits.pop();
-        /* Update true class slider in section 3 */
         var sTrueClass = document.getElementById('sTrueClass');
         if (sTrueClass) {
             sTrueClass.max = numClasses - 1;
@@ -572,26 +686,76 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
                 sTrueClass.value = 0;
             }
         }
-        draw();
+        startAnimation();
     });
 
-    /* Init */
-    draw();
+    startAnimation();
 })();
 
 /* ================================================================
-   Section 2: Temperature — The Creativity Dial
+   Section 2: Temperature — The Creativity Dial (with auto-sweep)
    ================================================================ */
 (function() {
+    var W = 700, H = 350;
     var cvs = document.getElementById('canvas2');
-    var ctx = cvs.getContext('2d');
-    var W = cvs.width, H = cvs.height;
+    var ctx = setupHiDPI(cvs, W, H);
 
     var logits2 = [3.0, 1.5, 0.5, -0.5];
     var PAD = { top: 30, bottom: 50, left: 30, right: 20 };
 
+    /* Animated bar state for each of the 3 panels */
+    var displayPanels = [null, null, null];
+    var targetPanels = [null, null, null];
+    var animStart2 = 0;
+    var animating2 = false;
+    var animDur2 = 350;
+    var startPanels = [null, null, null];
+
+    /* Auto-sweep state */
+    var sweeping = false;
+    var sweepDir = 1; /* 1 = going up, -1 = going down */
+    var sweepRAF = null;
+    var sweepSpeed = 0.015; /* slider units per frame (~60fps) */
+
     function getTemp() {
         return parseInt(document.getElementById('sTemp').value) / 10;
+    }
+
+    function getTemps(T) {
+        return [Math.max(0.1, T * 0.1), 1.0, Math.max(T, 1.01)];
+    }
+
+    function computePanels(T) {
+        var temps = getTemps(T);
+        return temps.map(function(t) { return softmax(logits2, t); });
+    }
+
+    function beginAnim() {
+        var T = getTemp();
+        var newPanels = computePanels(T);
+        for (var p = 0; p < 3; p++) {
+            if (!displayPanels[p]) displayPanels[p] = newPanels[p].slice();
+            startPanels[p] = displayPanels[p].slice();
+            targetPanels[p] = newPanels[p];
+        }
+        animStart2 = performance.now();
+        if (!animating2) { animating2 = true; tickAnim(); }
+    }
+
+    function tickAnim() {
+        var t = Math.min(1, (performance.now() - animStart2) / animDur2);
+        var e = easeOutCubic(t);
+        for (var p = 0; p < 3; p++) {
+            displayPanels[p] = lerpArray(startPanels[p], targetPanels[p], e);
+        }
+        draw();
+        if (t < 1) {
+            requestAnimationFrame(tickAnim);
+        } else {
+            for (var p = 0; p < 3; p++) displayPanels[p] = targetPanels[p].slice();
+            animating2 = false;
+            draw();
+        }
     }
 
     function draw() {
@@ -600,7 +764,7 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         ctx.fillRect(0, 0, W, H);
 
         var T = getTemp();
-        var temps = [Math.max(0.1, T * 0.1), 1.0, Math.max(T, 1.01)];
+        var temps = getTemps(T);
         var tempLabels = [
             'T = ' + temps[0].toFixed(1) + ' (confident)',
             'T = 1.0 (normal)',
@@ -618,9 +782,14 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
 
         for (var p = 0; p < 3; p++) {
             var px = PAD.left + p * (panelW + panelGap);
-            var probs = softmax(logits2, temps[p]);
+            var probs = displayPanels[p] || softmax(logits2, temps[p]);
 
-            /* Panel background */
+            /* Find max for gold colouring */
+            var maxIdx = 0;
+            for (var i = 1; i < probs.length; i++) {
+                if (probs[i] > probs[maxIdx]) maxIdx = i;
+            }
+
             ctx.fillStyle = 'rgba(255,255,255,0.015)';
             ctx.strokeStyle = 'rgba(255,255,255,0.05)';
             ctx.lineWidth = 1;
@@ -629,13 +798,11 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
             ctx.fill();
             ctx.stroke();
 
-            /* Title */
             ctx.fillStyle = tempColors[p];
             ctx.font = '10px Georgia, serif';
             ctx.textAlign = 'center';
             ctx.fillText(tempLabels[p], px + panelW / 2, PAD.top - 10);
 
-            /* Grid */
             ctx.strokeStyle = 'rgba(255,255,255,0.04)';
             ctx.lineWidth = 0.5;
             for (var g = 0; g <= 5; g++) {
@@ -646,7 +813,6 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
                 ctx.stroke();
             }
 
-            /* Y-axis labels for first panel only */
             if (p === 0) {
                 ctx.fillStyle = '#808098';
                 ctx.font = '9px Courier New, monospace';
@@ -658,38 +824,46 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
                 }
             }
 
-            /* Bars */
             for (var i = 0; i < n; i++) {
                 var bx = px + 10 + barSpacing + i * (barW + barSpacing);
                 var barH = probs[i] * plotH;
                 var barY = PAD.top + plotH - barH;
 
+                var color = (i === maxIdx) ? '#fbbf24' : tempColors[p];
+
                 var gradient = ctx.createLinearGradient(bx, barY, bx, barY + barH);
-                gradient.addColorStop(0, tempColors[p]);
-                gradient.addColorStop(1, tempColors[p] + '44');
+                gradient.addColorStop(0, color);
+                gradient.addColorStop(1, color + '44');
                 ctx.fillStyle = gradient;
                 ctx.fillRect(bx, barY, barW, barH);
 
-                ctx.strokeStyle = tempColors[p];
+                ctx.strokeStyle = color;
                 ctx.lineWidth = 0.8;
                 ctx.strokeRect(bx, barY, barW, barH);
 
-                /* Value */
+                /* Gold glow on highest */
+                if (i === maxIdx) {
+                    ctx.shadowColor = '#fbbf24';
+                    ctx.shadowBlur = 8;
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(bx, barY, barW, barH);
+                    ctx.shadowBlur = 0;
+                }
+
                 if (probs[i] > 0.03) {
-                    ctx.fillStyle = tempColors[p];
+                    ctx.fillStyle = color;
                     ctx.font = 'bold 9px Courier New, monospace';
                     ctx.textAlign = 'center';
                     ctx.fillText(probs[i].toFixed(2), bx + barW / 2, barY - 4);
                 }
 
-                /* Class label */
                 ctx.fillStyle = '#808098';
                 ctx.font = '9px Georgia, serif';
                 ctx.textAlign = 'center';
                 ctx.fillText(CLASS_NAMES[i], bx + barW / 2, PAD.top + plotH + 14);
             }
 
-            /* Max probability indicator */
             var maxProb = Math.max.apply(null, probs);
             ctx.fillStyle = tempColors[p];
             ctx.font = '10px Courier New, monospace';
@@ -697,7 +871,7 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
             ctx.fillText('max: ' + (maxProb * 100).toFixed(1) + '%', px + panelW / 2, PAD.top + plotH + 32);
         }
 
-        /* Results */
+        /* Results text */
         var probsNorm = softmax(logits2, 1.0);
         var probsLow = softmax(logits2, temps[0]);
         var probsHigh = softmax(logits2, temps[2]);
@@ -711,11 +885,45 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         document.getElementById('s2Results').innerHTML = html;
     }
 
-    /* Controls */
+    /* Auto-sweep */
+    function sweepTick() {
+        if (!sweeping) return;
+        var slider = document.getElementById('sTemp');
+        var val = parseInt(slider.value);
+        val += sweepDir;
+        if (val >= 30) { val = 30; sweepDir = -1; }
+        if (val <= 1) { val = 1; sweepDir = 1; }
+        slider.value = val;
+        var T = val / 10;
+        document.getElementById('vTemp').textContent = T.toFixed(1);
+        /* Direct update for smooth sweep (skip tweened animation) */
+        var temps = getTemps(T);
+        for (var p = 0; p < 3; p++) {
+            displayPanels[p] = softmax(logits2, temps[p]);
+        }
+        draw();
+        sweepRAF = requestAnimationFrame(sweepTick);
+    }
+
+    var btnSweep = document.getElementById('btnSweep');
+    btnSweep.addEventListener('click', function() {
+        sweeping = !sweeping;
+        if (sweeping) {
+            btnSweep.textContent = '\u23F8 Pause sweep';
+            btnSweep.classList.add('active');
+            sweepDir = 1;
+            sweepTick();
+        } else {
+            btnSweep.textContent = '\u25B6 Auto-sweep';
+            btnSweep.classList.remove('active');
+            if (sweepRAF) cancelAnimationFrame(sweepRAF);
+        }
+    });
+
     document.getElementById('sTemp').addEventListener('input', function() {
         var T = parseInt(this.value) / 10;
         document.getElementById('vTemp').textContent = T.toFixed(1);
-        draw();
+        if (!sweeping) beginAnim();
     });
 
     document.getElementById('btnRandomise2').addEventListener('click', function() {
@@ -723,28 +931,363 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         for (var i = 0; i < 4; i++) {
             logits2.push((Math.random() - 0.3) * 6);
         }
+        beginAnim();
+    });
+
+    beginAnim();
+})();
+
+/* ================================================================
+   Section 2b: Softmax Transformation — The Squishing Effect
+   ================================================================ */
+(function() {
+    var W = 700, H = 320;
+    var cvs = document.getElementById('canvas2b');
+    var ctx = setupHiDPI(cvs, W, H);
+
+    var baseLogits = [2.0, 1.0, 0.1, -1.0];
+    var PAD = { top: 35, bottom: 50, left: 30, right: 20 };
+
+    /* Animation state for the 3-stage pipeline */
+    var phase = 0; /* 0=logits, 1=exp, 2=normalised */
+    var phaseT = 0;
+    var playing = false;
+    var playRAF = null;
+
+    /* Display values (animated) */
+    var dispLogits = baseLogits.slice();
+    var dispExp = baseLogits.map(Math.exp);
+    var dispProbs = softmax(baseLogits);
+
+    /* Boost */
+    var boostIdx = 0;
+    var boostAmt = 0;
+
+    /* Flow particles */
+    var particles = [];
+
+    function getEffectiveLogits() {
+        var l = baseLogits.slice();
+        l[boostIdx] += boostAmt;
+        return l;
+    }
+
+    function computeExp(logits) {
+        return logits.map(function(z) { return Math.exp(z); });
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var logits = getEffectiveLogits();
+        var exps = computeExp(logits);
+        var sumExp = exps.reduce(function(a, b) { return a + b; }, 0);
+        var probs = exps.map(function(e) { return e / sumExp; });
+
+        var n = 4;
+        var panelGap = 16;
+        var totalW = W - PAD.left - PAD.right;
+        var panelW = (totalW - 2 * panelGap) / 3;
+        var plotH = H - PAD.top - PAD.bottom;
+        var barW = Math.min(28, (panelW - 20) / n - 4);
+        var barSpacing = (panelW - 20 - n * barW) / (n + 1);
+
+        var stages = [
+            { title: 'Raw Logits', values: logits, max: null, color: '#a78bfa', label: 'z' },
+            { title: 'After exp(z)', values: exps, max: null, color: '#22d3ee', label: 'exp' },
+            { title: 'Normalised (probs)', values: probs, max: 1.0, color: '#fbbf24', label: 'p' }
+        ];
+
+        /* Compute appropriate max for each stage */
+        var maxLogit = Math.max.apply(null, logits.map(Math.abs));
+        maxLogit = Math.max(maxLogit, 3);
+        stages[0].max = Math.ceil(maxLogit) + 1;
+        stages[1].max = Math.max.apply(null, exps) * 1.2;
+
+        /* Find max prob index for gold highlight */
+        var maxProbIdx = 0;
+        for (var i = 1; i < probs.length; i++) {
+            if (probs[i] > probs[maxProbIdx]) maxProbIdx = i;
+        }
+
+        for (var s = 0; s < 3; s++) {
+            var px = PAD.left + s * (panelW + panelGap);
+            var vals = stages[s].values;
+            var maxV = stages[s].max;
+            var col = stages[s].color;
+
+            /* Animate phase: bars grow from 0 in sequence */
+            var stageAlpha = 1.0;
+            if (playing) {
+                if (s === 0) {
+                    stageAlpha = phase >= 0 ? 1.0 : 0.0;
+                } else if (s === 1) {
+                    stageAlpha = phase >= 1 ? Math.min(1, phaseT) : (phase > 1 ? 1 : 0);
+                } else {
+                    stageAlpha = phase >= 2 ? Math.min(1, phaseT) : (phase > 2 ? 1 : 0);
+                }
+            }
+
+            /* Panel bg */
+            ctx.fillStyle = 'rgba(255,255,255,0.015)';
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(px - 3, PAD.top - 3, panelW + 6, plotH + 6, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = col;
+            ctx.font = '10px Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(stages[s].title, px + panelW / 2, PAD.top - 10);
+
+            /* Bars */
+            for (var i = 0; i < n; i++) {
+                var bx = px + 10 + barSpacing + i * (barW + barSpacing);
+                var val = vals[i] * stageAlpha;
+                var barH, barY;
+
+                if (s === 0) {
+                    /* Logits: can be negative */
+                    var range = stages[0].max * 2;
+                    var zeroY = PAD.top + plotH * 0.5;
+                    barH = Math.abs(val) / stages[0].max * (plotH * 0.5);
+                    barY = val >= 0 ? zeroY - barH : zeroY;
+                } else {
+                    barH = (val / maxV) * plotH;
+                    barY = PAD.top + plotH - barH;
+                }
+
+                var barCol = (s === 2 && i === maxProbIdx) ? '#fbbf24' : col;
+                if (s === 2) barCol = getProbBarColor(i, n, maxProbIdx);
+
+                var gradient = ctx.createLinearGradient(bx, barY, bx, barY + Math.max(barH, 1));
+                gradient.addColorStop(0, barCol);
+                gradient.addColorStop(1, barCol + '55');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(bx, barY, barW, Math.max(barH, 0.5));
+
+                ctx.strokeStyle = barCol;
+                ctx.lineWidth = 0.8;
+                ctx.strokeRect(bx, barY, barW, Math.max(barH, 0.5));
+
+                /* Glow on highest prob */
+                if (s === 2 && i === maxProbIdx && stageAlpha > 0.5) {
+                    ctx.shadowColor = '#fbbf24';
+                    ctx.shadowBlur = 10;
+                    ctx.strokeStyle = '#fbbf24';
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(bx, barY, barW, Math.max(barH, 0.5));
+                    ctx.shadowBlur = 0;
+                }
+
+                /* Value label */
+                ctx.fillStyle = barCol;
+                ctx.font = 'bold 9px Courier New, monospace';
+                ctx.textAlign = 'center';
+                if (s === 0) {
+                    var ly = val >= 0 ? (PAD.top + plotH * 0.5 - barH - 4) : (PAD.top + plotH * 0.5 + barH + 12);
+                    ctx.fillText(vals[i].toFixed(2), bx + barW / 2, ly);
+                } else {
+                    ctx.fillText(s === 2 ? (vals[i] * stageAlpha).toFixed(3) : (vals[i] * stageAlpha).toFixed(2), bx + barW / 2, barY - 4);
+                }
+
+                ctx.fillStyle = '#808098';
+                ctx.font = '9px Georgia, serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(CLASS_NAMES[i], bx + barW / 2, PAD.top + plotH + 14);
+            }
+
+            /* Arrows between panels */
+            if (s < 2) {
+                var ax1 = px + panelW + 3;
+                var ax2 = px + panelW + panelGap - 3;
+                var ay = PAD.top + plotH / 2;
+                ctx.strokeStyle = '#808098';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(ax1, ay);
+                ctx.lineTo(ax2, ay);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(ax2, ay);
+                ctx.lineTo(ax2 - 5, ay - 3);
+                ctx.lineTo(ax2 - 5, ay + 3);
+                ctx.closePath();
+                ctx.fillStyle = '#808098';
+                ctx.fill();
+                var arrowLabel = s === 0 ? 'exp()' : '\u00F7 sum';
+                ctx.fillStyle = '#a78bfa';
+                ctx.font = '10px Georgia, serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(arrowLabel, (ax1 + ax2) / 2, ay - 8);
+            }
+        }
+
+        /* Draw flow particles */
+        drawParticles();
+
+        /* Results */
+        var html = '<span class="violet">Logits:</span> [' + logits.map(function(v) { return '<span class="cyan">' + v.toFixed(2) + '</span>'; }).join(', ') + ']';
+        html += ' &rarr; <span class="cyan">exp:</span> [' + exps.map(function(v) { return v.toFixed(2); }).join(', ') + ']';
+        html += ' &rarr; <span class="gold">probs:</span> [' + probs.map(function(v) { return v.toFixed(3); }).join(', ') + ']';
+        document.getElementById('s2bResults').innerHTML = html;
+    }
+
+    /* Probability flow particles */
+    function spawnParticles() {
+        particles = [];
+        var logits = getEffectiveLogits();
+        var probs = softmax(logits);
+        var maxIdx = 0;
+        for (var i = 1; i < probs.length; i++) {
+            if (probs[i] > probs[maxIdx]) maxIdx = i;
+        }
+        /* Spawn particles from losing bars to winning bar */
+        for (var i = 0; i < 4; i++) {
+            if (i === maxIdx) continue;
+            var count = Math.round((1 - probs[i]) * 6);
+            for (var c = 0; c < count; c++) {
+                particles.push({
+                    from: i, to: maxIdx,
+                    t: -c * 0.12, /* staggered start */
+                    speed: 0.008 + Math.random() * 0.005
+                });
+            }
+        }
+    }
+
+    function drawParticles() {
+        if (particles.length === 0) return;
+        var n = 4;
+        var panelGap = 16;
+        var totalW = W - PAD.left - PAD.right;
+        var panelW = (totalW - 2 * panelGap) / 3;
+        var plotH = H - PAD.top - PAD.bottom;
+        var barW = Math.min(28, (panelW - 20) / n - 4);
+        var barSpacing = (panelW - 20 - n * barW) / (n + 1);
+
+        /* Third panel (probs) */
+        var px = PAD.left + 2 * (panelW + panelGap);
+        var alive = false;
+
+        for (var p = 0; p < particles.length; p++) {
+            var part = particles[p];
+            part.t += part.speed;
+            if (part.t < 0 || part.t > 1) { if (part.t < 1) alive = true; continue; }
+            alive = true;
+            var fromX = px + 10 + barSpacing + part.from * (barW + barSpacing) + barW / 2;
+            var toX = px + 10 + barSpacing + part.to * (barW + barSpacing) + barW / 2;
+            var baseY = PAD.top + plotH * 0.3;
+            var x = fromX + (toX - fromX) * part.t;
+            var y = baseY - Math.sin(part.t * Math.PI) * 30;
+
+            ctx.beginPath();
+            ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(251,191,36,' + (0.7 * Math.sin(part.t * Math.PI)) + ')';
+            ctx.fill();
+        }
+
+        if (alive) requestAnimationFrame(function() { draw(); });
+    }
+
+    /* Playback: animate stages appearing */
+    var btnPlay = document.getElementById('btnPlayTransform');
+    btnPlay.addEventListener('click', function() {
+        playing = true;
+        phase = 0;
+        phaseT = 0;
+        spawnParticles();
+        function animStep() {
+            phaseT += 0.025;
+            if (phaseT >= 1.2) {
+                phaseT = 0;
+                phase++;
+                if (phase > 2) {
+                    playing = false;
+                    draw();
+                    return;
+                }
+            }
+            draw();
+            requestAnimationFrame(animStep);
+        }
+        animStep();
+    });
+
+    document.getElementById('btnResetTransform').addEventListener('click', function() {
+        playing = false;
+        boostAmt = 0;
+        document.getElementById('sBoostAmt').value = 0;
+        document.getElementById('vBoostAmt').textContent = '+0.0';
+        particles = [];
         draw();
     });
 
-    /* Init */
+    document.getElementById('sBoost').addEventListener('input', function() {
+        boostIdx = parseInt(this.value);
+        document.getElementById('vBoost').textContent = CLASS_NAMES[boostIdx];
+        spawnParticles();
+        draw();
+    });
+
+    document.getElementById('sBoostAmt').addEventListener('input', function() {
+        boostAmt = parseInt(this.value) / 10;
+        document.getElementById('vBoostAmt').textContent = '+' + boostAmt.toFixed(1);
+        spawnParticles();
+        draw();
+    });
+
     draw();
 })();
 
 /* ================================================================
-   Section 3: Cross-Entropy Loss
+   Section 3: Cross-Entropy Loss (animated bars)
    ================================================================ */
 (function() {
+    var W = 700, H = 300;
     var cvs = document.getElementById('canvas3');
-    var ctx = cvs.getContext('2d');
-    var W = cvs.width, H = cvs.height;
+    var ctx = setupHiDPI(cvs, W, H);
 
     var PAD = { top: 35, bottom: 55, left: 50, right: 30 };
     var predLogits = [2.5, 0.5, -0.5, -1.0];
     var trueClass = 0;
     var dragging = -1;
-    var animFrame = null;
-    var lossHistory = [];
-    var maxHistoryLen = 80;
+
+    /* Animated display values */
+    var displayProbs3 = softmax(predLogits);
+    var targetProbs3 = displayProbs3.slice();
+    var startProbs3 = displayProbs3.slice();
+    var animStart3 = 0;
+    var animating3 = false;
+    var animDur3 = 400;
+
+    function beginAnim3() {
+        targetProbs3 = softmax(predLogits);
+        while (displayProbs3.length < predLogits.length) displayProbs3.push(0);
+        displayProbs3.length = predLogits.length;
+        targetProbs3.length = predLogits.length;
+        startProbs3 = displayProbs3.slice();
+        animStart3 = performance.now();
+        if (!animating3) { animating3 = true; tick3(); }
+    }
+
+    function tick3() {
+        var t = Math.min(1, (performance.now() - animStart3) / animDur3);
+        var e = easeOutCubic(t);
+        displayProbs3 = lerpArray(startProbs3, targetProbs3, e);
+        draw();
+        if (t < 1) {
+            requestAnimationFrame(tick3);
+        } else {
+            displayProbs3 = targetProbs3.slice();
+            animating3 = false;
+            draw();
+        }
+    }
 
     function getNumClasses() {
         return predLogits.length;
@@ -766,20 +1309,18 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
 
         var n = getNumClasses();
         trueClass = getTrueClass();
-        var probs = softmax(predLogits);
-        var loss = crossEntropy(probs, trueClass);
+        var probs = displayProbs3;
+        var actualProbs = softmax(predLogits);
+        var loss = crossEntropy(actualProbs, trueClass);
 
-        /* Layout: bar chart on left, loss meter on right */
         var barAreaW = W * 0.6;
         var lossAreaX = barAreaW + 20;
         var lossAreaW = W - lossAreaX - PAD.right;
         var plotH = H - PAD.top - PAD.bottom;
 
-        /* ── Bar chart ── */
         var barW = Math.min(50, (barAreaW - PAD.left - 20) / n - 8);
         var barSpacing = ((barAreaW - PAD.left - 20) - n * barW) / (n + 1);
 
-        /* Panel background */
         ctx.fillStyle = 'rgba(255,255,255,0.015)';
         ctx.strokeStyle = 'rgba(255,255,255,0.05)';
         ctx.lineWidth = 1;
@@ -788,13 +1329,11 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         ctx.fill();
         ctx.stroke();
 
-        /* Title */
         ctx.fillStyle = '#808098';
         ctx.font = '11px Georgia, serif';
         ctx.textAlign = 'center';
         ctx.fillText('Predicted Probabilities', PAD.left + (barAreaW - PAD.left) / 2, PAD.top - 12);
 
-        /* Grid */
         ctx.strokeStyle = 'rgba(255,255,255,0.04)';
         ctx.lineWidth = 0.5;
         for (var g = 0; g <= 5; g++) {
@@ -805,7 +1344,6 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
             ctx.stroke();
         }
 
-        /* Y-axis labels */
         ctx.fillStyle = '#808098';
         ctx.font = '10px Courier New, monospace';
         ctx.textAlign = 'right';
@@ -815,7 +1353,6 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
             ctx.fillText(val.toFixed(1), PAD.left - 6, gy + 3);
         }
 
-        /* Draw bars */
         for (var i = 0; i < n; i++) {
             var x = PAD.left + 10 + barSpacing + i * (barW + barSpacing);
             var barH = probs[i] * plotH;
@@ -824,19 +1361,16 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
             var isTrue = (i === trueClass);
             var color = isTrue ? '#10b981' : '#a78bfa';
 
-            /* Bar fill */
             var gradient = ctx.createLinearGradient(x, barY, x, barY + barH);
             gradient.addColorStop(0, color);
             gradient.addColorStop(1, color + '44');
             ctx.fillStyle = gradient;
             ctx.fillRect(x, barY, barW, barH);
 
-            /* Bar outline */
             ctx.strokeStyle = color;
             ctx.lineWidth = isTrue ? 2 : 1;
             ctx.strokeRect(x, barY, barW, barH);
 
-            /* True label indicator */
             if (isTrue) {
                 ctx.fillStyle = '#10b981';
                 ctx.font = 'bold 9px Courier New, monospace';
@@ -844,20 +1378,18 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
                 ctx.fillText('\u2713 TRUE', x + barW / 2, PAD.top + plotH + 28);
             }
 
-            /* Probability value */
             ctx.fillStyle = color;
             ctx.font = 'bold 11px Courier New, monospace';
             ctx.textAlign = 'center';
             ctx.fillText(probs[i].toFixed(3), x + barW / 2, barY - 6);
 
-            /* Class name */
             ctx.fillStyle = '#a0a0b8';
             ctx.font = '10px Georgia, serif';
             ctx.textAlign = 'center';
             ctx.fillText(CLASS_NAMES[i], x + barW / 2, PAD.top + plotH + 16);
         }
 
-        /* ── Loss meter (right side) ── */
+        /* Loss meter */
         ctx.fillStyle = 'rgba(255,255,255,0.015)';
         ctx.strokeStyle = 'rgba(255,255,255,0.05)';
         ctx.lineWidth = 1;
@@ -866,13 +1398,11 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         ctx.fill();
         ctx.stroke();
 
-        /* Loss title */
         ctx.fillStyle = '#f472b6';
         ctx.font = '11px Georgia, serif';
         ctx.textAlign = 'center';
         ctx.fillText('Cross-Entropy Loss', lossAreaX + lossAreaW / 2, PAD.top - 12);
 
-        /* Loss bar (vertical thermometer) */
         var maxLoss = 5.0;
         var displayLoss = Math.min(loss, maxLoss);
         var meterW = 30;
@@ -880,14 +1410,12 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         var meterH = plotH - 20;
         var meterY = PAD.top + 10;
 
-        /* Meter background */
         ctx.fillStyle = 'rgba(255,255,255,0.03)';
         ctx.fillRect(meterX, meterY, meterW, meterH);
         ctx.strokeStyle = 'rgba(255,255,255,0.08)';
         ctx.lineWidth = 1;
         ctx.strokeRect(meterX, meterY, meterW, meterH);
 
-        /* Meter fill (from bottom) */
         var fillH = (displayLoss / maxLoss) * meterH;
         var fillY = meterY + meterH - fillH;
         var lossGradient = ctx.createLinearGradient(meterX, fillY, meterX, fillY + fillH);
@@ -904,7 +1432,6 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         ctx.fillStyle = lossGradient;
         ctx.fillRect(meterX, fillY, meterW, fillH);
 
-        /* Loss scale labels */
         ctx.fillStyle = '#808098';
         ctx.font = '9px Courier New, monospace';
         ctx.textAlign = 'left';
@@ -921,27 +1448,24 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
             ctx.stroke();
         }
 
-        /* Loss value */
         var lossColor = loss < 0.5 ? '#10b981' : (loss < 2.0 ? '#fbbf24' : '#f472b6');
         ctx.fillStyle = lossColor;
         ctx.font = 'bold 16px Courier New, monospace';
         ctx.textAlign = 'center';
         ctx.fillText(loss.toFixed(3), lossAreaX + lossAreaW / 2, PAD.top + plotH + 20);
 
-        /* Quality label */
         var qualityLabel = loss < 0.1 ? 'Excellent!' : (loss < 0.5 ? 'Good' : (loss < 1.5 ? 'Mediocre' : (loss < 3.0 ? 'Poor' : 'Terrible!')));
         ctx.fillStyle = lossColor;
         ctx.font = '10px Georgia, serif';
         ctx.fillText(qualityLabel, lossAreaX + lossAreaW / 2, PAD.top + plotH + 36);
 
-        /* Update results */
         var html = '<span class="green">True: ' + CLASS_NAMES[trueClass] + '</span>';
-        html += ' &nbsp; <span class="violet">P(true) = ' + probs[trueClass].toFixed(4) + '</span>';
-        html += ' &nbsp; <span class="pink">Loss = &minus;log(' + probs[trueClass].toFixed(4) + ') = ' + loss.toFixed(4) + '</span>';
+        html += ' &nbsp; <span class="violet">P(true) = ' + actualProbs[trueClass].toFixed(4) + '</span>';
+        html += ' &nbsp; <span class="pink">Loss = &minus;log(' + actualProbs[trueClass].toFixed(4) + ') = ' + loss.toFixed(4) + '</span>';
         document.getElementById('s3Results').innerHTML = html;
     }
 
-    /* ── Drag interaction on prediction bars ── */
+    /* Drag interaction */
     function getBarHitInfo(mx, my) {
         var n = getNumClasses();
         var barAreaW = W * 0.6;
@@ -989,13 +1513,11 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         e.preventDefault();
         var pos = getCanvasPos(e);
         var plotH = H - PAD.top - PAD.bottom;
-        /* Map y position to logit value */
         var t = 1.0 - (pos.y - PAD.top) / plotH;
         t = clamp(t, 0.01, 0.99);
-        /* Convert desired probability to logit (approximate) */
         var newLogit = Math.log(t / (1.0 - t)) * 1.5;
         predLogits[dragging] = clamp(newLogit, -6, 6);
-        draw();
+        beginAnim3();
     }
 
     function onPointerUp(e) {
@@ -1010,20 +1532,19 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
     cvs.addEventListener('touchmove', onPointerMove, { passive: false });
     cvs.addEventListener('touchend', onPointerUp);
 
-    /* ── Preset buttons ── */
     document.getElementById('btnPerfect').addEventListener('click', function() {
         trueClass = getTrueClass();
         for (var i = 0; i < predLogits.length; i++) {
             predLogits[i] = (i === trueClass) ? 6.0 : -3.0;
         }
-        draw();
+        beginAnim3();
     });
 
     document.getElementById('btnUniform').addEventListener('click', function() {
         for (var i = 0; i < predLogits.length; i++) {
             predLogits[i] = 0.0;
         }
-        draw();
+        beginAnim3();
     });
 
     document.getElementById('btnWrong').addEventListener('click', function() {
@@ -1031,24 +1552,23 @@ var CLASS_COLORS = ['#f472b6', '#fbbf24', '#22d3ee', '#10b981', '#a78bfa', '#f87
         for (var i = 0; i < predLogits.length; i++) {
             predLogits[i] = (i === trueClass) ? -6.0 : 2.0;
         }
-        draw();
+        beginAnim3();
     });
 
     document.getElementById('btnRandomise3').addEventListener('click', function() {
         for (var i = 0; i < predLogits.length; i++) {
             predLogits[i] = (Math.random() - 0.3) * 6;
         }
-        draw();
+        beginAnim3();
     });
 
     document.getElementById('sTrueClass').addEventListener('input', function() {
         trueClass = parseInt(this.value);
         document.getElementById('vTrueClass').textContent = CLASS_NAMES[trueClass];
-        draw();
+        beginAnim3();
     });
 
-    /* Init */
-    draw();
+    beginAnim3();
 })();
 </script>
 

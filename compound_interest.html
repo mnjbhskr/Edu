@@ -78,6 +78,13 @@
         .tbill-val .num{color:#10b981;font-weight:bold}
         .tbill-val .lbl{color:#808098}
         .insight-box{background:rgba(16,185,129,0.04);border-left:3px solid rgba(16,185,129,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .anim-controls{display:flex;gap:8px;align-items:center;margin:10px 0}
+        .anim-controls .btn{display:inline-flex;align-items:center;gap:5px;font-size:0.85em;padding:4px 12px}
+        .anim-controls .btn svg{width:14px;height:14px;fill:currentColor}
+        .anim-status{font-size:0.78em;color:#606078;margin-left:8px}
+        @keyframes pulse-glow{0%,100%{box-shadow:0 0 0 rgba(16,185,129,0)}50%{box-shadow:0 0 18px rgba(16,185,129,0.3)}}
+        .canvas-wrap{position:relative;display:inline-block;width:100%}
+        .canvas-wrap canvas{width:100%}
         @media(max-width:600px){
             canvas{width:100%!important;height:auto!important}
             .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
@@ -102,10 +109,18 @@
     <h2>1. The Growth of &pound;1</h2>
     <div class="panel">
         <h3>Simple vs Compound Interest</h3>
-        <canvas id="growthCanvas" width="700" height="400"></canvas>
+        <div class="canvas-wrap">
+            <canvas id="growthCanvas" width="700" height="400"></canvas>
+        </div>
         <div class="grid-legend" id="growthLegend">
             <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Simple interest</span></div>
             <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Compound interest</span></div>
+        </div>
+        <div class="anim-controls">
+            <button class="btn" id="btnPlayGrowth"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Play</button>
+            <button class="btn" id="btnPauseGrowth" style="display:none"><svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg> Pause</button>
+            <button class="btn" id="btnResetGrowth"><svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.96 7.96 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg> Reset</button>
+            <span class="anim-status" id="growthStatus"></span>
         </div>
         <div class="btn-row">
             <button class="btn active" data-mode="both" id="btnBoth">Both</button>
@@ -138,8 +153,15 @@
     <h2>2. Compounding Frequency</h2>
     <div class="panel">
         <h3>How Often You Compound Matters &mdash; But Less Than You Think</h3>
-        <canvas id="freqCanvas" width="700" height="400"></canvas>
+        <div class="canvas-wrap">
+            <canvas id="freqCanvas" width="700" height="400"></canvas>
+        </div>
         <div class="grid-legend" id="freqLegend"></div>
+        <div class="anim-controls">
+            <button class="btn" id="btnPlayFreq"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Heartbeat</button>
+            <button class="btn" id="btnPauseFreq" style="display:none"><svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg> Pause</button>
+            <span class="anim-status" id="freqStatus"></span>
+        </div>
         <div class="slider-row">
             <label>Frequency:</label>
             <input type="range" id="s2Freq" min="0" max="6" value="0" step="1">
@@ -251,7 +273,9 @@
     <h2>5. Real vs Nominal &mdash; What Does 10% Actually Mean?</h2>
     <div class="panel">
         <h3>Fisher Equation: (1 + r<sub>real</sub>) = (1 + r<sub>nominal</sub>) / (1 + &pi;)</h3>
-        <canvas id="realCanvas" width="700" height="320"></canvas>
+        <div class="canvas-wrap">
+            <canvas id="realCanvas" width="700" height="320"></canvas>
+        </div>
         <div class="grid-legend" id="realLegend">
             <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Nominal value</span></div>
             <div class="legend-item"><div class="legend-swatch" style="background:#f87171"></div><span style="color:#f87171">Real value (inflation-adjusted)</span></div>
@@ -302,7 +326,21 @@
 <script>
 /* ══════════════════════════════════════════════════════════════
    Compound Interest & Time Value of Money — Chapter 11
+   Enhanced with rich animations, particle effects, and smooth transitions
    ══════════════════════════════════════════════════════════════ */
+
+/* ── HiDPI Canvas Setup ── */
+var DPR = window.devicePixelRatio || 1;
+
+function setupHiDPI(canvas, w, h) {
+    canvas.width = w * DPR;
+    canvas.height = h * DPR;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(DPR, DPR);
+    return ctx;
+}
 
 /* ── Helpers ── */
 function fmtMoney(v) {
@@ -312,22 +350,151 @@ function fmtMoney(v) {
 }
 function pct(v) { return (v * 100).toFixed(1) + '%'; }
 
+function niceStep(max, targetTicks) {
+    var rough = max / targetTicks;
+    var mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    var norm = rough / mag;
+    var step;
+    if (norm < 1.5) step = 1;
+    else if (norm < 3) step = 2;
+    else if (norm < 7) step = 5;
+    else step = 10;
+    return step * mag;
+}
+
+/* ── Easing functions ── */
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2; }
+
+/* ── Animated Number Counter ── */
+function animateCounter(el, targetVal, duration, formatFn) {
+    if (!formatFn) formatFn = fmtMoney;
+    var startVal = parseFloat(el.dataset.currentVal) || 0;
+    var startTime = null;
+    el.dataset.currentVal = targetVal;
+    function step(ts) {
+        if (!startTime) startTime = ts;
+        var p = Math.min((ts - startTime) / duration, 1);
+        var ep = easeOutCubic(p);
+        var cur = startVal + (targetVal - startVal) * ep;
+        el.textContent = formatFn(cur);
+        if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
+/* ── Particle System ── */
+function ParticleSystem() {
+    this.particles = [];
+}
+ParticleSystem.prototype.emit = function(x, y, count, color, opts) {
+    opts = opts || {};
+    for (var i = 0; i < count; i++) {
+        var angle = opts.angle !== undefined ? opts.angle + (Math.random() - 0.5) * (opts.spread || 1) : Math.random() * Math.PI * 2;
+        var speed = (opts.speed || 1.5) * (0.5 + Math.random());
+        this.particles.push({
+            x: x, y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed - (opts.gravity ? 0 : 0.5),
+            life: 1,
+            decay: 0.012 + Math.random() * 0.015,
+            size: (opts.size || 3) * (0.5 + Math.random()),
+            color: color,
+            type: opts.type || 'circle',
+            rotation: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random() - 0.5) * 0.15
+        });
+    }
+};
+ParticleSystem.prototype.update = function() {
+    for (var i = this.particles.length - 1; i >= 0; i--) {
+        var p = this.particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.03; /* gravity */
+        p.life -= p.decay;
+        p.rotation += p.rotSpeed;
+        if (p.life <= 0) this.particles.splice(i, 1);
+    }
+};
+ParticleSystem.prototype.draw = function(ctx) {
+    for (var i = 0; i < this.particles.length; i++) {
+        var p = this.particles[i];
+        ctx.save();
+        ctx.globalAlpha = p.life * 0.8;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        if (p.type === 'coin') {
+            /* Gold coin */
+            ctx.beginPath();
+            ctx.ellipse(0, 0, p.size * 1.2, p.size, 0, 0, Math.PI * 2);
+            ctx.fillStyle = p.color;
+            ctx.fill();
+            ctx.strokeStyle = '#d4a017';
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+            /* pound sign */
+            ctx.fillStyle = '#8B6914';
+            ctx.font = (p.size * 1.1) + 'px Georgia';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('\u00A3', 0, 0);
+        } else if (p.type === 'sparkle') {
+            /* 4-pointed star */
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            for (var j = 0; j < 4; j++) {
+                var a = (j / 4) * Math.PI * 2;
+                var outerR = p.size;
+                var innerR = p.size * 0.3;
+                ctx.lineTo(Math.cos(a) * outerR, Math.sin(a) * outerR);
+                var a2 = ((j + 0.5) / 4) * Math.PI * 2;
+                ctx.lineTo(Math.cos(a2) * innerR, Math.sin(a2) * innerR);
+            }
+            ctx.closePath();
+            ctx.fill();
+        } else {
+            /* circle */
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+            ctx.fillStyle = p.color;
+            ctx.fill();
+        }
+        ctx.restore();
+    }
+};
+
 /* ══════════════════════════════════════════════════════════════
-   Section 1: The Growth of £1
+   Section 1: The Growth of £1 — Animated Growth Race
    ══════════════════════════════════════════════════════════════ */
 var growthMode = 'both';
-var growthScale = 'linear'; // 'linear' | 'log'
+var growthScale = 'linear';
 var cvs1 = document.getElementById('growthCanvas');
-var ctx1 = cvs1.getContext('2d');
-var W1 = cvs1.width, H1 = cvs1.height;
+var LOGICAL_W1 = 700, LOGICAL_H1 = 400;
+var ctx1 = setupHiDPI(cvs1, LOGICAL_W1, LOGICAL_H1);
+var W1 = LOGICAL_W1, H1 = LOGICAL_H1;
 
 var PAD1 = { left: 70, right: 30, top: 30, bottom: 50 };
 
-function drawGrowth() {
+/* Animation state for Section 1 */
+var growthAnim = {
+    progress: 1,     /* 0–1: how much of the curve is drawn */
+    playing: false,
+    rafId: null,
+    particles: new ParticleSystem(),
+    lastCompoundVal: 1,
+    lastSimpleVal: 1,
+    sweepMode: false, /* auto-sweep the time slider */
+    sweepT: 0
+};
+
+function drawGrowthFrame() {
     var r = parseInt(document.getElementById('s1Rate').value) / 100;
     var T = parseInt(document.getElementById('s1Time').value);
     document.getElementById('v1Rate').textContent = Math.round(r * 100) + '%';
     document.getElementById('v1Time').textContent = T + ' yrs';
+
+    var prog = easeInOutCubic(growthAnim.progress);
 
     /* compute max values for axis scaling */
     var simpleMax = 1 + r * T;
@@ -358,13 +525,12 @@ function drawGrowth() {
     /* scale label */
     ctx1.fillStyle = growthScale === 'log' ? '#a78bfa' : '#505068';
     ctx1.font = '10px Georgia'; ctx1.textAlign = 'left'; ctx1.textBaseline = 'top';
-    ctx1.fillText(growthScale === 'log' ? 'Log scale — compound interest is a straight line' : 'Linear scale', PAD1.left + 4, PAD1.top + 4);
+    ctx1.fillText(growthScale === 'log' ? 'Log scale \u2014 compound interest is a straight line' : 'Linear scale', PAD1.left + 4, PAD1.top + 4);
 
     /* grid */
     ctx1.strokeStyle = 'rgba(255,255,255,0.04)';
     ctx1.lineWidth = 1;
     if (growthScale === 'log') {
-        /* log grid at powers of e or nice values */
         var logTicks = [];
         for (var p = 0; p <= Math.ceil(logMax); p += 0.5) { if (p <= logMax) logTicks.push(Math.exp(p)); }
         logTicks.forEach(function(yv) {
@@ -396,32 +562,89 @@ function drawGrowth() {
     ctx1.strokeStyle = 'rgba(255,255,255,0.18)'; ctx1.lineWidth = 1.5;
     ctx1.beginPath(); ctx1.moveTo(PAD1.left, PAD1.top); ctx1.lineTo(PAD1.left, H1 - PAD1.bottom); ctx1.lineTo(W1 - PAD1.right, H1 - PAD1.bottom); ctx1.stroke();
 
+    var drawT = T * prog; /* animated portion of the time axis */
+    var endDrawStep = Math.ceil(drawT);
+
     /* simple interest line */
+    var simEndX = 0, simEndY = 0, simEndVal = 1;
     if (growthMode === 'simple' || growthMode === 'both') {
-        ctx1.strokeStyle = '#fbbf24'; ctx1.lineWidth = 2; ctx1.globalAlpha = growthMode === 'both' ? 0.8 : 1;
+        ctx1.strokeStyle = '#fbbf24'; ctx1.lineWidth = 2.5; ctx1.globalAlpha = growthMode === 'both' ? 0.85 : 1;
         ctx1.beginPath();
-        for (var t = 0; t <= T; t++) {
+        for (var t = 0; t <= drawT; t += 0.25) {
             var sv = 1 + r * t;
             var px = tx(t), py = ty(sv);
             if (t === 0) ctx1.moveTo(px, py); else ctx1.lineTo(px, py);
+            simEndX = px; simEndY = py; simEndVal = sv;
         }
-        ctx1.stroke(); ctx1.globalAlpha = 1;
+        ctx1.stroke();
+        /* Glow effect on the drawing tip */
+        if (prog < 1) {
+            ctx1.beginPath();
+            ctx1.arc(simEndX, simEndY, 4, 0, Math.PI * 2);
+            ctx1.fillStyle = '#fbbf24';
+            ctx1.fill();
+            ctx1.beginPath();
+            ctx1.arc(simEndX, simEndY, 8, 0, Math.PI * 2);
+            ctx1.fillStyle = 'rgba(251,191,36,0.2)';
+            ctx1.fill();
+        }
+        ctx1.globalAlpha = 1;
     }
 
     /* compound interest curve */
+    var compEndX = 0, compEndY = 0, compEndVal = 1;
     if (growthMode === 'compound' || growthMode === 'both') {
-        ctx1.strokeStyle = '#10b981'; ctx1.lineWidth = 2;
+        /* Glowing gradient line */
+        ctx1.strokeStyle = '#10b981'; ctx1.lineWidth = 2.5;
+        ctx1.shadowColor = 'rgba(16,185,129,0.4)';
+        ctx1.shadowBlur = prog < 1 ? 8 : 0;
         ctx1.beginPath();
-        var steps = Math.max(T * 4, 100);
-        for (var i = 0; i <= steps; i++) {
+        var steps = Math.max(Math.ceil(drawT) * 4, 100);
+        var drawSteps = Math.floor(steps * prog);
+        for (var i = 0; i <= drawSteps; i++) {
             var t = (i / steps) * T;
+            if (t > drawT) t = drawT;
             var cv = Math.pow(1 + r, t);
             var px = tx(t), py = ty(cv);
             if (py < PAD1.top) py = PAD1.top;
             if (i === 0) ctx1.moveTo(px, py); else ctx1.lineTo(px, py);
+            compEndX = px; compEndY = py; compEndVal = cv;
         }
         ctx1.stroke();
+        ctx1.shadowBlur = 0;
+
+        /* Animated tip glow */
+        if (prog < 1) {
+            ctx1.beginPath();
+            ctx1.arc(compEndX, compEndY, 5, 0, Math.PI * 2);
+            ctx1.fillStyle = '#10b981';
+            ctx1.fill();
+            ctx1.beginPath();
+            ctx1.arc(compEndX, compEndY, 12, 0, Math.PI * 2);
+            ctx1.fillStyle = 'rgba(16,185,129,0.15)';
+            ctx1.fill();
+        }
     }
+
+    /* Emit coin particles at compound interest milestones during animation */
+    if (growthAnim.playing && prog < 1 && (growthMode === 'compound' || growthMode === 'both')) {
+        var currentYear = Math.floor(drawT);
+        var prevYear = Math.floor(drawT - 0.1);
+        if (currentYear > prevYear && currentYear >= 1) {
+            /* Emit coins at each year boundary */
+            var coinCount = Math.min(3 + Math.floor(currentYear / 5), 8);
+            growthAnim.particles.emit(compEndX, compEndY, coinCount, '#fbbf24', {
+                type: 'coin', angle: -Math.PI / 2, spread: 1.5, speed: 2, size: 4
+            });
+            growthAnim.particles.emit(compEndX, compEndY, 3, '#10b981', {
+                type: 'sparkle', angle: -Math.PI / 2, spread: 2, speed: 1.5, size: 3
+            });
+        }
+    }
+
+    /* Draw particles */
+    growthAnim.particles.update();
+    growthAnim.particles.draw(ctx1);
 
     /* log-scale annotation */
     if (growthScale === 'log') {
@@ -431,14 +654,14 @@ function drawGrowth() {
         if (growthMode !== 'compound') ctx1.fillText('Simple \u2192 concave curve on log scale', PAD1.left + 8, PAD1.top + 30);
     }
 
-    /* gap annotation at endpoint (linear only) */
-    if (growthScale === 'linear' && growthMode === 'both' && T > 5) {
-        var endSimple = 1 + r * T;
-        var endComp = Math.pow(1 + r, T);
+    /* gap annotation at current draw point (linear only) */
+    if (growthScale === 'linear' && growthMode === 'both' && drawT > 3) {
+        var endSimple = 1 + r * drawT;
+        var endComp = Math.pow(1 + r, drawT);
         var gap = endComp - endSimple;
         var ys = ty(endSimple), yc = ty(endComp);
-        var xEnd = tx(T) + 8;
-        if (yc >= PAD1.top + 10) {
+        var xEnd = tx(drawT) + 8;
+        if (yc >= PAD1.top + 10 && gap > 0.1) {
             ctx1.strokeStyle = 'rgba(16,185,129,0.4)'; ctx1.lineWidth = 1; ctx1.setLineDash([3, 3]);
             ctx1.beginPath(); ctx1.moveTo(xEnd, yc); ctx1.lineTo(xEnd, ys); ctx1.stroke();
             ctx1.setLineDash([]);
@@ -447,28 +670,138 @@ function drawGrowth() {
         }
     }
 
-    /* results display */
+    /* Animated endpoint value labels */
+    if (prog >= 0.95) {
+        var endS = 1 + r * T;
+        var endC = Math.pow(1 + r, T);
+        if ((growthMode === 'compound' || growthMode === 'both') && compEndY >= PAD1.top) {
+            ctx1.fillStyle = '#10b981'; ctx1.font = 'bold 12px "Courier New", monospace';
+            ctx1.textAlign = 'left'; ctx1.textBaseline = 'middle';
+            ctx1.fillText(fmtMoney(endC), tx(T) + 14, ty(endC));
+        }
+        if ((growthMode === 'simple' || growthMode === 'both') && simEndY >= PAD1.top) {
+            ctx1.fillStyle = '#fbbf24'; ctx1.font = 'bold 12px "Courier New", monospace';
+            ctx1.textAlign = 'left'; ctx1.textBaseline = 'middle';
+            var labelY = ty(endS);
+            if (growthMode === 'both' && Math.abs(labelY - ty(endC)) < 20) labelY += 18;
+            ctx1.fillText(fmtMoney(endS), tx(T) + 14, labelY);
+        }
+    }
+
+    /* results display — use animated counters for final values */
     var endS = 1 + r * T;
     var endC = Math.pow(1 + r, T);
-    /* rate sensitivity: ∂FV/∂r = T·(1+r)^(T-1) */
     var dFVdr = T * Math.pow(1 + r, T - 1);
+    var displayS = 1 + r * T * prog;
+    var displayC = Math.pow(1 + r, T * prog);
     var res = '';
-    res += '<span class="gold">Simple:</span> ' + fmtMoney(endS);
-    res += ' &nbsp;&nbsp; <span class="green">Compound:</span> ' + fmtMoney(endC);
-    res += ' &nbsp;&nbsp; <span class="muted">Gap:</span> ' + fmtMoney(endC - endS);
-    res += ' &nbsp;&nbsp; <span class="muted">&part;FV/&part;r:</span> <span style="color:#a78bfa">' + dFVdr.toFixed(1) + 'x</span>';
+    res += '<span class="gold">Simple:</span> ' + fmtMoney(displayS);
+    res += ' &nbsp;&nbsp; <span class="green">Compound:</span> ' + fmtMoney(displayC);
+    res += ' &nbsp;&nbsp; <span class="muted">Gap:</span> ' + fmtMoney(Math.max(0, displayC - displayS));
+    if (prog >= 1) res += ' &nbsp;&nbsp; <span class="muted">&part;FV/&part;r:</span> <span style="color:#a78bfa">' + dFVdr.toFixed(1) + 'x</span>';
     document.getElementById('growthResults').innerHTML = res;
 
-    /* insight — deepened with exponential explanation */
-    var ratio = endC / endS;
-    var insight = 'At ' + Math.round(r * 100) + '% over ' + T + ' years, compound interest produces ';
-    insight += ratio.toFixed(1) + '&times; as much as simple interest. ';
-    insight += '<strong>Compound growth is exponential because the growth rate applies to a base that itself grows</strong> &mdash; each period&rsquo;s interest earns interest in the next. ';
-    if (ratio > 3) insight += 'The exponential curve dramatically outpaces linear growth &mdash; this is the power of compounding. A 1% increase in rate from here would add an extra ' + fmtMoney(dFVdr * 0.01) + ' to the final value.';
-    else if (ratio > 1.5) insight += 'The compounding effect is already significant. On the <strong>log scale</strong>, compound interest becomes a straight line &mdash; confirming the exponential relationship. A 1% rate increase adds ' + fmtMoney(dFVdr * 0.01) + ' to the terminal value.';
-    else insight += 'Over shorter periods, the two stay close &mdash; try increasing the time horizon to see compounding dominate. Switch to log scale to see compound interest reveal its straight-line exponential structure.';
-    document.getElementById('growthInsight').innerHTML = insight;
+    /* insight */
+    if (prog >= 1) {
+        var ratio = endC / endS;
+        var insight = 'At ' + Math.round(r * 100) + '% over ' + T + ' years, compound interest produces ';
+        insight += ratio.toFixed(1) + '&times; as much as simple interest. ';
+        insight += '<strong>Compound growth is exponential because the growth rate applies to a base that itself grows</strong> &mdash; each period\u2019s interest earns interest in the next. ';
+        if (ratio > 3) insight += 'The exponential curve dramatically outpaces linear growth \u2014 this is the power of compounding. A 1% increase in rate from here would add an extra ' + fmtMoney(dFVdr * 0.01) + ' to the final value.';
+        else if (ratio > 1.5) insight += 'The compounding effect is already significant. On the <strong>log scale</strong>, compound interest becomes a straight line \u2014 confirming the exponential relationship. A 1% rate increase adds ' + fmtMoney(dFVdr * 0.01) + ' to the terminal value.';
+        else insight += 'Over shorter periods, the two stay close \u2014 try increasing the time horizon to see compounding dominate. Switch to log scale to see compound interest reveal its straight-line exponential structure.';
+        document.getElementById('growthInsight').innerHTML = insight;
+    }
 }
+
+function drawGrowth() {
+    growthAnim.progress = 1;
+    drawGrowthFrame();
+}
+
+/* Animation loop for Section 1 */
+function growthAnimLoop(ts) {
+    if (!growthAnim.playing) return;
+
+    if (growthAnim.sweepMode) {
+        /* Auto-sweep time slider from 1 to 50 */
+        growthAnim.sweepT += 0.15;
+        var sweepVal = Math.min(50, Math.ceil(growthAnim.sweepT));
+        document.getElementById('s1Time').value = sweepVal;
+        growthAnim.progress = 1;
+        drawGrowthFrame();
+        document.getElementById('growthStatus').textContent = 'Sweeping: ' + sweepVal + ' yrs';
+        if (sweepVal >= 50) {
+            growthAnim.sweepMode = false;
+            /* Now draw the curve animating */
+            growthAnim.progress = 0;
+        }
+        growthAnim.rafId = requestAnimationFrame(growthAnimLoop);
+        return;
+    }
+
+    growthAnim.progress += 0.006;
+    if (growthAnim.progress > 1) {
+        growthAnim.progress = 1;
+        growthAnim.playing = false;
+        document.getElementById('btnPlayGrowth').style.display = '';
+        document.getElementById('btnPauseGrowth').style.display = 'none';
+        document.getElementById('growthStatus').textContent = 'Complete';
+        /* Final burst of coins */
+        var r = parseInt(document.getElementById('s1Rate').value) / 100;
+        var T = parseInt(document.getElementById('s1Time').value);
+        var plotW = W1 - PAD1.left - PAD1.right;
+        var plotH = H1 - PAD1.top - PAD1.bottom;
+        var endX = PAD1.left + plotW;
+        var compVal = Math.pow(1 + r, T);
+        var yMax = Math.max(1 + r * T, compVal) * 1.1;
+        if (yMax < 2) yMax = 2;
+        var endY = PAD1.top + plotH - (compVal / yMax) * plotH;
+        if (endY < PAD1.top) endY = PAD1.top + 20;
+        growthAnim.particles.emit(endX, endY, 15, '#fbbf24', { type: 'coin', angle: -Math.PI / 2, spread: 2.5, speed: 3, size: 5 });
+        growthAnim.particles.emit(endX, endY, 10, '#10b981', { type: 'sparkle', angle: -Math.PI / 2, spread: 3, speed: 2, size: 4 });
+        /* Keep updating particles after animation ends */
+        function particleFade() {
+            if (growthAnim.particles.particles.length > 0) {
+                drawGrowthFrame();
+                requestAnimationFrame(particleFade);
+            }
+        }
+        requestAnimationFrame(particleFade);
+    }
+    drawGrowthFrame();
+    if (growthAnim.playing) growthAnim.rafId = requestAnimationFrame(growthAnimLoop);
+}
+
+/* Play/Pause/Reset controls for Section 1 */
+document.getElementById('btnPlayGrowth').addEventListener('click', function() {
+    if (growthAnim.playing) return;
+    growthAnim.playing = true;
+    growthAnim.progress = 0;
+    growthAnim.sweepMode = true;
+    growthAnim.sweepT = 1;
+    document.getElementById('s1Time').value = 1;
+    document.getElementById('btnPlayGrowth').style.display = 'none';
+    document.getElementById('btnPauseGrowth').style.display = '';
+    document.getElementById('growthStatus').textContent = 'Animating...';
+    growthAnim.rafId = requestAnimationFrame(growthAnimLoop);
+});
+document.getElementById('btnPauseGrowth').addEventListener('click', function() {
+    growthAnim.playing = false;
+    document.getElementById('btnPlayGrowth').style.display = '';
+    document.getElementById('btnPauseGrowth').style.display = 'none';
+    document.getElementById('growthStatus').textContent = 'Paused';
+});
+document.getElementById('btnResetGrowth').addEventListener('click', function() {
+    growthAnim.playing = false;
+    growthAnim.progress = 1;
+    growthAnim.sweepMode = false;
+    document.getElementById('s1Time').value = 30;
+    document.getElementById('btnPlayGrowth').style.display = '';
+    document.getElementById('btnPauseGrowth').style.display = 'none';
+    document.getElementById('growthStatus').textContent = '';
+    drawGrowth();
+});
 
 /* log/linear toggle */
 document.getElementById('btnLinear').addEventListener('click', function() {
@@ -483,18 +816,6 @@ document.getElementById('btnLog').addEventListener('click', function() {
     document.getElementById('btnLinear').classList.remove('active');
     drawGrowth();
 });
-
-function niceStep(max, targetTicks) {
-    var rough = max / targetTicks;
-    var mag = Math.pow(10, Math.floor(Math.log10(rough)));
-    var norm = rough / mag;
-    var step;
-    if (norm < 1.5) step = 1;
-    else if (norm < 3) step = 2;
-    else if (norm < 7) step = 5;
-    else step = 10;
-    return step * mag;
-}
 
 /* mode buttons */
 document.querySelectorAll('[data-mode]').forEach(function(btn) {
@@ -514,7 +835,7 @@ document.getElementById('s1Time').addEventListener('input', drawGrowth);
 });
 
 /* ══════════════════════════════════════════════════════════════
-   Section 2: Compounding Frequency
+   Section 2: Compounding Frequency — with Heartbeat Pulses
    ══════════════════════════════════════════════════════════════ */
 var FREQ_STEPS = [
     { n: 1,    label: 'Annual',      color: '#ef4444' },
@@ -527,11 +848,21 @@ var FREQ_STEPS = [
 ];
 
 var cvs2 = document.getElementById('freqCanvas');
-var ctx2 = cvs2.getContext('2d');
-var W2 = cvs2.width, H2 = cvs2.height;
+var LOGICAL_W2 = 700, LOGICAL_H2 = 400;
+var ctx2 = setupHiDPI(cvs2, LOGICAL_W2, LOGICAL_H2);
+var W2 = LOGICAL_W2, H2 = LOGICAL_H2;
 var PAD2 = { left: 70, right: 30, top: 30, bottom: 50 };
 
-function drawFreq() {
+/* Heartbeat animation state */
+var freqAnim = {
+    playing: false,
+    rafId: null,
+    time: 0,
+    particles: new ParticleSystem(),
+    pulses: []  /* {x, y, radius, maxRadius, alpha, color} */
+};
+
+function drawFreqFrame() {
     var freqIdx = parseInt(document.getElementById('s2Freq').value);
     var r = parseInt(document.getElementById('s2Rate').value) / 100;
     var T = parseInt(document.getElementById('s2Time').value);
@@ -539,7 +870,6 @@ function drawFreq() {
     document.getElementById('v2Rate').textContent = Math.round(r * 100) + '%';
     document.getElementById('v2Time').textContent = T + ' yrs';
 
-    /* y-axis max: continuous is always highest */
     var yMax = Math.exp(r * T) * 1.1;
     if (yMax < 2) yMax = 2;
 
@@ -573,6 +903,19 @@ function drawFreq() {
     ctx2.strokeStyle = 'rgba(255,255,255,0.18)'; ctx2.lineWidth = 1.5;
     ctx2.beginPath(); ctx2.moveTo(PAD2.left, PAD2.top); ctx2.lineTo(PAD2.left, H2 - PAD2.bottom); ctx2.lineTo(W2 - PAD2.right, H2 - PAD2.bottom); ctx2.stroke();
 
+    /* draw pulse rings (heartbeat effect) */
+    for (var pi = freqAnim.pulses.length - 1; pi >= 0; pi--) {
+        var pulse = freqAnim.pulses[pi];
+        ctx2.beginPath();
+        ctx2.arc(pulse.x, pulse.y, pulse.radius, 0, Math.PI * 2);
+        ctx2.strokeStyle = pulse.color.replace(')', ',' + (pulse.alpha * 0.6) + ')').replace('rgb', 'rgba');
+        ctx2.lineWidth = 2;
+        ctx2.stroke();
+        pulse.radius += 1.2;
+        pulse.alpha -= 0.02;
+        if (pulse.alpha <= 0) freqAnim.pulses.splice(pi, 1);
+    }
+
     /* draw all curves up to selected frequency */
     var steps = Math.max(T * 4, 100);
     for (var fi = 0; fi <= freqIdx; fi++) {
@@ -596,6 +939,23 @@ function drawFreq() {
         ctx2.stroke();
         ctx2.setLineDash([]);
         ctx2.globalAlpha = 1;
+
+        /* Draw compounding period markers for selected frequency */
+        if (isSelected && f.n !== Infinity && f.n <= 12) {
+            var totalPeriods = f.n * T;
+            var maxDots = Math.min(totalPeriods, 120);
+            for (var pd = 0; pd <= maxDots; pd++) {
+                var tPd = pd / f.n;
+                if (tPd > T) break;
+                var vPd = Math.pow(1 + r / f.n, f.n * tPd);
+                var dotX = tx(tPd), dotY = ty(vPd);
+                if (dotY < PAD2.top) continue;
+                ctx2.beginPath();
+                ctx2.arc(dotX, dotY, 2.5, 0, Math.PI * 2);
+                ctx2.fillStyle = f.color;
+                ctx2.fill();
+            }
+        }
     }
 
     /* always draw continuous as dashed reference if not already drawn */
@@ -611,6 +971,10 @@ function drawFreq() {
         }
         ctx2.stroke(); ctx2.setLineDash([]);
     }
+
+    /* Draw particles */
+    freqAnim.particles.update();
+    freqAnim.particles.draw(ctx2);
 
     /* legend */
     var legendDiv = document.getElementById('freqLegend');
@@ -629,7 +993,6 @@ function drawFreq() {
     var sel = FREQ_STEPS[freqIdx];
     var selVal = sel.n === Infinity ? Math.exp(r * T) : Math.pow(1 + r / sel.n, sel.n * T);
     var contVal = Math.exp(r * T);
-    /* EAR calculation */
     var ear = sel.n === Infinity ? Math.exp(r) - 1 : Math.pow(1 + r / sel.n, sel.n) - 1;
     var earMonthly = Math.pow(1 + r / 12, 12) - 1;
     var earCont = Math.exp(r) - 1;
@@ -646,7 +1009,6 @@ function drawFreq() {
     }
     document.getElementById('freqResults').innerHTML = res;
 
-    /* EAR line + monthly-vs-continuous punchline */
     var earHtml = '<span class="muted">Nominal rate:</span> <span class="green">' + pct(r) + '</span>';
     earHtml += ' &nbsp;&nbsp; <span class="muted">EAR = (1 + r/n)<sup>n</sup> &minus; 1 =</span> <span style="color:' + sel.color + '">' + pct(ear) + '</span>';
     if (sel.n !== Infinity) {
@@ -655,11 +1017,83 @@ function drawFreq() {
     }
     document.getElementById('earResults').innerHTML = earHtml;
 
-    /* formula */
     var formulaHtml = '<div class="math-line"><span class="muted">General:</span> (1 + <span class="green">r</span>/<span class="cyan">n</span>)<sup><span class="cyan">n</span>&middot;<span class="gold">t</span></sup></div>';
     formulaHtml += '<div class="math-line"><span class="muted">As n &rarr; &infin;:</span> (1 + <span class="green">' + pct(r) + '</span>/<span class="cyan">n</span>)<sup><span class="cyan">n</span>&middot;<span class="gold">' + T + '</span></sup> &rarr; e<sup><span class="green">' + pct(r) + '</span>&middot;<span class="gold">' + T + '</span></sup> = <span class="green">' + fmtMoney(contVal) + '</span></div>';
     document.getElementById('freqFormula').innerHTML = formulaHtml;
 }
+
+function drawFreq() { drawFreqFrame(); }
+
+/* Heartbeat animation: pulses appear at compounding intervals */
+function freqHeartbeatLoop(ts) {
+    if (!freqAnim.playing) return;
+    freqAnim.time += 1/60;
+
+    var freqIdx = parseInt(document.getElementById('s2Freq').value);
+    var r = parseInt(document.getElementById('s2Rate').value) / 100;
+    var T = parseInt(document.getElementById('s2Time').value);
+    var sel = FREQ_STEPS[freqIdx];
+
+    /* Heartbeat interval: map compounding frequency to visual pulse speed */
+    var beatInterval;
+    if (sel.n === Infinity) beatInterval = 0.15;
+    else if (sel.n >= 365) beatInterval = 0.08;
+    else if (sel.n >= 52) beatInterval = 0.2;
+    else if (sel.n >= 12) beatInterval = 0.4;
+    else if (sel.n >= 4) beatInterval = 0.8;
+    else if (sel.n >= 2) beatInterval = 1.2;
+    else beatInterval = 2.0;
+
+    /* Simulate time progressing along the curve */
+    var simTime = (freqAnim.time * 2) % T; /* loop through T years */
+    var plotW = W2 - PAD2.left - PAD2.right;
+    var plotH = H2 - PAD2.top - PAD2.bottom;
+    var yMax = Math.exp(r * T) * 1.1;
+    if (yMax < 2) yMax = 2;
+
+    /* Check if we should emit a pulse */
+    var periodLength = sel.n === Infinity ? 0.01 : 1 / sel.n;
+    var currentPeriod = Math.floor(simTime / periodLength);
+    var prevPeriod = Math.floor((simTime - 1/30) / periodLength);
+
+    if (currentPeriod > prevPeriod && currentPeriod > 0) {
+        var tPulse = currentPeriod * periodLength;
+        var vPulse = sel.n === Infinity ? Math.exp(r * tPulse) : Math.pow(1 + r / sel.n, sel.n * tPulse);
+        var px = PAD2.left + (tPulse / T) * plotW;
+        var py = PAD2.top + plotH - (vPulse / yMax) * plotH;
+        if (py >= PAD2.top && px <= W2 - PAD2.right) {
+            /* Convert hex colour to rgb for alpha */
+            var colHex = sel.color;
+            var rr = parseInt(colHex.slice(1,3),16), gg = parseInt(colHex.slice(3,5),16), bb = parseInt(colHex.slice(5,7),16);
+            freqAnim.pulses.push({ x: px, y: py, radius: 3, maxRadius: 25, alpha: 1, color: 'rgb(' + rr + ',' + gg + ',' + bb + ')' });
+
+            /* Sparkle particles */
+            if (sel.n <= 12) {
+                freqAnim.particles.emit(px, py, 2, sel.color, { type: 'sparkle', speed: 1, size: 2.5, angle: -Math.PI/2, spread: 2 });
+            }
+        }
+    }
+
+    document.getElementById('freqStatus').textContent = 'Year ' + Math.floor(simTime) + ' \u2014 ' + sel.label + ' compounding';
+
+    drawFreqFrame();
+    if (freqAnim.playing) freqAnim.rafId = requestAnimationFrame(freqHeartbeatLoop);
+}
+
+document.getElementById('btnPlayFreq').addEventListener('click', function() {
+    if (freqAnim.playing) return;
+    freqAnim.playing = true;
+    freqAnim.time = 0;
+    document.getElementById('btnPlayFreq').style.display = 'none';
+    document.getElementById('btnPauseFreq').style.display = '';
+    freqAnim.rafId = requestAnimationFrame(freqHeartbeatLoop);
+});
+document.getElementById('btnPauseFreq').addEventListener('click', function() {
+    freqAnim.playing = false;
+    document.getElementById('btnPlayFreq').style.display = '';
+    document.getElementById('btnPauseFreq').style.display = 'none';
+    document.getElementById('freqStatus').textContent = 'Paused';
+});
 
 document.getElementById('s2Freq').addEventListener('input', drawFreq);
 document.getElementById('s2Rate').addEventListener('input', drawFreq);
@@ -674,8 +1108,9 @@ document.getElementById('s2Time').addEventListener('input', drawFreq);
    ══════════════════════════════════════════════════════════════ */
 var cashFlows = [];
 var cvs3 = document.getElementById('discountCanvas');
-var ctx3 = cvs3.getContext('2d');
-var W3 = cvs3.width, H3 = cvs3.height;
+var LOGICAL_W3 = 700, LOGICAL_H3 = 450;
+var ctx3 = setupHiDPI(cvs3, LOGICAL_W3, LOGICAL_H3);
+var W3 = LOGICAL_W3, H3 = LOGICAL_H3;
 var PAD3 = { left: 55, right: 30, top: 45, bottom: 55 };
 var MAX_YEAR = 30;
 var CF_AMOUNT = 1000;
@@ -733,7 +1168,7 @@ function drawDiscount() {
         totalPV += cf._pv;
     });
 
-    /* which bars get labels (avoid clutter) */
+    /* which bars get labels */
     var labelSet = {};
     if (sorted.length <= 6) {
         sorted.forEach(function(cf) { labelSet[cf.year] = true; });
@@ -743,43 +1178,38 @@ function drawDiscount() {
         if (sorted.length > 12) labelSet[sorted[Math.floor(sorted.length / 3)].year] = true;
     }
 
-    /* detect bond pattern (has face property) */
     var isBond = sorted.some(function(cf) { return cf.face > 0; });
 
-    /* ── draw bars ── */
+    /* draw bars */
     sorted.forEach(function(cf) {
         var px = tx(cf.year);
         var barH = Math.max(15, (cf.amount / maxCF) * maxBarH);
         var pvH = Math.max(2, (cf._pv / maxCF) * maxBarH);
 
         if (cf.face) {
-            /* stacked bar: coupon (green bottom) + face (cyan top) */
             var cH = Math.max(12, (cf.coupon / maxCF) * maxBarH);
             var fH = Math.max(4, (cf.face / maxCF) * maxBarH);
-            /* face portion */
             ctx3.fillStyle = 'rgba(34,211,238,0.2)';
             ctx3.fillRect(px - barW / 2, timelineY - cH - fH, barW, fH);
             ctx3.strokeStyle = 'rgba(34,211,238,0.45)'; ctx3.lineWidth = 1;
             ctx3.strokeRect(px - barW / 2, timelineY - cH - fH, barW, fH);
-            /* coupon portion */
             ctx3.fillStyle = 'rgba(16,185,129,0.2)';
             ctx3.fillRect(px - barW / 2, timelineY - cH, barW, cH);
             ctx3.strokeStyle = 'rgba(16,185,129,0.45)'; ctx3.lineWidth = 1;
             ctx3.strokeRect(px - barW / 2, timelineY - cH, barW, cH);
         } else {
-            /* regular bar */
             ctx3.fillStyle = 'rgba(16,185,129,0.18)';
             ctx3.fillRect(px - barW / 2, timelineY - barH, barW, barH);
             ctx3.strokeStyle = 'rgba(16,185,129,0.45)'; ctx3.lineWidth = 1;
             ctx3.strokeRect(px - barW / 2, timelineY - barH, barW, barH);
         }
 
-        /* PV bar (gold, narrower, same baseline) */
+        /* PV bar */
         ctx3.fillStyle = 'rgba(251,191,36,0.5)';
         ctx3.fillRect(px - pvBarW / 2, timelineY - pvH, pvBarW, pvH);
     });
 
-    /* ── labels for selected bars ── */
+    /* labels for selected bars */
     sorted.forEach(function(cf) {
         if (!labelSet[cf.year]) return;
         var px = tx(cf.year);
@@ -791,7 +1221,7 @@ function drawDiscount() {
         ctx3.fillText('PV ' + fmtMoney(cf._pv), px, timelineY - barH - 22);
     });
 
-    /* ── bond annotations ── */
+    /* bond annotations */
     if (isBond) {
         var couponAmt = sorted[0].amount;
         ctx3.fillStyle = '#808098'; ctx3.font = '11px Georgia'; ctx3.textAlign = 'left'; ctx3.textBaseline = 'middle';
@@ -806,7 +1236,7 @@ function drawDiscount() {
         }
     }
 
-    /* ── discount arrows (max 3, representative) ── */
+    /* discount arrows */
     var arrowIdxs = [];
     if (sorted.length <= 3) {
         for (var i = 0; i < sorted.length; i++) arrowIdxs.push(i);
@@ -832,7 +1262,7 @@ function drawDiscount() {
         ctx3.closePath(); ctx3.fill();
     });
 
-    /* ── PV total bar at year 0 ── */
+    /* PV total bar at year 0 */
     var pvTotalH = Math.min(maxBarH * 0.85, Math.max(18, (totalPV / maxCF) * maxBarH));
     var todayX = tx(0);
     ctx3.fillStyle = 'rgba(251,191,36,0.2)';
@@ -843,7 +1273,8 @@ function drawDiscount() {
     ctx3.textAlign = 'right'; ctx3.textBaseline = 'middle';
     ctx3.fillText(fmtMoney(totalPV), todayX - barW / 2 - 6, timelineY - pvTotalH / 2);
 
-    document.getElementById('pvTotal').textContent = fmtMoney(totalPV);
+    /* Animated counter for PV total */
+    animateCounter(document.getElementById('pvTotal'), totalPV, 600);
 
     /* dynamic NPV equation */
     var npvDiv = document.getElementById('npvEquation');
@@ -860,25 +1291,16 @@ function drawDiscount() {
     } else {
         npvDiv.innerHTML = '';
     }
-    /* show IRR button only when multiple distinct cash flows exist */
     irrBtn.style.display = (sorted.length > 1) ? 'inline-block' : 'none';
 }
 
-/* IRR solver — Newton's method */
+/* IRR solver */
 document.getElementById('btnIRR').addEventListener('click', function() {
     var sorted = cashFlows.slice().sort(function(a, b) { return a.year - b.year; });
     if (sorted.length < 2) return;
-    /* seed with discount rate */
-    var irr = parseInt(document.getElementById('s3Rate').value) / 100;
-    var cost = sorted[0]._pv || sorted[0].amount / 2; /* approximate initial outflow as first PV */
-    /* treat all inflows as positive, no initial outflow — solve for rate that gives NPV=0 */
-    /* Use current PV as notional cost: NPV = -totalPV_at_0% + PV_at_irr = 0 not applicable here */
-    /* Instead: IRR = rate where PV of cash flows = initial investment (face value for bonds) */
     var irrDiv = document.getElementById('irrResult');
-    /* For pure inflow scenario (no outflow), IRR is not meaningful; guide user */
     var hasFace = sorted.some(function(cf) { return cf.face > 0; });
     if (hasFace) {
-        /* Bond IRR = yield to maturity. Solve: PV(cashflows at irr) = face value */
         var faceVal = sorted[sorted.length - 1].face;
         var r = 0.05;
         for (var iter = 0; iter < 60; iter++) {
@@ -892,9 +1314,8 @@ document.getElementById('btnIRR').addEventListener('click', function() {
             r -= npv / (dnpv || 1e-8);
             r = Math.max(0.0001, Math.min(0.99, r));
         }
-        irrDiv.innerHTML = '<span style="color:#a78bfa">IRR (Yield to Maturity):</span> <strong style="color:#10b981">' + pct(r) + '</strong> &mdash; the discount rate at which PV of all cash flows equals face value (' + fmtMoney(faceVal) + ')';
+        irrDiv.innerHTML = '<span style="color:#a78bfa">IRR (Yield to Maturity):</span> <strong style="color:#10b981">' + pct(r) + '</strong> \u2014 the discount rate at which PV of all cash flows equals face value (' + fmtMoney(faceVal) + ')';
     } else {
-        /* Generic IRR: PV of flows at irr = sum of all flows / (1+irr)^t; no natural cost basis here */
         irrDiv.innerHTML = '<span style="color:#808098">IRR requires an initial outflow. For the bond example, use <strong>Example: 30yr Bond</strong> to see yield to maturity.</span>';
     }
 });
@@ -902,14 +1323,13 @@ document.getElementById('btnIRR').addEventListener('click', function() {
 /* click to place cash flows */
 cvs3.addEventListener('click', function(e) {
     var rect = cvs3.getBoundingClientRect();
-    var scaleX = W3 / rect.width;
+    var scaleX = LOGICAL_W3 / rect.width;
     var mx = (e.clientX - rect.left) * scaleX;
     var plotW = W3 - PAD3.left - PAD3.right;
     var year = Math.round(((mx - PAD3.left) / plotW) * MAX_YEAR);
     if (year < 1) year = 1;
     if (year > MAX_YEAR) year = MAX_YEAR;
 
-    /* toggle: if cash flow already at this year, remove it */
     var existing = cashFlows.findIndex(function(cf) { return cf.year === year; });
     if (existing >= 0) {
         cashFlows.splice(existing, 1);
@@ -923,14 +1343,12 @@ document.getElementById('s3Rate').addEventListener('input', drawDiscount);
 document.getElementById('s3Rate').addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
 document.getElementById('s3Rate').addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
 
-/* preset buttons */
 document.getElementById('btnClearCF').addEventListener('click', function() {
     cashFlows = [];
     drawDiscount();
 });
 document.getElementById('btnExBond').addEventListener('click', function() {
     cashFlows = [];
-    /* 30-year bond: 5% coupon on £1,000 face = £50/yr, plus £1,000 face at maturity */
     for (var y = 1; y <= 29; y++) {
         cashFlows.push({ year: y, amount: 50 });
     }
@@ -948,21 +1366,16 @@ document.getElementById('btnExSingle').addEventListener('click', function() {
 function updateTBill() {
     var face = 10000;
     var days = parseInt(document.getElementById('s4Days').value);
-    /* slider range 5–80 maps to 0.5%–8.0% in 0.1% steps */
     var rate = parseInt(document.getElementById('s4Rate').value) / 10 / 100;
     document.getElementById('v4Days').textContent = days;
     document.getElementById('v4Rate').textContent = (rate * 100).toFixed(1) + '%';
 
-    /* Discount basis: Price = Face * (1 - rate * days/360) */
     var discPrice = face * (1 - rate * days / 360);
     var discAmt = face - discPrice;
-    /* Actual annualised yield from discount price: (Face - Price)/Price * 365/days */
     var discYield = (discAmt / discPrice) * (365 / days);
 
-    /* Investment yield: Price = Face / (1 + yield * days/365) */
     var invPrice = face / (1 + rate * days / 365);
     var invAmt = face - invPrice;
-    /* The yield IS the rate for this convention */
     var invYield = rate;
 
     document.getElementById('tbDiscPrice').textContent = fmtMoney(discPrice);
@@ -973,9 +1386,6 @@ function updateTBill() {
     document.getElementById('tbInvAmt').textContent = fmtMoney(invAmt);
     document.getElementById('tbInvYield').textContent = (invYield * 100).toFixed(2) + '%';
 
-    /* normalised comparison and bps understatement */
-    var bpsUnderstate = (discYield - rate) * 10000; /* disc yield > quoted rate, shows understatement of rate vs true */
-    /* More precisely: disc basis quotes 'rate' but true yield is discYield — difference is how much disc basis understates */
     var understateBps = (discYield - rate) * 10000;
     var cmpHtml = '<span class="muted">Both expressed as annualised yield on purchase price:</span>';
     cmpHtml += ' &nbsp; <span style="color:#fbbf24">Disc basis true yield: <strong>' + (discYield * 100).toFixed(2) + '%</strong></span>';
@@ -992,11 +1402,12 @@ document.getElementById('s4Rate').addEventListener('input', updateTBill);
 });
 
 /* ══════════════════════════════════════════════════════════════
-   Section 5: Real vs Nominal — Fisher Equation
+   Section 5: Real vs Nominal — Fisher Equation (Animated)
    ══════════════════════════════════════════════════════════════ */
 var cvs5 = document.getElementById('realCanvas');
-var ctx5 = cvs5.getContext('2d');
-var W5 = cvs5.width, H5 = cvs5.height;
+var LOGICAL_W5 = 700, LOGICAL_H5 = 320;
+var ctx5 = setupHiDPI(cvs5, LOGICAL_W5, LOGICAL_H5);
+var W5 = LOGICAL_W5, H5 = LOGICAL_H5;
 var PAD5 = { left: 70, right: 30, top: 30, bottom: 50 };
 
 function drawReal() {
@@ -1007,14 +1418,12 @@ function drawReal() {
     document.getElementById('v5Inf').textContent  = Math.round(pi * 100) + '%';
     document.getElementById('v5Time').textContent = T + ' yrs';
 
-    /* Fisher exact real rate */
     var rReal = (1 + rNom) / (1 + pi) - 1;
     var rApprox = rNom - pi;
 
     var plotW = W5 - PAD5.left - PAD5.right;
     var plotH = H5 - PAD5.top - PAD5.bottom;
 
-    /* end values */
     var nomEnd  = Math.pow(1 + rNom, T);
     var realEnd = Math.pow(1 + rReal, T);
     var yMax = nomEnd * 1.12;
@@ -1049,7 +1458,7 @@ function drawReal() {
     ctx5.strokeStyle = 'rgba(255,255,255,0.18)'; ctx5.lineWidth = 1.5;
     ctx5.beginPath(); ctx5.moveTo(PAD5.left, PAD5.top); ctx5.lineTo(PAD5.left, H5 - PAD5.bottom); ctx5.lineTo(W5 - PAD5.right, H5 - PAD5.bottom); ctx5.stroke();
 
-    /* inflation erosion fill between the two curves */
+    /* inflation erosion fill */
     ctx5.beginPath();
     var steps = Math.max(T * 4, 100);
     for (var i = 0; i <= steps; i++) {
@@ -1064,8 +1473,9 @@ function drawReal() {
     ctx5.fillStyle = 'rgba(248,113,113,0.07)';
     ctx5.fill();
 
-    /* nominal curve — green */
+    /* nominal curve */
     ctx5.strokeStyle = '#10b981'; ctx5.lineWidth = 2.2;
+    ctx5.shadowColor = 'rgba(16,185,129,0.3)'; ctx5.shadowBlur = 6;
     ctx5.beginPath();
     for (var i = 0; i <= steps; i++) {
         var t = (i / steps) * T;
@@ -1074,9 +1484,11 @@ function drawReal() {
         if (i === 0) ctx5.moveTo(tx(t), py); else ctx5.lineTo(tx(t), py);
     }
     ctx5.stroke();
+    ctx5.shadowBlur = 0;
 
-    /* real curve — red */
+    /* real curve */
     ctx5.strokeStyle = '#f87171'; ctx5.lineWidth = 2.2;
+    ctx5.shadowColor = 'rgba(248,113,113,0.3)'; ctx5.shadowBlur = 6;
     ctx5.beginPath();
     for (var i = 0; i <= steps; i++) {
         var t = (i / steps) * T;
@@ -1085,8 +1497,9 @@ function drawReal() {
         if (i === 0) ctx5.moveTo(tx(t), py); else ctx5.lineTo(tx(t), py);
     }
     ctx5.stroke();
+    ctx5.shadowBlur = 0;
 
-    /* gap annotation at end */
+    /* gap annotation */
     var ynomEnd = ty(nomEnd), yrealEnd = ty(realEnd);
     var xEnd = tx(T) + 8;
     if (ynomEnd >= PAD5.top + 10 && nomEnd !== realEnd) {
@@ -1095,6 +1508,16 @@ function drawReal() {
         ctx5.setLineDash([]);
         ctx5.fillStyle = '#f87171'; ctx5.font = '10px "Courier New",monospace'; ctx5.textAlign = 'left'; ctx5.textBaseline = 'middle';
         ctx5.fillText('inflation cost: \u2212' + fmtMoney(nomEnd - realEnd), xEnd + 4, (ynomEnd + yrealEnd) / 2);
+    }
+
+    /* endpoint labels */
+    if (ynomEnd >= PAD5.top) {
+        ctx5.fillStyle = '#10b981'; ctx5.font = 'bold 11px "Courier New",monospace'; ctx5.textAlign = 'right'; ctx5.textBaseline = 'bottom';
+        ctx5.fillText(fmtMoney(nomEnd), tx(T) - 4, ynomEnd - 4);
+    }
+    if (yrealEnd >= PAD5.top) {
+        ctx5.fillStyle = '#f87171'; ctx5.font = 'bold 11px "Courier New",monospace'; ctx5.textAlign = 'right'; ctx5.textBaseline = 'top';
+        ctx5.fillText(fmtMoney(realEnd), tx(T) - 4, yrealEnd + 4);
     }
 
     /* results */
@@ -1109,11 +1532,11 @@ function drawReal() {
     /* insight */
     var pct_lost = (1 - realEnd / nomEnd) * 100;
     var insHtml = 'A nominal return of <strong>' + Math.round(rNom * 100) + '%</strong> with inflation at <strong>' + Math.round(pi * 100) + '%</strong> delivers a real return of only <strong style="color:#fbbf24">' + pct(rReal) + '</strong> (Fisher exact). ';
-    insHtml += 'Over ' + T + ' years, <strong>' + pct_lost.toFixed(1) + '%</strong> of your nominal gains are eroded by inflation &mdash; the shaded gap above. ';
+    insHtml += 'Over ' + T + ' years, <strong>' + pct_lost.toFixed(1) + '%</strong> of your nominal gains are eroded by inflation \u2014 the shaded gap above. ';
     if (rReal <= 0) {
-        insHtml += '<strong style="color:#f87171">Warning: real return is negative. Inflation is outpacing the nominal rate &mdash; purchasing power is shrinking.</strong>';
+        insHtml += '<strong style="color:#f87171">Warning: real return is negative. Inflation is outpacing the nominal rate \u2014 purchasing power is shrinking.</strong>';
     } else {
-        insHtml += 'The Fisher approximation (r<sub>real</sub> &asymp; r<sub>nom</sub> &minus; &pi;) gives <strong>' + pct(rApprox) + '</strong> &mdash; accurate when inflation is low, increasingly imprecise as &pi; rises.';
+        insHtml += 'The Fisher approximation (r<sub>real</sub> \u2248 r<sub>nom</sub> \u2212 &pi;) gives <strong>' + pct(rApprox) + '</strong> \u2014 accurate when inflation is low, increasingly imprecise as &pi; rises.';
     }
     document.getElementById('realInsight').innerHTML = insHtml;
 }

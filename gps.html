@@ -133,6 +133,8 @@
             border: 1px solid rgba(34, 211, 238, 0.2);
             margin: 20px 0;
             border-radius: 4px;
+            width: 100%;
+            height: auto;
         }
 
         .btn-row {
@@ -358,6 +360,9 @@
 </nav><div class="difficulty-badge">Difficulty 3 · Advanced</div>
 
         <h1>How GPS Finds You</h1>
+        <div style="position:fixed;bottom:20px;right:20px;z-index:100">
+            <button class="btn active" id="btn-pause" onclick="togglePause()" style="padding:8px 18px;font-size:1em;background:rgba(34,211,238,0.13);border-color:rgba(34,211,238,0.4);color:#22d3ee">Pause</button>
+        </div>
         <p class="subtitle">From circles to spheres to relativity — the mathematics that pinpoints your location</p>
 
         <div class="narrative">
@@ -669,241 +674,304 @@ and satellite positions and times are known.
 
     <script>
         // ============================================
-        // SECTION 1: 2D TRILATERATION CANVAS
+        // GLOBAL: HiDPI support, animation state
         // ============================================
+        const DPR = window.devicePixelRatio || 1;
+        let paused = false;
+        let globalTime = 0;
 
-        const canvas2d = document.getElementById('canvas2d');
-        const ctx2d = canvas2d.getContext('2d');
+        function hiDPI(canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const w = parseInt(canvas.getAttribute('width')) || rect.width;
+            const h = parseInt(canvas.getAttribute('height')) || rect.height;
+            canvas.width = w * DPR;
+            canvas.height = h * DPR;
+            canvas.style.width = w + 'px';
+            canvas.style.height = 'auto';
+            const ctx = canvas.getContext('2d');
+            ctx.scale(DPR, DPR);
+            return { ctx: ctx, w: w, h: h };
+        }
 
-        // Satellite state for 2D
-        let satellites2d = [
-            { x: 200, y: 150, label: 'S1', color: '#ff6b6b' },
-            { x: 600, y: 180, label: 'S2', color: '#51cf66' },
-            { x: 400, y: 350, label: 'S3', color: '#4c6ef5' }
-        ];
+        // Pause/Play button wired at bottom
+        function togglePause() {
+            paused = !paused;
+            const btn = document.getElementById('btn-pause');
+            btn.textContent = paused ? 'Play' : 'Pause';
+            btn.classList.toggle('active', !paused);
+            if (!paused) requestAnimationFrame(animationLoop);
+        }
 
-        let receiverPos = { x: 400, y: 250 };
-        const baseRadii = [120, 100, 140];
-        let showCircles = true;
-        let draggingSat2d = null;
-
-        function distance(p1, p2) {
+        // ============================================
+        // SHARED HELPERS
+        // ============================================
+        function dist(p1, p2) {
             return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
         }
 
+        function mousePos(canvas, e, w, h) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (e.clientX - rect.left) * (w / rect.width),
+                y: (e.clientY - rect.top) * (h / rect.height)
+            };
+        }
+
+        // ============================================
+        // SECTION 1: 2D TRILATERATION (animated)
+        // ============================================
+        const canvas2d = document.getElementById('canvas2d');
+        const s1 = hiDPI(canvas2d);
+        const ctx2d = s1.ctx, W1 = s1.w, H1 = s1.h;
+
+        let satellites2d = [
+            { x: 200, y: 150, label: 'S1', color: '#ff6b6b', rgb: '255,107,107' },
+            { x: 600, y: 180, label: 'S2', color: '#51cf66', rgb: '81,207,102' },
+            { x: 400, y: 350, label: 'S3', color: '#4c6ef5', rgb: '76,110,245' }
+        ];
+        let receiverPos = { x: 400, y: 250 };
+        let showCircles = true;
+        let draggingSat2d = null;
+
+        // Sonar ripples state per satellite
+        const ripples2d = [
+            { phase: 0 }, { phase: 0.33 }, { phase: 0.66 }
+        ];
+
+        // Trilateration grow animation
+        let triGrow = 0; // 0..1 drives circle growth for trilateration demo
+        let triFound = false;
+        let triGlowAlpha = 0;
+
         function circleIntersection(c1, r1, c2, r2) {
-            const d = distance(c1, c2);
+            const d = dist(c1, c2);
             if (d > r1 + r2 || d < Math.abs(r1 - r2) || d === 0) return null;
-
-            const a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
-            const h = Math.sqrt(r1 * r1 - a * a);
-            const px = c1.x + (a * (c2.x - c1.x)) / d;
-            const py = c1.y + (a * (c2.y - c1.y)) / d;
-
-            const x3a = px + (h * (c2.y - c1.y)) / d;
-            const y3a = py - (h * (c2.x - c1.x)) / d;
-            const x3b = px - (h * (c2.y - c1.y)) / d;
-            const y3b = py + (h * (c2.x - c1.x)) / d;
-
+            const a = (r1*r1 - r2*r2 + d*d) / (2*d);
+            const hSq = r1*r1 - a*a;
+            if (hSq < 0) return null;
+            const h = Math.sqrt(hSq);
+            const px = c1.x + a*(c2.x-c1.x)/d;
+            const py = c1.y + a*(c2.y-c1.y)/d;
             return [
-                { x: x3a, y: y3a },
-                { x: x3b, y: y3b }
+                { x: px + h*(c2.y-c1.y)/d, y: py - h*(c2.x-c1.x)/d },
+                { x: px - h*(c2.y-c1.y)/d, y: py + h*(c2.x-c1.x)/d }
             ];
         }
 
         function findTrilateration() {
-            const int12 = circleIntersection(satellites2d[0], baseRadii[0], satellites2d[1], baseRadii[1]);
+            const r = satellites2d.map((s, i) => dist(s, receiverPos) || 120);
+            const int12 = circleIntersection(satellites2d[0], r[0], satellites2d[1], r[1]);
             if (!int12) return receiverPos;
-
-            let best = int12[0];
-            let bestDist = Infinity;
-
-            for (let point of int12) {
-                const d = Math.abs(distance(point, satellites2d[2]) - baseRadii[2]);
-                if (d < bestDist) {
-                    bestDist = d;
-                    best = point;
-                }
+            let best = int12[0], bestD = Infinity;
+            for (const p of int12) {
+                const d = Math.abs(dist(p, satellites2d[2]) - r[2]);
+                if (d < bestD) { bestD = d; best = p; }
             }
-
             return best;
         }
 
-        function draw2d() {
+        function draw2d(t) {
             ctx2d.fillStyle = '#0a0a1a';
-            ctx2d.fillRect(0, 0, canvas2d.width, canvas2d.height);
+            ctx2d.fillRect(0, 0, W1, H1);
 
             // Grid
-            ctx2d.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx2d.strokeStyle = 'rgba(255,255,255,0.03)';
             ctx2d.lineWidth = 1;
-            for (let i = 0; i < canvas2d.width; i += 50) {
-                ctx2d.beginPath();
-                ctx2d.moveTo(i, 0);
-                ctx2d.lineTo(i, canvas2d.height);
-                ctx2d.stroke();
-            }
-            for (let i = 0; i < canvas2d.height; i += 50) {
-                ctx2d.beginPath();
-                ctx2d.moveTo(0, i);
-                ctx2d.lineTo(canvas2d.width, i);
-                ctx2d.stroke();
-            }
+            for (let i = 0; i < W1; i += 50) { ctx2d.beginPath(); ctx2d.moveTo(i, 0); ctx2d.lineTo(i, H1); ctx2d.stroke(); }
+            for (let i = 0; i < H1; i += 50) { ctx2d.beginPath(); ctx2d.moveTo(0, i); ctx2d.lineTo(W1, i); ctx2d.stroke(); }
+
+            // Compute actual radii (distance to receiver)
+            const radii = satellites2d.map(s => dist(s, receiverPos));
 
             if (showCircles) {
-                // Draw distance circles
+                // Animated sonar ripples from each satellite
                 for (let i = 0; i < 3; i++) {
-                    ctx2d.strokeStyle = 'rgba(' + (i === 0 ? '255, 107, 107' : i === 1 ? '81, 207, 102' : '76, 110, 245') + ', 0.25)';
+                    const s = satellites2d[i];
+                    const maxR = radii[i] * 1.6;
+                    for (let r = 0; r < 3; r++) {
+                        const phase = ((t * 0.0004 + ripples2d[i].phase + r * 0.33) % 1);
+                        const radius = phase * maxR;
+                        const alpha = (1 - phase) * 0.25;
+                        ctx2d.strokeStyle = 'rgba(' + s.rgb + ',' + alpha + ')';
+                        ctx2d.lineWidth = 1.5;
+                        ctx2d.beginPath();
+                        ctx2d.arc(s.x, s.y, radius, 0, Math.PI * 2);
+                        ctx2d.stroke();
+                    }
+
+                    // Solid distance circle
+                    ctx2d.strokeStyle = 'rgba(' + s.rgb + ',0.3)';
                     ctx2d.lineWidth = 2;
                     ctx2d.setLineDash([6, 4]);
                     ctx2d.beginPath();
-                    ctx2d.arc(satellites2d[i].x, satellites2d[i].y, baseRadii[i], 0, Math.PI * 2);
+                    ctx2d.arc(s.x, s.y, radii[i], 0, Math.PI * 2);
                     ctx2d.stroke();
                     ctx2d.setLineDash([]);
                 }
             }
 
-            // Draw satellites
+            // Draw satellites (gold colour for satellites)
             for (let i = 0; i < 3; i++) {
-                ctx2d.fillStyle = satellites2d[i].color;
+                const s = satellites2d[i];
+                // Satellite body
+                ctx2d.fillStyle = '#fbbf24';
                 ctx2d.beginPath();
-                ctx2d.arc(satellites2d[i].x, satellites2d[i].y, 8, 0, Math.PI * 2);
+                ctx2d.arc(s.x, s.y, 8, 0, Math.PI * 2);
                 ctx2d.fill();
+                // Solar panels
+                ctx2d.fillStyle = 'rgba(251,191,36,0.4)';
+                ctx2d.fillRect(s.x - 18, s.y - 3, 10, 6);
+                ctx2d.fillRect(s.x + 8, s.y - 3, 10, 6);
 
                 ctx2d.fillStyle = '#e0e0e0';
                 ctx2d.font = '12px Georgia';
                 ctx2d.textAlign = 'center';
                 ctx2d.textBaseline = 'middle';
-                ctx2d.fillText(satellites2d[i].label, satellites2d[i].x, satellites2d[i].y - 18);
+                ctx2d.fillText(s.label, s.x, s.y - 18);
             }
 
-            // Draw receiver
+            // Draw receiver with glow
             receiverPos = findTrilateration();
-            ctx2d.fillStyle = '#22d3ee';
+            const glowPulse = 0.4 + 0.3 * Math.sin(t * 0.003);
+            ctx2d.shadowBlur = 18;
+            ctx2d.shadowColor = 'rgba(244,63,94,' + glowPulse + ')';
+            ctx2d.fillStyle = '#f43f5e';
             ctx2d.beginPath();
-            ctx2d.arc(receiverPos.x, receiverPos.y, 10, 0, Math.PI * 2);
+            ctx2d.arc(receiverPos.x, receiverPos.y, 7, 0, Math.PI * 2);
             ctx2d.fill();
-
-            ctx2d.strokeStyle = '#22d3ee';
-            ctx2d.lineWidth = 1;
-            ctx2d.setLineDash([4, 4]);
-            ctx2d.beginPath();
-            ctx2d.arc(receiverPos.x, receiverPos.y, 6, 0, Math.PI * 2);
-            ctx2d.stroke();
-            ctx2d.setLineDash([]);
+            ctx2d.shadowBlur = 0;
 
             ctx2d.fillStyle = '#e0e0e0';
             ctx2d.font = '11px Georgia';
             ctx2d.textAlign = 'center';
             ctx2d.textBaseline = 'top';
-            ctx2d.fillText('RX', receiverPos.x, receiverPos.y + 16);
+            ctx2d.fillText('You', receiverPos.x, receiverPos.y + 12);
         }
 
-        function onMouseDown2d(e) {
-            const rect = canvas2d.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            for (let i = 0; i < 3; i++) {
-                if (distance({ x, y }, satellites2d[i]) < 15) {
-                    draggingSat2d = i;
-                    break;
-                }
-            }
+        // Mouse/touch for 2D canvas
+        function onDown2d(e) {
+            e.preventDefault();
+            const ev = e.touches ? e.touches[0] : e;
+            const p = mousePos(canvas2d, ev, W1, H1);
+            for (let i = 0; i < 3; i++) { if (dist(p, satellites2d[i]) < 20) { draggingSat2d = i; break; } }
         }
-
-        function onMouseMove2d(e) {
+        function onMove2d(e) {
             if (draggingSat2d === null) return;
-
-            const rect = canvas2d.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            satellites2d[draggingSat2d].x = Math.max(20, Math.min(canvas2d.width - 20, x));
-            satellites2d[draggingSat2d].y = Math.max(20, Math.min(canvas2d.height - 20, y));
-
-            draw2d();
+            e.preventDefault();
+            const ev = e.touches ? e.touches[0] : e;
+            const p = mousePos(canvas2d, ev, W1, H1);
+            satellites2d[draggingSat2d].x = Math.max(20, Math.min(W1 - 20, p.x));
+            satellites2d[draggingSat2d].y = Math.max(20, Math.min(H1 - 20, p.y));
         }
+        function onUp2d() { draggingSat2d = null; }
 
-        function onMouseUp2d() {
-            draggingSat2d = null;
-        }
+        canvas2d.addEventListener('mousedown', onDown2d);
+        canvas2d.addEventListener('mousemove', onMove2d);
+        canvas2d.addEventListener('mouseup', onUp2d);
+        canvas2d.addEventListener('touchstart', onDown2d, { passive: false });
+        canvas2d.addEventListener('touchmove', onMove2d, { passive: false });
+        canvas2d.addEventListener('touchend', onUp2d);
 
-        canvas2d.addEventListener('mousedown', onMouseDown2d);
-        canvas2d.addEventListener('mousemove', onMouseMove2d);
-        canvas2d.addEventListener('mouseup', onMouseUp2d);
-
-        document.getElementById('btn-2d-view').addEventListener('click', function () {
+        document.getElementById('btn-2d-view').addEventListener('click', function() {
             showCircles = true;
-            document.getElementById('btn-2d-view').classList.add('active');
+            this.classList.add('active');
             document.getElementById('btn-2d-equations').classList.remove('active');
-            draw2d();
         });
-
-        document.getElementById('btn-2d-equations').addEventListener('click', function () {
+        document.getElementById('btn-2d-equations').addEventListener('click', function() {
             showCircles = false;
-            document.getElementById('btn-2d-equations').classList.add('active');
+            this.classList.add('active');
             document.getElementById('btn-2d-view').classList.remove('active');
-            draw2d();
         });
-
-        document.getElementById('btn-2d-reset').addEventListener('click', function () {
+        document.getElementById('btn-2d-reset').addEventListener('click', function() {
             satellites2d = [
-                { x: 200, y: 150, label: 'S1', color: '#ff6b6b' },
-                { x: 600, y: 180, label: 'S2', color: '#51cf66' },
-                { x: 400, y: 350, label: 'S3', color: '#4c6ef5' }
+                { x: 200, y: 150, label: 'S1', color: '#ff6b6b', rgb: '255,107,107' },
+                { x: 600, y: 180, label: 'S2', color: '#51cf66', rgb: '81,207,102' },
+                { x: 400, y: 350, label: 'S3', color: '#4c6ef5', rgb: '76,110,245' }
             ];
-            draw2d();
         });
 
-        draw2d();
-
         // ============================================
-        // SECTION 2: 3D SPHERES CANVAS
+        // SECTION 2: 3D SPHERES with orbiting satellites
         // ============================================
-
         const canvas3d = document.getElementById('canvas3d');
-        const ctx3d = canvas3d.getContext('2d');
+        const s2 = hiDPI(canvas3d);
+        const ctx3d = s2.ctx, W2 = s2.w, H2 = s2.h;
 
         let satellites3d = [
-            { x: 200, y: 150, z: 300, label: 'S1', color: '#ff6b6b' },
-            { x: -200, y: 150, z: 280, label: 'S2', color: '#51cf66' },
-            { x: 150, y: -200, z: 320, label: 'S3', color: '#4c6ef5' },
-            { x: -150, y: -180, z: 310, label: 'S4', color: '#ffd166' }
+            { x: 200, y: 150, z: 300, label: 'S1', color: '#fbbf24', orbitAngle: 0, orbitRadius: 200, orbitSpeed: 0.0003, orbitTilt: 0.3 },
+            { x: -200, y: 150, z: 280, label: 'S2', color: '#fbbf24', orbitAngle: Math.PI/2, orbitRadius: 220, orbitSpeed: 0.00025, orbitTilt: -0.2 },
+            { x: 150, y: -200, z: 320, label: 'S3', color: '#fbbf24', orbitAngle: Math.PI, orbitRadius: 190, orbitSpeed: 0.00035, orbitTilt: 0.5 },
+            { x: -150, y: -180, z: 310, label: 'S4', color: '#fbbf24', orbitAngle: Math.PI*1.5, orbitRadius: 210, orbitSpeed: 0.0002, orbitTilt: -0.4 }
         ];
 
-        const baseRadii3d = [180, 160, 200, 170];
-
-        function project3d(x, y, z, camDist = 800) {
+        function project3d(x, y, z, camDist) {
+            camDist = camDist || 800;
             const scale = camDist / (camDist + z);
-            return {
-                x: canvas3d.width / 2 + x * scale * 0.5,
-                y: canvas3d.height / 2 - y * scale * 0.5
-            };
+            return { x: W2 / 2 + x * scale * 0.5, y: H2 / 2 - y * scale * 0.5 };
         }
 
-        function draw3d() {
+        function draw3d(t) {
             ctx3d.fillStyle = '#0a0a1a';
-            ctx3d.fillRect(0, 0, canvas3d.width, canvas3d.height);
+            ctx3d.fillRect(0, 0, W2, H2);
 
-            // Draw wireframe spheres
+            // Update orbital positions
+            for (let s = 0; s < 4; s++) {
+                const sat = satellites3d[s];
+                sat.orbitAngle += sat.orbitSpeed * 16;
+                const baseX = parseFloat(document.getElementById('sat1x').value);
+                const baseY = parseFloat(document.getElementById('sat1y').value);
+                const baseZ = parseFloat(document.getElementById('sat1z').value);
+                if (s === 0) {
+                    sat.x = baseX + sat.orbitRadius * Math.cos(sat.orbitAngle);
+                    sat.y = baseY + sat.orbitRadius * Math.sin(sat.orbitAngle) * Math.cos(sat.orbitTilt);
+                    sat.z = baseZ + sat.orbitRadius * Math.sin(sat.orbitAngle) * Math.sin(sat.orbitTilt);
+                } else {
+                    const cx = s === 1 ? -200 : s === 2 ? 150 : -150;
+                    const cy = s === 1 ? 150 : s === 2 ? -200 : -180;
+                    const cz = s === 1 ? 280 : s === 2 ? 320 : 310;
+                    sat.x = cx + sat.orbitRadius * Math.cos(sat.orbitAngle);
+                    sat.y = cy + sat.orbitRadius * Math.sin(sat.orbitAngle) * Math.cos(sat.orbitTilt);
+                    sat.z = cz + sat.orbitRadius * Math.sin(sat.orbitAngle) * Math.sin(sat.orbitTilt);
+                }
+            }
+
+            // Draw orbital paths (teal)
+            for (let s = 0; s < 4; s++) {
+                const sat = satellites3d[s];
+                const cx = s === 0 ? parseFloat(document.getElementById('sat1x').value) : s === 1 ? -200 : s === 2 ? 150 : -150;
+                const cy = s === 0 ? parseFloat(document.getElementById('sat1y').value) : s === 1 ? 150 : s === 2 ? -200 : -180;
+                const cz = s === 0 ? parseFloat(document.getElementById('sat1z').value) : s === 1 ? 280 : s === 2 ? 320 : 310;
+
+                ctx3d.strokeStyle = 'rgba(45,212,191,0.15)';
+                ctx3d.lineWidth = 1;
+                ctx3d.beginPath();
+                for (let i = 0; i <= 64; i++) {
+                    const a = (i / 64) * Math.PI * 2;
+                    const px = cx + sat.orbitRadius * Math.cos(a);
+                    const py = cy + sat.orbitRadius * Math.sin(a) * Math.cos(sat.orbitTilt);
+                    const pz = cz + sat.orbitRadius * Math.sin(a) * Math.sin(sat.orbitTilt);
+                    const proj = project3d(px, py, pz);
+                    if (i === 0) ctx3d.moveTo(proj.x, proj.y);
+                    else ctx3d.lineTo(proj.x, proj.y);
+                }
+                ctx3d.closePath();
+                ctx3d.stroke();
+            }
+
+            // Wireframe spheres
+            const baseRadii3d = [180, 160, 200, 170];
             for (let s = 0; s < 4; s++) {
                 const sat = satellites3d[s];
                 const radius = baseRadii3d[s];
-
-                ctx3d.strokeStyle = 'rgba(' + (s === 0 ? '255, 107, 107' : s === 1 ? '81, 207, 102' : s === 2 ? '76, 110, 245' : '255, 209, 102') + ', 0.12)';
+                const rgbArr = ['255,191,36', '255,191,36', '255,191,36', '255,191,36'];
+                ctx3d.strokeStyle = 'rgba(' + rgbArr[s] + ',0.08)';
                 ctx3d.lineWidth = 1;
-
-                // Horizontal circles at different z levels
-                for (let zOffset = -radius; zOffset <= radius; zOffset += radius / 2) {
-                    const r = Math.sqrt(radius * radius - zOffset * zOffset);
-                    const steps = 32;
+                for (let zOff = -radius; zOff <= radius; zOff += radius / 2) {
+                    const r = Math.sqrt(radius * radius - zOff * zOff);
                     ctx3d.beginPath();
-                    for (let i = 0; i <= steps; i++) {
-                        const angle = (i / steps) * Math.PI * 2;
-                        const px = sat.x + r * Math.cos(angle);
-                        const py = sat.y + r * Math.sin(angle);
-                        const pz = sat.z + zOffset;
-                        const proj = project3d(px, py, pz);
+                    for (let i = 0; i <= 32; i++) {
+                        const a = (i / 32) * Math.PI * 2;
+                        const proj = project3d(sat.x + r * Math.cos(a), sat.y + r * Math.sin(a), sat.z + zOff);
                         if (i === 0) ctx3d.moveTo(proj.x, proj.y);
                         else ctx3d.lineTo(proj.x, proj.y);
                     }
@@ -915,306 +983,301 @@ and satellite positions and times are known.
             for (let s = 0; s < 4; s++) {
                 const sat = satellites3d[s];
                 const proj = project3d(sat.x, sat.y, sat.z);
-
-                ctx3d.fillStyle = sat.color;
+                ctx3d.fillStyle = '#fbbf24';
                 ctx3d.beginPath();
-                ctx3d.arc(proj.x, proj.y, 7, 0, Math.PI * 2);
+                ctx3d.arc(proj.x, proj.y, 6, 0, Math.PI * 2);
                 ctx3d.fill();
-
                 ctx3d.fillStyle = '#e0e0e0';
                 ctx3d.font = '11px Georgia';
                 ctx3d.textAlign = 'center';
                 ctx3d.textBaseline = 'bottom';
-                ctx3d.fillText(sat.label, proj.x, proj.y - 12);
+                ctx3d.fillText(sat.label, proj.x, proj.y - 10);
             }
 
-            // Draw receiver (intersection point, estimated)
-            const rxPos = { x: 0, y: 0, z: 0 };
-            const proj = project3d(rxPos.x, rxPos.y, rxPos.z);
-            ctx3d.fillStyle = '#22d3ee';
+            // Draw receiver (rose)
+            const proj = project3d(0, 0, 0);
+            const glow = 0.5 + 0.3 * Math.sin(t * 0.003);
+            ctx3d.shadowBlur = 14;
+            ctx3d.shadowColor = 'rgba(244,63,94,' + glow + ')';
+            ctx3d.fillStyle = '#f43f5e';
             ctx3d.beginPath();
-            ctx3d.arc(proj.x, proj.y, 9, 0, Math.PI * 2);
+            ctx3d.arc(proj.x, proj.y, 8, 0, Math.PI * 2);
             ctx3d.fill();
-
+            ctx3d.shadowBlur = 0;
             ctx3d.fillStyle = '#e0e0e0';
             ctx3d.font = '11px Georgia';
             ctx3d.textAlign = 'center';
             ctx3d.textBaseline = 'top';
-            ctx3d.fillText('RX', proj.x, proj.y + 14);
+            ctx3d.fillText('RX', proj.x, proj.y + 12);
         }
 
         function updateSliders3d() {
-            const val1x = parseFloat(document.getElementById('sat1x').value);
-            const val1y = parseFloat(document.getElementById('sat1y').value);
-            const val1z = parseFloat(document.getElementById('sat1z').value);
-
-            satellites3d[0].x = val1x;
-            satellites3d[0].y = val1y;
-            satellites3d[0].z = val1z;
-
-            document.getElementById('sat1x-val').textContent = val1x;
-            document.getElementById('sat1y-val').textContent = val1y;
-            document.getElementById('sat1z-val').textContent = val1z;
-
-            draw3d();
+            document.getElementById('sat1x-val').textContent = document.getElementById('sat1x').value;
+            document.getElementById('sat1y-val').textContent = document.getElementById('sat1y').value;
+            document.getElementById('sat1z-val').textContent = document.getElementById('sat1z').value;
         }
-
         document.getElementById('sat1x').addEventListener('input', updateSliders3d);
         document.getElementById('sat1y').addEventListener('input', updateSliders3d);
         document.getElementById('sat1z').addEventListener('input', updateSliders3d);
 
-        document.getElementById('btn-3d-reset').addEventListener('click', function () {
-            satellites3d = [
-                { x: 200, y: 150, z: 300, label: 'S1', color: '#ff6b6b' },
-                { x: -200, y: 150, z: 280, label: 'S2', color: '#51cf66' },
-                { x: 150, y: -200, z: 320, label: 'S3', color: '#4c6ef5' },
-                { x: -150, y: -180, z: 310, label: 'S4', color: '#ffd166' }
-            ];
+        document.getElementById('btn-3d-reset').addEventListener('click', function() {
+            satellites3d[0].orbitAngle = 0;
             document.getElementById('sat1x').value = 200;
             document.getElementById('sat1y').value = 150;
             document.getElementById('sat1z').value = 300;
             updateSliders3d();
         });
 
-        draw3d();
-
         // ============================================
-        // SECTION 3: CLOCK ERROR CANVAS
+        // SECTION 3: CLOCK ERROR with signal pulses
         // ============================================
-
         const canvasClock = document.getElementById('canvasClock');
-        const ctxClock = canvasClock.getContext('2d');
+        const s3 = hiDPI(canvasClock);
+        const ctxClock = s3.ctx, W3 = s3.w, H3 = s3.h;
 
-        function drawClockVisualization() {
+        // Signal pulse animation state
+        const signalPulses = [];
+        let lastPulseSpawn = 0;
+
+        function drawClockVis(t) {
             const clockError = parseFloat(document.getElementById('clockError').value);
-            const posError = clockError * 299.792; // metres per microsecond
-
+            const posError = clockError * 299.792;
             document.getElementById('clockError-val').textContent = clockError.toFixed(1);
             document.getElementById('posError-val').textContent = Math.abs(posError).toFixed(0);
 
             ctxClock.fillStyle = '#0a0a1a';
-            ctxClock.fillRect(0, 0, canvasClock.width, canvasClock.height);
+            ctxClock.fillRect(0, 0, W3, H3);
 
-            // Title
             ctxClock.fillStyle = '#e0e0e0';
             ctxClock.font = 'bold 14px Georgia';
             ctxClock.textAlign = 'left';
-            ctxClock.fillText('Clock Error Impact', 20, 30);
+            ctxClock.fillText('Signal Timing & Clock Error', 20, 30);
 
             // Earth
             ctxClock.fillStyle = '#1a7f6f';
             ctxClock.beginPath();
-            ctxClock.arc(100, 200, 40, 0, Math.PI * 2);
+            ctxClock.arc(100, 180, 40, 0, Math.PI * 2);
             ctxClock.fill();
             ctxClock.fillStyle = '#0a5050';
             ctxClock.font = '11px Georgia';
             ctxClock.textAlign = 'center';
             ctxClock.textBaseline = 'middle';
-            ctxClock.fillText('Earth', 100, 200);
+            ctxClock.fillText('Earth', 100, 180);
 
-            // Receiver
-            const rxX = 100;
-            const rxY = 200;
-            ctxClock.fillStyle = '#22d3ee';
+            // Receiver (rose)
+            const rxX = 100, rxY = 120;
+            ctxClock.shadowBlur = 10;
+            ctxClock.shadowColor = 'rgba(244,63,94,0.5)';
+            ctxClock.fillStyle = '#f43f5e';
             ctxClock.beginPath();
-            ctxClock.arc(rxX, rxY - 60, 6, 0, Math.PI * 2);
+            ctxClock.arc(rxX, rxY, 6, 0, Math.PI * 2);
             ctxClock.fill();
+            ctxClock.shadowBlur = 0;
 
-            // Error visualization
-            const errorScale = posError / 1000; // scale to visible range
-            const errorRadius = Math.max(20, Math.min(120, Math.abs(errorScale)));
-
+            // Error circle
+            const errorRadius = Math.max(15, Math.min(120, Math.abs(posError) / 10));
             if (Math.abs(clockError) > 0.05) {
-                ctxClock.strokeStyle = posError > 0 ? 'rgba(255, 107, 107, 0.4)' : 'rgba(51, 207, 102, 0.4)';
+                ctxClock.strokeStyle = posError > 0 ? 'rgba(255,107,107,0.35)' : 'rgba(81,207,102,0.35)';
                 ctxClock.lineWidth = 2;
                 ctxClock.setLineDash([4, 4]);
                 ctxClock.beginPath();
-                ctxClock.arc(rxX, rxY - 60, errorRadius, 0, Math.PI * 2);
+                ctxClock.arc(rxX, rxY, errorRadius, 0, Math.PI * 2);
                 ctxClock.stroke();
                 ctxClock.setLineDash([]);
             }
 
-            // Satellites
-            const satPositions = [
-                { x: 280, y: 100, label: 'S1' },
-                { x: 500, y: 120, label: 'S2' },
-                { x: 350, y: 320, label: 'S3' },
-                { x: 550, y: 280, label: 'S4' }
+            // Satellites & animated signal pulses
+            const sats = [
+                { x: 300, y: 80, label: 'S1' },
+                { x: 520, y: 100, label: 'S2' },
+                { x: 380, y: 300, label: 'S3' },
+                { x: 600, y: 260, label: 'S4' }
             ];
 
-            for (let sat of satPositions) {
-                ctxClock.fillStyle = '#4c6ef5';
+            // Spawn pulses periodically
+            if (t - lastPulseSpawn > 1800) {
+                lastPulseSpawn = t;
+                for (const sat of sats) {
+                    signalPulses.push({ sx: sat.x, sy: sat.y, tx: rxX, ty: rxY, progress: 0 });
+                }
+            }
+
+            // Draw signal lines
+            for (const sat of sats) {
+                ctxClock.strokeStyle = 'rgba(34,211,238,0.08)';
+                ctxClock.lineWidth = 1;
+                ctxClock.beginPath();
+                ctxClock.moveTo(sat.x, sat.y);
+                ctxClock.lineTo(rxX, rxY);
+                ctxClock.stroke();
+            }
+
+            // Animate pulses (cyan dots travelling from satellite to receiver)
+            for (let i = signalPulses.length - 1; i >= 0; i--) {
+                const p = signalPulses[i];
+                p.progress += 0.012;
+                if (p.progress > 1) { signalPulses.splice(i, 1); continue; }
+                const px = p.sx + (p.tx - p.sx) * p.progress;
+                const py = p.sy + (p.ty - p.sy) * p.progress;
+                const alpha = 1 - p.progress * 0.6;
+                ctxClock.fillStyle = 'rgba(34,211,238,' + alpha + ')';
+                ctxClock.beginPath();
+                ctxClock.arc(px, py, 3, 0, Math.PI * 2);
+                ctxClock.fill();
+            }
+
+            // Timer display near receiver
+            const timerVal = ((t % 2000) / 2000 * 0.067).toFixed(3);
+            ctxClock.fillStyle = '#22d3ee';
+            ctxClock.font = '10px Courier New, monospace';
+            ctxClock.textAlign = 'left';
+            ctxClock.fillText(timerVal + ' ms', rxX + 12, rxY - 2);
+
+            // Satellite markers (gold)
+            for (const sat of sats) {
+                ctxClock.fillStyle = '#fbbf24';
                 ctxClock.beginPath();
                 ctxClock.arc(sat.x, sat.y, 6, 0, Math.PI * 2);
                 ctxClock.fill();
-
                 ctxClock.fillStyle = '#b0b0c4';
                 ctxClock.font = '10px Georgia';
                 ctxClock.textAlign = 'center';
                 ctxClock.fillText(sat.label, sat.x, sat.y - 14);
             }
 
-            // Information box
-            ctxClock.fillStyle = 'rgba(34, 211, 238, 0.08)';
-            ctxClock.fillRect(20, 250, 750, 90);
-
+            // Info box
+            ctxClock.fillStyle = 'rgba(34,211,238,0.08)';
+            ctxClock.fillRect(20, 230, W3 - 40, 110);
             ctxClock.fillStyle = '#d0d0d8';
             ctxClock.font = '12px Georgia';
             ctxClock.textAlign = 'left';
             ctxClock.textBaseline = 'top';
-            ctxClock.fillText('Clock Bias Effect:', 30, 260);
+            ctxClock.fillText('Clock Bias Effect:', 30, 240);
             ctxClock.font = '11px Georgia';
-            ctxClock.fillText('Your receiver\'s clock is off by ' + clockError.toFixed(1) + ' microseconds.', 30, 280);
-            ctxClock.fillText('This causes a position error of ~' + Math.abs(posError).toFixed(0) + ' metres.', 30, 295);
-            ctxClock.fillText('The receiver solves for this bias using a fourth satellite, allowing it to correct the error.', 30, 310);
-            ctxClock.fillText('Without this fourth equation, position and time bias would be inseparable.', 30, 325);
+            ctxClock.fillText('Your receiver\u2019s clock is off by ' + clockError.toFixed(1) + ' microseconds.', 30, 260);
+            ctxClock.fillText('This causes a position error of ~' + Math.abs(posError).toFixed(0) + ' metres.', 30, 278);
+            ctxClock.fillText('The receiver solves for this bias using a fourth satellite, correcting the error.', 30, 296);
+            ctxClock.fillText('Without this fourth equation, position and time bias would be inseparable.', 30, 314);
         }
 
-        document.getElementById('clockError').addEventListener('input', drawClockVisualization);
-        drawClockVisualization();
+        document.getElementById('clockError').addEventListener('input', function() {});
 
         // ============================================
-        // SECTION 4: RELATIVISTIC DRIFT CANVAS
+        // SECTION 4: RELATIVISTIC DRIFT
         // ============================================
-
         const canvasRelativity = document.getElementById('canvasRelativity');
-        const ctxRelativity = canvasRelativity.getContext('2d');
+        const s4 = hiDPI(canvasRelativity);
+        const ctxRel = s4.ctx, W4 = s4.w, H4 = s4.h;
 
-        function drawRelativityChart() {
+        function drawRelativity(t) {
             const hoursElapsed = parseFloat(document.getElementById('timeElapsed').value);
             const daysElapsed = hoursElapsed / 24;
-
-            const errorWithout = daysElapsed * 11.4; // km/day
-            const errorWith = daysElapsed * 0.05; // minimal with correction
+            const errorWithout = daysElapsed * 11.4;
+            const errorWith = daysElapsed * 0.05;
 
             let timeLabel = '';
-            if (hoursElapsed < 1) {
-                timeLabel = Math.round(hoursElapsed * 60) + ' minutes';
-            } else if (hoursElapsed < 24) {
-                timeLabel = hoursElapsed.toFixed(1) + ' hours';
-            } else {
-                timeLabel = daysElapsed.toFixed(2) + ' days';
-            }
-
+            if (hoursElapsed < 1) timeLabel = Math.round(hoursElapsed * 60) + ' minutes';
+            else if (hoursElapsed < 24) timeLabel = hoursElapsed.toFixed(1) + ' hours';
+            else timeLabel = daysElapsed.toFixed(2) + ' days';
             document.getElementById('timeElapsed-val').textContent = timeLabel;
 
-            ctxRelativity.fillStyle = '#0a0a1a';
-            ctxRelativity.fillRect(0, 0, canvasRelativity.width, canvasRelativity.height);
+            ctxRel.fillStyle = '#0a0a1a';
+            ctxRel.fillRect(0, 0, W4, H4);
 
-            // Title
-            ctxRelativity.fillStyle = '#e0e0e0';
-            ctxRelativity.font = 'bold 14px Georgia';
-            ctxRelativity.textAlign = 'left';
-            ctxRelativity.fillText('Relativistic Error Accumulation Over Time', 20, 30);
+            ctxRel.fillStyle = '#e0e0e0';
+            ctxRel.font = 'bold 14px Georgia';
+            ctxRel.textAlign = 'left';
+            ctxRel.fillText('Relativistic Error Accumulation Over Time', 20, 30);
+
+            const gX = 80, gY = 60, gW = W4 - 100, gH = 280;
 
             // Axes
-            const graphX = 80;
-            const graphY = 60;
-            const graphW = 700;
-            const graphH = 280;
-
-            ctxRelativity.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-            ctxRelativity.lineWidth = 1;
-            ctxRelativity.beginPath();
-            ctxRelativity.moveTo(graphX, graphY);
-            ctxRelativity.lineTo(graphX, graphY + graphH);
-            ctxRelativity.lineTo(graphX + graphW, graphY + graphH);
-            ctxRelativity.stroke();
+            ctxRel.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctxRel.lineWidth = 1;
+            ctxRel.beginPath();
+            ctxRel.moveTo(gX, gY); ctxRel.lineTo(gX, gY + gH); ctxRel.lineTo(gX + gW, gY + gH);
+            ctxRel.stroke();
 
             // Grid
-            ctxRelativity.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-            for (let i = 1; i < 5; i++) {
-                ctxRelativity.beginPath();
-                ctxRelativity.moveTo(graphX, graphY + (graphH / 5) * i);
-                ctxRelativity.lineTo(graphX + graphW, graphY + (graphH / 5) * i);
-                ctxRelativity.stroke();
-            }
+            ctxRel.strokeStyle = 'rgba(255,255,255,0.05)';
+            for (let i = 1; i < 5; i++) { ctxRel.beginPath(); ctxRel.moveTo(gX, gY + gH / 5 * i); ctxRel.lineTo(gX + gW, gY + gH / 5 * i); ctxRel.stroke(); }
 
             // Labels
-            ctxRelativity.fillStyle = '#8080a0';
-            ctxRelativity.font = '10px Georgia';
-            ctxRelativity.textAlign = 'right';
-            ctxRelativity.textBaseline = 'middle';
-            for (let i = 0; i <= 5; i++) {
-                const km = (i / 5) * 14;
-                ctxRelativity.fillText(km.toFixed(1) + ' km', graphX - 8, graphY + graphH - (graphH / 5) * i);
-            }
+            ctxRel.fillStyle = '#8080a0';
+            ctxRel.font = '10px Georgia';
+            ctxRel.textAlign = 'right';
+            ctxRel.textBaseline = 'middle';
+            for (let i = 0; i <= 5; i++) ctxRel.fillText(((i / 5) * 14).toFixed(1) + ' km', gX - 8, gY + gH - gH / 5 * i);
 
-            // Time axis
-            ctxRelativity.textAlign = 'center';
-            ctxRelativity.textBaseline = 'top';
-            for (let i = 0; i <= 5; i++) {
-                const t = (i / 5) * 7;
-                ctxRelativity.fillText(t.toFixed(1) + 'h', graphX + (graphW / 5) * i, graphY + graphH + 8);
-            }
+            ctxRel.textAlign = 'center';
+            ctxRel.textBaseline = 'top';
+            for (let i = 0; i <= 5; i++) ctxRel.fillText(((i / 5) * 7).toFixed(1) + 'h', gX + gW / 5 * i, gY + gH + 8);
 
-            // Draw curves
-            const maxTime = 7;
-            const maxError = 14; // km
+            const maxT = 7, maxE = 14;
 
             // Without corrections (red)
-            ctxRelativity.strokeStyle = '#ff6b6b';
-            ctxRelativity.lineWidth = 2.5;
-            ctxRelativity.beginPath();
-            for (let t = 0; t <= maxTime; t += 0.05) {
-                const err = (t / 24) * 11.4;
-                const screenErr = Math.min(err / maxError, 1) * graphH;
-                const x = graphX + (t / maxTime) * graphW;
-                const y = graphY + graphH - screenErr;
-                if (t === 0) ctxRelativity.moveTo(x, y);
-                else ctxRelativity.lineTo(x, y);
+            ctxRel.strokeStyle = '#ff6b6b';
+            ctxRel.lineWidth = 2.5;
+            ctxRel.beginPath();
+            for (let tt = 0; tt <= maxT; tt += 0.05) {
+                const err = (tt / 24) * 11.4;
+                const x = gX + (tt / maxT) * gW;
+                const y = gY + gH - Math.min(err / maxE, 1) * gH;
+                tt === 0 ? ctxRel.moveTo(x, y) : ctxRel.lineTo(x, y);
             }
-            ctxRelativity.stroke();
+            ctxRel.stroke();
 
             // With corrections (cyan)
-            ctxRelativity.strokeStyle = '#22d3ee';
-            ctxRelativity.lineWidth = 2.5;
-            ctxRelativity.beginPath();
-            for (let t = 0; t <= maxTime; t += 0.05) {
-                const err = (t / 24) * 0.05;
-                const screenErr = (err / maxError) * graphH;
-                const x = graphX + (t / maxTime) * graphW;
-                const y = graphY + graphH - screenErr;
-                if (t === 0) ctxRelativity.moveTo(x, y);
-                else ctxRelativity.lineTo(x, y);
+            ctxRel.strokeStyle = '#22d3ee';
+            ctxRel.lineWidth = 2.5;
+            ctxRel.beginPath();
+            for (let tt = 0; tt <= maxT; tt += 0.05) {
+                const err = (tt / 24) * 0.05;
+                const x = gX + (tt / maxT) * gW;
+                const y = gY + gH - (err / maxE) * gH;
+                tt === 0 ? ctxRel.moveTo(x, y) : ctxRel.lineTo(x, y);
             }
-            ctxRelativity.stroke();
+            ctxRel.stroke();
 
             // Current time marker
-            const currentX = graphX + (hoursElapsed / maxTime) * graphW;
-            ctxRelativity.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctxRelativity.lineWidth = 1;
-            ctxRelativity.setLineDash([4, 4]);
-            ctxRelativity.beginPath();
-            ctxRelativity.moveTo(currentX, graphY);
-            ctxRelativity.lineTo(currentX, graphY + graphH);
-            ctxRelativity.stroke();
-            ctxRelativity.setLineDash([]);
+            const cx = gX + (hoursElapsed / maxT) * gW;
+            ctxRel.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctxRel.lineWidth = 1;
+            ctxRel.setLineDash([4, 4]);
+            ctxRel.beginPath(); ctxRel.moveTo(cx, gY); ctxRel.lineTo(cx, gY + gH); ctxRel.stroke();
+            ctxRel.setLineDash([]);
 
-            // Current values
-            ctxRelativity.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctxRelativity.fillRect(currentX - 100, graphY + graphH + 30, 200, 60);
+            // Pulsing dot on the "without" line at current time
+            const curErr = (hoursElapsed / 24) * 11.4;
+            const dotY = gY + gH - Math.min(curErr / maxE, 1) * gH;
+            const pulse = 4 + 2 * Math.sin(t * 0.004);
+            ctxRel.fillStyle = '#ff6b6b';
+            ctxRel.beginPath();
+            ctxRel.arc(cx, dotY, pulse, 0, Math.PI * 2);
+            ctxRel.fill();
 
-            ctxRelativity.fillStyle = '#ff6b6b';
-            ctxRelativity.font = 'bold 11px Georgia';
-            ctxRelativity.textAlign = 'center';
-            ctxRelativity.fillText('Without correction:', currentX, graphY + graphH + 40);
-            ctxRelativity.fillText(errorWithout.toFixed(2) + ' km', currentX, graphY + graphH + 54);
-
-            ctxRelativity.fillStyle = '#22d3ee';
-            ctxRelativity.fillText('With relativistic fix:', currentX, graphY + graphH + 73);
-            ctxRelativity.fillText(errorWith.toFixed(3) + ' km', currentX, graphY + graphH + 87);
+            // Values box
+            ctxRel.fillStyle = 'rgba(0,0,0,0.6)';
+            const bx = Math.min(cx - 90, W4 - 200);
+            ctxRel.fillRect(bx, gY + gH + 28, 180, 60);
+            ctxRel.fillStyle = '#ff6b6b';
+            ctxRel.font = 'bold 11px Georgia';
+            ctxRel.textAlign = 'center';
+            ctxRel.fillText('Without correction:', bx + 90, gY + gH + 38);
+            ctxRel.fillText(errorWithout.toFixed(2) + ' km', bx + 90, gY + gH + 52);
+            ctxRel.fillStyle = '#22d3ee';
+            ctxRel.fillText('With relativistic fix:', bx + 90, gY + gH + 68);
+            ctxRel.fillText(errorWith.toFixed(3) + ' km', bx + 90, gY + gH + 82);
         }
 
-        document.getElementById('timeElapsed').addEventListener('input', drawRelativityChart);
-        drawRelativityChart();
+        document.getElementById('timeElapsed').addEventListener('input', function() {});
 
         // ============================================
-        // SECTION 5: GEOMETRIC DOP CANVAS
+        // SECTION 5: DOP with error ellipse animation
         // ============================================
-
         const canvasDOP = document.getElementById('canvasDOP');
-        const ctxDOP = canvasDOP.getContext('2d');
+        const s5 = hiDPI(canvasDOP);
+        const ctxDOP = s5.ctx, W5 = s5.w, H5 = s5.h;
 
         let dopSatellites = [
             { angle: 45, distance: 250, label: 'S1', color: '#ff6b6b' },
@@ -1222,75 +1285,66 @@ and satellite positions and times are known.
             { angle: 225, distance: 250, label: 'S3', color: '#4c6ef5' },
             { angle: 315, distance: 250, label: 'S4', color: '#ffd166' }
         ];
-
         let draggingDOP = null;
+        let dopVisibleCount = 4; // for error ellipse animation
+        let dopEllipseAnim = 0;
 
         function calculateGDOP() {
-            // Simplified GDOP calculation based on satellite distribution
-            let sumX = 0, sumY = 0, sumDist = 0;
-
-            for (let sat of dopSatellites) {
-                const rad = (sat.angle * Math.PI) / 180;
+            let sumX = 0, sumY = 0;
+            for (const sat of dopSatellites) {
+                const rad = sat.angle * Math.PI / 180;
                 sumX += Math.cos(rad);
                 sumY += Math.sin(rad);
-                sumDist += sat.distance;
             }
-
-            const avgDist = sumDist / dopSatellites.length;
-            const spreadX = Math.abs(sumX);
-            const spreadY = Math.abs(sumY);
-            const spread = Math.sqrt(spreadX * spreadX + spreadY * spreadY) / dopSatellites.length;
-
-            // GDOP inversely related to spread
-            const gdop = 8 / (0.5 + spread);
-            return Math.min(gdop, 10).toFixed(2);
+            const spread = Math.sqrt(sumX * sumX + sumY * sumY) / dopSatellites.length;
+            return Math.min(8 / (0.5 + spread), 10).toFixed(2);
         }
 
-        function drawDOP() {
+        function drawDOP(t) {
             ctxDOP.fillStyle = '#0a0a1a';
-            ctxDOP.fillRect(0, 0, canvasDOP.width, canvasDOP.height);
+            ctxDOP.fillRect(0, 0, W5, H5);
 
-            const centerX = canvasDOP.width / 2;
-            const centerY = canvasDOP.height / 2 - 20;
+            const cx = W5 / 2, cy = H5 / 2 - 20;
 
-            // Compass rose
-            ctxDOP.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+            // Compass
+            ctxDOP.strokeStyle = 'rgba(255,255,255,0.08)';
             ctxDOP.lineWidth = 1;
-            for (let angle = 0; angle < 360; angle += 45) {
-                const rad = (angle * Math.PI) / 180;
-                const r = 280;
-                const x = centerX + r * Math.cos(rad);
-                const y = centerY + r * Math.sin(rad);
-                ctxDOP.beginPath();
-                ctxDOP.moveTo(centerX, centerY);
-                ctxDOP.lineTo(x, y);
-                ctxDOP.stroke();
+            for (let a = 0; a < 360; a += 45) {
+                const rad = a * Math.PI / 180;
+                ctxDOP.beginPath(); ctxDOP.moveTo(cx, cy); ctxDOP.lineTo(cx + 280 * Math.cos(rad), cy + 280 * Math.sin(rad)); ctxDOP.stroke();
             }
 
-            // Cardinal directions
             ctxDOP.fillStyle = '#6060a0';
             ctxDOP.font = '11px Georgia';
             ctxDOP.textAlign = 'center';
             ctxDOP.textBaseline = 'middle';
-            ctxDOP.fillText('N', centerX, centerY - 300);
-            ctxDOP.fillText('S', centerX, centerY + 300);
-            ctxDOP.fillText('E', centerX + 300, centerY);
-            ctxDOP.fillText('W', centerX - 300, centerY);
+            ctxDOP.fillText('N', cx, cy - 300);
+            ctxDOP.fillText('S', cx, cy + 300);
+            ctxDOP.fillText('E', cx + 300, cy);
+            ctxDOP.fillText('W', cx - 300, cy);
 
-            // Horizon circles
-            ctxDOP.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-            for (let r = 100; r <= 280; r += 70) {
-                ctxDOP.beginPath();
-                ctxDOP.arc(centerX, centerY, r, 0, Math.PI * 2);
-                ctxDOP.stroke();
-            }
+            ctxDOP.strokeStyle = 'rgba(255,255,255,0.05)';
+            for (let r = 100; r <= 280; r += 70) { ctxDOP.beginPath(); ctxDOP.arc(cx, cy, r, 0, Math.PI * 2); ctxDOP.stroke(); }
 
-            // Draw satellites
+            // Error ellipse (animated, shrinks with better GDOP)
+            const gdopVal = parseFloat(calculateGDOP());
+            const ellipseScale = gdopVal * 6;
+            const breathe = 1 + 0.08 * Math.sin(t * 0.002);
+            const eColor = gdopVal < 4 ? '81,207,102' : gdopVal < 8 ? '255,209,102' : '255,107,107';
+            ctxDOP.strokeStyle = 'rgba(' + eColor + ',0.3)';
+            ctxDOP.fillStyle = 'rgba(' + eColor + ',0.06)';
+            ctxDOP.lineWidth = 1.5;
+            ctxDOP.beginPath();
+            ctxDOP.ellipse(cx, cy, ellipseScale * breathe * 1.3, ellipseScale * breathe * 0.8, Math.PI / 6, 0, Math.PI * 2);
+            ctxDOP.fill();
+            ctxDOP.stroke();
+
+            // Satellites
             for (let i = 0; i < dopSatellites.length; i++) {
                 const sat = dopSatellites[i];
-                const rad = (sat.angle * Math.PI) / 180;
-                const x = centerX + sat.distance * Math.cos(rad);
-                const y = centerY + sat.distance * Math.sin(rad);
+                const rad = sat.angle * Math.PI / 180;
+                const x = cx + sat.distance * Math.cos(rad);
+                const y = cy + sat.distance * Math.sin(rad);
 
                 ctxDOP.fillStyle = sat.color;
                 ctxDOP.beginPath();
@@ -1304,122 +1358,109 @@ and satellite positions and times are known.
                 ctxDOP.fillText(sat.label, x, y);
             }
 
-            // Receiver at center
-            ctxDOP.fillStyle = '#22d3ee';
+            // Receiver (rose)
+            ctxDOP.shadowBlur = 10;
+            ctxDOP.shadowColor = 'rgba(244,63,94,0.4)';
+            ctxDOP.fillStyle = '#f43f5e';
             ctxDOP.beginPath();
-            ctxDOP.arc(centerX, centerY, 8, 0, Math.PI * 2);
+            ctxDOP.arc(cx, cy, 7, 0, Math.PI * 2);
             ctxDOP.fill();
+            ctxDOP.shadowBlur = 0;
 
-            // GDOP display
-            ctxDOP.fillStyle = 'rgba(34, 211, 238, 0.1)';
-            ctxDOP.fillRect(20, canvasDOP.height - 60, canvasDOP.width - 40, 45);
+            // GDOP bar
+            ctxDOP.fillStyle = 'rgba(34,211,238,0.1)';
+            ctxDOP.fillRect(20, H5 - 60, W5 - 40, 45);
 
-            const gdop = calculateGDOP();
-            ctxDOP.fillStyle = gdop < 4 ? '#51cf66' : gdop < 8 ? '#ffd166' : '#ff6b6b';
+            ctxDOP.fillStyle = gdopVal < 4 ? '#51cf66' : gdopVal < 8 ? '#ffd166' : '#ff6b6b';
             ctxDOP.font = 'bold 16px Georgia';
             ctxDOP.textAlign = 'center';
             ctxDOP.textBaseline = 'top';
-            ctxDOP.fillText('GDOP: ' + gdop, canvasDOP.width / 2, canvasDOP.height - 50);
+            ctxDOP.fillText('GDOP: ' + gdopVal.toFixed(2), W5 / 2, H5 - 52);
 
-            const quality = gdop < 4 ? 'Excellent' : gdop < 8 ? 'Good' : 'Poor';
+            const quality = gdopVal < 4 ? 'Excellent' : gdopVal < 8 ? 'Good' : 'Poor';
             ctxDOP.font = '11px Georgia';
             ctxDOP.fillStyle = '#a0a0b8';
-            ctxDOP.fillText('Geometry: ' + quality, canvasDOP.width / 2, canvasDOP.height - 28);
+            ctxDOP.fillText('Geometry: ' + quality, W5 / 2, H5 - 30);
 
-            document.getElementById('gdop-value').textContent = gdop;
+            document.getElementById('gdop-value').textContent = gdopVal.toFixed(2);
         }
 
-        function onMouseDownDOP(e) {
-            const rect = canvasDOP.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const centerX = canvasDOP.width / 2;
-            const centerY = canvasDOP.height / 2 - 20;
-
+        // DOP mouse/touch
+        function onDownDOP(e) {
+            e.preventDefault();
+            const ev = e.touches ? e.touches[0] : e;
+            const p = mousePos(canvasDOP, ev, W5, H5);
+            const cx = W5 / 2, cy = H5 / 2 - 20;
             for (let i = 0; i < dopSatellites.length; i++) {
                 const sat = dopSatellites[i];
-                const rad = (sat.angle * Math.PI) / 180;
-                const satX = centerX + sat.distance * Math.cos(rad);
-                const satY = centerY + sat.distance * Math.sin(rad);
-
-                if (distance({ x, y }, { x: satX, y: satY }) < 15) {
-                    draggingDOP = i;
-                    break;
-                }
+                const rad = sat.angle * Math.PI / 180;
+                const sx = cx + sat.distance * Math.cos(rad);
+                const sy = cy + sat.distance * Math.sin(rad);
+                if (dist(p, { x: sx, y: sy }) < 18) { draggingDOP = i; break; }
             }
         }
-
-        function onMouseMoveDOP(e) {
+        function onMoveDOP(e) {
             if (draggingDOP === null) return;
-
-            const rect = canvasDOP.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const centerX = canvasDOP.width / 2;
-            const centerY = canvasDOP.height / 2 - 20;
-
-            const dx = x - centerX;
-            const dy = y - centerY;
-
-            let angle = Math.atan2(dy, dx) * 180 / Math.PI;
-            if (angle < 0) angle += 360;
-
-            let distance = Math.sqrt(dx * dx + dy * dy);
-            distance = Math.max(100, Math.min(280, distance));
-
-            dopSatellites[draggingDOP].angle = angle;
-            dopSatellites[draggingDOP].distance = distance;
-
-            drawDOP();
+            e.preventDefault();
+            const ev = e.touches ? e.touches[0] : e;
+            const p = mousePos(canvasDOP, ev, W5, H5);
+            const cx = W5 / 2, cy = H5 / 2 - 20;
+            const dx = p.x - cx, dy = p.y - cy;
+            let a = Math.atan2(dy, dx) * 180 / Math.PI;
+            if (a < 0) a += 360;
+            dopSatellites[draggingDOP].angle = a;
+            dopSatellites[draggingDOP].distance = Math.max(100, Math.min(280, Math.sqrt(dx * dx + dy * dy)));
         }
+        function onUpDOP() { draggingDOP = null; }
 
-        function onMouseUpDOP() {
-            draggingDOP = null;
-        }
+        canvasDOP.addEventListener('mousedown', onDownDOP);
+        canvasDOP.addEventListener('mousemove', onMoveDOP);
+        canvasDOP.addEventListener('mouseup', onUpDOP);
+        canvasDOP.addEventListener('touchstart', onDownDOP, { passive: false });
+        canvasDOP.addEventListener('touchmove', onMoveDOP, { passive: false });
+        canvasDOP.addEventListener('touchend', onUpDOP);
 
-        canvasDOP.addEventListener('mousedown', onMouseDownDOP);
-        canvasDOP.addEventListener('mousemove', onMouseMoveDOP);
-        canvasDOP.addEventListener('mouseup', onMouseUpDOP);
-
-        document.getElementById('btn-dop-good').addEventListener('click', function () {
+        document.getElementById('btn-dop-good').addEventListener('click', function() {
             dopSatellites = [
                 { angle: 0, distance: 280, label: 'S1', color: '#ff6b6b' },
                 { angle: 90, distance: 280, label: 'S2', color: '#51cf66' },
                 { angle: 180, distance: 280, label: 'S3', color: '#4c6ef5' },
                 { angle: 270, distance: 280, label: 'S4', color: '#ffd166' }
             ];
-            drawDOP();
         });
-
-        document.getElementById('btn-dop-poor').addEventListener('click', function () {
+        document.getElementById('btn-dop-poor').addEventListener('click', function() {
             dopSatellites = [
                 { angle: 10, distance: 250, label: 'S1', color: '#ff6b6b' },
                 { angle: 20, distance: 250, label: 'S2', color: '#51cf66' },
                 { angle: 30, distance: 250, label: 'S3', color: '#4c6ef5' },
                 { angle: 40, distance: 250, label: 'S4', color: '#ffd166' }
             ];
-            drawDOP();
         });
-
-        document.getElementById('btn-dop-reset').addEventListener('click', function () {
+        document.getElementById('btn-dop-reset').addEventListener('click', function() {
             dopSatellites = [
                 { angle: 45, distance: 250, label: 'S1', color: '#ff6b6b' },
                 { angle: 135, distance: 250, label: 'S2', color: '#51cf66' },
                 { angle: 225, distance: 250, label: 'S3', color: '#4c6ef5' },
                 { angle: 315, distance: 250, label: 'S4', color: '#ffd166' }
             ];
-            drawDOP();
         });
 
-        drawDOP();
+        // ============================================
+        // MASTER ANIMATION LOOP
+        // ============================================
+        function animationLoop(timestamp) {
+            globalTime = timestamp;
+            draw2d(timestamp);
+            draw3d(timestamp);
+            drawClockVis(timestamp);
+            drawRelativity(timestamp);
+            drawDOP(timestamp);
+            if (!paused) requestAnimationFrame(animationLoop);
+        }
+        requestAnimationFrame(animationLoop);
 
-        // Animate DOP display updates
-        window.addEventListener('resize', function () {
-            draw2d();
-            draw3d();
-            drawClockVisualization();
-            drawRelativityChart();
-            drawDOP();
+        window.addEventListener('resize', function() {
+            // Canvases are fixed-size with CSS scaling, no resize needed
         });
     </script><script src="js/mathematician-cards.js" defer></script>
 </body>

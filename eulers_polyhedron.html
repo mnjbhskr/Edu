@@ -11,7 +11,7 @@
       "@type": "LearningResource",
       "name": "Euler's Polyhedron Formula",
       "url": "https://mathsedu.org/eulers_polyhedron.html",
-      "description": "Euler's formula V \u2212 E + F = 2 for polyhedra. Interactive 3D solids showing vertices, edges, and faces.",
+      "description": "Euler's formula V − E + F = 2 for polyhedra. Interactive 3D solids showing vertices, edges, and faces.",
       "educationalLevel": "Intermediate",
       "teaches": "Euler's polyhedron formula",
       "learningResourceType": "Interactive visualisation",
@@ -52,8 +52,8 @@
 
         .viewer-row{display:flex;gap:28px;margin-bottom:28px;flex-wrap:wrap}
         .canvas-wrap{flex:0 0 500px}
-        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.015);cursor:grab}
-        canvas:active{cursor:grabbing}
+        canvas#view{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.015);cursor:grab}
+        canvas#view:active{cursor:grabbing}
         .info-col{flex:1 1 200px;min-width:200px;display:flex;flex-direction:column;gap:16px}
 
         .formula-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;text-align:center}
@@ -71,6 +71,12 @@
         .count-btn.active-v{background:rgba(251,191,36,0.13);border-color:rgba(251,191,36,0.4);color:#fbbf24}
         .count-btn.active-e{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.3);color:#fff}
         .count-btn.active-f{background:rgba(248,113,113,0.13);border-color:rgba(248,113,113,0.4);color:#f87171}
+
+        .anim-toggles{display:flex;gap:8px;flex-wrap:wrap}
+        .anim-btn{flex:1;background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:6px 10px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.82em;transition:all 0.2s;text-align:center;min-width:70px}
+        .anim-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .anim-btn.active{background:rgba(96,224,208,0.13);border-color:rgba(96,224,208,0.4);color:#60e0d0}
+        .anim-btn.morph-active{background:rgba(192,132,252,0.13);border-color:rgba(192,132,252,0.4);color:#c084fc}
 
         .shape-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
         .shape-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:8px 14px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s;text-align:center;line-height:1.4}
@@ -91,7 +97,7 @@
         .insight p:last-child{margin-bottom:0}
         .insight .accent{color:#f87171}
 
-        @media(max-width:768px){.canvas-wrap{flex:1 1 100%}canvas{width:100%;height:auto}}
+        @media(max-width:768px){.canvas-wrap{flex:1 1 100%}canvas#view{width:100%;height:auto}}
     </style>
 <link rel="canonical" href="https://mathsedu.org/eulers_polyhedron.html">
   </head>
@@ -120,7 +126,12 @@
                 <button class="count-btn" id="cntE" onclick="toggleCount('e')">Count E</button>
                 <button class="count-btn" id="cntF" onclick="toggleCount('f')">Count F</button>
             </div>
-            <div style="color:#606078;font-size:0.78em;line-height:1.6">Drag to rotate. Toggle the count buttons to label and highlight individual vertices, edges, or faces on the model.</div>
+            <div class="anim-toggles">
+                <button class="anim-btn" id="btnVEF" onclick="startVEFAnim()">V&minus;E+F Anim</button>
+                <button class="anim-btn" id="btnMorph" onclick="startMorph()">Morph</button>
+                <button class="anim-btn" id="btnPause" onclick="togglePause()">Pause</button>
+            </div>
+            <div style="color:#606078;font-size:0.78em;line-height:1.6">Drag to rotate. Toggle count buttons to highlight vertices, edges, or faces. Use <em>V&minus;E+F Anim</em> to watch the counting animation, or <em>Morph</em> to see shapes transform into one another.</div>
         </div>
     </div>
 
@@ -140,6 +151,36 @@
 
 <script>
 const PHI=(1+Math.sqrt(5))/2;
+
+/* Vibrant face colours with semi-transparency */
+const FACE_COLOURS=[
+  'rgba(244,63,94,0.35)',   /* rose */
+  'rgba(251,191,36,0.35)',  /* gold */
+  'rgba(34,211,238,0.35)',  /* cyan */
+  'rgba(192,132,252,0.35)', /* violet */
+  'rgba(45,212,191,0.35)',  /* teal */
+  'rgba(251,146,60,0.35)',  /* orange */
+  'rgba(129,140,248,0.35)', /* indigo */
+  'rgba(52,211,153,0.35)',  /* emerald */
+  'rgba(248,113,113,0.35)', /* red */
+  'rgba(163,230,53,0.35)',  /* lime */
+  'rgba(232,121,249,0.35)', /* fuchsia */
+  'rgba(56,189,248,0.35)',  /* sky */
+];
+const FACE_COLOURS_BRIGHT=[
+  'rgba(244,63,94,0.55)',
+  'rgba(251,191,36,0.55)',
+  'rgba(34,211,238,0.55)',
+  'rgba(192,132,252,0.55)',
+  'rgba(45,212,191,0.55)',
+  'rgba(251,146,60,0.55)',
+  'rgba(129,140,248,0.55)',
+  'rgba(52,211,153,0.55)',
+  'rgba(248,113,113,0.55)',
+  'rgba(163,230,53,0.55)',
+  'rgba(232,121,249,0.55)',
+  'rgba(56,189,248,0.55)',
+];
 
 const SHAPES=[
   {name:"Tetrahedron",verts:[[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]],
@@ -192,10 +233,8 @@ const SHAPES=[
   const dod=SHAPES[3], v=dod.verts, eSet=new Set();
   function ek(a,b){return Math.min(a,b)+','+Math.max(a,b)}
   function dist(a,b){let s=0;for(let k=0;k<3;k++)s+=(v[a][k]-v[b][k])**2;return Math.sqrt(s)}
-  /* Edge length = 2/PHI; find pairs at that distance (30 edges) */
   const edgeLen=2/PHI;
   for(let i=0;i<20;i++)for(let j=i+1;j<20;j++){if(Math.abs(dist(i,j)-edgeLen)<0.15){dod.edges.push([i,j]);eSet.add(ek(i,j));}}
-  /* Find pentagonal faces: each face is a cycle of 5 vertices all sharing edges */
   const adj=Array.from({length:20},()=>[]);
   dod.edges.forEach(([a,b])=>{adj[a].push(b);adj[b].push(a);});
   const faceSet=new Set();
@@ -225,8 +264,22 @@ SHAPES.forEach(s=>{
 
 let curShape=0, countMode=null;
 let rotX=-0.35, rotY=0.4, autoAngle=0, dragging=false, lastMx=0, lastMy=0;
+let paused=false;
 
-const cvs=document.getElementById("view"), ctx=cvs.getContext("2d"), W=cvs.width, H=cvs.height;
+/* VEF counting animation state */
+let vefAnim=null; /* {phase:'v'|'e'|'f'|'done', index:0, timer:0} */
+/* Morph animation state */
+let morphAnim=null; /* {from:idx, to:idx, t:0, sequence:[0,1,3]} */
+const MORPH_SEQ=[0,1,3]; /* tetrahedron -> cube -> dodecahedron */
+
+/* HiDPI support */
+const cvs=document.getElementById("view"), ctx=cvs.getContext("2d");
+const CSS_W=cvs.width, CSS_H=cvs.height;
+const dpr=window.devicePixelRatio||1;
+cvs.width=CSS_W*dpr; cvs.height=CSS_H*dpr;
+cvs.style.width=CSS_W+'px'; cvs.style.height=CSS_H+'px';
+ctx.scale(dpr,dpr);
+const W=CSS_W, H=CSS_H;
 
 function rotateVert(v){
   const cy=Math.cos(rotY+autoAngle),sy=Math.sin(rotY+autoAngle);
@@ -238,97 +291,200 @@ function rotateVert(v){
 }
 
 function project(v){
-  const d=6;
-  const scale=W*0.28;
+  const d=6, scale=W*0.28;
   const f=d/(v[2]+d);
   return [W/2+v[0]*f*scale, H/2-v[1]*f*scale, v[2]];
+}
+
+/* Lerp between two vertex sets for morphing */
+function lerpVerts(vertsA,vertsB,t){
+  const maxLen=Math.max(vertsA.length,vertsB.length);
+  const result=[];
+  for(let i=0;i<maxLen;i++){
+    const a=vertsA[i%vertsA.length];
+    const b=vertsB[i%vertsB.length];
+    result.push([
+      a[0]+(b[0]-a[0])*t,
+      a[1]+(b[1]-a[1])*t,
+      a[2]+(b[2]-a[2])*t
+    ]);
+  }
+  return result;
+}
+
+function getMorphState(){
+  if(!morphAnim)return null;
+  const fromShape=SHAPES[morphAnim.from];
+  const toShape=SHAPES[morphAnim.to];
+  const t=morphAnim.t;
+  /* Smooth easing */
+  const et=t<0.5?2*t*t:(1-Math.pow(-2*t+2,2)/2);
+  const verts=lerpVerts(fromShape.verts,toShape.verts,et);
+  /* Use edges/faces from whichever shape we're closer to */
+  const useShape=et<0.5?fromShape:toShape;
+  return {verts,edges:useShape.edges,faces:useShape.faces,name:
+    et<0.15?fromShape.name:et>0.85?toShape.name:fromShape.name+' \u2192 '+toShape.name};
 }
 
 function drawShape(){
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle="rgba(10,10,26,1)";ctx.fillRect(0,0,W,H);
-  const s=SHAPES[curShape];
-  const rv=s.verts.map(v=>rotateVert(v));
+
+  let s, morphState=getMorphState();
+  let drawVerts, drawEdges, drawFaces, shapeName;
+
+  if(morphState){
+    drawVerts=morphState.verts;
+    drawEdges=morphState.edges;
+    drawFaces=morphState.faces;
+    shapeName=morphState.name;
+  } else {
+    s=SHAPES[curShape];
+    drawVerts=s.verts;
+    drawEdges=s.edges;
+    drawFaces=s.faces;
+    shapeName=s.name;
+  }
+
+  const rv=drawVerts.map(v=>rotateVert(v));
   const pv=rv.map(v=>project(v));
 
-  /* Sort faces by average z (painter's algorithm, back to front) */
-  const fi=s.faces.map((f,i)=>{
-    let zSum=0;f.forEach(vi=>zSum+=rv[vi][2]);return{i,z:zSum/f.length};
+  /* Sort faces back to front */
+  const fi=drawFaces.map((f,i)=>{
+    let zSum=0;f.forEach(vi=>{if(vi<rv.length)zSum+=rv[vi%rv.length][2];});return{i,z:zSum/f.length};
   });
   fi.sort((a,b)=>a.z-b.z);
 
-  /* Draw faces */
-  fi.forEach(({i:fIdx},order)=>{
-    const face=s.faces[fIdx];
+  /* Determine VEF anim highlight counts */
+  const vefHighV=vefAnim&&(vefAnim.phase==='v'||vefAnim.phase==='e'||vefAnim.phase==='f'||vefAnim.phase==='done')?vefAnim.vCount:0;
+  const vefHighE=vefAnim&&(vefAnim.phase==='e'||vefAnim.phase==='f'||vefAnim.phase==='done')?vefAnim.eCount:0;
+  const vefHighF=vefAnim&&(vefAnim.phase==='f'||vefAnim.phase==='done')?vefAnim.fCount:0;
+  const vefGlowV=vefAnim&&vefAnim.phase==='v'?vefAnim.index:-1;
+  const vefGlowE=vefAnim&&vefAnim.phase==='e'?vefAnim.index:-1;
+  const vefGlowF=vefAnim&&vefAnim.phase==='f'?vefAnim.index:-1;
+
+  /* Draw faces with vibrant per-face colouring */
+  fi.forEach(({i:fIdx})=>{
+    const face=drawFaces[fIdx];
+    const vi0=face[0]%pv.length;
     ctx.beginPath();
-    ctx.moveTo(pv[face[0]][0],pv[face[0]][1]);
-    for(let k=1;k<face.length;k++)ctx.lineTo(pv[face[k]][0],pv[face[k]][1]);
+    ctx.moveTo(pv[vi0][0],pv[vi0][1]);
+    for(let k=1;k<face.length;k++){
+      const vi=face[k]%pv.length;
+      ctx.lineTo(pv[vi][0],pv[vi][1]);
+    }
     ctx.closePath();
-    if(countMode==='f'){
-      const hue=(fIdx/s.faces.length)*30+350;
-      ctx.fillStyle=`hsla(${hue},80%,65%,0.25)`;
+
+    const isVefHighlighted=fIdx<vefHighF;
+    const isVefGlowing=fIdx===vefGlowF;
+    const cIdx=fIdx%FACE_COLOURS.length;
+
+    if(countMode==='f'||isVefHighlighted){
+      ctx.fillStyle=FACE_COLOURS_BRIGHT[cIdx];
+    } else if(isVefGlowing){
+      ctx.fillStyle=FACE_COLOURS_BRIGHT[cIdx];
+      ctx.shadowColor=FACE_COLOURS_BRIGHT[cIdx].replace('0.55','0.8');
+      ctx.shadowBlur=18;
     } else {
-      ctx.fillStyle="rgba(248,113,113,0.12)";
+      ctx.fillStyle=FACE_COLOURS[cIdx];
     }
     ctx.fill();
-    ctx.strokeStyle="rgba(255,255,255,0.15)";ctx.lineWidth=0.5;ctx.stroke();
+    ctx.shadowBlur=0;
+
+    ctx.strokeStyle="rgba(255,255,255,0.18)";ctx.lineWidth=0.7;ctx.stroke();
   });
 
   /* Draw edges */
-  s.edges.forEach(([a,b],eIdx)=>{
+  drawEdges.forEach(([a,b],eIdx)=>{
+    const ai=a%pv.length, bi=b%pv.length;
     ctx.beginPath();
-    ctx.moveTo(pv[a][0],pv[a][1]);ctx.lineTo(pv[b][0],pv[b][1]);
-    if(countMode==='e'){
+    ctx.moveTo(pv[ai][0],pv[ai][1]);ctx.lineTo(pv[bi][0],pv[bi][1]);
+
+    const isVefHighlighted=eIdx<vefHighE;
+    const isVefGlowing=eIdx===vefGlowE;
+
+    if(countMode==='e'||isVefHighlighted){
       ctx.strokeStyle="rgba(255,255,255,0.85)";ctx.lineWidth=2;
+    } else if(isVefGlowing){
+      ctx.strokeStyle="#22d3ee";ctx.lineWidth=3;
+      ctx.shadowColor="rgba(34,211,238,0.6)";ctx.shadowBlur=12;
     } else {
       ctx.strokeStyle="rgba(255,255,255,0.55)";ctx.lineWidth=1.2;
     }
     ctx.stroke();
+    ctx.shadowBlur=0;
   });
 
   /* Edge labels */
   if(countMode==='e'){
     ctx.font="11px Georgia";ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";
-    s.edges.forEach(([a,b],eIdx)=>{
-      const mx=(pv[a][0]+pv[b][0])/2, my=(pv[a][1]+pv[b][1])/2;
+    drawEdges.forEach(([a,b],eIdx)=>{
+      const ai=a%pv.length, bi=b%pv.length;
+      const mx=(pv[ai][0]+pv[bi][0])/2, my=(pv[ai][1]+pv[bi][1])/2;
       ctx.fillText(eIdx+1,mx+6,my-6);
     });
   }
 
   /* Draw vertices */
   pv.forEach((p,i)=>{
-    const r=countMode==='v'?5:3.5;
-    ctx.beginPath();ctx.arc(p[0],p[1],r,0,Math.PI*2);
-    ctx.fillStyle="#fbbf24";ctx.fill();
-    if(countMode==='v'){
-      ctx.strokeStyle="rgba(251,191,36,0.5)";ctx.lineWidth=3;
-      ctx.beginPath();ctx.arc(p[0],p[1],8,0,Math.PI*2);ctx.stroke();
+    if(i>=drawVerts.length)return;
+    const isVefHighlighted=i<vefHighV;
+    const isVefGlowing=i===vefGlowV;
+    const r=countMode==='v'||isVefHighlighted?5:isVefGlowing?7:3.5;
+
+    if(isVefGlowing){
+      /* Glowing vertex */
+      ctx.shadowColor="rgba(251,191,36,0.8)";ctx.shadowBlur=20;
+      ctx.beginPath();ctx.arc(p[0],p[1],r,0,Math.PI*2);
+      ctx.fillStyle="#fbbf24";ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.strokeStyle="rgba(251,191,36,0.6)";ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(p[0],p[1],10,0,Math.PI*2);ctx.stroke();
+    } else {
+      ctx.beginPath();ctx.arc(p[0],p[1],r,0,Math.PI*2);
+      ctx.fillStyle="#fbbf24";ctx.fill();
+      if(countMode==='v'||isVefHighlighted){
+        ctx.strokeStyle="rgba(251,191,36,0.5)";ctx.lineWidth=3;
+        ctx.beginPath();ctx.arc(p[0],p[1],8,0,Math.PI*2);ctx.stroke();
+      }
     }
   });
 
   /* Vertex labels */
   if(countMode==='v'){
     ctx.font="12px Georgia";ctx.fillStyle="#fbbf24";ctx.textAlign="center";ctx.textBaseline="bottom";
-    pv.forEach((p,i)=>{ctx.fillText(i+1,p[0],p[1]-12);});
+    pv.forEach((p,i)=>{if(i<drawVerts.length)ctx.fillText(i+1,p[0],p[1]-12);});
   }
 
   /* Face labels */
   if(countMode==='f'){
-    ctx.font="13px Georgia";ctx.fillStyle="#f87171";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.font="13px Georgia";ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";
     fi.forEach(({i:fIdx})=>{
-      const face=s.faces[fIdx];
+      const face=drawFaces[fIdx];
       let cx=0,cy=0;
-      face.forEach(vi=>{cx+=pv[vi][0];cy+=pv[vi][1];});
+      face.forEach(vi=>{const pi=vi%pv.length;cx+=pv[pi][0];cy+=pv[pi][1];});
       cx/=face.length;cy/=face.length;
       ctx.fillText(fIdx+1,cx,cy);
     });
   }
 
+  /* VEF anim counter overlay */
+  if(vefAnim&&vefAnim.phase!=='done'){
+    ctx.font="14px Georgia";ctx.textAlign="left";ctx.textBaseline="top";
+    const labels=[];
+    if(vefAnim.phase==='v')labels.push({t:'Counting vertices: '+(vefAnim.index+1)+'/'+drawVerts.length,c:'#fbbf24'});
+    if(vefAnim.phase==='e')labels.push({t:'Counting edges: '+(vefAnim.index+1)+'/'+drawEdges.length,c:'#22d3ee'});
+    if(vefAnim.phase==='f')labels.push({t:'Counting faces: '+(vefAnim.index+1)+'/'+drawFaces.length,c:'#f87171'});
+    labels.forEach((l,li)=>{
+      ctx.fillStyle=l.c;ctx.fillText(l.t,14,H-30-li*20);
+    });
+  }
+
   /* Shape name top-left */
   ctx.font="15px Georgia";ctx.fillStyle="#f87171";ctx.textAlign="left";ctx.textBaseline="top";
-  ctx.fillText(s.name,14,14);
+  ctx.fillText(shapeName,14,14);
   ctx.font="11px Georgia";ctx.fillStyle="#606078";
-  ctx.fillText("Drag to rotate",14,34);
+  ctx.fillText(paused?"Paused \u2014 drag to rotate":"Drag to rotate",14,34);
 }
 
 function updateFormula(){
@@ -344,10 +500,91 @@ function updateFormula(){
 }
 
 function toggleCount(mode){
+  stopVEFAnim(); stopMorph();
   if(countMode===mode)countMode=null; else countMode=mode;
   document.getElementById("cntV").className="count-btn"+(countMode==='v'?" active-v":"");
   document.getElementById("cntE").className="count-btn"+(countMode==='e'?" active-e":"");
   document.getElementById("cntF").className="count-btn"+(countMode==='f'?" active-f":"");
+}
+
+/* V-E+F counting animation */
+function startVEFAnim(){
+  stopMorph(); countMode=null;
+  document.getElementById("cntV").className="count-btn";
+  document.getElementById("cntE").className="count-btn";
+  document.getElementById("cntF").className="count-btn";
+  if(vefAnim){stopVEFAnim();return;}
+  vefAnim={phase:'v',index:0,timer:0,vCount:0,eCount:0,fCount:0};
+  document.getElementById("btnVEF").classList.add("active");
+}
+function stopVEFAnim(){
+  vefAnim=null;
+  document.getElementById("btnVEF").classList.remove("active");
+}
+
+function tickVEFAnim(){
+  if(!vefAnim||vefAnim.phase==='done')return;
+  vefAnim.timer++;
+  const interval=8; /* frames per element */
+  if(vefAnim.timer<interval)return;
+  vefAnim.timer=0;
+
+  const s=SHAPES[curShape];
+  if(vefAnim.phase==='v'){
+    vefAnim.vCount=vefAnim.index+1;
+    vefAnim.index++;
+    if(vefAnim.index>=s.verts.length){vefAnim.phase='e';vefAnim.index=0;}
+  } else if(vefAnim.phase==='e'){
+    vefAnim.eCount=vefAnim.index+1;
+    vefAnim.index++;
+    if(vefAnim.index>=s.edges.length){vefAnim.phase='f';vefAnim.index=0;}
+  } else if(vefAnim.phase==='f'){
+    vefAnim.fCount=vefAnim.index+1;
+    vefAnim.index++;
+    if(vefAnim.index>=s.faces.length){
+      vefAnim.phase='done';
+      /* Flash the result */
+      const el=document.getElementById("resVal");
+      el.classList.add("glow");
+      setTimeout(()=>stopVEFAnim(),2000);
+    }
+  }
+}
+
+/* Morph animation */
+function startMorph(){
+  stopVEFAnim(); countMode=null;
+  document.getElementById("cntV").className="count-btn";
+  document.getElementById("cntE").className="count-btn";
+  document.getElementById("cntF").className="count-btn";
+  if(morphAnim){stopMorph();return;}
+  morphAnim={from:MORPH_SEQ[0],to:MORPH_SEQ[1],t:0,seqIdx:0};
+  document.getElementById("btnMorph").classList.add("morph-active");
+}
+function stopMorph(){
+  morphAnim=null;
+  document.getElementById("btnMorph").classList.remove("morph-active");
+}
+
+function tickMorph(){
+  if(!morphAnim)return;
+  morphAnim.t+=0.004;
+  if(morphAnim.t>=1){
+    morphAnim.t=0;
+    morphAnim.seqIdx++;
+    /* Full sequence: tetra->cube->dodeca->tetra->cube->... */
+    const fromIdx=morphAnim.seqIdx%MORPH_SEQ.length;
+    const toIdx=(morphAnim.seqIdx+1)%MORPH_SEQ.length;
+    morphAnim.from=MORPH_SEQ[fromIdx];
+    morphAnim.to=MORPH_SEQ[toIdx];
+  }
+}
+
+/* Pause/Play */
+function togglePause(){
+  paused=!paused;
+  document.getElementById("btnPause").textContent=paused?'Play':'Pause';
+  document.getElementById("btnPause").classList.toggle("active",paused);
 }
 
 function buildShapeButtons(){
@@ -359,7 +596,9 @@ function buildShapeButtons(){
       '<span class="svef">V='+V+' E='+E+' F='+F+'</span></button>';
   }).join('');
   g.querySelectorAll(".shape-btn").forEach(b=>{
-    b.addEventListener("click",()=>{curShape=parseInt(b.dataset.i);countMode=null;
+    b.addEventListener("click",()=>{
+      curShape=parseInt(b.dataset.i);countMode=null;
+      stopVEFAnim();stopMorph();
       document.getElementById("cntV").className="count-btn";
       document.getElementById("cntE").className="count-btn";
       document.getElementById("cntF").className="count-btn";
@@ -381,6 +620,7 @@ function buildPlatonic(){
     row.appendChild(div);
     div.style.cursor="pointer";
     div.addEventListener("click",()=>{curShape=si;countMode=null;
+      stopVEFAnim();stopMorph();
       document.getElementById("cntV").className="count-btn";
       document.getElementById("cntE").className="count-btn";
       document.getElementById("cntF").className="count-btn";
@@ -401,6 +641,15 @@ function drawThumb(canvas,shapeIdx){
     let y1=cx*y-sx*z1, z2=sx*y+cx*z1;
     const d=6,f=d/(z2+d),sc=tw*0.24;
     return [tw/2+x1*f*sc, th/2-y1*f*sc];
+  });
+  /* Draw faces with colour */
+  s.faces.forEach((face,fIdx)=>{
+    tc.beginPath();
+    tc.moveTo(proj[face[0]][0],proj[face[0]][1]);
+    for(let k=1;k<face.length;k++)tc.lineTo(proj[face[k]][0],proj[face[k]][1]);
+    tc.closePath();
+    tc.fillStyle=FACE_COLOURS[fIdx%FACE_COLOURS.length];
+    tc.fill();
   });
   tc.strokeStyle="rgba(255,255,255,0.4)";tc.lineWidth=0.8;
   s.edges.forEach(([a,b])=>{tc.beginPath();tc.moveTo(proj[a][0],proj[a][1]);tc.lineTo(proj[b][0],proj[b][1]);tc.stroke();});
@@ -431,7 +680,11 @@ window.addEventListener("touchmove",(e)=>{
 
 /* Animation loop */
 function animate(){
-  if(!dragging)autoAngle+=0.005;
+  if(!paused){
+    if(!dragging)autoAngle+=0.005;
+    tickVEFAnim();
+    tickMorph();
+  }
   drawShape();
   requestAnimationFrame(animate);
 }

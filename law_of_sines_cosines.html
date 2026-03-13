@@ -50,7 +50,7 @@
         .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:20px}
         .panel h2{font-weight:400;font-size:1.1em;color:#34d399;margin-bottom:12px}
         .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
-        .tab-row{display:flex;gap:8px;margin-bottom:20px}
+        .tab-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
         .tab-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:8px 20px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.95em;transition:all 0.2s}
         .tab-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
         .tab-btn.active{background:rgba(52,211,153,0.13);border-color:rgba(52,211,153,0.4);color:#34d399}
@@ -77,6 +77,11 @@
         .explain-text:last-child{margin-bottom:0}
         .pyth-panel{font-size:0.9em;color:#a0a0b8;line-height:1.8}
         .pyth-panel .hl{color:#34d399;font-weight:600}
+        .ctrl-row{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+        .ctrl-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:6px 16px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s}
+        .ctrl-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .ctrl-btn.active{background:rgba(52,211,153,0.13);border-color:rgba(52,211,153,0.4);color:#34d399}
+        .morph-label{font-size:0.82em;color:#808098;margin-left:8px}
         @media(max-width:640px){.container{padding:16px 14px 36px}canvas{height:auto}}
     </style>
 <link rel="canonical" href="https://mathsedu.org/law_of_sines_cosines.html">
@@ -92,6 +97,11 @@
     <p class="subtitle">Solve any triangle &mdash; animated constructions</p>
 
     <div class="tab-row" id="lawTabs"></div>
+    <div class="ctrl-row">
+        <button class="ctrl-btn active" id="playBtn" title="Pause/Play morphing animation">&#9654; Play</button>
+        <button class="ctrl-btn" id="resetBtn" title="Reset triangle">Reset</button>
+        <span class="morph-label" id="morphLabel">Triangle morphing&hellip;</span>
+    </div>
     <canvas id="triCanvas" width="600" height="450"></canvas>
     <div class="panel" id="formulaPanel"></div>
 
@@ -117,18 +127,59 @@
 </div>
 
 <script>
-const CVS=document.getElementById("triCanvas"),CTX=CVS.getContext("2d"),CW=CVS.width,CH=CVS.height;
+/* ---- HiDPI CANVAS SETUP ---- */
+const CVS=document.getElementById("triCanvas"),CTX=CVS.getContext("2d");
+const DPR=window.devicePixelRatio||1;
+const CSS_W=600,CSS_H=450;
+CVS.width=CSS_W*DPR;CVS.height=CSS_H*DPR;
+CVS.style.width=CSS_W+"px";CVS.style.height=CSS_H+"px";
+CTX.scale(DPR,DPR);
+const CW=CSS_W,CH=CSS_H;
 const DEG=180/Math.PI,RAD=Math.PI/180;
 
+/* ---- VIBRANT COLOURS ---- */
+const COL_ROSE="#fb7185",COL_GOLD="#fbbf24",COL_CYAN="#22d3ee";
+const SIDE_COLORS=[COL_ROSE,"#f87171","#60a5fa"];
+const ANGLE_COLORS=[COL_GOLD,"#fbbf24","#facc15"];
+const VERT_COLORS=["#34d399","#f87171","#60a5fa"];
+
 /* ---- STATE ---- */
-let law="sines", cosCheck=2; // which side to verify (0=a,1=b,2=c)
-let verts=[{x:150,y:360},{x:480,y:360},{x:300,y:80}]; // A, B, C
+let law="sines",cosCheck=2;
+let verts=[{x:150,y:360},{x:480,y:360},{x:300,y:80}];
 let drag=-1,dragOff={x:0,y:0};
 let solverMode="SSS";
+
+/* ---- ANIMATION STATE ---- */
+let animPlaying=true,animTime=0;
+let morphPhase=0; // 0..1 cycles through target shapes
+const MORPH_TARGETS=[
+    [{x:100,y:370},{x:500,y:370},{x:300,y:60}],   // tall acute
+    [{x:80,y:350},{x:520,y:350},{x:480,y:90}],     // right-ish
+    [{x:150,y:380},{x:450,y:380},{x:50,y:120}],    // obtuse
+    [{x:200,y:360},{x:400,y:360},{x:300,y:100}],   // isosceles
+    [{x:120,y:370},{x:500,y:370},{x:350,y:50}],    // scalene
+];
+let morphFrom=verts.map(v=>({...v}));
+let morphTo=MORPH_TARGETS[0].map(v=>({...v}));
+let morphIdx=0,morphT=0;
+const MORPH_SPEED=0.004;
+
+/* sine reveal animation progress */
+let sineReveal=0,sineRevealDir=1;
+/* cosine projection animation progress */
+let cosReveal=0,cosRevealDir=1;
+const REVEAL_SPEED=0.012;
+
+/* animated angle arc sweep */
+let arcSweep=0;
+const ARC_SPEED=0.02;
 
 /* ---- GEOMETRY HELPERS ---- */
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const angleBetween=(p,v,q)=>{const d1=Math.atan2(p.y-v.y,p.x-v.x),d2=Math.atan2(q.y-v.y,q.x-v.x);let a=Math.abs(d1-d2);if(a>Math.PI)a=2*Math.PI-a;return a;};
+const lerp=(a,b,t)=>a+(b-a)*t;
+const smoothstep=t=>t*t*(3-2*t);
+
 function triData(){
     const [A,B,C]=verts;
     const a=dist(B,C),b=dist(A,C),c=dist(A,B);
@@ -154,21 +205,125 @@ function drawGrid(){
     for(let x=0;x<=CW;x+=40){CTX.beginPath();CTX.moveTo(x,0);CTX.lineTo(x,CH);CTX.stroke();}
     for(let y=0;y<=CH;y+=40){CTX.beginPath();CTX.moveTo(0,y);CTX.lineTo(CW,y);CTX.stroke();}
 }
-function drawArc(v,p1,p2,color,r){
+
+function drawAnimatedArc(v,p1,p2,color,r,sweep){
     const a1=Math.atan2(p1.y-v.y,p1.x-v.x),a2=Math.atan2(p2.y-v.y,p2.x-v.x);
-    CTX.strokeStyle=color;CTX.lineWidth=1.5;CTX.beginPath();
     let s=a1,e=a2;
     if(e-s>Math.PI)s+=2*Math.PI; else if(s-e>Math.PI)e+=2*Math.PI;
     if(s>e){const t=s;s=e;e=t;}
-    CTX.arc(v.x,v.y,r||28,s,e);CTX.stroke();
+    /* sweep: only draw up to sweep fraction */
+    const range=e-s;
+    const drawEnd=s+range*Math.min(sweep,1);
+    CTX.strokeStyle=color;CTX.lineWidth=2;CTX.globalAlpha=0.85;
+    CTX.beginPath();CTX.arc(v.x,v.y,r||28,s,drawEnd);CTX.stroke();
+    CTX.globalAlpha=1;
+    /* filled wedge hint */
+    CTX.fillStyle=color;CTX.globalAlpha=0.06*Math.min(sweep,1);
+    CTX.beginPath();CTX.moveTo(v.x,v.y);CTX.arc(v.x,v.y,r||28,s,drawEnd);CTX.closePath();CTX.fill();
+    CTX.globalAlpha=1;
 }
+
 function labelPos(v,p1,p2,off){
     const mx=(p1.x+p2.x)/2-v.x,my=(p1.y+p2.y)/2-v.y;
     const l=Math.hypot(mx,my)||1;
     return{x:v.x+mx/l*(off||22),y:v.y+my/l*(off||22)};
 }
-const COLORS=["#34d399","#f87171","#60a5fa"];
-const SIDE_COLORS=["#34d399","#f87171","#60a5fa"]; // a=emerald, b=coral, c=blue
+
+function drawSineConstruction(t,progress){
+    const cc=circumcircle(t.A,t.B,t.C);
+    if(!cc)return;
+    const p=smoothstep(Math.min(progress,1));
+
+    /* circumcircle grows in */
+    CTX.save();
+    CTX.setLineDash([6,4]);
+    CTX.strokeStyle=COL_CYAN;CTX.lineWidth=1.5;CTX.globalAlpha=p*0.7;
+    CTX.beginPath();CTX.arc(cc.cx,cc.cy,cc.r*p,0,Math.PI*2);CTX.stroke();
+    CTX.setLineDash([]);
+
+    /* centre dot */
+    CTX.fillStyle=COL_CYAN;CTX.globalAlpha=p;
+    CTX.beginPath();CTX.arc(cc.cx,cc.cy,3,0,Math.PI*2);CTX.fill();
+
+    /* diameter line through A */
+    if(progress>0.4){
+        const dp=smoothstep(Math.min((progress-0.4)/0.3,1));
+        const ax=t.A.x-cc.cx,ay=t.A.y-cc.cy;
+        const diam_x=cc.cx-ax*dp,diam_y=cc.cy-ay*dp;
+        CTX.strokeStyle=COL_CYAN;CTX.lineWidth=1.2;CTX.globalAlpha=dp*0.6;
+        CTX.beginPath();CTX.moveTo(t.A.x,t.A.y);CTX.lineTo(diam_x,diam_y);CTX.stroke();
+        /* 2R label */
+        if(progress>0.6){
+            const lp=smoothstep(Math.min((progress-0.6)/0.2,1));
+            CTX.globalAlpha=lp;CTX.fillStyle=COL_CYAN;CTX.font="bold 13px Georgia";CTX.textAlign="center";
+            CTX.fillText("2R = "+( cc.r*2).toFixed(1),(t.A.x+diam_x)/2+14,(t.A.y+diam_y)/2-8);
+        }
+    }
+
+    /* R label at centre */
+    if(progress>0.3){
+        CTX.globalAlpha=smoothstep(Math.min((progress-0.3)/0.2,1));
+        CTX.fillStyle=COL_CYAN;CTX.font="12px Georgia";CTX.textAlign="center";
+        CTX.fillText("R = "+cc.r.toFixed(1),cc.cx,cc.cy+16);
+    }
+    CTX.restore();
+}
+
+function drawCosineConstruction(t,progress){
+    const sel=cosCheck;
+    const pts=[t.A,t.B,t.C];
+    const opp=pts[sel];
+    const p1=pts[(sel+1)%3],p2=pts[(sel+2)%3];
+    const ft=footOfPerp(opp,p1,p2);
+    const h=dist(opp,ft);
+    const p=smoothstep(Math.min(progress,1));
+
+    CTX.save();
+    /* perpendicular line drops down */
+    const fx=lerp(opp.x,ft.x,p),fy=lerp(opp.y,ft.y,p);
+    CTX.setLineDash([4,4]);CTX.strokeStyle="rgba(255,255,255,0.4)";CTX.lineWidth=1.2;
+    CTX.beginPath();CTX.moveTo(opp.x,opp.y);CTX.lineTo(fx,fy);CTX.stroke();
+    CTX.setLineDash([]);
+
+    /* right angle marker at foot */
+    if(progress>0.5){
+        const rp=smoothstep(Math.min((progress-0.5)/0.2,1));
+        const dx=p2.x-p1.x,dy=p2.y-p1.y,dl=Math.hypot(dx,dy)||1;
+        const ux=dx/dl*10,uy=dy/dl*10;
+        const nx=-(opp.y-ft.y),ny=(opp.x-ft.x);
+        const nl=Math.hypot(nx,ny)||1;
+        const px=nx/nl*10,py=ny/nl*10;
+        CTX.strokeStyle="rgba(255,255,255,"+0.4*rp+")";CTX.lineWidth=1;
+        CTX.beginPath();
+        CTX.moveTo(ft.x+ux,ft.y+uy);CTX.lineTo(ft.x+ux+px,ft.y+uy+py);CTX.lineTo(ft.x+px,ft.y+py);
+        CTX.stroke();
+    }
+
+    /* h label */
+    if(progress>0.3){
+        CTX.globalAlpha=smoothstep(Math.min((progress-0.3)/0.2,1));
+        CTX.fillStyle=COL_GOLD;CTX.font="bold 13px Georgia";CTX.textAlign="center";
+        CTX.fillText("h = "+h.toFixed(1),(opp.x+ft.x)/2-14,(opp.y+ft.y)/2);
+    }
+
+    /* projection segments coloured */
+    if(progress>0.6){
+        const sp=smoothstep(Math.min((progress-0.6)/0.3,1));
+        const d1=dist(p1,ft),d2=dist(ft,p2);
+        /* segment p1->foot */
+        CTX.globalAlpha=sp*0.5;CTX.strokeStyle=COL_ROSE;CTX.lineWidth=3;
+        CTX.beginPath();CTX.moveTo(p1.x,p1.y);CTX.lineTo(ft.x,ft.y);CTX.stroke();
+        /* segment foot->p2 */
+        CTX.strokeStyle="#60a5fa";
+        CTX.beginPath();CTX.moveTo(ft.x,ft.y);CTX.lineTo(p2.x,p2.y);CTX.stroke();
+        /* labels */
+        CTX.globalAlpha=sp*0.8;CTX.font="11px Georgia";
+        CTX.fillStyle=COL_ROSE;CTX.fillText(d1.toFixed(0),(p1.x+ft.x)/2,(p1.y+ft.y)/2+16);
+        CTX.fillStyle="#60a5fa";CTX.fillText(d2.toFixed(0),(ft.x+p2.x)/2,(ft.y+p2.y)/2+16);
+    }
+    CTX.restore();
+}
+
 function draw(){
     CTX.clearRect(0,0,CW,CH);CTX.fillStyle="#0a0a1a";CTX.fillRect(0,0,CW,CH);
     drawGrid();
@@ -176,62 +331,136 @@ function draw(){
     const pts=[t.A,t.B,t.C];
     const sides=[[1,2,t.a,"a",0],[0,2,t.b,"b",1],[0,1,t.c,"c",2]];
 
-    // circumcircle (sines mode)
-    if(law==="sines"){
-        const cc=circumcircle(t.A,t.B,t.C);
-        if(cc){
-            CTX.setLineDash([6,4]);CTX.strokeStyle="#fbbf24";CTX.lineWidth=1.2;
-            CTX.beginPath();CTX.arc(cc.cx,cc.cy,cc.r,0,Math.PI*2);CTX.stroke();
-            CTX.setLineDash([]);
-            CTX.fillStyle="#fbbf24";CTX.font="13px Georgia";CTX.textAlign="center";
-            CTX.fillText("R = "+cc.r.toFixed(1),cc.cx,cc.cy+5);
-            CTX.beginPath();CTX.arc(cc.cx,cc.cy,3,0,Math.PI*2);CTX.fill();
-        }
-    }
-    // height h from C to AB (cosines mode)
-    if(law==="cosines"){
-        const sel=cosCheck;
-        const opp=pts[sel]; // vertex opposite
-        const p1=pts[(sel+1)%3],p2=pts[(sel+2)%3];
-        const ft=footOfPerp(opp,p1,p2);
-        CTX.setLineDash([4,4]);CTX.strokeStyle="rgba(255,255,255,0.25)";CTX.lineWidth=1;
-        CTX.beginPath();CTX.moveTo(opp.x,opp.y);CTX.lineTo(ft.x,ft.y);CTX.stroke();
-        CTX.setLineDash([]);
-        const h=dist(opp,ft);
-        CTX.fillStyle="rgba(255,255,255,0.35)";CTX.font="12px Georgia";
-        CTX.textAlign="center";CTX.fillText("h="+h.toFixed(1),(opp.x+ft.x)/2-12,(opp.y+ft.y)/2);
-    }
-    // draw triangle sides
+    /* law-specific animated constructions */
+    if(law==="sines") drawSineConstruction(t,sineReveal);
+    if(law==="cosines") drawCosineConstruction(t,cosReveal);
+
+    /* draw triangle sides with animated dash for emphasis */
     for(const s of sides){
-        CTX.strokeStyle=SIDE_COLORS[s[4]];CTX.lineWidth=2;CTX.beginPath();
+        /* glow */
+        CTX.save();CTX.strokeStyle=SIDE_COLORS[s[4]];CTX.lineWidth=5;CTX.globalAlpha=0.12;
+        CTX.beginPath();CTX.moveTo(pts[s[0]].x,pts[s[0]].y);CTX.lineTo(pts[s[1]].x,pts[s[1]].y);CTX.stroke();
+        CTX.restore();
+        /* solid */
+        CTX.strokeStyle=SIDE_COLORS[s[4]];CTX.lineWidth=2.2;CTX.beginPath();
         CTX.moveTo(pts[s[0]].x,pts[s[0]].y);CTX.lineTo(pts[s[1]].x,pts[s[1]].y);CTX.stroke();
+        /* label pushed outward from opposite vertex */
         const mx=(pts[s[0]].x+pts[s[1]].x)/2, my=(pts[s[0]].y+pts[s[1]].y)/2;
-        // push label outward from opposite vertex
         const opp=pts[3-s[0]-s[1]];
         let nx=mx-opp.x,ny=my-opp.y,nl=Math.hypot(nx,ny)||1;
         nx/=nl;ny/=nl;
-        CTX.fillStyle=SIDE_COLORS[s[4]];CTX.font="14px Georgia";CTX.textAlign="center";CTX.textBaseline="middle";
-        CTX.fillText(s[3]+" = "+s[2].toFixed(1),mx+nx*16,my+ny*16);
+        CTX.fillStyle=SIDE_COLORS[s[4]];CTX.font="bold 14px Georgia";CTX.textAlign="center";CTX.textBaseline="middle";
+        CTX.fillText(s[3]+" = "+s[2].toFixed(1),mx+nx*18,my+ny*18);
     }
-    // draw angle arcs + labels
+
+    /* animated angle arcs + labels */
     const angVals=[t.angA,t.angB,t.angC];
     const angLabels=["A","B","C"];
     for(let i=0;i<3;i++){
         const v=pts[i],p1=pts[(i+1)%3],p2=pts[(i+2)%3];
-        drawArc(v,p1,p2,COLORS[i],26);
-        const lp=labelPos(v,p1,p2,44);
-        CTX.fillStyle=COLORS[i];CTX.font="13px Georgia";CTX.textAlign="center";CTX.textBaseline="middle";
-        CTX.fillText(angLabels[i]+"="+(angVals[i]*DEG).toFixed(1)+"\u00b0",lp.x,lp.y);
+        drawAnimatedArc(v,p1,p2,COL_GOLD,28,arcSweep);
+        if(arcSweep>0.5){
+            const lp=labelPos(v,p1,p2,46);
+            CTX.save();CTX.globalAlpha=Math.min((arcSweep-0.5)*2,1);
+            CTX.fillStyle=COL_GOLD;CTX.font="bold 13px Georgia";CTX.textAlign="center";CTX.textBaseline="middle";
+            CTX.fillText(angLabels[i]+" = "+(angVals[i]*DEG).toFixed(1)+"\u00b0",lp.x,lp.y);
+            CTX.restore();
+        }
     }
-    // draw vertices
+
+    /* draw vertices with glow */
     for(let i=0;i<3;i++){
+        CTX.save();
+        /* outer glow */
+        CTX.beginPath();CTX.arc(pts[i].x,pts[i].y,12,0,Math.PI*2);
+        CTX.fillStyle=VERT_COLORS[i];CTX.globalAlpha=0.15;CTX.fill();
+        CTX.restore();
+        /* solid dot */
         CTX.beginPath();CTX.arc(pts[i].x,pts[i].y,6,0,Math.PI*2);
-        CTX.fillStyle=COLORS[i];CTX.fill();
+        CTX.fillStyle=VERT_COLORS[i];CTX.fill();
         CTX.strokeStyle="#0a0a1a";CTX.lineWidth=2;CTX.stroke();
+        /* vertex label */
+        CTX.fillStyle=VERT_COLORS[i];CTX.font="bold 14px Georgia";CTX.textAlign="center";
+        const away_x=pts[i].x-((pts[(i+1)%3].x+pts[(i+2)%3].x)/2);
+        const away_y=pts[i].y-((pts[(i+1)%3].y+pts[(i+2)%3].y)/2);
+        const al=Math.hypot(away_x,away_y)||1;
+        CTX.fillText(["A","B","C"][i],pts[i].x+away_x/al*16,pts[i].y+away_y/al*16);
     }
+
+    /* drag hint */
+    if(drag<0&&!morphRunning()){
+        CTX.save();CTX.globalAlpha=0.25+0.1*Math.sin(animTime*2);
+        CTX.fillStyle="#e0e0e0";CTX.font="12px Georgia";CTX.textAlign="center";
+        CTX.fillText("Drag the vertices to explore",CW/2,CH-14);
+        CTX.restore();
+    }
+
     updateFormula(t);
     updatePyth(t);
 }
+
+/* ---- MORPHING LOGIC ---- */
+function morphRunning(){return animPlaying&&drag<0;}
+
+function updateMorph(dt){
+    if(!morphRunning())return;
+    morphT+=MORPH_SPEED*dt*0.06;
+    if(morphT>=1){
+        morphT=0;
+        morphIdx=(morphIdx+1)%MORPH_TARGETS.length;
+        morphFrom=verts.map(v=>({...v}));
+        morphTo=MORPH_TARGETS[morphIdx].map(v=>({...v}));
+    }
+    const t=smoothstep(morphT);
+    for(let i=0;i<3;i++){
+        verts[i]={x:lerp(morphFrom[i].x,morphTo[i].x,t),y:lerp(morphFrom[i].y,morphTo[i].y,t)};
+    }
+}
+
+/* ---- ANIMATION LOOP ---- */
+let lastFrameTime=0;
+function animate(ts){
+    const dt=Math.min(ts-lastFrameTime,50); // cap dt
+    lastFrameTime=ts;
+    animTime=ts*0.001;
+
+    if(animPlaying){
+        /* morph triangle */
+        updateMorph(dt);
+
+        /* reveal animations */
+        if(law==="sines"){
+            sineReveal=Math.min(sineReveal+REVEAL_SPEED*dt*0.06,1);
+            cosReveal=Math.max(cosReveal-REVEAL_SPEED*2*dt*0.06,0);
+        }else{
+            cosReveal=Math.min(cosReveal+REVEAL_SPEED*dt*0.06,1);
+            sineReveal=Math.max(sineReveal-REVEAL_SPEED*2*dt*0.06,0);
+        }
+
+        /* arc sweep */
+        arcSweep=Math.min(arcSweep+ARC_SPEED*dt*0.06,1);
+    }
+
+    draw();
+    requestAnimationFrame(animate);
+}
+
+/* ---- PLAY/PAUSE ---- */
+const playBtn=document.getElementById("playBtn");
+const morphLbl=document.getElementById("morphLabel");
+playBtn.onclick=()=>{
+    animPlaying=!animPlaying;
+    playBtn.textContent=animPlaying?"\u25b6 Play":"\u23f8 Paused";
+    playBtn.classList.toggle("active",animPlaying);
+    morphLbl.textContent=animPlaying?"Triangle morphing\u2026":"Paused \u2014 drag vertices freely";
+};
+document.getElementById("resetBtn").onclick=()=>{
+    verts=[{x:150,y:360},{x:480,y:360},{x:300,y:80}];
+    morphFrom=verts.map(v=>({...v}));morphT=0;morphIdx=0;
+    morphTo=MORPH_TARGETS[0].map(v=>({...v}));
+    sineReveal=0;cosReveal=0;arcSweep=0;
+    draw();
+};
 
 /* ---- FORMULA PANEL ---- */
 function fmt(v){return v.toFixed(2);}
@@ -260,7 +489,7 @@ function updateFormula(t){
         const ok=Math.abs(lhs-rhs)<0.5;
         const chk=ok?' <span class="chk">&#10003;</span>':"";
         let btns='<div class="btn-row" style="margin-bottom:10px">';
-        for(let q=0;q<3;q++) btns+='<button class="sm-btn'+(q===cosCheck?' active':'')+'" onclick="cosCheck='+q+';draw();">Check '+labels[q]+'&sup2;</button>';
+        for(let q=0;q<3;q++) btns+='<button class="sm-btn'+(q===cosCheck?' active':'')+'" onclick="cosCheck='+q+';cosReveal=0;draw();">Check '+labels[q]+'&sup2;</button>';
         btns+='</div>';
         fp.innerHTML='<h2>Law of Cosines</h2>'+btns+'<div class="ratios">'
             +'<span class="'+cls[i]+'">'+labels[i]+'</span>&sup2; = '
@@ -271,7 +500,7 @@ function updateFormula(t){
             +'<span class="'+cls[i]+'">'+fmt(lhs)+'</span> = '
             +'<span class="'+cls[j]+'">'+fmt(a2)+'</span> + '
             +'<span class="'+cls[k]+'">'+fmt(b2)+'</span> - '
-            +'2 x '+fmt(ss[j])+' x '+fmt(ss[k])+' x cos('+fmt(aa[i]*DEG)+'\u00b0)<br>'
+            +'2 &times; '+fmt(ss[j])+' &times; '+fmt(ss[k])+' &times; cos('+fmt(aa[i]*DEG)+'\u00b0)<br>'
             +'<span class="'+cls[i]+'">'+fmt(lhs)+'</span> = '+fmt(a2)+' + '+fmt(b2)+' - '+fmt(corr)+'<br>'
             +'<span class="'+cls[i]+'">'+fmt(lhs)+'</span> = '+fmt(rhs)+chk+'</div>';
     }
@@ -286,7 +515,7 @@ function updatePyth(t){
     if(diff<2){
         msg='<span class="hl">C is near 90\u00b0 &mdash; Pythagorean case!</span><br>'
             +'cos('+fmt(angC_deg)+'\u00b0) = '+fmt(Math.cos(t.angC))+' (near zero)<br>'
-            +'c&sup2; = a&sup2; + b&sup2; - 2ab x '+fmt(Math.cos(t.angC))+' &approx; a&sup2; + b&sup2;<br>'
+            +'c&sup2; = a&sup2; + b&sup2; - 2ab &times; '+fmt(Math.cos(t.angC))+' &approx; a&sup2; + b&sup2;<br>'
             +'The correction term vanishes &mdash; the Law of Cosines reduces to the Pythagorean theorem.';
     }else if(angC_deg<90){
         msg='C = '+fmt(angC_deg)+'\u00b0 (acute). cos(C) = '+fmt(Math.cos(t.angC))+' > 0.<br>'
@@ -311,14 +540,26 @@ function getPointer(e){
 }
 function onDown(e){
     e.preventDefault();const p=getPointer(e);
-    for(let i=0;i<3;i++){if(dist(p,verts[i])<18){drag=i;dragOff={x:verts[i].x-p.x,y:verts[i].y-p.y};CVS.style.cursor="grabbing";return;}}
+    for(let i=0;i<3;i++){if(dist(p,verts[i])<22){drag=i;dragOff={x:verts[i].x-p.x,y:verts[i].y-p.y};CVS.style.cursor="grabbing";return;}}
 }
 function onMove(e){
-    if(drag<0)return;e.preventDefault();const p=getPointer(e);
+    if(drag<0){
+        /* hover cursor */
+        const p=getPointer(e);
+        let over=false;
+        for(let i=0;i<3;i++){if(dist(p,verts[i])<22){over=true;break;}}
+        CVS.style.cursor=over?"pointer":"grab";
+        return;
+    }
+    e.preventDefault();const p=getPointer(e);
     verts[drag]={x:Math.max(10,Math.min(CW-10,p.x+dragOff.x)),y:Math.max(10,Math.min(CH-10,p.y+dragOff.y))};
-    draw();
+    /* sync morphFrom so resuming morph is smooth */
+    morphFrom=verts.map(v=>({...v}));morphT=0;
 }
-function onUp(){drag=-1;CVS.style.cursor="grab";}
+function onUp(){
+    if(drag>=0){morphFrom=verts.map(v=>({...v}));morphT=0;}
+    drag=-1;CVS.style.cursor="grab";
+}
 CVS.addEventListener("mousedown",onDown);CVS.addEventListener("mousemove",onMove);
 CVS.addEventListener("mouseup",onUp);CVS.addEventListener("mouseleave",onUp);
 CVS.addEventListener("touchstart",onDown,{passive:false});CVS.addEventListener("touchmove",onMove,{passive:false});
@@ -328,7 +569,13 @@ CVS.addEventListener("touchend",onUp);
 function renderTabs(){
     const c=document.getElementById("lawTabs");
     c.innerHTML=['sines','cosines'].map(l=>'<button class="tab-btn'+(law===l?' active':'')+'" data-l="'+l+'">Law of '+(l==='sines'?'Sines':'Cosines')+'</button>').join('');
-    c.querySelectorAll('.tab-btn').forEach(b=>b.onclick=()=>{law=b.dataset.l;renderTabs();draw();});
+    c.querySelectorAll('.tab-btn').forEach(b=>b.onclick=()=>{
+        law=b.dataset.l;
+        /* reset reveal for the new law */
+        if(law==="sines"){sineReveal=0;}else{cosReveal=0;}
+        arcSweep=0;
+        renderTabs();
+    });
 }
 
 /* ---- TRIANGLE SOLVER ---- */
@@ -351,7 +598,7 @@ function renderSolver(){
 function solveTriangle(){
     const v=id=>{const el=document.getElementById("sf_"+id);return el?parseFloat(el.value):NaN;};
     const res=document.getElementById("solverResult");
-    let a,b,c,A,B,C; // sides and angles in degrees
+    let a,b,c,A,B,C;
     try{
         if(solverMode==="SSS"){
             a=v("sa");b=v("sb");c=v("sc");
@@ -362,7 +609,7 @@ function solveTriangle(){
             C=180-A-B;
         }else if(solverMode==="SAS"){
             a=v("sa");b=v("sb");C=v("aC");
-            if([a,b,C].some(isNaN)||a<=0||b<=0||C<=0||C>=180){res.innerHTML='<span class="warn">Enter two positive sides and an angle between 0-180.</span>';return;}
+            if([a,b,C].some(isNaN)||a<=0||b<=0||C<=0||C>=180){res.innerHTML='<span class="warn">Enter two positive sides and an angle between 0\u2013180.</span>';return;}
             const Cr=C*RAD;
             c=Math.sqrt(a*a+b*b-2*a*b*Math.cos(Cr));
             A=Math.acos((b*b+c*c-a*a)/(2*b*c))*DEG;
@@ -381,7 +628,7 @@ function solveTriangle(){
             c=a*Math.sin(C*RAD)/Math.sin(A*RAD);
         }else if(solverMode==="SSA"){
             a=v("sa");b=v("sb");A=v("aA");
-            if([a,b,A].some(isNaN)||a<=0||b<=0||A<=0||A>=180){res.innerHTML='<span class="warn">Enter two positive sides and an angle 0-180.</span>';return;}
+            if([a,b,A].some(isNaN)||a<=0||b<=0||A<=0||A>=180){res.innerHTML='<span class="warn">Enter two positive sides and an angle 0\u2013180.</span>';return;}
             let sinB=b*Math.sin(A*RAD)/a;
             if(sinB>1+1e-9){res.innerHTML='<span class="warn">No solution &mdash; sin(B) = '+sinB.toFixed(4)+' > 1.</span>';return;}
             if(sinB>1)sinB=1;
@@ -422,7 +669,6 @@ window.applySSA=function(i){
     applyToCanvas(s.a,s.B,s.C,s.b,s.c,s.A);
 };
 function applyToCanvas(a,Bdeg,Cdeg,b,c,Adeg){
-    // place triangle: A at left, B at right (side c = AB), then C above
     const scale=Math.min(400,Math.min(CW-60,CH-60))/Math.max(a,b,c);
     const sa=a*scale,sb=b*scale,sc=c*scale;
     const Ax=CW/2-sc/2, Ay=CH*0.78;
@@ -430,7 +676,8 @@ function applyToCanvas(a,Bdeg,Cdeg,b,c,Adeg){
     const Brad=Bdeg*RAD;
     const Cx=Bx-sa*Math.cos(Brad), Cy=By-sa*Math.sin(Brad);
     verts=[{x:Ax,y:Ay},{x:Bx,y:By},{x:Cx,y:Cy}];
-    draw();
+    morphFrom=verts.map(v=>({...v}));morphT=0;
+    sineReveal=0;cosReveal=0;arcSweep=0;
 }
 document.getElementById("solveBtn").onclick=solveTriangle;
 
@@ -463,7 +710,8 @@ function renderInsights(){
 }
 
 /* ---- INIT ---- */
-renderTabs();renderSolver();renderPresets();renderInsights();draw();
+renderTabs();renderSolver();renderPresets();renderInsights();
+requestAnimationFrame(animate);
 </script>
 <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
     <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>

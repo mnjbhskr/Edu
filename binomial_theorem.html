@@ -57,6 +57,12 @@
         .pbtn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
         .pbtn.active{background:rgba(96,165,250,0.13);border-color:rgba(96,165,250,0.4);color:#60a5fa}
 
+        .ctrl-row{display:flex;gap:10px;align-items:center;margin:10px 0 6px}
+        .ctrl-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#b0b0c4;padding:5px 16px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px}
+        .ctrl-btn:hover{background:rgba(255,255,255,0.09);color:#e0e0ef}
+        .ctrl-btn.active-ctrl{background:rgba(96,165,250,0.13);border-color:rgba(96,165,250,0.4);color:#60a5fa}
+        .ctrl-label{color:#606078;font-size:0.82em}
+
         .slider-row{display:flex;align-items:center;gap:16px;margin:14px 0}
         .slider-row label{font-size:0.9em;color:#808098;min-width:40px}
         .slider-row input[type=range]{flex:1;accent-color:#60a5fa}
@@ -64,6 +70,9 @@
 
         .expansion{font-size:1.05em;line-height:1.9;color:#c8c8d8;margin:10px 0}
         .coeff{color:#60a5fa;font-weight:700}
+        .exp-term{display:inline-block;opacity:0;transform:translateY(8px);transition:opacity 0.4s ease,transform 0.4s ease}
+        .exp-term.visible{opacity:1;transform:translateY(0)}
+        .exp-term .coeff-hl{color:#f0c040;text-shadow:0 0 8px rgba(240,192,64,0.5);transition:color 0.5s,text-shadow 0.5s}
 
         .calc-grid{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:center;font-size:0.92em}
         .calc-grid label{color:#808098;text-align:right}
@@ -93,6 +102,11 @@
     <div class="panel">
         <h2>Pascal's Triangle</h2>
         <canvas id="tri" width="700" height="420"></canvas>
+        <div class="ctrl-row">
+            <button class="ctrl-btn active-ctrl" id="playPauseBtn" title="Play / Pause the row-building animation">&#9654; Play</button>
+            <button class="ctrl-btn" id="replayBtn" title="Replay from row 0">&#8634; Replay</button>
+            <span class="ctrl-label" id="animStatus">Building row 0...</span>
+        </div>
         <div class="btn-row" id="patternBtns"></div>
     </div>
 
@@ -132,309 +146,727 @@
 </div>
 
 <script>
-const cvs=document.getElementById("tri"),ctx=cvs.getContext("2d"),W=cvs.width,H=cvs.height;
-const MAXROW=12;
+/* ============================================================
+   HiDPI Canvas Setup
+   ============================================================ */
+const cvs = document.getElementById("tri");
+const dpr = window.devicePixelRatio || 1;
+const CSS_W = 700, CSS_H = 420;
+cvs.width = CSS_W * dpr;
+cvs.height = CSS_H * dpr;
+cvs.style.width = CSS_W + "px";
+cvs.style.height = CSS_H + "px";
+const ctx = cvs.getContext("2d");
+ctx.scale(dpr, dpr);
+const W = CSS_W, H = CSS_H;
+
+const MAXROW = 12;
 
 /* Precompute Pascal's triangle */
-const P=[];
-for(let n=0;n<=MAXROW;n++){
-    P[n]=[];
-    for(let k=0;k<=n;k++){
-        P[n][k]=k===0||k===n?1:P[n-1][k-1]+P[n-1][k];
+const P = [];
+for (let n = 0; n <= MAXROW; n++) {
+    P[n] = [];
+    for (let k = 0; k <= n; k++) {
+        P[n][k] = k === 0 || k === n ? 1 : P[n - 1][k - 1] + P[n - 1][k];
     }
 }
 
-let selN=4, activePattern=null, hoverCell=null;
+let selN = 4, activePattern = null, hoverCell = null;
 
-/* Cell positions */
-function cellPos(n,k){
-    const yPad=32, cellH=(H-yPad*2)/(MAXROW+1);
-    const y=yPad+n*cellH+cellH/2;
-    const totalW=W*0.85;
-    const spacing=totalW/(MAXROW+1);
-    const rowW=n*spacing;
-    const x=W/2-rowW/2+k*spacing;
-    return {x,y,r:Math.max(14,20-n*0.5)};
+/* ============================================================
+   Colour palette
+   ============================================================ */
+const COL = {
+    rose:   "#f472b6",
+    gold:   "#f0c040",
+    cyan:   "#22d3ee",
+    violet: "#a78bfa",
+    blue:   "#60a5fa",
+    green:  "#34d399",
+    orange: "#fb923c",
+    pink:   "#e879f9",
+    lime:   "#84cc16"
+};
+
+/* ============================================================
+   Animation state
+   ============================================================ */
+let animRow = -1;           // current row being revealed (-1 = not started)
+let animCellK = -1;         // current cell within the row
+let cellStates = [];        // per-cell animation progress [0..1]
+let cascadeParticles = [];  // floating number particles
+let animPaused = false;
+let animDone = false;
+let lastTime = 0;
+let animTimer = 0;          // accumulated time for pacing
+const ROW_DELAY = 0.6;      // seconds between rows
+const CELL_DELAY = 0.12;    // seconds between cells within a row
+const FADE_SPEED = 3.5;     // opacity units per second
+
+/* Initialise cell states to 0 */
+function initCellStates() {
+    cellStates = [];
+    for (let n = 0; n <= MAXROW; n++) {
+        cellStates[n] = [];
+        for (let k = 0; k <= n; k++) {
+            cellStates[n][k] = 0;
+        }
+    }
+}
+initCellStates();
+
+/* ============================================================
+   Cell positions
+   ============================================================ */
+function cellPos(n, k) {
+    const yPad = 32, cellH = (H - yPad * 2) / (MAXROW + 1);
+    const y = yPad + n * cellH + cellH / 2;
+    const totalW = W * 0.85;
+    const spacing = totalW / (MAXROW + 1);
+    const rowW = n * spacing;
+    const x = W / 2 - rowW / 2 + k * spacing;
+    return { x, y, r: Math.max(14, 20 - n * 0.5) };
 }
 
-/* Pattern definitions */
-const patterns={
-    pow2:{label:"Powers of 2",cells:function(){
-        const c=[];for(let k=0;k<=selN;k++)c.push([selN,k]);return c;
+/* ============================================================
+   Pattern definitions
+   ============================================================ */
+const patterns = {
+    pow2: { label: "Powers of 2", colour: COL.cyan, cells: function () {
+        const c = []; for (let k = 0; k <= selN; k++) c.push([selN, k]); return c;
     }},
-    fib:{label:"Fibonacci Diagonals",cells:function(){
-        const c=[];
-        for(let d=0;d<=MAXROW;d++){
-            let n=d,k=0;
-            while(n>=0&&k<=n&&n<=MAXROW){c.push([n,k]);n-=1;k+=1;}
+    fib: { label: "Fibonacci Diagonals", colour: COL.gold, cells: function () {
+        const c = [];
+        for (let d = 0; d <= MAXROW; d++) {
+            let n = d, k = 0;
+            while (n >= 0 && k <= n && n <= MAXROW) { c.push([n, k]); n -= 1; k += 1; }
         }
         return c;
     }},
-    tri:{label:"Triangular Numbers",cells:function(){
-        const c=[];for(let n=2;n<=MAXROW;n++)c.push([n,2]);return c;
+    tri: { label: "Triangular Numbers", colour: COL.rose, cells: function () {
+        const c = []; for (let n = 2; n <= MAXROW; n++) c.push([n, 2]); return c;
     }},
-    evenodd:{label:"Even / Odd",cells:function(){
-        const c=[];
-        for(let n=0;n<=MAXROW;n++)for(let k=0;k<=n;k++)c.push([n,k]);
+    evenodd: { label: "Even / Odd", colour: COL.violet, cells: function () {
+        const c = [];
+        for (let n = 0; n <= MAXROW; n++) for (let k = 0; k <= n; k++) c.push([n, k]);
         return c;
     }},
-    hockey:{label:"Hockey Stick",cells:function(){
-        const c=[];
-        const col=1;
-        for(let n=col;n<=selN&&n<=MAXROW;n++)c.push([n,col]);
-        if(selN+1<=MAXROW)c.push([selN+1,col+1]);
+    hockey: { label: "Hockey Stick", colour: COL.blue, cells: function () {
+        const c = [];
+        const col = 1;
+        for (let n = col; n <= selN && n <= MAXROW; n++) c.push([n, col]);
+        if (selN + 1 <= MAXROW) c.push([selN + 1, col + 1]);
         return c;
     }}
 };
 
-/* Fibonacci diagonal groupings for coloring */
-function fibDiags(){
-    const diags=[];
-    for(let d=0;d<=MAXROW;d++){
-        const grp=[];
-        let n=d,k=0;
-        while(n>=0&&k<=n&&n<=MAXROW){grp.push([n,k]);n-=1;k+=1;}
+/* Fibonacci diagonal groupings for colouring */
+function fibDiags() {
+    const diags = [];
+    for (let d = 0; d <= MAXROW; d++) {
+        const grp = [];
+        let n = d, k = 0;
+        while (n >= 0 && k <= n && n <= MAXROW) { grp.push([n, k]); n -= 1; k += 1; }
         diags.push(grp);
     }
     return diags;
 }
 
-function isInSet(set,n,k){return set.some(c=>c[0]===n&&c[1]===k);}
+function isInSet(set, n, k) { return set.some(c => c[0] === n && c[1] === k); }
 
-/* Draw triangle */
-function draw(){
-    ctx.clearRect(0,0,W,H);
-    ctx.fillStyle="#0a0a1a";ctx.fillRect(0,0,W,H);
+/* ============================================================
+   Cascade particles (numbers flowing down to merge)
+   ============================================================ */
+function spawnCascade(n, k) {
+    const target = cellPos(n, k);
+    const val = P[n][k];
+    if (n === 0) return; // row 0 has no parents
 
-    const activeCells=activePattern?patterns[activePattern].cells():[];
-    const fibGroups=activePattern==="fib"?fibDiags():[];
+    // left parent
+    if (k > 0) {
+        const parent = cellPos(n - 1, k - 1);
+        cascadeParticles.push({
+            x: parent.x, y: parent.y,
+            tx: target.x, ty: target.y,
+            val: P[n - 1][k - 1],
+            progress: 0, speed: 2.5,
+            colour: COL.gold
+        });
+    }
+    // right parent
+    if (k < n) {
+        const parent = cellPos(n - 1, k);
+        cascadeParticles.push({
+            x: parent.x, y: parent.y,
+            tx: target.x, ty: target.y,
+            val: P[n - 1][k],
+            progress: 0, speed: 2.5,
+            colour: COL.cyan
+        });
+    }
+}
 
-    /* Draw Fibonacci diagonal lines */
-    if(activePattern==="fib"){
-        const colors=["#60a5fa","#f59e0b","#34d399","#f472b6","#a78bfa","#fb923c","#22d3ee","#e879f9","#84cc16","#60a5fa","#f59e0b","#34d399","#f472b6"];
-        fibGroups.forEach((grp,di)=>{
-            if(grp.length<2)return;
-            ctx.beginPath();ctx.strokeStyle=colors[di%colors.length];ctx.globalAlpha=0.25;ctx.lineWidth=2;
-            const p0=cellPos(grp[0][0],grp[0][1]),pL=cellPos(grp[grp.length-1][0],grp[grp.length-1][1]);
-            ctx.moveTo(p0.x,p0.y);ctx.lineTo(pL.x,pL.y);ctx.stroke();
-            ctx.globalAlpha=1;
+/* ============================================================
+   Easing
+   ============================================================ */
+function easeOutBack(t) {
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+/* ============================================================
+   Hex to rgba helper
+   ============================================================ */
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+}
+
+/* ============================================================
+   Draw
+   ============================================================ */
+function draw() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#0a0a1a";
+    ctx.fillRect(0, 0, W, H);
+
+    const activeCells = activePattern ? patterns[activePattern].cells() : [];
+    const fibGroups = activePattern === "fib" ? fibDiags() : [];
+    const diagColours = [COL.gold, COL.cyan, COL.rose, COL.violet, COL.blue, COL.orange, COL.green, COL.pink, COL.lime, COL.gold, COL.cyan, COL.rose, COL.violet];
+
+    /* Fibonacci diagonal lines */
+    if (activePattern === "fib") {
+        fibGroups.forEach(function (grp, di) {
+            if (grp.length < 2) return;
+            ctx.beginPath();
+            ctx.strokeStyle = diagColours[di % diagColours.length];
+            ctx.globalAlpha = 0.25;
+            ctx.lineWidth = 2;
+            const p0 = cellPos(grp[0][0], grp[0][1]);
+            const pL = cellPos(grp[grp.length - 1][0], grp[grp.length - 1][1]);
+            ctx.moveTo(p0.x, p0.y);
+            ctx.lineTo(pL.x, pL.y);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
         });
     }
 
-    /* Draw connecting lines (parent to children) */
-    ctx.strokeStyle="rgba(255,255,255,0.04)";ctx.lineWidth=1;
-    for(let n=1;n<=MAXROW;n++){
-        for(let k=0;k<=n;k++){
-            const c=cellPos(n,k);
-            if(k>0){const p=cellPos(n-1,k-1);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(c.x,c.y);ctx.stroke();}
-            if(k<n){const p=cellPos(n-1,k);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(c.x,c.y);ctx.stroke();}
+    /* Connecting lines */
+    ctx.lineWidth = 1;
+    for (let n = 1; n <= MAXROW; n++) {
+        for (let k = 0; k <= n; k++) {
+            const cs = cellStates[n] ? cellStates[n][k] : 0;
+            if (cs <= 0) continue;
+            const alpha = 0.04 * cs;
+            ctx.strokeStyle = "rgba(255,255,255," + alpha + ")";
+            const c = cellPos(n, k);
+            if (k > 0) { const p = cellPos(n - 1, k - 1); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(c.x, c.y); ctx.stroke(); }
+            if (k < n) { const p = cellPos(n - 1, k); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(c.x, c.y); ctx.stroke(); }
         }
     }
 
     /* Draw cells */
-    for(let n=0;n<=MAXROW;n++){
-        for(let k=0;k<=n;k++){
-            const pos=cellPos(n,k);
-            const val=P[n][k];
-            let bg="rgba(255,255,255,0.04)",fg="#b0b0c4",border="rgba(255,255,255,0.06)";
+    for (let n = 0; n <= MAXROW; n++) {
+        for (let k = 0; k <= n; k++) {
+            const cs = cellStates[n] ? cellStates[n][k] : 0;
+            if (cs <= 0) continue;
 
-            if(n===selN&&!activePattern){
-                bg="rgba(96,165,250,0.15)";fg="#60a5fa";border="rgba(96,165,250,0.4)";
+            const pos = cellPos(n, k);
+            const val = P[n][k];
+            const scale = easeOutBack(Math.min(cs, 1));
+            const cellAlpha = easeOutCubic(Math.min(cs, 1));
+
+            /* Determine whether this row is the "current" glow row */
+            const isCurrentRow = (n === animRow && !animDone) || (animDone && n === MAXROW);
+            const isSelectedRow = n === selN && !activePattern;
+            const isDimmed = !animDone && n < animRow;
+
+            let bg = "rgba(255,255,255,0.04)";
+            let fg = "#b0b0c4";
+            let border = "rgba(255,255,255,0.06)";
+            let glowCol = null;
+            let glowRadius = 0;
+
+            /* Selected row highlight */
+            if (isSelectedRow) {
+                bg = "rgba(96,165,250,0.15)"; fg = COL.blue; border = "rgba(96,165,250,0.4)";
             }
 
-            if(activePattern==="evenodd"){
-                if(val%2===0){bg="rgba(96,165,250,0.3)";fg="#60a5fa";border="rgba(96,165,250,0.5)";}
-                else{bg="rgba(234,179,8,0.2)";fg="#eab308";border="rgba(234,179,8,0.4)";}
-            }else if(activePattern==="pow2"&&n===selN){
-                bg="rgba(96,165,250,0.2)";fg="#60a5fa";border="rgba(96,165,250,0.5)";
-            }else if(activePattern==="tri"&&isInSet(activeCells,n,k)){
-                bg="rgba(96,165,250,0.2)";fg="#60a5fa";border="rgba(96,165,250,0.5)";
-            }else if(activePattern==="fib"){
-                const di=fibGroups.findIndex(g=>g.some(c=>c[0]===n&&c[1]===k));
-                if(di>=0){
-                    const colors=["#60a5fa","#f59e0b","#34d399","#f472b6","#a78bfa","#fb923c","#22d3ee","#e879f9","#84cc16","#60a5fa","#f59e0b","#34d399","#f472b6"];
-                    const cc=colors[di%colors.length];
-                    bg=cc+"22";fg=cc;border=cc+"66";
+            /* Pattern colouring */
+            if (activePattern === "evenodd") {
+                if (val % 2 === 0) { bg = hexToRgba(COL.cyan, 0.3); fg = COL.cyan; border = hexToRgba(COL.cyan, 0.5); }
+                else { bg = hexToRgba(COL.gold, 0.2); fg = COL.gold; border = hexToRgba(COL.gold, 0.4); }
+            } else if (activePattern === "pow2" && n === selN) {
+                bg = hexToRgba(COL.cyan, 0.2); fg = COL.cyan; border = hexToRgba(COL.cyan, 0.5);
+            } else if (activePattern === "tri" && isInSet(activeCells, n, k)) {
+                bg = hexToRgba(COL.rose, 0.2); fg = COL.rose; border = hexToRgba(COL.rose, 0.5);
+            } else if (activePattern === "fib") {
+                const di = fibGroups.findIndex(function (g) { return g.some(function (c) { return c[0] === n && c[1] === k; }); });
+                if (di >= 0) {
+                    const cc = diagColours[di % diagColours.length];
+                    bg = hexToRgba(cc, 0.13); fg = cc; border = hexToRgba(cc, 0.4);
                 }
-            }else if(activePattern==="hockey"&&isInSet(activeCells,n,k)){
-                const isSum=activeCells.length>0&&n===activeCells[activeCells.length-1][0]&&k===activeCells[activeCells.length-1][1]&&(n!==1||k!==1||activeCells.length>1);
-                if(isSum&&activeCells.length>1){bg="rgba(234,179,8,0.25)";fg="#eab308";border="rgba(234,179,8,0.5)";}
-                else{bg="rgba(96,165,250,0.2)";fg="#60a5fa";border="rgba(96,165,250,0.5)";}
+            } else if (activePattern === "hockey" && isInSet(activeCells, n, k)) {
+                const isSum = activeCells.length > 0 && n === activeCells[activeCells.length - 1][0] && k === activeCells[activeCells.length - 1][1] && (n !== 1 || k !== 1 || activeCells.length > 1);
+                if (isSum && activeCells.length > 1) { bg = hexToRgba(COL.gold, 0.25); fg = COL.gold; border = hexToRgba(COL.gold, 0.5); }
+                else { bg = hexToRgba(COL.blue, 0.2); fg = COL.blue; border = hexToRgba(COL.blue, 0.5); }
             }
 
-            if(hoverCell&&hoverCell[0]===n&&hoverCell[1]===k){
-                bg="rgba(96,165,250,0.3)";fg="#fff";border="rgba(96,165,250,0.7)";
+            /* Glow for current row being built */
+            if (isCurrentRow && !activePattern) {
+                glowCol = COL.violet;
+                glowRadius = 18;
             }
 
-            ctx.beginPath();ctx.arc(pos.x,pos.y,pos.r,0,Math.PI*2);
-            ctx.fillStyle=bg;ctx.fill();ctx.strokeStyle=border;ctx.lineWidth=1;ctx.stroke();
+            /* Hover */
+            if (hoverCell && hoverCell[0] === n && hoverCell[1] === k) {
+                bg = "rgba(96,165,250,0.3)"; fg = "#fff"; border = "rgba(96,165,250,0.7)";
+                glowCol = COL.blue; glowRadius = 14;
+            }
 
-            ctx.fillStyle=fg;ctx.textAlign="center";ctx.textBaseline="middle";
-            ctx.font=(val>999?"9":val>99?"10":"11")+"px Georgia";
-            ctx.fillText(val,pos.x,pos.y);
+            /* Dim factor for older rows during animation */
+            let dimFactor = 1;
+            if (isDimmed && !activePattern) {
+                dimFactor = 0.45 + 0.55 * (n / Math.max(animRow, 1));
+            }
+
+            ctx.save();
+            ctx.globalAlpha = cellAlpha * dimFactor;
+            ctx.translate(pos.x, pos.y);
+            ctx.scale(scale, scale);
+
+            /* Glow effect */
+            if (glowCol && glowRadius > 0) {
+                ctx.shadowColor = glowCol;
+                ctx.shadowBlur = glowRadius;
+            }
+
+            ctx.beginPath();
+            ctx.arc(0, 0, pos.r, 0, Math.PI * 2);
+            ctx.fillStyle = bg;
+            ctx.fill();
+            ctx.strokeStyle = border;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            ctx.shadowColor = "transparent";
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = fg;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = (val > 999 ? "9" : val > 99 ? "10" : "11") + "px Georgia";
+            ctx.fillText(val, 0, 0);
+
+            ctx.restore();
         }
+    }
+
+    /* Cascade particles */
+    for (let i = 0; i < cascadeParticles.length; i++) {
+        const cp = cascadeParticles[i];
+        const t = easeOutCubic(Math.min(cp.progress, 1));
+        const px = cp.x + (cp.tx - cp.x) * t;
+        const py = cp.y + (cp.ty - cp.y) * t;
+        const alpha = cp.progress < 0.8 ? 1 : (1 - cp.progress) / 0.2;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, alpha) * 0.7;
+        ctx.fillStyle = cp.colour;
+        ctx.font = "bold 10px Georgia";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.shadowColor = cp.colour;
+        ctx.shadowBlur = 8;
+        ctx.fillText(cp.val, px, py);
+        ctx.restore();
     }
 
     /* Row labels */
-    ctx.font="10px Georgia";ctx.fillStyle="#606078";ctx.textAlign="right";ctx.textBaseline="middle";
-    for(let n=0;n<=MAXROW;n++){
-        const pos=cellPos(n,0);
-        ctx.fillText("n="+n,pos.x-pos.r-8,pos.y);
+    ctx.font = "10px Georgia";
+    ctx.fillStyle = "#606078";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    for (let n = 0; n <= MAXROW; n++) {
+        const cs = cellStates[n] ? cellStates[n][0] : 0;
+        if (cs <= 0) continue;
+        ctx.globalAlpha = easeOutCubic(Math.min(cs, 1));
+        const pos = cellPos(n, 0);
+        ctx.fillText("n=" + n, pos.x - pos.r - 8, pos.y);
     }
+    ctx.globalAlpha = 1;
 
     /* Pattern annotations */
-    if(activePattern==="pow2"){
-        let sum=0;for(let k=0;k<=selN;k++)sum+=P[selN][k];
-        ctx.font="13px Georgia";ctx.fillStyle="#60a5fa";ctx.textAlign="left";ctx.textBaseline="top";
-        ctx.fillText("Row sum = "+sum+" = 2^"+selN,14,H-22);
+    if (activePattern === "pow2") {
+        let sum = 0; for (let k = 0; k <= selN; k++) sum += P[selN][k];
+        ctx.font = "13px Georgia"; ctx.fillStyle = COL.cyan; ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("Row sum = " + sum + " = 2^" + selN, 14, H - 22);
     }
-    if(activePattern==="fib"){
-        const fibs=[];
-        fibGroups.forEach(grp=>{let s=0;grp.forEach(c=>s+=P[c[0]][c[1]]);fibs.push(s);});
-        ctx.font="11px Georgia";ctx.fillStyle="#60a5fa";ctx.textAlign="left";ctx.textBaseline="top";
-        ctx.fillText("Fibonacci: "+fibs.join(", "),14,H-22);
+    if (activePattern === "fib") {
+        const fibs = [];
+        fibGroups.forEach(function (grp) { let s = 0; grp.forEach(function (c) { s += P[c[0]][c[1]]; }); fibs.push(s); });
+        ctx.font = "11px Georgia"; ctx.fillStyle = COL.gold; ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("Fibonacci: " + fibs.join(", "), 14, H - 22);
     }
-    if(activePattern==="tri"){
-        const vals=[];for(let n=2;n<=MAXROW;n++)vals.push(P[n][2]);
-        ctx.font="11px Georgia";ctx.fillStyle="#60a5fa";ctx.textAlign="left";ctx.textBaseline="top";
-        ctx.fillText("Triangular numbers: "+vals.join(", "),14,H-22);
+    if (activePattern === "tri") {
+        const vals = []; for (let n = 2; n <= MAXROW; n++) vals.push(P[n][2]);
+        ctx.font = "11px Georgia"; ctx.fillStyle = COL.rose; ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("Triangular numbers: " + vals.join(", "), 14, H - 22);
     }
-    if(activePattern==="hockey"&&activeCells.length>1){
-        const sumCells=activeCells.slice(0,-1);
-        let s=0;sumCells.forEach(c=>s+=P[c[0]][c[1]]);
-        const target=activeCells[activeCells.length-1];
-        ctx.font="12px Georgia";ctx.fillStyle="#60a5fa";ctx.textAlign="left";ctx.textBaseline="top";
-        ctx.fillText("Sum: "+sumCells.map(c=>P[c[0]][c[1]]).join(" + ")+" = "+s+" = C("+target[0]+","+target[1]+")",14,H-22);
+    if (activePattern === "hockey" && activeCells.length > 1) {
+        const sumCells = activeCells.slice(0, -1);
+        let s = 0; sumCells.forEach(function (c) { s += P[c[0]][c[1]]; });
+        const target = activeCells[activeCells.length - 1];
+        ctx.font = "12px Georgia"; ctx.fillStyle = COL.blue; ctx.textAlign = "left"; ctx.textBaseline = "top";
+        ctx.fillText("Sum: " + sumCells.map(function (c) { return P[c[0]][c[1]]; }).join(" + ") + " = " + s + " = C(" + target[0] + "," + target[1] + ")", 14, H - 22);
     }
 }
 
-/* Mouse interaction */
-cvs.addEventListener("mousemove",function(e){
-    const rect=cvs.getBoundingClientRect();
-    const sx=W/rect.width,sy=H/rect.height;
-    const mx=(e.clientX-rect.left)*sx,my=(e.clientY-rect.top)*sy;
-    hoverCell=null;
-    for(let n=0;n<=MAXROW;n++){
-        for(let k=0;k<=n;k++){
-            const pos=cellPos(n,k);
-            const dx=mx-pos.x,dy=my-pos.y;
-            if(dx*dx+dy*dy<=pos.r*pos.r){hoverCell=[n,k];break;}
-        }
-        if(hoverCell)break;
-    }
-    draw();
-    if(hoverCell)updateFormula(hoverCell[0],hoverCell[1]);
-    else updateFormula(selN,Math.min(2,selN));
-});
-cvs.addEventListener("mouseleave",function(){hoverCell=null;draw();});
+/* ============================================================
+   Animation loop
+   ============================================================ */
+let pendingCells = []; // queue: [{n,k}]
+let cellDelayClock = 0;
+let rowDelayClock = 0;
+let waitingForRow = true;
 
-/* Pattern buttons */
-const patBtns=document.getElementById("patternBtns");
-Object.keys(patterns).forEach(key=>{
-    const b=document.createElement("button");
-    b.className="pbtn";b.textContent=patterns[key].label;
-    b.dataset.key=key;
-    b.addEventListener("click",function(){
-        if(activePattern===key){activePattern=null;b.classList.remove("active");}
-        else{activePattern=key;patBtns.querySelectorAll(".pbtn").forEach(x=>x.classList.remove("active"));b.classList.add("active");}
-        draw();updateInsight();
+function resetAnimation() {
+    initCellStates();
+    cascadeParticles = [];
+    animRow = 0;
+    animCellK = -1;
+    animDone = false;
+    pendingCells = [];
+    rowDelayClock = 0;
+    cellDelayClock = 0;
+    waitingForRow = true;
+    queueRow(0);
+    updateStatus("Building row 0...");
+}
+
+function queueRow(n) {
+    for (let k = 0; k <= n; k++) {
+        pendingCells.push({ n: n, k: k });
+    }
+}
+
+function updateStatus(msg) {
+    document.getElementById("animStatus").textContent = msg;
+}
+
+function animationTick(dt) {
+    if (animPaused || animDone) return;
+
+    /* Process pending cells */
+    if (pendingCells.length > 0) {
+        cellDelayClock += dt;
+        while (cellDelayClock >= CELL_DELAY && pendingCells.length > 0) {
+            cellDelayClock -= CELL_DELAY;
+            const cell = pendingCells.shift();
+            cellStates[cell.n][cell.k] = 0.01; // start fading in
+            spawnCascade(cell.n, cell.k);
+            animRow = cell.n;
+            animCellK = cell.k;
+        }
+        if (pendingCells.length === 0) {
+            waitingForRow = true;
+            rowDelayClock = 0;
+        }
+    } else if (waitingForRow) {
+        rowDelayClock += dt;
+        if (rowDelayClock >= ROW_DELAY) {
+            const nextRow = animRow + 1;
+            if (nextRow <= MAXROW) {
+                animRow = nextRow;
+                queueRow(nextRow);
+                cellDelayClock = 0;
+                waitingForRow = false;
+                updateStatus("Building row " + nextRow + "...");
+            } else {
+                animDone = true;
+                updateStatus("Complete — all 13 rows revealed");
+            }
+        }
+    }
+
+    /* Fade in cells */
+    for (let n = 0; n <= MAXROW; n++) {
+        for (let k = 0; k <= n; k++) {
+            if (cellStates[n][k] > 0 && cellStates[n][k] < 1) {
+                cellStates[n][k] = Math.min(1, cellStates[n][k] + dt * FADE_SPEED);
+            }
+        }
+    }
+
+    /* Update cascade particles */
+    for (let i = cascadeParticles.length - 1; i >= 0; i--) {
+        cascadeParticles[i].progress += dt * cascadeParticles[i].speed;
+        if (cascadeParticles[i].progress >= 1) {
+            cascadeParticles.splice(i, 1);
+        }
+    }
+}
+
+/* Main rAF loop */
+function mainLoop(timestamp) {
+    if (!lastTime) lastTime = timestamp;
+    const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+    lastTime = timestamp;
+
+    animationTick(dt);
+    draw();
+    requestAnimationFrame(mainLoop);
+}
+
+/* ============================================================
+   Play/Pause & Replay controls
+   ============================================================ */
+const playPauseBtn = document.getElementById("playPauseBtn");
+const replayBtn = document.getElementById("replayBtn");
+
+playPauseBtn.addEventListener("click", function () {
+    animPaused = !animPaused;
+    if (animPaused) {
+        playPauseBtn.innerHTML = "&#9654; Play";
+        playPauseBtn.classList.remove("active-ctrl");
+        updateStatus("Paused");
+    } else {
+        playPauseBtn.innerHTML = "&#9646;&#9646; Pause";
+        playPauseBtn.classList.add("active-ctrl");
+        if (animDone) {
+            updateStatus("Complete — all 13 rows revealed");
+        } else {
+            updateStatus("Building row " + animRow + "...");
+        }
+    }
+});
+
+replayBtn.addEventListener("click", function () {
+    animPaused = false;
+    playPauseBtn.innerHTML = "&#9646;&#9646; Pause";
+    playPauseBtn.classList.add("active-ctrl");
+    lastTime = 0;
+    resetAnimation();
+});
+
+/* ============================================================
+   "Skip to full" — instantly fill all cells (for pattern browsing)
+   ============================================================ */
+function skipToFull() {
+    for (let n = 0; n <= MAXROW; n++) {
+        for (let k = 0; k <= n; k++) {
+            cellStates[n][k] = 1;
+        }
+    }
+    cascadeParticles = [];
+    pendingCells = [];
+    animDone = true;
+    animRow = MAXROW;
+    updateStatus("Complete — all 13 rows revealed");
+}
+
+/* ============================================================
+   Mouse interaction
+   ============================================================ */
+cvs.addEventListener("mousemove", function (e) {
+    const rect = cvs.getBoundingClientRect();
+    const sx = W / rect.width, sy = H / rect.height;
+    const mx = (e.clientX - rect.left) * sx, my = (e.clientY - rect.top) * sy;
+    hoverCell = null;
+    for (let n = 0; n <= MAXROW; n++) {
+        for (let k = 0; k <= n; k++) {
+            if ((cellStates[n] ? cellStates[n][k] : 0) <= 0) continue;
+            const pos = cellPos(n, k);
+            const dx = mx - pos.x, dy = my - pos.y;
+            if (dx * dx + dy * dy <= pos.r * pos.r) { hoverCell = [n, k]; break; }
+        }
+        if (hoverCell) break;
+    }
+    if (hoverCell) updateFormula(hoverCell[0], hoverCell[1]);
+    else updateFormula(selN, Math.min(2, selN));
+});
+cvs.addEventListener("mouseleave", function () { hoverCell = null; });
+
+/* ============================================================
+   Pattern buttons
+   ============================================================ */
+const patBtns = document.getElementById("patternBtns");
+Object.keys(patterns).forEach(function (key) {
+    const b = document.createElement("button");
+    b.className = "pbtn";
+    b.textContent = patterns[key].label;
+    b.dataset.key = key;
+    b.addEventListener("click", function () {
+        /* Ensure triangle is fully visible when browsing patterns */
+        if (!animDone) skipToFull();
+        if (activePattern === key) {
+            activePattern = null;
+            b.classList.remove("active");
+        } else {
+            activePattern = key;
+            patBtns.querySelectorAll(".pbtn").forEach(function (x) { x.classList.remove("active"); });
+            b.classList.add("active");
+        }
+        updateInsight();
     });
     patBtns.appendChild(b);
 });
 
-/* Row slider */
-const nSlider=document.getElementById("nSlider"),nValEl=document.getElementById("nVal");
-nSlider.addEventListener("input",function(){
-    selN=parseInt(this.value);nValEl.textContent=selN;
-    draw();updateExpansion();updateCalc();updateFormula(selN,Math.min(2,selN));
+/* ============================================================
+   Row slider with smooth animation
+   ============================================================ */
+const nSlider = document.getElementById("nSlider");
+const nValEl = document.getElementById("nVal");
+
+nSlider.addEventListener("input", function () {
+    selN = parseInt(this.value);
+    nValEl.textContent = selN;
+    /* Ensure all rows up to selN are visible */
+    if (!animDone) skipToFull();
+    updateExpansion();
+    updateCalc();
+    updateFormula(selN, Math.min(2, selN));
 });
 
-/* Superscript helper */
-function sup(n){
-    if(n===0)return"";if(n===1)return"";
-    const map="0123456789";
-    const digits=String(n).split("");
-    return digits.map(d=>map[parseInt(d)]).join("");
+/* ============================================================
+   Superscript helper
+   ============================================================ */
+function sup(n) {
+    if (n === 0) return "";
+    if (n === 1) return "";
+    var map = "\u2070\u00B9\u00B2\u00B3\u2074\u2075\u2076\u2077\u2078\u2079";
+    var digits = String(n).split("");
+    return digits.map(function (d) { return map[parseInt(d)]; }).join("");
 }
 
-/* Expansion display */
-function updateExpansion(){
-    const el=document.getElementById("expansion");
-    if(selN===0){el.innerHTML="(a + b)<sup>0</sup> = <span class='coeff'>1</span>";return;}
-    let html="(a + b)<sup>"+selN+"</sup> = ";
-    const terms=[];
-    for(let k=0;k<=selN;k++){
-        const c=P[selN][k];
-        const aPow=selN-k,bPow=k;
-        let t="";
-        if(c!==1||( aPow===0&&bPow===0))t+="<span class='coeff'>"+c+"</span>";
-        if(aPow>0)t+="a"+(aPow>1?"<sup>"+aPow+"</sup>":"");
-        if(bPow>0)t+="b"+(bPow>1?"<sup>"+bPow+"</sup>":"");
-        terms.push(t);
+/* ============================================================
+   Expansion display — animated term reveal
+   ============================================================ */
+function updateExpansion() {
+    const el = document.getElementById("expansion");
+    if (selN === 0) {
+        el.innerHTML = "(a + b)<sup>0</sup> = <span class='exp-term visible'><span class='coeff'>1</span></span>";
+        return;
     }
-    html+=terms.join(" + ");
-    el.innerHTML=html;
+    let html = "(a + b)<sup>" + selN + "</sup> = ";
+    const terms = [];
+    for (let k = 0; k <= selN; k++) {
+        const c = P[selN][k];
+        const aPow = selN - k, bPow = k;
+        let t = "";
+        if (c !== 1 || (aPow === 0 && bPow === 0)) t += "<span class='coeff-hl'>" + c + "</span>";
+        if (aPow > 0) t += "a" + (aPow > 1 ? "<sup>" + aPow + "</sup>" : "");
+        if (bPow > 0) t += "b" + (bPow > 1 ? "<sup>" + bPow + "</sup>" : "");
+        if (k < selN) t += " + ";
+        terms.push("<span class='exp-term' data-idx='" + k + "'>" + t + "</span>");
+    }
+    html += terms.join("");
+    el.innerHTML = html;
+
+    /* Stagger reveal */
+    const spans = el.querySelectorAll(".exp-term");
+    spans.forEach(function (span, i) {
+        setTimeout(function () { span.classList.add("visible"); }, 80 * i);
+    });
+
+    /* Highlight corresponding Pascal's triangle cells */
+    highlightExpansionCoeffs();
 }
 
-/* Calculator */
-const aIn=document.getElementById("aIn"),bIn=document.getElementById("bIn");
-function setPreset(a,b){aIn.value=a;bIn.value=b;updateCalc();}
-function updateCalc(){
-    const a=parseFloat(aIn.value)||0,b=parseFloat(bIn.value)||0;
-    const direct=Math.pow(a+b,selN);
-    let html="<b>Direct:</b> ("+a+" + "+b+")<sup>"+selN+"</sup> = <span class='val'>"+fmtNum(direct)+"</span><br>";
-    html+="<b>By expansion:</b> ";
-    const termStrs=[],termVals=[];
-    for(let k=0;k<=selN;k++){
-        const c=P[selN][k];
-        const aPow=selN-k,bPow=k;
-        const tv=c*Math.pow(a,aPow)*Math.pow(b,bPow);
+function highlightExpansionCoeffs() {
+    const spans = document.querySelectorAll(".exp-term .coeff-hl");
+    spans.forEach(function (span, i) {
+        setTimeout(function () {
+            span.style.color = COL.gold;
+            span.style.textShadow = "0 0 10px " + hexToRgba(COL.gold, 0.6);
+            setTimeout(function () {
+                span.style.color = COL.blue;
+                span.style.textShadow = "0 0 6px " + hexToRgba(COL.blue, 0.3);
+            }, 800);
+        }, 80 * i + 200);
+    });
+}
+
+/* ============================================================
+   Calculator
+   ============================================================ */
+const aIn = document.getElementById("aIn"), bIn = document.getElementById("bIn");
+function setPreset(a, b) { aIn.value = a; bIn.value = b; updateCalc(); }
+function updateCalc() {
+    const a = parseFloat(aIn.value) || 0, b = parseFloat(bIn.value) || 0;
+    const direct = Math.pow(a + b, selN);
+    let html = "<b>Direct:</b> (" + a + " + " + b + ")<sup>" + selN + "</sup> = <span class='val'>" + fmtNum(direct) + "</span><br>";
+    html += "<b>By expansion:</b> ";
+    const termStrs = [], termVals = [];
+    for (let k = 0; k <= selN; k++) {
+        const c = P[selN][k];
+        const aPow = selN - k, bPow = k;
+        const tv = c * Math.pow(a, aPow) * Math.pow(b, bPow);
         termVals.push(tv);
-        termStrs.push("<span class='val'>"+c+"</span>"+mult(a,aPow)+mult(b,bPow)+" = "+fmtNum(tv));
+        termStrs.push("<span class='val'>" + c + "</span>" + mult(a, aPow) + mult(b, bPow) + " = " + fmtNum(tv));
     }
-    const sumVal=termVals.reduce((s,v)=>s+v,0);
-    html+=termStrs.join(" &nbsp;+&nbsp; ")+"<br>";
-    html+="<b>Sum:</b> <span class='val'>"+fmtNum(sumVal)+"</span>";
-    document.getElementById("calcResult").innerHTML=html;
+    const sumVal = termVals.reduce(function (s, v) { return s + v; }, 0);
+    html += termStrs.join(" &nbsp;+&nbsp; ") + "<br>";
+    html += "<b>Sum:</b> <span class='val'>" + fmtNum(sumVal) + "</span>";
+    document.getElementById("calcResult").innerHTML = html;
 }
-function mult(base,pow){
-    if(pow===0)return"";
-    const v=Math.pow(base,pow);
-    return " &middot; "+fmtNum(base)+(pow>1?"<sup>"+pow+"</sup>":"");
+function mult(base, pow) {
+    if (pow === 0) return "";
+    return " &middot; " + fmtNum(base) + (pow > 1 ? "<sup>" + pow + "</sup>" : "");
 }
-function fmtNum(v){return Number.isInteger(v)?String(v):v.toFixed(6).replace(/\.?0+$/,"");}
-aIn.addEventListener("input",updateCalc);bIn.addEventListener("input",updateCalc);
+function fmtNum(v) { return Number.isInteger(v) ? String(v) : v.toFixed(6).replace(/\.?0+$/, ""); }
+aIn.addEventListener("input", updateCalc);
+bIn.addEventListener("input", updateCalc);
 
-/* Formula panel */
-function updateFormula(n,k){
-    if(k>n)k=n;
-    const el=document.getElementById("formulaPanel");
-    const nk=P[n][k];
-    const nFact=fact(n),kFact=fact(k),nkFact=fact(n-k);
-    let html="<span class='hl'>C(n, k) = n! / (k! &times; (n-k)!)</span><br><br>";
-    html+="C(n, k) counts the number of ways to choose k items from n items.<br><br>";
-    html+="<b>Example:</b> <span class='hl'>C("+n+", "+k+") = "+n+"! / ("+k+"! &times; "+(n-k)+"!) = "+nFact+" / ("+kFact+" &times; "+nkFact+") = "+nk+"</span><br><br>";
-    html+="<b>Symmetry:</b> C("+n+", "+k+") = C("+n+", "+(n-k)+") = "+nk;
-    if(k!==n-k)html+=" &mdash; choosing "+k+" items is the same as leaving out "+(n-k)+" items";
-    el.innerHTML=html;
+/* ============================================================
+   Formula panel
+   ============================================================ */
+function updateFormula(n, k) {
+    if (k > n) k = n;
+    const el = document.getElementById("formulaPanel");
+    const nk = P[n][k];
+    const nFact = fact(n), kFact = fact(k), nkFact = fact(n - k);
+    let html = "<span class='hl'>C(n, k) = n! / (k! &times; (n-k)!)</span><br><br>";
+    html += "C(n, k) counts the number of ways to choose k items from n items.<br><br>";
+    html += "<b>Example:</b> <span class='hl'>C(" + n + ", " + k + ") = " + n + "! / (" + k + "! &times; " + (n - k) + "!) = " + nFact + " / (" + kFact + " &times; " + nkFact + ") = " + nk + "</span><br><br>";
+    html += "<b>Symmetry:</b> C(" + n + ", " + k + ") = C(" + n + ", " + (n - k) + ") = " + nk;
+    if (k !== n - k) html += " &mdash; choosing " + k + " items is the same as leaving out " + (n - k) + " items";
+    el.innerHTML = html;
 }
-function fact(n){let r=1;for(let i=2;i<=n;i++)r*=i;return r;}
+function fact(n) { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; }
 
-/* Insight panel */
-const insights={
-    default:"Pascal's triangle (known independently in China, Persia, and Europe) encodes an extraordinary amount of mathematics. Each entry is the sum of the two entries above it, yet it contains Fibonacci numbers, powers of 2, triangular numbers, and even a fractal (Sierpinski's triangle) hidden within.",
-    pow2:"Each row of Pascal's triangle sums to a power of 2. Row n sums to 2^n. This follows directly from the binomial theorem: set a = 1 and b = 1, then (1+1)^n = 2^n equals the sum of all coefficients C(n,0) + C(n,1) + ... + C(n,n).",
-    fib:"Sum the shallow diagonals of Pascal's triangle and you get the Fibonacci sequence: 1, 1, 2, 3, 5, 8, 13, 21... This surprising connection links combinatorics to the golden ratio. Each diagonal runs from a cell on the left edge upward to the right.",
-    tri:"The third diagonal of Pascal's triangle (k = 2) contains the triangular numbers: 1, 3, 6, 10, 15, 21, 28... These count the number of dots in triangular arrangements, and C(n, 2) = n(n-1)/2 is the formula for the n-th triangular number.",
-    evenodd:"Colour each number by whether it is even or odd, and the Sierpinski triangle appears -- a fractal with infinite self-similarity. This happens because C(n, k) mod 2 follows a pattern related to binary representations of n and k (Lucas' theorem).",
-    hockey:"The hockey stick identity: the sum of any diagonal sequence of consecutive entries equals the entry just below and to the side of the last one. Formally, C(r,r) + C(r+1,r) + ... + C(n,r) = C(n+1, r+1). The shape traced out resembles a hockey stick."
+/* ============================================================
+   Insight panel
+   ============================================================ */
+const insights = {
+    default: "Pascal's triangle (known independently in China, Persia, and Europe) encodes an extraordinary amount of mathematics. Each entry is the sum of the two entries above it, yet it contains Fibonacci numbers, powers of 2, triangular numbers, and even a fractal (Sierpinski's triangle) hidden within.",
+    pow2: "Each row of Pascal's triangle sums to a power of 2. Row n sums to 2\u207F. This follows directly from the binomial theorem: set a = 1 and b = 1, then (1+1)\u207F = 2\u207F equals the sum of all coefficients C(n,0) + C(n,1) + ... + C(n,n).",
+    fib: "Sum the shallow diagonals of Pascal's triangle and you get the Fibonacci sequence: 1, 1, 2, 3, 5, 8, 13, 21... This surprising connection links combinatorics to the golden ratio. Each diagonal runs from a cell on the left edge upward to the right.",
+    tri: "The third diagonal of Pascal's triangle (k = 2) contains the triangular numbers: 1, 3, 6, 10, 15, 21, 28... These count the number of dots in triangular arrangements, and C(n, 2) = n(n\u22121)/2 is the formula for the n-th triangular number.",
+    evenodd: "Colour each number by whether it is even or odd, and the Sierpinski triangle appears \u2014 a fractal with infinite self-similarity. This happens because C(n, k) mod 2 follows a pattern related to binary representations of n and k (Lucas' theorem).",
+    hockey: "The hockey stick identity: the sum of any diagonal sequence of consecutive entries equals the entry just below and to the side of the last one. Formally, C(r,r) + C(r+1,r) + ... + C(n,r) = C(n+1, r+1). The shape traced out resembles a hockey stick."
 };
-function updateInsight(){
-    document.getElementById("insight").textContent=insights[activePattern]||insights.default;
+function updateInsight() {
+    document.getElementById("insight").textContent = insights[activePattern] || insights.default;
 }
 
-/* Init */
-draw();updateExpansion();updateCalc();updateFormula(4,2);updateInsight();
+/* ============================================================
+   Initialise
+   ============================================================ */
+resetAnimation();
+/* Start playing by default */
+animPaused = false;
+playPauseBtn.innerHTML = "&#9646;&#9646; Pause";
+playPauseBtn.classList.add("active-ctrl");
+
+updateExpansion();
+updateCalc();
+updateFormula(4, 2);
+updateInsight();
+
+requestAnimationFrame(mainLoop);
 </script>
 <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
     <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>

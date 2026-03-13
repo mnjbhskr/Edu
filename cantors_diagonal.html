@@ -65,7 +65,7 @@
 
         .diag-grid{display:inline-grid;gap:0;margin:12px 0}
         .diag-grid .cell{width:32px;height:32px;display:flex;align-items:center;justify-content:center;
-            font-family:'Courier New',monospace;font-size:1em;border:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background 0.15s,color 0.15s;user-select:none}
+            font-family:'Courier New',monospace;font-size:1em;border:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background 0.15s,color 0.15s,opacity 0.4s,transform 0.4s;user-select:none}
         .diag-grid .cell:hover{background:rgba(251,191,36,0.1)}
         .diag-grid .cell.hdr{color:#606078;font-size:0.7em;cursor:default;border:none}
         .diag-grid .cell.hdr:hover{background:transparent}
@@ -73,15 +73,43 @@
         .diag-grid .cell.dot:hover{background:transparent}
         .diag-grid .cell.diag-hl{background:rgba(251,191,36,0.18);color:#fbbf24;font-weight:700}
         .diag-grid .cell.diff-hl{background:rgba(231,76,60,0.18);color:#e74c3c}
-        .new-num{font-family:'Courier New',monospace;font-size:1.05em;color:#2ecc71;margin:6px 0}
+        /* Animated glow for diagonal cells */
+        .diag-grid .cell.diag-glow{
+            background:rgba(251,191,36,0.35);color:#fbbf24;font-weight:700;
+            box-shadow:0 0 12px rgba(251,191,36,0.6),0 0 24px rgba(251,191,36,0.3);
+            transform:scale(1.15);z-index:2;position:relative;
+        }
+        /* Contradiction highlight */
+        .diag-grid .cell.contra-hl{
+            background:rgba(244,63,94,0.25);color:#f43f5e;
+            box-shadow:0 0 10px rgba(244,63,94,0.5);
+        }
+        /* Row fade-in */
+        .diag-grid .cell.row-hidden{opacity:0;transform:translateX(-8px)}
+        .diag-grid .cell.row-visible{opacity:1;transform:translateX(0)}
+
+        .new-num{font-family:'Courier New',monospace;font-size:1.05em;color:#22d3ee;margin:6px 0}
+        .new-num .digit{display:inline-block;transition:opacity 0.3s,transform 0.3s;opacity:0;transform:translateY(8px)}
+        .new-num .digit.visible{opacity:1;transform:translateY(0)}
+        .new-num .digit.flip{animation:digitFlip 0.5s ease}
+        @keyframes digitFlip{
+            0%{transform:rotateX(0deg)}
+            50%{transform:rotateX(90deg);opacity:0.3}
+            100%{transform:rotateX(0deg);opacity:1}
+        }
         .diff-list{font-size:0.82em;color:#808098;line-height:1.8;margin:8px 0}
-        .diff-list .r{color:#e74c3c}.diff-list .g{color:#2ecc71}
+        .diff-list .r{color:#f43f5e}.diff-list .g{color:#22d3ee}
         .hierarchy{display:flex;flex-direction:column;align-items:center;gap:0;margin:16px 0}
         .h-ring{border:2px solid rgba(251,191,36,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:0.88em;line-height:1.5}
         .h-outer{width:320px;height:180px;border-color:rgba(251,191,36,0.45)}
         .h-inner{width:200px;height:100px;margin-top:-30px;background:rgba(251,191,36,0.04);border-color:rgba(251,191,36,0.3)}
         .h-label{font-size:0.78em;color:#808098;margin-top:6px}
         .insight{border-left:3px solid #fbbf24;padding-left:20px;color:#a0a0b8;font-size:0.88em;line-height:1.75;margin-top:10px}
+
+        /* Diagonal trail canvas overlay */
+        .diag-panel-wrap{position:relative;display:inline-block}
+        #diagTrail{position:absolute;top:0;left:0;pointer-events:none;z-index:3}
+
         @media(max-width:600px){.diag-grid .cell{width:26px;height:26px;font-size:0.85em}canvas{width:100%;height:auto}}
     </style>
 <link rel="canonical" href="https://mathsedu.org/cantors_diagonal.html">
@@ -120,12 +148,15 @@
         <h2>The Reals Are Uncountable</h2>
         <p class="sub2">No list can contain every real number</p>
         <div class="panel">
-            <div style="overflow-x:auto">
+            <div class="diag-panel-wrap" style="overflow-x:auto">
                 <div class="diag-grid" id="diagGrid"></div>
+                <canvas id="diagTrail" width="0" height="0"></canvas>
             </div>
             <div class="controls">
-                <button class="btn" id="btnRandom">Randomize List</button>
+                <button class="btn" id="btnAnimate">Animate Proof</button>
+                <button class="btn" id="btnRandom">Randomise List</button>
                 <button class="btn" id="btnChallenge">Try to Defeat It</button>
+                <button class="btn" id="btnPause" style="display:none">Pause</button>
             </div>
             <div id="diagInfo">
                 <div style="font-size:0.88em;color:#808098;margin:4px 0">Diagonal: <span id="diagDigits" style="font-family:'Courier New',monospace;color:#fbbf24"></span></div>
@@ -159,13 +190,25 @@
 </div>
 
 <script>
-/* ===== SECTION A: Zigzag Animation ===== */
-const ZC = document.getElementById("zigzag"), ZX = ZC.getContext("2d");
+/* ===== HiDPI canvas helper ===== */
+function hiDPICanvas(canvas, w, h) {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    return ctx;
+}
+
+/* ===== SECTION A: Zigzag Animation (rAF-based) ===== */
+const ZC = document.getElementById("zigzag");
+const ZX = hiDPICanvas(ZC, 520, 460);
 const GRID = 8, CELL = 52, PAD = 40, PADT = 28;
 
 function gcd(a,b){while(b){[a,b]=[b,a%b]}return a}
 
-/* Build zigzag path through the grid */
 function buildPath(){
     const path=[];
     for(let s=2;s<=GRID*2;s++){
@@ -179,29 +222,27 @@ function buildPath(){
 }
 const fullPath=buildPath();
 
-let animIdx=-1, animRunning=false, animTimer=null, visitedOrder=[];
+let animIdx=-1, animRunning=false, visitedOrder=[];
+let lastStepTime=0, rafIdZig=null;
 
 function getDelay(){return 300-(document.getElementById("speedSlider").value-1)*28}
 
 function drawGrid(){
-    const W=ZC.width, H=ZC.height;
+    const W=520, H=460;
     ZX.clearRect(0,0,W,H);
     ZX.fillStyle="#0a0a1a";ZX.fillRect(0,0,W,H);
 
-    /* Column headers (denominators) */
     ZX.font="13px Georgia";ZX.textAlign="center";ZX.textBaseline="middle";
     for(let c=1;c<=GRID;c++){
         ZX.fillStyle="#606078";
         ZX.fillText("/"+c, PAD+c*CELL-CELL/2, PADT/2+4);
     }
-    /* Row headers (numerators) */
     ZX.textAlign="right";
     for(let r=1;r<=GRID;r++){
         ZX.fillStyle="#606078";
         ZX.fillText(r, PAD-8, PADT+r*CELL-CELL/2);
     }
 
-    /* Cells */
     for(let r=1;r<=GRID;r++){
         for(let c=1;c<=GRID;c++){
             const x=PAD+(c-1)*CELL, y=PADT+(r-1)*CELL;
@@ -233,7 +274,6 @@ function drawGrid(){
         }
     }
 
-    /* Draw path arrows */
     if(visitedOrder.length>0||animIdx>=0){
         ZX.strokeStyle="rgba(251,191,36,0.35)";ZX.lineWidth=1.5;ZX.setLineDash([4,3]);
         ZX.beginPath();
@@ -254,31 +294,42 @@ function updateList(){
     el.innerHTML="List: "+parts.join(", ")+(animRunning?" ...":"");
 }
 
-function stepAnim(){
-    if(!animRunning)return;
-    animIdx++;
-    if(animIdx>=fullPath.length){animRunning=false;document.getElementById("btnStart").textContent="Start";drawGrid();return}
-    const[r,c]=fullPath[animIdx];
-    if(gcd(r,c)===1)visitedOrder.push([r,c]);
-    drawGrid();updateList();
-    animTimer=setTimeout(stepAnim,getDelay());
+function zigzagLoop(ts){
+    if(!animRunning){rafIdZig=null;return}
+    if(ts-lastStepTime>=getDelay()){
+        lastStepTime=ts;
+        animIdx++;
+        if(animIdx>=fullPath.length){
+            animRunning=false;
+            document.getElementById("btnStart").textContent="Start";
+            drawGrid();rafIdZig=null;return;
+        }
+        const[r,c]=fullPath[animIdx];
+        if(gcd(r,c)===1)visitedOrder.push([r,c]);
+        drawGrid();updateList();
+    }
+    rafIdZig=requestAnimationFrame(zigzagLoop);
 }
 
 document.getElementById("btnStart").addEventListener("click",function(){
-    if(animRunning){animRunning=false;clearTimeout(animTimer);this.textContent="Resume";drawGrid();return}
+    if(animRunning){animRunning=false;if(rafIdZig)cancelAnimationFrame(rafIdZig);this.textContent="Resume";drawGrid();return}
     if(animIdx>=fullPath.length-1){animIdx=-1;visitedOrder=[];}
-    animRunning=true;this.textContent="Pause";stepAnim();
+    animRunning=true;lastStepTime=0;this.textContent="Pause";
+    rafIdZig=requestAnimationFrame(zigzagLoop);
 });
 document.getElementById("btnReset").addEventListener("click",function(){
-    animRunning=false;clearTimeout(animTimer);animIdx=-1;visitedOrder=[];
+    animRunning=false;if(rafIdZig)cancelAnimationFrame(rafIdZig);animIdx=-1;visitedOrder=[];
     document.getElementById("btnStart").textContent="Start";drawGrid();updateList();
 });
 drawGrid();
 
-/* ===== SECTION B: Diagonal Argument ===== */
+/* ===== SECTION B: Diagonal Argument with Animations ===== */
 const ROWS=10, COLS=10;
 let grid=[];
 let challengeMode=false;
+let diagAnimRunning=false, diagAnimPaused=false, diagAnimPhase=0, diagAnimStep=0;
+let rafIdDiag=null, lastDiagTime=0;
+const DIAG_STEP_MS=350;
 
 function randDigit(){return Math.floor(Math.random()*10)}
 function initGrid(){grid=[];for(let r=0;r<ROWS;r++){const row=[];for(let c=0;c<COLS;c++)row.push(randDigit());grid.push(row);}}
@@ -286,59 +337,258 @@ initGrid();
 
 function flipDigit(d){return d<5?d+5:d-5}
 
-function renderDiag(){
+/* Get cell element by row,col */
+function getCell(r,c){
+    return document.querySelector('.diag-grid .cell[data-r="'+r+'"][data-c="'+c+'"]');
+}
+
+/* Render diagonal grid - with optional animation state */
+function renderDiag(opts){
+    opts=opts||{};
+    const revealedRows=opts.revealedRows!=null?opts.revealedRows:ROWS;
+    const glowIdx=opts.glowIdx!=null?opts.glowIdx:-1;
+    const builtDigits=opts.builtDigits!=null?opts.builtDigits:-1;
+    const showContra=opts.showContra||false;
+
     const container=document.getElementById("diagGrid");
-    const cols=COLS+2; /* row label + "0." prefix columns */
     container.style.gridTemplateColumns="40px 28px "+("32px ".repeat(COLS));
 
     let html="";
-    /* Column headers */
     html+='<div class="cell hdr"></div><div class="cell hdr"></div>';
     for(let c=0;c<COLS;c++) html+='<div class="cell hdr">'+(c+1)+'</div>';
 
     for(let r=0;r<ROWS;r++){
-        html+='<div class="cell hdr" style="text-align:right;padding-right:4px;font-size:0.82em;color:#606078">'+(r+1)+'.</div>';
-        html+='<div class="cell dot">0.</div>';
+        const rowVisible=r<revealedRows;
+        const vis=rowVisible?"row-visible":"row-hidden";
+        html+='<div class="cell hdr '+vis+'" style="text-align:right;padding-right:4px;font-size:0.82em;color:#606078">'+(r+1)+'.</div>';
+        html+='<div class="cell dot '+vis+'">0.</div>';
         for(let c=0;c<COLS;c++){
             const isDiag=r===c;
-            const cls=isDiag?"cell diag-hl":"cell";
+            const isGlow=isDiag&&r===glowIdx;
+            const isContra=showContra&&isDiag&&r<=builtDigits;
+            let cls="cell "+vis;
+            if(isGlow) cls+=" diag-glow";
+            else if(isContra) cls+=" contra-hl";
+            else if(isDiag&&r<glowIdx) cls+=" diag-hl";
+            else if(isDiag&&!diagAnimRunning) cls+=" diag-hl";
             html+='<div class="'+cls+'" data-r="'+r+'" data-c="'+c+'">'+grid[r][c]+'</div>';
         }
     }
     container.innerHTML=html;
 
-    /* Click handlers */
+    /* Click handlers for challenge mode */
     container.querySelectorAll(".cell[data-r]").forEach(cell=>{
         cell.addEventListener("click",function(){
+            if(diagAnimRunning)return;
             const r=+this.dataset.r, c=+this.dataset.c;
             grid[r][c]=(grid[r][c]+1)%10;
-            renderDiag();
+            renderDiag();updateDiagInfo(-1,-1);
         });
     });
 
-    /* Diagonal digits and new number */
+    /* Update info panels unless animation is controlling them */
+    if(!diagAnimRunning){
+        updateDiagInfo(-1,-1);
+    }
+}
+
+function updateDiagInfo(glowIdx, builtDigits){
     const diagDigits=[];for(let i=0;i<ROWS;i++)diagDigits.push(grid[i][i]);
     const newDigits=diagDigits.map(flipDigit);
+    const ddEl=document.getElementById("diagDigits");
+    const nnEl=document.getElementById("newNum");
+    const dlEl=document.getElementById("diffList");
 
-    document.getElementById("diagDigits").textContent=diagDigits.join(" ");
-    document.getElementById("newNum").textContent="0."+newDigits.join("");
-
-    /* Difference list */
-    let diffHtml="";
-    for(let i=0;i<ROWS;i++){
-        diffHtml+='Differs from row '+(i+1)+' at position '+(i+1)+': <span class="r">'+diagDigits[i]+'</span> &rarr; <span class="g">'+newDigits[i]+'</span><br>';
+    if(glowIdx>=0){
+        /* Partial display during animation */
+        let ddHtml="";
+        for(let i=0;i<=Math.min(glowIdx,ROWS-1);i++){
+            ddHtml+='<span style="color:#fbbf24">'+diagDigits[i]+'</span> ';
+        }
+        ddEl.innerHTML=ddHtml;
+    }else{
+        ddEl.textContent=diagDigits.join(" ");
     }
-    document.getElementById("diffList").innerHTML=diffHtml;
 
-    /* Update insight text based on challenge mode */
+    if(builtDigits>=0){
+        let nnHtml='0.';
+        for(let i=0;i<=Math.min(builtDigits,ROWS-1);i++){
+            nnHtml+='<span class="digit visible flip" style="color:#22d3ee">'+newDigits[i]+'</span>';
+        }
+        nnEl.innerHTML=nnHtml;
+    }else if(!diagAnimRunning){
+        nnEl.innerHTML='<span style="color:#22d3ee">0.'+newDigits.join("")+'</span>';
+    }
+
+    if(!diagAnimRunning||(builtDigits>=0&&builtDigits>=ROWS-1)){
+        let diffHtml="";
+        const limit=builtDigits>=0?Math.min(builtDigits+1,ROWS):ROWS;
+        for(let i=0;i<limit;i++){
+            diffHtml+='Differs from row '+(i+1)+' at position '+(i+1)+': <span class="r">'+diagDigits[i]+'</span> &rarr; <span class="g">'+newDigits[i]+'</span><br>';
+        }
+        dlEl.innerHTML=diffHtml;
+    }else if(diagAnimRunning&&builtDigits<0){
+        dlEl.innerHTML="";
+    }
+
     const insight=document.getElementById("insightPanel");
     if(challengeMode){
         insight.textContent="No matter how cleverly you arrange the list, the diagonal construction always produces a number that is not on it. This is not a flaw in your list \u2014 it is a fundamental property of the real numbers. Click any digit to change it and try to defeat the argument.";
     }
 }
 
-document.getElementById("btnRandom").addEventListener("click",function(){initGrid();renderDiag();});
+/* Draw glowing trail line on the overlay canvas */
+function drawTrail(upTo){
+    const trailCanvas=document.getElementById("diagTrail");
+    const gridEl=document.getElementById("diagGrid");
+    const gridRect=gridEl.getBoundingClientRect();
+    const wrapRect=gridEl.parentElement.getBoundingClientRect();
+
+    const w=Math.ceil(gridRect.width);
+    const h=Math.ceil(gridRect.height);
+    const dpr=window.devicePixelRatio||1;
+    trailCanvas.width=w*dpr;
+    trailCanvas.height=h*dpr;
+    trailCanvas.style.width=w+"px";
+    trailCanvas.style.height=h+"px";
+    trailCanvas.style.left=(gridRect.left-wrapRect.left)+"px";
+    trailCanvas.style.top=(gridRect.top-wrapRect.top)+"px";
+
+    const ctx=trailCanvas.getContext("2d");
+    ctx.scale(dpr,dpr);
+    ctx.clearRect(0,0,w,h);
+
+    if(upTo<1)return;
+
+    /* Find centres of diagonal cells */
+    const points=[];
+    for(let i=0;i<=Math.min(upTo,ROWS-1);i++){
+        const cell=getCell(i,i);
+        if(!cell)continue;
+        const cr=cell.getBoundingClientRect();
+        points.push({
+            x:cr.left-gridRect.left+cr.width/2,
+            y:cr.top-gridRect.top+cr.height/2
+        });
+    }
+
+    if(points.length<2)return;
+
+    /* Glow trail */
+    ctx.strokeStyle="#fbbf24";
+    ctx.lineWidth=2.5;
+    ctx.shadowColor="#fbbf24";
+    ctx.shadowBlur=14;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x,points[0].y);
+    for(let i=1;i<points.length;i++){
+        ctx.lineTo(points[i].x,points[i].y);
+    }
+    ctx.stroke();
+
+    /* Brighter core */
+    ctx.shadowBlur=6;
+    ctx.strokeStyle="rgba(251,191,36,0.7)";
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x,points[0].y);
+    for(let i=1;i<points.length;i++){
+        ctx.lineTo(points[i].x,points[i].y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur=0;
+}
+
+function clearTrail(){
+    const c=document.getElementById("diagTrail");
+    const ctx=c.getContext("2d");
+    ctx.clearRect(0,0,c.width,c.height);
+}
+
+/* ===== Animated proof sequence ===== */
+/* Phases: 0=row reveal, 1=diagonal highlight, 2=build new number, 3=contradiction flash, 4=done */
+function startDiagAnim(){
+    if(diagAnimRunning)return;
+    diagAnimRunning=true;diagAnimPaused=false;
+    diagAnimPhase=0;diagAnimStep=0;lastDiagTime=0;
+    document.getElementById("btnPause").style.display="";
+    document.getElementById("btnPause").textContent="Pause";
+    document.getElementById("diagDigits").innerHTML="";
+    document.getElementById("newNum").innerHTML="";
+    document.getElementById("diffList").innerHTML="";
+    clearTrail();
+    renderDiag({revealedRows:0,glowIdx:-1,builtDigits:-1});
+    rafIdDiag=requestAnimationFrame(diagAnimLoop);
+}
+
+function diagAnimLoop(ts){
+    if(!diagAnimRunning||diagAnimPaused){rafIdDiag=null;return}
+    if(lastDiagTime===0)lastDiagTime=ts;
+    const elapsed=ts-lastDiagTime;
+    const delay=diagAnimPhase===0?200:diagAnimPhase===3?120:DIAG_STEP_MS;
+
+    if(elapsed>=delay){
+        lastDiagTime=ts;
+        switch(diagAnimPhase){
+            case 0: /* Row reveal */
+                diagAnimStep++;
+                if(diagAnimStep>ROWS){diagAnimPhase=1;diagAnimStep=0;break}
+                renderDiag({revealedRows:diagAnimStep,glowIdx:-2,builtDigits:-1});
+                /* -2 means no diagonal highlight yet */
+                break;
+            case 1: /* Diagonal highlight one by one */
+                if(diagAnimStep>=ROWS){diagAnimPhase=2;diagAnimStep=0;break}
+                renderDiag({revealedRows:ROWS,glowIdx:diagAnimStep,builtDigits:-1});
+                updateDiagInfo(diagAnimStep,-1);
+                drawTrail(diagAnimStep);
+                diagAnimStep++;
+                break;
+            case 2: /* Build new number digit by digit */
+                if(diagAnimStep>=ROWS){diagAnimPhase=3;diagAnimStep=0;break}
+                renderDiag({revealedRows:ROWS,glowIdx:-1,builtDigits:diagAnimStep});
+                updateDiagInfo(-1,diagAnimStep);
+                diagAnimStep++;
+                break;
+            case 3: /* Contradiction flash */
+                if(diagAnimStep>=ROWS){diagAnimPhase=4;break}
+                renderDiag({revealedRows:ROWS,glowIdx:-1,builtDigits:ROWS-1,showContra:true});
+                diagAnimStep++;
+                break;
+            case 4: /* Done */
+                diagAnimRunning=false;
+                document.getElementById("btnPause").style.display="none";
+                renderDiag();
+                clearTrail();
+                updateDiagInfo(-1,-1);
+                rafIdDiag=null;return;
+        }
+    }
+    rafIdDiag=requestAnimationFrame(diagAnimLoop);
+}
+
+document.getElementById("btnAnimate").addEventListener("click",function(){
+    initGrid();startDiagAnim();
+});
+
+document.getElementById("btnPause").addEventListener("click",function(){
+    if(diagAnimPaused){
+        diagAnimPaused=false;lastDiagTime=0;
+        this.textContent="Pause";
+        rafIdDiag=requestAnimationFrame(diagAnimLoop);
+    }else{
+        diagAnimPaused=true;
+        if(rafIdDiag)cancelAnimationFrame(rafIdDiag);
+        this.textContent="Play";
+    }
+});
+
+document.getElementById("btnRandom").addEventListener("click",function(){
+    if(diagAnimRunning){diagAnimRunning=false;if(rafIdDiag)cancelAnimationFrame(rafIdDiag);document.getElementById("btnPause").style.display="none";}
+    clearTrail();initGrid();renderDiag();
+});
 document.getElementById("btnChallenge").addEventListener("click",function(){
+    if(diagAnimRunning){diagAnimRunning=false;if(rafIdDiag)cancelAnimationFrame(rafIdDiag);document.getElementById("btnPause").style.display="none";}
+    clearTrail();
     challengeMode=!challengeMode;
     this.classList.toggle("active",challengeMode);
     this.textContent=challengeMode?"Exit Challenge":"Try to Defeat It";

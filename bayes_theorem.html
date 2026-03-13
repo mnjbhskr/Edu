@@ -72,6 +72,10 @@
         .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
         .legend-item{display:flex;align-items:center;gap:6px}
         .legend-swatch{width:12px;height:12px;border-radius:2px}
+        .pause-btn{background:rgba(244,114,182,0.1);border:1px solid rgba(244,114,182,0.3);color:#f472b6;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.85em;transition:all 0.2s;margin-left:auto}
+        .pause-btn:hover{background:rgba(244,114,182,0.2)}
+        .bar-container{display:flex;gap:10px;align-items:flex-end;margin:14px 0;height:32px}
+        .prob-bar{height:100%;border-radius:4px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1);min-width:2px}
         @media(max-width:600px){canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}}
     </style>
 <link rel="canonical" href="https://mathsedu.org/bayes_theorem.html">
@@ -89,7 +93,7 @@
     <!-- Section 1: Medical Test Scenario -->
     <h2>The Medical Test Scenario</h2>
     <div class="panel">
-        <h3>1000 People Tested</h3>
+        <h3 style="display:flex;align-items:center">1000 People Tested <button class="pause-btn" id="btnPause" title="Pause / Play animations">&#9208; Pause</button></h3>
         <canvas id="iconGrid" width="650" height="400" style="cursor:default"></canvas>
         <div class="grid-legend" id="gridLegend">
             <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">Sick, tested positive</span></div>
@@ -122,6 +126,27 @@
             <label>Specificity P(-|~D):</label>
             <input type="range" id="sliderSpec" min="500" max="999" value="990">
             <span class="slider-val" id="valSpec">99.0%</span>
+        </div>
+        <!-- Animated probability bars -->
+        <div style="margin-top:16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                <span style="color:#22d3ee;font-size:0.85em;min-width:100px">Prior P(D)</span>
+                <div style="flex:1;background:rgba(255,255,255,0.04);border-radius:4px;height:22px;overflow:hidden;position:relative">
+                    <div id="barPrior" class="prob-bar" style="background:#22d3ee;width:1%"></div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                <span style="color:#f472b6;font-size:0.85em;min-width:100px">Posterior P(D|+)</span>
+                <div style="flex:1;background:rgba(255,255,255,0.04);border-radius:4px;height:22px;overflow:hidden;position:relative">
+                    <div id="barPosterior" class="prob-bar" style="background:#f472b6;width:49%"></div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px">
+                <span style="color:#fb923c;font-size:0.85em;min-width:100px">False pos. P(~D|+)</span>
+                <div style="flex:1;background:rgba(255,255,255,0.04);border-radius:4px;height:22px;overflow:hidden;position:relative">
+                    <div id="barFalsePos" class="prob-bar" style="background:#fb923c;width:51%"></div>
+                </div>
+            </div>
         </div>
         <div id="computedValues" style="margin-top:14px"></div>
     </div>
@@ -191,62 +216,117 @@
 <script>
 /* ══════════════════════════════════════════════════════════════
    Bayes' Theorem Interactive — Chapter 8
+   Animated edition with requestAnimationFrame, HiDPI, wave
+   reveals, smooth tree growth, and belief-update morphing
    ══════════════════════════════════════════════════════════════ */
 
+/* ── HiDPI Canvas helper ── */
+function hiDPI(canvas) {
+    var dpr = window.devicePixelRatio || 1;
+    var rect = canvas.getBoundingClientRect();
+    var w = canvas.width, h = canvas.height;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return { ctx: ctx, w: w, h: h, dpr: dpr };
+}
+
 /* ── State ── */
-let prior = 0.01;       // P(D)
-let sensitivity = 0.95; // P(+|D)
-let specificity = 0.99; // P(-|~D)
+var prior = 0.01;
+var sensitivity = 0.95;
+var specificity = 0.99;
 
-// Sequential evidence state
-let seqTests = [];
-let seqPrior = 0.01;
+var seqTests = [];
+var paused = false;
 
-// Animation / throttle
-let lastGridDraw = 0;
-let gridAnimPhase = 0;
-let gridAnimStart = 0;
-let gridAnimating = false;
+/* ── Easing ── */
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
 
 /* ── Bayes Computation ── */
 function bayesCompute(pr, sens, spec) {
-    const pPosGivenD = sens;
-    const pPosGivenNotD = 1 - spec;
-    const pPos = pPosGivenD * pr + pPosGivenNotD * (1 - pr);
-    const posterior = pPos > 0 ? (pPosGivenD * pr) / pPos : 0;
-    return { posterior, pPos, pPosGivenD, pPosGivenNotD };
+    var pPosGivenD = sens;
+    var pPosGivenNotD = 1 - spec;
+    var pPos = pPosGivenD * pr + pPosGivenNotD * (1 - pr);
+    var posterior = pPos > 0 ? (pPosGivenD * pr) / pPos : 0;
+    return { posterior: posterior, pPos: pPos, pPosGivenD: pPosGivenD, pPosGivenNotD: pPosGivenNotD };
 }
 
 function pct(v) { return (v * 100).toFixed(1) + '%'; }
 
-/* ── Icon Grid (Section 1) ── */
-const gridCvs = document.getElementById('iconGrid');
-const gridCtx = gridCvs.getContext('2d');
-const GW = gridCvs.width, GH = gridCvs.height;
+/* ── Colours ── */
+var COL_SICK_POS = '#f472b6';
+var COL_SICK_NEG = '#a04060';
+var COL_HEALTHY_POS = '#fb923c';
+var COL_HEALTHY_NEG = '#404060';
 
-// Person icon dimensions
-const COLS = 50, ROWS = 20;
-const TOTAL = COLS * ROWS; // 1000
-const PERSON_W = 10, PERSON_H = 16;
-const GAP_X = (GW - 20) / COLS;
-const GAP_Y = (GH - 20) / ROWS;
-const OFFSET_X = 12, OFFSET_Y = 10;
+/* ══════════════════════════════════════════════════════════════
+   Section 1: Icon Grid — wave reveal + highlight filtering
+   ══════════════════════════════════════════════════════════════ */
+var gridCvs = document.getElementById('iconGrid');
+var gridInfo = hiDPI(gridCvs);
+var gridCtx = gridInfo.ctx, GW = gridInfo.w, GH = gridInfo.h;
 
-// Colors
-const COL_SICK_POS = '#f472b6';
-const COL_SICK_NEG = '#a04060';
-const COL_HEALTHY_POS = '#fb923c';
-const COL_HEALTHY_NEG = '#404060';
+var COLS = 50, ROWS = 20, TOTAL = 1000;
+var GAP_X = (GW - 20) / COLS;
+var GAP_Y = (GH - 20) / ROWS;
+var OFFSET_X = 12, OFFSET_Y = 10;
 
-function drawPerson(ctx, cx, cy, color, alpha) {
+var personAssignments = [];
+var gridAnimStart = 0;
+var gridAnimDuration = 1200;
+var gridAnimRunning = false;
+
+function computePersonAssignments() {
+    var nSick = Math.round(TOTAL * prior);
+    var nHealthy = TOTAL - nSick;
+    var nSickPos = Math.round(nSick * sensitivity);
+    var nSickNeg = nSick - nSickPos;
+    var nHealthyPos = Math.round(nHealthy * (1 - specificity));
+    var nHealthyNeg = nHealthy - nHealthyPos;
+
+    personAssignments = [];
+    var i;
+    for (i = 0; i < nSickPos; i++) personAssignments.push(3);
+    for (i = 0; i < nSickNeg; i++) personAssignments.push(2);
+    for (i = 0; i < nHealthyPos; i++) personAssignments.push(1);
+    for (i = 0; i < nHealthyNeg; i++) personAssignments.push(0);
+
+    while (personAssignments.length < TOTAL) personAssignments.push(0);
+    personAssignments.length = TOTAL;
+
+    var seed = 42;
+    function seededRandom() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    for (i = personAssignments.length - 1; i > 0; i--) {
+        var j = Math.floor(seededRandom() * (i + 1));
+        var tmp = personAssignments[i];
+        personAssignments[i] = personAssignments[j];
+        personAssignments[j] = tmp;
+    }
+}
+
+function getPersonColor(type) {
+    switch (type) {
+        case 3: return COL_SICK_POS;
+        case 2: return COL_SICK_NEG;
+        case 1: return COL_HEALTHY_POS;
+        default: return COL_HEALTHY_NEG;
+    }
+}
+
+function drawPerson(ctx, cx, cy, color, alpha, scale) {
+    ctx.save();
     ctx.globalAlpha = alpha;
     ctx.fillStyle = color;
-    // Head (circle)
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
     ctx.beginPath();
-    ctx.arc(cx, cy - 5, 3, 0, Math.PI * 2);
+    ctx.arc(0, -5, 3, 0, Math.PI * 2);
     ctx.fill();
-    // Body (rounded rect)
-    const bx = cx - 3, by = cy - 1, bw = 6, bh = 9, br = 2;
+    var bx = -3, by = -1, bw = 6, bh = 9, br = 2;
     ctx.beginPath();
     ctx.moveTo(bx + br, by);
     ctx.lineTo(bx + bw - br, by);
@@ -259,93 +339,80 @@ function drawPerson(ctx, cx, cy, color, alpha) {
     ctx.quadraticCurveTo(bx, by, bx + br, by);
     ctx.closePath();
     ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.restore();
 }
 
-// Precompute person assignments: a stable random shuffling
-let personAssignments = [];
-function computePersonAssignments() {
-    // Determine counts
-    const nSick = Math.round(TOTAL * prior);
-    const nHealthy = TOTAL - nSick;
-    const nSickPos = Math.round(nSick * sensitivity);
-    const nSickNeg = nSick - nSickPos;
-    const nHealthyPos = Math.round(nHealthy * (1 - specificity));
-    const nHealthyNeg = nHealthy - nHealthyPos;
-
-    // Create assignment array: 0=healthy-neg, 1=healthy-pos, 2=sick-neg, 3=sick-pos
-    personAssignments = [];
-    for (let i = 0; i < nSickPos; i++) personAssignments.push(3);
-    for (let i = 0; i < nSickNeg; i++) personAssignments.push(2);
-    for (let i = 0; i < nHealthyPos; i++) personAssignments.push(1);
-    for (let i = 0; i < nHealthyNeg; i++) personAssignments.push(0);
-
-    // Pad or trim to TOTAL
-    while (personAssignments.length < TOTAL) personAssignments.push(0);
-    personAssignments.length = TOTAL;
-
-    // Seeded shuffle for stability (Fisher-Yates with simple seed)
-    let seed = 42;
-    function seededRandom() {
-        seed = (seed * 16807 + 0) % 2147483647;
-        return seed / 2147483647;
-    }
-    for (let i = personAssignments.length - 1; i > 0; i--) {
-        const j = Math.floor(seededRandom() * (i + 1));
-        const tmp = personAssignments[i];
-        personAssignments[i] = personAssignments[j];
-        personAssignments[j] = tmp;
-    }
+function startGridAnim() {
+    gridAnimStart = performance.now();
+    gridAnimRunning = true;
 }
 
-function getPersonColor(type) {
-    switch (type) {
-        case 3: return COL_SICK_POS;
-        case 2: return COL_SICK_NEG;
-        case 1: return COL_HEALTHY_POS;
-        case 0: return COL_HEALTHY_NEG;
-        default: return COL_HEALTHY_NEG;
-    }
-}
-
-function drawIconGrid() {
+function drawIconGrid(now) {
     gridCtx.clearRect(0, 0, GW, GH);
     gridCtx.fillStyle = '#0a0a1a';
     gridCtx.fillRect(0, 0, GW, GH);
 
-    for (let row = 0; row < ROWS; row++) {
-        for (let col = 0; col < COLS; col++) {
-            const idx = row * COLS + col;
-            const type = personAssignments[idx] || 0;
-            const color = getPersonColor(type);
-            const cx = OFFSET_X + col * GAP_X + GAP_X / 2;
-            const cy = OFFSET_Y + row * GAP_Y + GAP_Y / 2;
-            const alpha = (type === 0) ? 0.5 : 1.0;
-            drawPerson(gridCtx, cx, cy, color, alpha);
+    var elapsed = now - gridAnimStart;
+    var totalWaveDuration = gridAnimDuration;
+
+    for (var row = 0; row < ROWS; row++) {
+        for (var col = 0; col < COLS; col++) {
+            var idx = row * COLS + col;
+            var type = personAssignments[idx] || 0;
+            var color = getPersonColor(type);
+            var cx = OFFSET_X + col * GAP_X + GAP_X / 2;
+            var cy = OFFSET_Y + row * GAP_Y + GAP_Y / 2;
+
+            // Wave delay: diagonal wavefront
+            var waveFrac = (row + col) / (ROWS + COLS - 2);
+            var iconDelay = waveFrac * totalWaveDuration * 0.6;
+            var iconElapsed = elapsed - iconDelay;
+            var appearT = Math.max(0, Math.min(1, iconElapsed / 300));
+            appearT = easeOutCubic(appearT);
+
+            // After wave: highlighted icons pulse gently
+            var baseAlpha = (type === 0) ? 0.4 : 1.0;
+            var pulseAlpha = baseAlpha;
+            if (type > 0 && appearT >= 1 && !paused) {
+                var pulse = Math.sin((now - gridAnimStart) / 1500 + idx * 0.02) * 0.12;
+                pulseAlpha = Math.min(1, baseAlpha + pulse);
+            }
+
+            var scale = appearT;
+            var alpha = pulseAlpha * appearT;
+            if (scale > 0.01) {
+                drawPerson(gridCtx, cx, cy, color, alpha, scale);
+            }
         }
     }
 
-    // Counts for display
-    const counts = [0, 0, 0, 0];
-    personAssignments.forEach(t => counts[t]++);
-    const totalPos = counts[3] + counts[1];
-    const truePos = counts[3];
+    if (elapsed > totalWaveDuration + 300) gridAnimRunning = false;
 
-    // Overlay counts at bottom
+    // Counts overlay
+    var counts = [0, 0, 0, 0];
+    personAssignments.forEach(function(t) { counts[t]++; });
     gridCtx.font = '11px "Courier New", monospace';
     gridCtx.textAlign = 'left';
     gridCtx.textBaseline = 'bottom';
     gridCtx.fillStyle = '#808098';
+    gridCtx.globalAlpha = Math.min(1, elapsed / 800);
     gridCtx.fillText('Sick+Pos: ' + counts[3] + '  Sick+Neg: ' + counts[2] + '  Healthy+Pos: ' + counts[1] + '  Healthy+Neg: ' + counts[0], OFFSET_X, GH - 2);
+    gridCtx.globalAlpha = 1;
 }
 
-/* ── Slider Handling (Section 2) ── */
-const sliderPrior = document.getElementById('sliderPrior');
-const sliderSens = document.getElementById('sliderSens');
-const sliderSpec = document.getElementById('sliderSpec');
-const valPrior = document.getElementById('valPrior');
-const valSens = document.getElementById('valSens');
-const valSpec = document.getElementById('valSpec');
+/* ══════════════════════════════════════════════════════════════
+   Section 2: Sliders + animated probability bars
+   ══════════════════════════════════════════════════════════════ */
+var sliderPrior = document.getElementById('sliderPrior');
+var sliderSens = document.getElementById('sliderSens');
+var sliderSpec = document.getElementById('sliderSpec');
+var valPrior = document.getElementById('valPrior');
+var valSens = document.getElementById('valSens');
+var valSpec = document.getElementById('valSpec');
+
+var barPriorEl = document.getElementById('barPrior');
+var barPosteriorEl = document.getElementById('barPosterior');
+var barFalsePosEl = document.getElementById('barFalsePos');
 
 function readSliders() {
     prior = parseInt(sliderPrior.value) / 1000;
@@ -359,10 +426,17 @@ function updateSliderLabels() {
     valSpec.textContent = pct(specificity);
 }
 
+function updateProbBars() {
+    var b = bayesCompute(prior, sensitivity, specificity);
+    barPriorEl.style.width = (prior * 100) + '%';
+    barPosteriorEl.style.width = (b.posterior * 100) + '%';
+    barFalsePosEl.style.width = ((1 - b.posterior) * 100) + '%';
+}
+
 function updateComputedValues() {
-    const b = bayesCompute(prior, sensitivity, specificity);
-    const div = document.getElementById('computedValues');
-    let html = '<div class="math-line">';
+    var b = bayesCompute(prior, sensitivity, specificity);
+    var div = document.getElementById('computedValues');
+    var html = '<div class="math-line">';
     html += '<span class="muted">P(+) = P(+|D)&middot;P(D) + P(+|~D)&middot;P(~D)</span>';
     html += '</div>';
     html += '<div class="math-line">';
@@ -382,9 +456,8 @@ function updateComputedValues() {
     html += '</div>';
     div.innerHTML = html;
 
-    // Update main display
     document.getElementById('posteriorDisplay').textContent = 'P(D|+) = ' + pct(b.posterior);
-    const explain = document.getElementById('posteriorExplain');
+    var explain = document.getElementById('posteriorExplain');
     if (b.posterior < 0.5) {
         explain.textContent = 'Only ' + pct(b.posterior) + ' of positive results are true positives!';
     } else if (b.posterior < 0.9) {
@@ -394,114 +467,128 @@ function updateComputedValues() {
     }
 }
 
-let throttleTimer = null;
+var throttleTimer = null;
 function onSliderInput() {
     readSliders();
     updateSliderLabels();
-    const now = performance.now();
-    if (now - lastGridDraw < 33) {
-        if (!throttleTimer) {
-            throttleTimer = setTimeout(function() {
-                throttleTimer = null;
-                fullUpdate();
-            }, 33);
-        }
-        return;
-    }
-    fullUpdate();
+    var now = performance.now();
+    if (throttleTimer) return;
+    throttleTimer = requestAnimationFrame(function() {
+        throttleTimer = null;
+        fullUpdate();
+    });
 }
 
 function fullUpdate() {
-    lastGridDraw = performance.now();
     computePersonAssignments();
-    drawIconGrid();
+    startGridAnim();
+    startTreeAnim();
     updateComputedValues();
-    drawTree();
-    // Reset sequential evidence when params change
+    updateProbBars();
     seqTests = [];
-    seqPrior = prior;
-    drawSequential();
+    startSeqAnim();
 }
 
 sliderPrior.addEventListener('input', onSliderInput);
 sliderSens.addEventListener('input', onSliderInput);
 sliderSpec.addEventListener('input', onSliderInput);
 
-// Touch support for sliders
 [sliderPrior, sliderSens, sliderSpec].forEach(function(s) {
     s.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
     s.addEventListener('touchmove', function(e) { e.stopPropagation(); }, { passive: true });
 });
 
-/* ── Tree Diagram (Section 3) ── */
-const treeCvs = document.getElementById('treeCanvas');
-const treeCtx = treeCvs.getContext('2d');
-const TW = treeCvs.width, TH = treeCvs.height;
+/* ══════════════════════════════════════════════════════════════
+   Section 3: Tree Diagram — branches grow outward with
+   smooth animation
+   ══════════════════════════════════════════════════════════════ */
+var treeCvs = document.getElementById('treeCanvas');
+var treeInfo = hiDPI(treeCvs);
+var treeCtx = treeInfo.ctx, TW = treeInfo.w, TH = treeInfo.h;
 
-function drawTree() {
+var treeAnimStart = 0;
+var treeAnimDuration = 1400;
+var treeAnimRunning = false;
+
+function startTreeAnim() {
+    treeAnimStart = performance.now();
+    treeAnimRunning = true;
+}
+
+function drawTree(now) {
     treeCtx.clearRect(0, 0, TW, TH);
     treeCtx.fillStyle = '#0a0a1a';
     treeCtx.fillRect(0, 0, TW, TH);
 
-    const b = bayesCompute(prior, sensitivity, specificity);
-    const falseNegRate = 1 - sensitivity;
-    const falsePosRate = 1 - specificity;
+    var elapsed = now - treeAnimStart;
+    // Phase 1: 0-500ms root -> mid; Phase 2: 500-1000ms mid -> leaf; Phase 3: 1000-1400ms labels
+    var phase1 = Math.min(1, elapsed / 500);
+    var phase2 = Math.max(0, Math.min(1, (elapsed - 400) / 500));
+    var phase3 = Math.max(0, Math.min(1, (elapsed - 800) / 400));
+    phase1 = easeOutCubic(phase1);
+    phase2 = easeOutCubic(phase2);
+    phase3 = easeOutCubic(phase3);
 
-    // Layout: root at left, branches to right
-    const rootX = 60, rootY = TH / 2;
-    const midX = 240;
-    const leafX = 480;
+    if (elapsed < treeAnimDuration) treeAnimRunning = true;
+    else treeAnimRunning = false;
 
-    // Disease branch Y positions scaled by probability
-    const spread = 130;
-    const dY = rootY - spread * (1 - prior);  // disease goes up
-    const ndY = rootY + spread * prior;        // no disease goes down
-    // Keep within bounds
-    const diseaseY = Math.max(60, Math.min(TH / 2 - 30, dY));
-    const noDiseaseY = Math.max(TH / 2 + 30, Math.min(TH - 60, ndY));
+    var b = bayesCompute(prior, sensitivity, specificity);
+    var falseNegRate = 1 - sensitivity;
+    var falsePosRate = 1 - specificity;
 
-    // Leaf positions
-    const dPosY = diseaseY - 40;
-    const dNegY = diseaseY + 40;
-    const ndPosY = noDiseaseY - 40;
-    const ndNegY = noDiseaseY + 40;
+    var rootX = 60, rootY = TH / 2;
+    var midX = 240, leafX = 480;
+    var spread = 130;
+    var dY = rootY - spread * (1 - prior);
+    var ndY = rootY + spread * prior;
+    var diseaseY = Math.max(60, Math.min(TH / 2 - 30, dY));
+    var noDiseaseY = Math.max(TH / 2 + 30, Math.min(TH - 60, ndY));
+    var dPosY = diseaseY - 40, dNegY = diseaseY + 40;
+    var ndPosY = noDiseaseY - 40, ndNegY = noDiseaseY + 40;
 
-    // Branch thickness proportional to probability (min 1, max 8)
     function branchW(p) { return Math.max(1.5, Math.min(8, p * 30)); }
 
-    // Draw bezier branch
-    function drawBranch(x1, y1, x2, y2, color, prob, highlight) {
-        const cpOff = (x2 - x1) * 0.45;
-        treeCtx.strokeStyle = highlight ? color : color;
-        treeCtx.globalAlpha = highlight ? 1.0 : 0.5;
+    function drawBranch(x1, y1, x2, y2, color, prob, highlight, growT) {
+        if (growT < 0.01) return;
+        var cpOff = (x2 - x1) * 0.45;
+        // Partial curve via splitting the quadratic bezier
+        var gx2 = x1 + (x2 - x1) * growT;
+        var gy2 = y1 + (y2 - y1) * growT;
+        var gcpx = x1 + cpOff * growT;
+        var gcpy = y1;
+
+        treeCtx.strokeStyle = color;
+        treeCtx.globalAlpha = highlight ? growT : 0.5 * growT;
         treeCtx.lineWidth = branchW(prob);
         treeCtx.lineCap = 'round';
         treeCtx.beginPath();
         treeCtx.moveTo(x1, y1);
-        treeCtx.quadraticCurveTo(x1 + cpOff, y1, x2, y2);
+        treeCtx.quadraticCurveTo(gcpx, gcpy, gx2, gy2);
         treeCtx.stroke();
         treeCtx.globalAlpha = 1;
     }
 
-    // Draw label on branch
-    function drawBranchLabel(x1, y1, x2, y2, text, color, side) {
-        const mx = (x1 + x2) / 2;
-        const my = (y1 * 0.6 + y2 * 0.4) + (side === 'above' ? -12 : 14);
+    function drawBranchLabel(x1, y1, x2, y2, text, color, side, alphaT) {
+        if (alphaT < 0.01) return;
+        var mx = (x1 + x2) / 2;
+        var my = (y1 * 0.6 + y2 * 0.4) + (side === 'above' ? -12 : 14);
         treeCtx.font = '11px "Courier New", monospace';
         treeCtx.fillStyle = color;
         treeCtx.textAlign = 'center';
         treeCtx.textBaseline = 'middle';
+        treeCtx.globalAlpha = alphaT;
         treeCtx.fillText(text, mx, my);
+        treeCtx.globalAlpha = 1;
     }
 
-    // Draw node circle
-    function drawNode(x, y, color, label, sublabel) {
+    function drawNode(x, y, color, label, sublabel, alphaT) {
+        if (alphaT < 0.01) return;
+        treeCtx.globalAlpha = 0.15 * alphaT;
         treeCtx.fillStyle = color;
-        treeCtx.globalAlpha = 0.15;
         treeCtx.beginPath();
         treeCtx.arc(x, y, 18, 0, Math.PI * 2);
         treeCtx.fill();
-        treeCtx.globalAlpha = 1;
+        treeCtx.globalAlpha = alphaT;
         treeCtx.strokeStyle = color;
         treeCtx.lineWidth = 1.5;
         treeCtx.beginPath();
@@ -517,187 +604,82 @@ function drawTree() {
             treeCtx.fillStyle = '#808098';
             treeCtx.fillText(sublabel, x, y + 26);
         }
+        treeCtx.globalAlpha = 1;
     }
 
-    // Level 1 branches: Root -> Disease, Root -> No Disease
-    // Highlight paths that contribute to P(D|+): D->+ and ~D->+
-    drawBranch(rootX, rootY, midX, diseaseY, '#f472b6', prior, true);
-    drawBranch(rootX, rootY, midX, noDiseaseY, '#22d3ee', 1 - prior, true);
+    // Level 1 branches
+    drawBranch(rootX, rootY, midX, diseaseY, '#f472b6', prior, true, phase1);
+    drawBranch(rootX, rootY, midX, noDiseaseY, '#22d3ee', 1 - prior, true, phase1);
 
-    // Level 2: Disease -> +, Disease -> -
-    drawBranch(midX, diseaseY, leafX, dPosY, '#f472b6', sensitivity * prior, true);
-    drawBranch(midX, diseaseY, leafX, dNegY, '#a04060', falseNegRate * prior, false);
+    // Level 2 branches
+    drawBranch(midX, diseaseY, leafX, dPosY, '#f472b6', sensitivity * prior, true, phase2);
+    drawBranch(midX, diseaseY, leafX, dNegY, '#a04060', falseNegRate * prior, false, phase2);
+    drawBranch(midX, noDiseaseY, leafX, ndPosY, '#fb923c', falsePosRate * (1 - prior), true, phase2);
+    drawBranch(midX, noDiseaseY, leafX, ndNegY, '#22d3ee', specificity * (1 - prior), false, phase2);
 
-    // Level 2: No Disease -> +, No Disease -> -
-    drawBranch(midX, noDiseaseY, leafX, ndPosY, '#fb923c', falsePosRate * (1 - prior), true);
-    drawBranch(midX, noDiseaseY, leafX, ndNegY, '#22d3ee', specificity * (1 - prior), false);
-
-    // Branch labels
-    drawBranchLabel(rootX, rootY, midX, diseaseY, 'P(D)=' + pct(prior), '#f472b6', 'above');
-    drawBranchLabel(rootX, rootY, midX, noDiseaseY, 'P(~D)=' + pct(1 - prior), '#22d3ee', 'below');
-
-    drawBranchLabel(midX, diseaseY, leafX, dPosY, 'P(+|D)=' + pct(sensitivity), '#f472b6', 'above');
-    drawBranchLabel(midX, diseaseY, leafX, dNegY, 'P(-|D)=' + pct(falseNegRate), '#a04060', 'below');
-
-    drawBranchLabel(midX, noDiseaseY, leafX, ndPosY, 'P(+|~D)=' + pct(falsePosRate), '#fb923c', 'above');
-    drawBranchLabel(midX, noDiseaseY, leafX, ndNegY, 'P(-|~D)=' + pct(specificity), '#22d3ee', 'below');
+    // Labels fade in
+    drawBranchLabel(rootX, rootY, midX, diseaseY, 'P(D)=' + pct(prior), '#f472b6', 'above', phase3);
+    drawBranchLabel(rootX, rootY, midX, noDiseaseY, 'P(~D)=' + pct(1 - prior), '#22d3ee', 'below', phase3);
+    drawBranchLabel(midX, diseaseY, leafX, dPosY, 'P(+|D)=' + pct(sensitivity), '#f472b6', 'above', phase3);
+    drawBranchLabel(midX, diseaseY, leafX, dNegY, 'P(-|D)=' + pct(falseNegRate), '#a04060', 'below', phase3);
+    drawBranchLabel(midX, noDiseaseY, leafX, ndPosY, 'P(+|~D)=' + pct(falsePosRate), '#fb923c', 'above', phase3);
+    drawBranchLabel(midX, noDiseaseY, leafX, ndNegY, 'P(-|~D)=' + pct(specificity), '#22d3ee', 'below', phase3);
 
     // Nodes
-    drawNode(rootX, rootY, '#e0e0e0', 'Pop', '1000');
+    drawNode(rootX, rootY, '#e0e0e0', 'Pop', '1000', 1);
+    drawNode(midX, diseaseY, '#f472b6', 'D', pct(prior), phase1);
+    drawNode(midX, noDiseaseY, '#22d3ee', '~D', pct(1 - prior), phase1);
 
-    drawNode(midX, diseaseY, '#f472b6', 'D', pct(prior));
-    drawNode(midX, noDiseaseY, '#22d3ee', '~D', pct(1 - prior));
+    var jointDP = prior * sensitivity;
+    var jointDN = prior * falseNegRate;
+    var jointNDP = (1 - prior) * falsePosRate;
+    var jointNDN = (1 - prior) * specificity;
 
-    // Leaf nodes with joint probabilities
-    const jointDP = prior * sensitivity;
-    const jointDN = prior * falseNegRate;
-    const jointNDP = (1 - prior) * falsePosRate;
-    const jointNDN = (1 - prior) * specificity;
+    drawNode(leafX, dPosY, '#f472b6', '+', pct(jointDP), phase2);
+    drawNode(leafX, dNegY, '#a04060', '-', pct(jointDN), phase2);
+    drawNode(leafX, ndPosY, '#fb923c', '+', pct(jointNDP), phase2);
+    drawNode(leafX, ndNegY, '#404060', '-', pct(jointNDN), phase2);
 
-    drawNode(leafX, dPosY, '#f472b6', '+', pct(jointDP));
-    drawNode(leafX, dNegY, '#a04060', '-', pct(jointDN));
-    drawNode(leafX, ndPosY, '#fb923c', '+', pct(jointNDP));
-    drawNode(leafX, ndNegY, '#404060', '-', pct(jointNDN));
+    // Bracket
+    if (phase3 > 0.1) {
+        treeCtx.globalAlpha = phase3;
+        treeCtx.strokeStyle = 'rgba(244,114,182,0.4)';
+        treeCtx.lineWidth = 1;
+        treeCtx.setLineDash([4, 3]);
+        treeCtx.beginPath();
+        treeCtx.moveTo(leafX + 25, dPosY - 20);
+        treeCtx.lineTo(leafX + 35, dPosY - 20);
+        treeCtx.lineTo(leafX + 35, ndPosY + 20);
+        treeCtx.lineTo(leafX + 25, ndPosY + 20);
+        treeCtx.stroke();
+        treeCtx.setLineDash([]);
 
-    // Highlight bracket: D->+ and ~D->+ combine to give P(D|+)
-    treeCtx.strokeStyle = 'rgba(244,114,182,0.4)';
-    treeCtx.lineWidth = 1;
-    treeCtx.setLineDash([4, 3]);
-    treeCtx.beginPath();
-    treeCtx.moveTo(leafX + 25, dPosY - 20);
-    treeCtx.lineTo(leafX + 35, dPosY - 20);
-    treeCtx.lineTo(leafX + 35, ndPosY + 20);
-    treeCtx.lineTo(leafX + 25, ndPosY + 20);
-    treeCtx.stroke();
-    treeCtx.setLineDash([]);
-
-    // Label the bracket
-    treeCtx.font = '10px "Courier New", monospace';
-    treeCtx.fillStyle = '#f472b6';
-    treeCtx.textAlign = 'left';
-    treeCtx.textBaseline = 'middle';
-    const bracketMidY = (dPosY + ndPosY) / 2;
-    treeCtx.fillText('P(D|+)=' + pct(b.posterior), leafX + 40, bracketMidY);
+        treeCtx.font = '10px "Courier New", monospace';
+        treeCtx.fillStyle = '#f472b6';
+        treeCtx.textAlign = 'left';
+        treeCtx.textBaseline = 'middle';
+        treeCtx.fillText('P(D|+)=' + pct(b.posterior), leafX + 40, (dPosY + ndPosY) / 2);
+        treeCtx.globalAlpha = 1;
+    }
 }
 
-/* ── Sequential Evidence (Section 4) ── */
-const seqCvs = document.getElementById('seqCanvas');
-const seqCtx = seqCvs.getContext('2d');
-const SW = seqCvs.width, SH = seqCvs.height;
+/* ══════════════════════════════════════════════════════════════
+   Section 4: Sequential Evidence — animated bar growth with
+   belief-update morphing
+   ══════════════════════════════════════════════════════════════ */
+var seqCvs = document.getElementById('seqCanvas');
+var seqInfo = hiDPI(seqCvs);
+var seqCtx = seqInfo.ctx, SW = seqInfo.w, SH = seqInfo.h;
 
-function drawSequential() {
-    seqCtx.clearRect(0, 0, SW, SH);
-    seqCtx.fillStyle = '#0a0a1a';
-    seqCtx.fillRect(0, 0, SW, SH);
+var seqAnimStart = 0;
+var seqAnimDuration = 800;
+var seqAnimRunning = false;
+// For morph: store previous bar heights so new bar grows from previous
+var seqPrevHeights = [];
 
-    const maxBars = 8;
-    const barArea = SW - 80;
-    const barW = Math.min(50, barArea / maxBars - 10);
-    const barGap = (barArea - barW * Math.min(maxBars, seqTests.length + 1)) / Math.max(1, Math.min(maxBars, seqTests.length + 1));
-    const baseY = SH - 50;
-    const maxH = SH - 80;
-    const startX = 50;
-
-    // Y-axis
-    seqCtx.strokeStyle = 'rgba(255,255,255,0.1)';
-    seqCtx.lineWidth = 1;
-    seqCtx.beginPath();
-    seqCtx.moveTo(startX - 5, 20);
-    seqCtx.lineTo(startX - 5, baseY);
-    seqCtx.stroke();
-
-    // Y-axis labels
-    seqCtx.font = '10px "Courier New", monospace';
-    seqCtx.fillStyle = '#808098';
-    seqCtx.textAlign = 'right';
-    seqCtx.textBaseline = 'middle';
-    for (let p = 0; p <= 100; p += 25) {
-        const y = baseY - (p / 100) * maxH;
-        seqCtx.fillText(p + '%', startX - 10, y);
-        seqCtx.strokeStyle = 'rgba(255,255,255,0.04)';
-        seqCtx.beginPath();
-        seqCtx.moveTo(startX, y);
-        seqCtx.lineTo(SW - 10, y);
-        seqCtx.stroke();
-    }
-
-    // Build all posteriors: start with the initial prior from sliders
-    var allVals = [prior];
-    var currentPr = prior;
-    for (var i = 0; i < seqTests.length; i++) {
-        var b = bayesCompute(currentPr, sensitivity, specificity);
-        allVals.push(b.posterior);
-        currentPr = b.posterior;
-    }
-
-    // Draw bars
-    var nBars = allVals.length;
-    var totalBarWidth = nBars * barW + (nBars - 1) * 8;
-    var sx = startX + (barArea - totalBarWidth) / 2;
-
-    for (var i = 0; i < nBars; i++) {
-        var val = allVals[i];
-        var h = val * maxH;
-        var x = sx + i * (barW + 8);
-
-        // Gradient intensity
-        var alpha = 0.3 + val * 0.7;
-
-        // Bar
-        seqCtx.fillStyle = i === 0 ? 'rgba(34,211,238,' + alpha + ')' : 'rgba(244,114,182,' + alpha + ')';
-        seqCtx.beginPath();
-        roundRect(seqCtx, x, baseY - h, barW, h, 4);
-        seqCtx.fill();
-
-        // Border
-        seqCtx.strokeStyle = i === 0 ? '#22d3ee' : '#f472b6';
-        seqCtx.lineWidth = 1;
-        seqCtx.beginPath();
-        roundRect(seqCtx, x, baseY - h, barW, h, 4);
-        seqCtx.stroke();
-
-        // Value label
-        seqCtx.font = '11px "Courier New", monospace';
-        seqCtx.fillStyle = '#e0e0e0';
-        seqCtx.textAlign = 'center';
-        seqCtx.textBaseline = 'bottom';
-        seqCtx.fillText(pct(val), x + barW / 2, baseY - h - 4);
-
-        // X label
-        seqCtx.font = '10px Georgia';
-        seqCtx.fillStyle = '#808098';
-        seqCtx.textBaseline = 'top';
-        if (i === 0) {
-            seqCtx.fillText('Prior', x + barW / 2, baseY + 6);
-        } else {
-            seqCtx.fillText('Test ' + i, x + barW / 2, baseY + 6);
-        }
-    }
-
-    // Draw 95% threshold line
-    var threshY = baseY - 0.95 * maxH;
-    seqCtx.strokeStyle = 'rgba(244,114,182,0.3)';
-    seqCtx.setLineDash([5, 4]);
-    seqCtx.lineWidth = 1;
-    seqCtx.beginPath();
-    seqCtx.moveTo(startX, threshY);
-    seqCtx.lineTo(SW - 10, threshY);
-    seqCtx.stroke();
-    seqCtx.setLineDash([]);
-    seqCtx.font = '10px "Courier New", monospace';
-    seqCtx.fillStyle = 'rgba(244,114,182,0.5)';
-    seqCtx.textAlign = 'right';
-    seqCtx.textBaseline = 'bottom';
-    seqCtx.fillText('95% threshold', SW - 15, threshY - 3);
-
-    // Update label
-    var label = document.getElementById('seqLabel');
-    if (seqTests.length === 0) {
-        label.textContent = 'Prior: ' + pct(prior) + ' \u2014 click to apply evidence';
-    } else {
-        var lastPosterior = allVals[allVals.length - 1];
-        label.textContent = 'After ' + seqTests.length + ' positive test' + (seqTests.length > 1 ? 's' : '') + ': P(D) = ' + pct(lastPosterior);
-    }
+function startSeqAnim() {
+    seqAnimStart = performance.now();
+    seqAnimRunning = true;
 }
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -715,19 +697,163 @@ function roundRect(ctx, x, y, w, h, r) {
     ctx.closePath();
 }
 
+function drawSequential(now) {
+    seqCtx.clearRect(0, 0, SW, SH);
+    seqCtx.fillStyle = '#0a0a1a';
+    seqCtx.fillRect(0, 0, SW, SH);
+
+    var elapsed = now - seqAnimStart;
+    var growT = Math.min(1, elapsed / seqAnimDuration);
+    growT = easeOutCubic(growT);
+    if (elapsed < seqAnimDuration) seqAnimRunning = true;
+    else seqAnimRunning = false;
+
+    var maxBars = 8;
+    var barArea = SW - 80;
+    var barW = Math.min(50, barArea / maxBars - 10);
+    var baseY = SH - 50;
+    var maxH = SH - 80;
+    var startX = 50;
+
+    // Y-axis
+    seqCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+    seqCtx.lineWidth = 1;
+    seqCtx.beginPath();
+    seqCtx.moveTo(startX - 5, 20);
+    seqCtx.lineTo(startX - 5, baseY);
+    seqCtx.stroke();
+
+    seqCtx.font = '10px "Courier New", monospace';
+    seqCtx.fillStyle = '#808098';
+    seqCtx.textAlign = 'right';
+    seqCtx.textBaseline = 'middle';
+    for (var p = 0; p <= 100; p += 25) {
+        var y = baseY - (p / 100) * maxH;
+        seqCtx.fillText(p + '%', startX - 10, y);
+        seqCtx.strokeStyle = 'rgba(255,255,255,0.04)';
+        seqCtx.beginPath();
+        seqCtx.moveTo(startX, y);
+        seqCtx.lineTo(SW - 10, y);
+        seqCtx.stroke();
+    }
+
+    // Build posteriors
+    var allVals = [prior];
+    var currentPr = prior;
+    for (var i = 0; i < seqTests.length; i++) {
+        var bv = bayesCompute(currentPr, sensitivity, specificity);
+        allVals.push(bv.posterior);
+        currentPr = bv.posterior;
+    }
+
+    var nBars = allVals.length;
+    var totalBarWidth = nBars * barW + (nBars - 1) * 8;
+    var sx = startX + (barArea - totalBarWidth) / 2;
+
+    for (var i = 0; i < nBars; i++) {
+        var val = allVals[i];
+        var targetH = val * maxH;
+
+        // Animate the newest bar; older bars are static
+        var isNewest = (i === nBars - 1 && seqTests.length > 0);
+        var prevH = (seqPrevHeights[i] !== undefined) ? seqPrevHeights[i] * maxH : 0;
+        var h;
+        if (isNewest) {
+            h = prevH + (targetH - prevH) * growT;
+        } else {
+            h = targetH;
+        }
+
+        var x = sx + i * (barW + 8);
+        var alpha = 0.3 + (h / maxH) * 0.7;
+
+        // Colour: first bar cyan (prior), rest rose (posterior)
+        var col = i === 0 ? 'rgba(34,211,238,' : 'rgba(244,114,182,';
+        var borderCol = i === 0 ? '#22d3ee' : '#f472b6';
+
+        // Draw morphing glow for newest bar
+        if (isNewest && growT < 1) {
+            seqCtx.save();
+            seqCtx.shadowColor = '#f472b6';
+            seqCtx.shadowBlur = 15 * (1 - growT);
+            seqCtx.fillStyle = col + alpha + ')';
+            seqCtx.beginPath();
+            roundRect(seqCtx, x, baseY - h, barW, Math.max(1, h), 4);
+            seqCtx.fill();
+            seqCtx.restore();
+        } else {
+            seqCtx.fillStyle = col + alpha + ')';
+            seqCtx.beginPath();
+            roundRect(seqCtx, x, baseY - h, barW, Math.max(1, h), 4);
+            seqCtx.fill();
+        }
+
+        seqCtx.strokeStyle = borderCol;
+        seqCtx.lineWidth = 1;
+        seqCtx.beginPath();
+        roundRect(seqCtx, x, baseY - h, barW, Math.max(1, h), 4);
+        seqCtx.stroke();
+
+        // Value label
+        var displayVal = h / maxH;
+        seqCtx.font = '11px "Courier New", monospace';
+        seqCtx.fillStyle = '#e0e0e0';
+        seqCtx.textAlign = 'center';
+        seqCtx.textBaseline = 'bottom';
+        seqCtx.fillText(pct(displayVal), x + barW / 2, baseY - h - 4);
+
+        seqCtx.font = '10px Georgia';
+        seqCtx.fillStyle = '#808098';
+        seqCtx.textBaseline = 'top';
+        seqCtx.fillText(i === 0 ? 'Prior' : 'Test ' + i, x + barW / 2, baseY + 6);
+    }
+
+    // Store heights for next morph
+    if (growT >= 1) {
+        seqPrevHeights = allVals.slice();
+    }
+
+    // 95% threshold line
+    var threshY = baseY - 0.95 * maxH;
+    seqCtx.strokeStyle = 'rgba(244,114,182,0.3)';
+    seqCtx.setLineDash([5, 4]);
+    seqCtx.lineWidth = 1;
+    seqCtx.beginPath();
+    seqCtx.moveTo(startX, threshY);
+    seqCtx.lineTo(SW - 10, threshY);
+    seqCtx.stroke();
+    seqCtx.setLineDash([]);
+    seqCtx.font = '10px "Courier New", monospace';
+    seqCtx.fillStyle = 'rgba(244,114,182,0.5)';
+    seqCtx.textAlign = 'right';
+    seqCtx.textBaseline = 'bottom';
+    seqCtx.fillText('95% threshold', SW - 15, threshY - 3);
+
+    var label = document.getElementById('seqLabel');
+    if (seqTests.length === 0) {
+        label.textContent = 'Prior: ' + pct(prior) + ' \u2014 click to apply evidence';
+    } else {
+        var lastPosterior = allVals[allVals.length - 1];
+        label.textContent = 'After ' + seqTests.length + ' positive test' + (seqTests.length > 1 ? 's' : '') + ': P(D) = ' + pct(lastPosterior);
+    }
+}
+
 document.getElementById('btnTestAgain').addEventListener('click', function() {
-    if (seqTests.length >= 7) return; // max 7 tests (8 bars total)
+    if (seqTests.length >= 7) return;
     seqTests.push('+');
-    drawSequential();
+    startSeqAnim();
 });
 
 document.getElementById('btnReset').addEventListener('click', function() {
     seqTests = [];
-    drawSequential();
+    seqPrevHeights = [];
+    startSeqAnim();
 });
 
-/* ── Real-World Scenarios (Section 5) ── */
-const scenarios = [
+/* ══════════════════════════════════════════════════════════════
+   Section 5: Real-World Scenarios
+   ══════════════════════════════════════════════════════════════ */
+var scenarios = [
     {
         label: 'Medical screening',
         prior: 0.01, sensitivity: 0.95, specificity: 0.99,
@@ -751,17 +877,15 @@ const scenarios = [
 ];
 
 function renderScenarios() {
-    const container = document.getElementById('scenarioBtns');
+    var container = document.getElementById('scenarioBtns');
     container.innerHTML = scenarios.map(function(s, i) {
         return '<button class="btn" data-si="' + i + '">' + s.label + '</button>';
     }).join('');
     container.querySelectorAll('.btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
-            const s = scenarios[parseInt(btn.dataset.si)];
-            // Highlight active
+            var s = scenarios[parseInt(btn.dataset.si)];
             container.querySelectorAll('.btn').forEach(function(b) { b.classList.remove('active'); });
             btn.classList.add('active');
-            // Set sliders
             prior = s.prior;
             sensitivity = s.sensitivity;
             specificity = s.specificity;
@@ -769,28 +893,58 @@ function renderScenarios() {
             sliderSens.value = Math.round(sensitivity * 1000);
             sliderSpec.value = Math.round(specificity * 1000);
             updateSliderLabels();
-            // Set description
             document.getElementById('scenarioDesc').textContent = s.desc;
-            // Full redraw
             seqTests = [];
+            seqPrevHeights = [];
             computePersonAssignments();
-            drawIconGrid();
+            startGridAnim();
+            startTreeAnim();
+            startSeqAnim();
             updateComputedValues();
-            drawTree();
-            drawSequential();
+            updateProbBars();
         });
     });
 }
 
-/* ── Initialize Everything ── */
+/* ══════════════════════════════════════════════════════════════
+   Pause / Play
+   ══════════════════════════════════════════════════════════════ */
+var btnPause = document.getElementById('btnPause');
+btnPause.addEventListener('click', function() {
+    paused = !paused;
+    btnPause.innerHTML = paused ? '&#9654; Play' : '&#9208; Pause';
+    if (!paused) requestAnimationFrame(mainLoop);
+});
+
+/* ══════════════════════════════════════════════════════════════
+   Main Animation Loop — requestAnimationFrame
+   ══════════════════════════════════════════════════════════════ */
+function mainLoop(now) {
+    if (paused) return;
+    drawIconGrid(now);
+    drawTree(now);
+    drawSequential(now);
+
+    // Keep running if any animation is active, or for gentle pulse on icons
+    if (gridAnimRunning || treeAnimRunning || seqAnimRunning) {
+        requestAnimationFrame(mainLoop);
+    } else {
+        // Continue for subtle icon pulse (every ~50ms is fine)
+        requestAnimationFrame(mainLoop);
+    }
+}
+
+/* ── Initialise ── */
 readSliders();
 updateSliderLabels();
 computePersonAssignments();
-drawIconGrid();
 updateComputedValues();
-drawTree();
-drawSequential();
+updateProbBars();
 renderScenarios();
+startGridAnim();
+startTreeAnim();
+startSeqAnim();
+requestAnimationFrame(mainLoop);
 </script>
 <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
     <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>

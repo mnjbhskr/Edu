@@ -57,20 +57,29 @@
         canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06);cursor:grab;margin:0 auto}
         canvas:active{cursor:grabbing}
 
+        .controls-bar{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px}
+        .ctrl-btn{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#b0b0c4;padding:6px 18px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px}
+        .ctrl-btn:hover{background:rgba(255,255,255,0.1);color:#e0e0ef}
+        .ctrl-btn.active{background:rgba(232,121,168,0.15);border-color:rgba(232,121,168,0.4);color:#e879a8}
+        .ctrl-btn svg{width:16px;height:16px;fill:currentColor}
+
         .measurements{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 20px;margin-bottom:20px;font-size:1.05em;min-height:48px;text-align:center}
-        .measurements .val{color:#f87171;font-weight:400}
+        .measurements .val{color:#e879a8;font-weight:400}
         .measurements .val-gold{color:#fbbf24;font-weight:400}
+        .measurements .val-cyan{color:#22d3ee;font-weight:400}
+        .measurements .val-violet{color:#c4b5fd;font-weight:400}
+        .measurements .val-teal{color:#14b8a6;font-weight:400}
 
         .theorem-panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:20px}
         .theorem-panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
-        .theorem-statement{color:#f87171;font-size:1.0em;margin-bottom:10px;font-style:italic}
+        .theorem-statement{color:#e879a8;font-size:1.0em;margin-bottom:10px;font-style:italic}
         .theorem-proof{color:#a0a0b8;font-size:0.88em;line-height:1.75}
 
         .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px}
-        .explain-name{color:#f87171;font-size:1.1em;margin-bottom:6px}
+        .explain-name{color:#e879a8;font-size:1.1em;margin-bottom:6px}
         .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
 
-        @media(max-width:600px){canvas{width:100%;height:auto}}
+        @media(max-width:600px){canvas{width:100%;height:auto}.tabs{gap:5px}.tab-btn{padding:5px 10px;font-size:0.82em}}
     </style>
 <link rel="canonical" href="https://mathsedu.org/circle_theorems.html">
   </head>
@@ -85,39 +94,84 @@
     <p class="subtitle">Inscribed angles, tangent lines, and the power of a point</p>
 
     <div class="tabs" id="tabs"></div>
-    <div class="canvas-wrap"><canvas id="cv" width="550" height="550"></canvas></div>
+    <div class="canvas-wrap"><canvas id="cv"></canvas></div>
+    <div class="controls-bar" id="ctrlBar">
+        <button class="ctrl-btn" id="btnPlayPause" title="Pause/Play animation">
+            <svg viewBox="0 0 24 24" id="iconPause"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <svg viewBox="0 0 24 24" id="iconPlay" style="display:none"><polygon points="6,4 20,12 6,20"/></svg>
+            <span id="ppLabel">Pause</span>
+        </button>
+        <button class="ctrl-btn" id="btnReplay" title="Replay intro animation">
+            <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+            Replay
+        </button>
+    </div>
     <div class="measurements" id="meas"></div>
     <div class="theorem-panel"><h3>Theorem</h3><div class="theorem-statement" id="tStmt"></div><div class="theorem-proof" id="tProof"></div></div>
     <div class="explain"><div class="explain-name" id="eName"></div><div class="explain-text" id="eText"></div></div>
 </div>
 
 <script>
+/* ===== HiDPI Canvas Setup ===== */
 const cvs = document.getElementById('cv'), ctx = cvs.getContext('2d');
-const W = cvs.width, H = cvs.height, CX = W / 2, CY = H / 2, R = 200;
-const CORAL = '#f87171', GOLD = '#fbbf24', WHITE = '#e0e0e0', DIM = '#404058';
+const CSS_W = 550, CSS_H = 550;
+const dpr = window.devicePixelRatio || 1;
+cvs.width = CSS_W * dpr;
+cvs.height = CSS_H * dpr;
+cvs.style.width = CSS_W + 'px';
+cvs.style.height = CSS_H + 'px';
+ctx.scale(dpr, dpr);
+
+const W = CSS_W, H = CSS_H, CX = W / 2, CY = H / 2, R = 200;
+
+/* ===== Vibrant colour palette ===== */
+const ROSE   = '#e879a8';
+const GOLD   = '#fbbf24';
+const CYAN   = '#22d3ee';
+const VIOLET = '#c4b5fd';
+const TEAL   = '#14b8a6';
+const WHITE  = '#e0e0e0';
+const DIM    = '#404058';
+
+/* Per-theorem accent mapping */
+const ACCENT = [ROSE, GOLD, CYAN, TEAL];
 
 const THEOREMS = [
     {name: "Thales' Theorem",
      stmt: "Any angle inscribed in a semicircle is a right angle.",
      proof: "Let AB be a diameter and C a point on the circle. Since OA = OB = OC = r (all radii), triangles OAC and OBC are both isosceles. If we call the base angles \u03b1 and \u03b2 respectively, the angles of triangle ABC sum to (\u03b1) + (\u03b1 + \u03b2) + (\u03b2) = 180\u00b0, giving \u03b1 + \u03b2 = 90\u00b0. But \u03b1 + \u03b2 is exactly angle ACB.",
-     insight: "Thales of Miletus (~600 BCE) is said to have proved this -- the first theorem attributed to a named mathematician. It shows the deep connection between circles and right angles."},
-    {name: "Inscribed Angle Theorem",
+     insight: "Thales of Miletus (~600 BCE) is said to have proved this \u2014 the first theorem attributed to a named mathematician. It shows the deep connection between circles and right angles."},
+    {name: "Inscribed Angle",
      stmt: "An inscribed angle is half the central angle that subtends the same arc.",
      proof: "For a point A on the major arc and chord BC: draw radii OB and OC. The central angle BOC equals twice the inscribed angle BAC because each isosceles triangle formed with the centre contributes equal base angles. Thales' theorem is the special case where the central angle is 180\u00b0.",
      insight: "This theorem explains why the angle in a semicircle is 90\u00b0 (since the central angle of a semicircle is 180\u00b0, the inscribed angle is half: 90\u00b0). Thales' theorem is a special case!"},
     {name: "Tangent-Radius",
      stmt: "A tangent to a circle is perpendicular to the radius at the point of tangency. Tangent segments from an external point are equal in length.",
-     proof: "If the tangent were not perpendicular to the radius, there would exist a shorter segment from the centre to the tangent line, placing a point of the line inside the circle -- contradicting tangency. For equal tangents: right triangles OPT\u2081 and OPT\u2082 share hypotenuse OP and have equal legs OT\u2081 = OT\u2082 = r, so by the Pythagorean theorem PT\u2081 = PT\u2082.",
-     insight: "The tangent touches the circle at exactly one point and is perpendicular to the radius there. This property is fundamental to calculus -- the derivative of a curve at a point is the slope of the tangent line."},
+     proof: "If the tangent were not perpendicular to the radius, there would exist a shorter segment from the centre to the tangent line, placing a point of the line inside the circle \u2014 contradicting tangency. For equal tangents: right triangles OPT\u2081 and OPT\u2082 share hypotenuse OP and have equal legs OT\u2081 = OT\u2082 = r, so by the Pythagorean theorem PT\u2081 = PT\u2082.",
+     insight: "The tangent touches the circle at exactly one point and is perpendicular to the radius there. This property is fundamental to calculus \u2014 the derivative of a curve at a point is the slope of the tangent line."},
     {name: "Power of a Point",
      stmt: "For a point P and any line through P intersecting a circle at X and Y, the product PA \u00d7 PB is constant regardless of the line chosen.",
      proof: "By similar triangles: for two secants through P intersecting the circle at A, B and C, D respectively, triangles PAC and PDB are similar (inscribed angles subtending the same arc are equal). This gives PA/PD = PC/PB, hence PA \u00d7 PB = PC \u00d7 PD.",
-     insight: "The power of a point is a geometric invariant -- no matter which line you draw through the point, the product of distances to the circle intersections is always the same."}
+     insight: "The power of a point is a geometric invariant \u2014 no matter which line you draw through the point, the product of distances to the circle intersections is always the same."}
 ];
 
-let mode = 0, drag = -1, mousePos = null;
+let mode = 0, drag = -1;
 let pts = [];
 
+/* ===== Animation State ===== */
+let animTime = 0;       /* elapsed time in seconds for current theorem */
+let animPaused = false;
+let lastFrameTime = 0;
+let introPhase = true;  /* true during the opening auto-animation */
+let transitionProgress = 1; /* 0..1, 1 = fully arrived */
+let transitionFrom = -1;
+let circleDrawProgress = 0; /* for circle drawing animation */
+
+/* Easing */
+function easeOut(t) { return 1 - Math.pow(1 - Math.min(1, Math.max(0, t)), 3); }
+function easeInOut(t) { t = Math.min(1, Math.max(0, t)); return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+
+/* ===== Point initialisation ===== */
 function initPoints() {
     if (mode === 0) {
         pts = [
@@ -171,13 +225,34 @@ function lineCircleIntersect(px, py, dx, dy) {
     ];
 }
 
-/* --- Drawing primitives --- */
-function drawMainCircle() {
+function lerp(a, b, t) { return a + (b - a) * t; }
+function lerpAngle(a, b, t) {
+    let d = b - a;
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    return a + d * t;
+}
+
+/* ===== Drawing primitives with glow support ===== */
+function setGlow(color, blur) {
+    ctx.shadowColor = color;
+    ctx.shadowBlur = blur;
+}
+function clearGlow() {
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+}
+
+function drawMainCircle(progress) {
+    progress = progress !== undefined ? progress : 1;
+    if (progress <= 0) return;
     ctx.beginPath();
-    ctx.arc(CX, CY, R, 0, Math.PI * 2);
+    ctx.arc(CX, CY, R, 0, Math.PI * 2 * Math.min(1, progress));
     ctx.strokeStyle = 'rgba(255,255,255,0.18)';
     ctx.lineWidth = 1.5;
+    setGlow('rgba(255,255,255,0.08)', 6);
     ctx.stroke();
+    clearGlow();
 }
 
 function drawCenterDot(color) {
@@ -189,10 +264,12 @@ function drawCenterDot(color) {
 
 function drawDot(x, y, color, r) {
     r = r || 6;
+    setGlow(color, 10);
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = color;
     ctx.fill();
+    clearGlow();
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.strokeStyle = 'rgba(0,0,0,0.5)';
@@ -208,16 +285,35 @@ function drawLabel(x, y, text, color, ox, oy) {
     ctx.fillText(text, x + (ox || 0), y + (oy || 0));
 }
 
-function drawSeg(x1, y1, x2, y2, color, w) {
+function drawSeg(x1, y1, x2, y2, color, w, progress) {
+    progress = progress !== undefined ? progress : 1;
+    if (progress <= 0) return;
+    let ex = lerp(x1, x2, Math.min(1, progress));
+    let ey = lerp(y1, y2, Math.min(1, progress));
     ctx.beginPath();
     ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
+    ctx.lineTo(ex, ey);
     ctx.strokeStyle = color;
     ctx.lineWidth = w || 1.5;
     ctx.stroke();
 }
 
-function drawRightAngle(cx, cy, ax, ay, bx, by, color, sz) {
+function drawSegGlow(x1, y1, x2, y2, color, w, glowAmt, progress) {
+    progress = progress !== undefined ? progress : 1;
+    if (progress <= 0) return;
+    let ex = lerp(x1, x2, Math.min(1, progress));
+    let ey = lerp(y1, y2, Math.min(1, progress));
+    setGlow(color, glowAmt || 8);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(ex, ey);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = w || 1.5;
+    ctx.stroke();
+    clearGlow();
+}
+
+function drawRightAngle(cx, cy, ax, ay, bx, by, color, sz, glowAmt) {
     sz = sz || 14;
     let u1x = ax - cx, u1y = ay - cy, l1 = Math.hypot(u1x, u1y);
     let u2x = bx - cx, u2y = by - cy, l2 = Math.hypot(u2x, u2y);
@@ -226,6 +322,7 @@ function drawRightAngle(cx, cy, ax, ay, bx, by, color, sz) {
     let p1x = cx + u1x * sz, p1y = cy + u1y * sz;
     let p2x = cx + u2x * sz, p2y = cy + u2y * sz;
     let mx = p1x + u2x * sz, my = p1y + u2y * sz;
+    if (glowAmt) setGlow(color, glowAmt);
     ctx.beginPath();
     ctx.moveTo(p1x, p1y);
     ctx.lineTo(mx, my);
@@ -233,9 +330,31 @@ function drawRightAngle(cx, cy, ax, ay, bx, by, color, sz) {
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.5;
     ctx.stroke();
+    if (glowAmt) clearGlow();
 }
 
-function drawArc(cx, cy, ax, ay, bx, by, color, radius) {
+function drawArc(cx, cy, ax, ay, bx, by, color, radius, glowAmt, progress) {
+    radius = radius || 28;
+    progress = progress !== undefined ? progress : 1;
+    if (progress <= 0) return;
+    let a1 = Math.atan2(ay - cy, ax - cx);
+    let a2 = Math.atan2(by - cy, bx - cx);
+    let diff = a2 - a1;
+    while (diff < -Math.PI) diff += 2 * Math.PI;
+    while (diff > Math.PI) diff -= 2 * Math.PI;
+    let sweep = diff * Math.min(1, progress);
+    if (glowAmt) setGlow(color, glowAmt);
+    ctx.beginPath();
+    if (diff > 0) ctx.arc(cx, cy, radius, a1, a1 + sweep);
+    else ctx.arc(cx, cy, radius, a1, a1 + sweep, true);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    if (glowAmt) clearGlow();
+}
+
+/* Draw a filled arc wedge for angle visualisation */
+function drawAngleFill(cx, cy, ax, ay, bx, by, color, radius, alpha) {
     radius = radius || 28;
     let a1 = Math.atan2(ay - cy, ax - cx);
     let a2 = Math.atan2(by - cy, bx - cx);
@@ -243,77 +362,184 @@ function drawArc(cx, cy, ax, ay, bx, by, color, radius) {
     while (diff < -Math.PI) diff += 2 * Math.PI;
     while (diff > Math.PI) diff -= 2 * Math.PI;
     ctx.beginPath();
+    ctx.moveTo(cx, cy);
     if (diff > 0) ctx.arc(cx, cy, radius, a1, a1 + diff);
     else ctx.arc(cx, cy, radius, a2, a2 - diff);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.globalAlpha = alpha || 0.15;
+    ctx.fill();
+    ctx.globalAlpha = 1;
 }
 
 function labelOffset(angle) {
     return {ox: Math.cos(angle) * 20, oy: Math.sin(angle) * 20};
 }
 
-/* ===== THEOREM DRAW ROUTINES ===== */
+/* ===== Intro animation parameters per theorem ===== */
+/* Phase timings (seconds):
+   0.0 - 0.6: circle draws itself
+   0.6 - 1.4: lines extend from points
+   1.4 - 2.2: angle arcs sweep, right angle markers appear
+   2.2 - 3.0: measurement labels fade in
+   3.0+     : auto-animate (point moves along circle etc.)
+*/
+const INTRO_CIRCLE = 0.6;
+const INTRO_LINES  = 1.4;
+const INTRO_ARCS   = 2.2;
+const INTRO_LABEL  = 3.0;
+const AUTO_START   = 3.0;
+const AUTO_PERIOD  = 6.0; /* seconds per auto-animation loop */
+
+function introProgress(start, end) {
+    /* Returns 0..1 for how far through [start, end] we are */
+    if (animTime < start) return 0;
+    if (animTime >= end) return 1;
+    return (animTime - start) / (end - start);
+}
+
+/* ===== THEOREM DRAW ROUTINES (enhanced) ===== */
 
 function drawThales() {
+    let pCircle = easeOut(introProgress(0, INTRO_CIRCLE));
+    let pLines  = easeOut(introProgress(INTRO_CIRCLE, INTRO_LINES));
+    let pArcs   = easeOut(introProgress(INTRO_LINES, INTRO_ARCS));
+    let pLabel  = easeOut(introProgress(INTRO_ARCS, INTRO_LABEL));
+
+    /* Auto-animate: point C travels around the semicircle */
+    if (introPhase && animTime > AUTO_START && drag < 0) {
+        let t = ((animTime - AUTO_START) % AUTO_PERIOD) / AUTO_PERIOD;
+        /* C sweeps from ~20deg to ~160deg (upper semicircle) */
+        pts[2].a = Math.PI * 0.08 + Math.PI * 0.84 * (0.5 - 0.5 * Math.cos(t * 2 * Math.PI));
+    }
+
     let A = ptXY(pts[0]), B = ptXY(pts[1]), C = ptXY(pts[2]);
-    drawMainCircle();
+
+    drawMainCircle(pCircle);
     drawCenterDot();
-    /* Diameter line (dim) */
-    drawSeg(A.x, A.y, B.x, B.y, 'rgba(255,255,255,0.12)', 1);
+
+    /* Diameter line */
+    drawSeg(A.x, A.y, B.x, B.y, 'rgba(255,255,255,0.12)', 1, pLines);
     /* Triangle sides */
-    drawSeg(A.x, A.y, C.x, C.y, WHITE, 1.5);
-    drawSeg(B.x, B.y, C.x, C.y, WHITE, 1.5);
-    drawSeg(A.x, A.y, B.x, B.y, WHITE, 1.5);
-    /* Right-angle mark at C */
-    drawRightAngle(C.x, C.y, A.x, A.y, B.x, B.y, CORAL, 16);
+    drawSegGlow(A.x, A.y, C.x, C.y, VIOLET, 1.5, 6, pLines);
+    drawSegGlow(B.x, B.y, C.x, C.y, VIOLET, 1.5, 6, pLines);
+    drawSegGlow(A.x, A.y, B.x, B.y, 'rgba(255,255,255,0.5)', 1.5, 0, pLines);
+
+    /* Right-angle mark at C with glow */
+    if (pArcs > 0) {
+        ctx.globalAlpha = pArcs;
+        drawRightAngle(C.x, C.y, A.x, A.y, B.x, B.y, ROSE, 16, 12);
+        /* Angle fill */
+        drawAngleFill(C.x, C.y, A.x, A.y, B.x, B.y, ROSE, 22, 0.12 * pArcs);
+        ctx.globalAlpha = 1;
+    }
+
     /* Angle measurement */
     let ang = angleBetween(C.x, C.y, A.x, A.y, B.x, B.y) * 180 / Math.PI;
+
+    /* Draw radii OA, OC faintly to show isosceles */
+    if (pArcs > 0) {
+        ctx.globalAlpha = 0.25 * pArcs;
+        drawSeg(CX, CY, A.x, A.y, TEAL, 1);
+        drawSeg(CX, CY, C.x, C.y, TEAL, 1);
+        drawSeg(CX, CY, B.x, B.y, TEAL, 1);
+        ctx.globalAlpha = 1;
+    }
+
     /* Points and labels */
-    let oA = labelOffset(pts[0].a);
-    let oB = labelOffset(pts[1].a);
-    let oC = labelOffset(pts[2].a);
-    drawDot(A.x, A.y, WHITE);
-    drawLabel(A.x, A.y, 'A', WHITE, oA.ox, oA.oy);
-    drawDot(B.x, B.y, WHITE);
-    drawLabel(B.x, B.y, 'B', WHITE, oB.ox, oB.oy);
-    drawDot(C.x, C.y, CORAL);
-    drawLabel(C.x, C.y, 'C', CORAL, oC.ox, oC.oy);
-    drawCenterDot(DIM);
-    drawLabel(CX, CY, 'O', DIM, 0, 16);
+    if (pLabel > 0) {
+        ctx.globalAlpha = pLabel;
+        let oA = labelOffset(pts[0].a);
+        let oB = labelOffset(pts[1].a);
+        let oC = labelOffset(pts[2].a);
+        drawDot(A.x, A.y, WHITE);
+        drawLabel(A.x, A.y, 'A', WHITE, oA.ox, oA.oy);
+        drawDot(B.x, B.y, WHITE);
+        drawLabel(B.x, B.y, 'B', WHITE, oB.ox, oB.oy);
+        drawDot(C.x, C.y, ROSE);
+        drawLabel(C.x, C.y, 'C', ROSE, oC.ox, oC.oy);
+        drawCenterDot(TEAL);
+        drawLabel(CX, CY, 'O', TEAL, 0, 16);
+        ctx.globalAlpha = 1;
+    }
+
     document.getElementById('meas').innerHTML =
         'Angle ACB = <span class="val">' + ang.toFixed(1) + '\u00b0</span> (always 90\u00b0)' +
         '&emsp;&mdash;&emsp;Drag point C around the circle';
 }
 
 function drawInscribed() {
+    let pCircle = easeOut(introProgress(0, INTRO_CIRCLE));
+    let pLines  = easeOut(introProgress(INTRO_CIRCLE, INTRO_LINES));
+    let pArcs   = easeOut(introProgress(INTRO_LINES, INTRO_ARCS));
+    let pLabel  = easeOut(introProgress(INTRO_ARCS, INTRO_LABEL));
+
+    /* Auto-animate: A moves around the major arc */
+    if (introPhase && animTime > AUTO_START && drag < 0) {
+        let t = ((animTime - AUTO_START) % AUTO_PERIOD) / AUTO_PERIOD;
+        pts[0].a = Math.PI * 0.5 + Math.PI * 0.7 * Math.sin(t * 2 * Math.PI);
+    }
+
     let A = ptXY(pts[0]), B = ptXY(pts[1]), C = ptXY(pts[2]);
-    drawMainCircle();
+
+    drawMainCircle(pCircle);
+
     /* Central angle lines OB, OC */
-    drawSeg(CX, CY, B.x, B.y, GOLD, 1.2);
-    drawSeg(CX, CY, C.x, C.y, GOLD, 1.2);
+    drawSegGlow(CX, CY, B.x, B.y, GOLD, 1.2, 6, pLines);
+    drawSegGlow(CX, CY, C.x, C.y, GOLD, 1.2, 6, pLines);
     /* Inscribed angle lines AB, AC */
-    drawSeg(A.x, A.y, B.x, B.y, CORAL, 1.5);
-    drawSeg(A.x, A.y, C.x, C.y, CORAL, 1.5);
-    /* Arc markers */
-    drawArc(A.x, A.y, B.x, B.y, C.x, C.y, CORAL, 30);
-    drawArc(CX, CY, B.x, B.y, C.x, C.y, GOLD, 22);
+    drawSegGlow(A.x, A.y, B.x, B.y, ROSE, 1.5, 6, pLines);
+    drawSegGlow(A.x, A.y, C.x, C.y, ROSE, 1.5, 6, pLines);
+
+    /* Arc markers with glow */
+    if (pArcs > 0) {
+        ctx.globalAlpha = pArcs;
+        drawArc(A.x, A.y, B.x, B.y, C.x, C.y, ROSE, 30, 10, pArcs);
+        drawArc(CX, CY, B.x, B.y, C.x, C.y, GOLD, 22, 10, pArcs);
+        /* Angle fills */
+        drawAngleFill(A.x, A.y, B.x, B.y, C.x, C.y, ROSE, 30, 0.1 * pArcs);
+        drawAngleFill(CX, CY, B.x, B.y, C.x, C.y, GOLD, 22, 0.1 * pArcs);
+        ctx.globalAlpha = 1;
+    }
+
     /* Compute angles */
     let inscribed = angleBetween(A.x, A.y, B.x, B.y, C.x, C.y) * 180 / Math.PI;
     let central = angleBetween(CX, CY, B.x, B.y, C.x, C.y) * 180 / Math.PI;
-    /* Central angle should be 2x inscribed; use reflex if needed */
     if (central < inscribed * 1.5) central = 360 - central;
+
+    /* Subtended arc highlight */
+    if (pArcs > 0) {
+        let aB = Math.atan2(B.y - CY, B.x - CX);
+        let aC = Math.atan2(C.y - CY, C.x - CX);
+        let diff = aC - aB;
+        while (diff < 0) diff += 2 * Math.PI;
+        /* Draw the minor arc BC in cyan */
+        setGlow(CYAN, 8);
+        ctx.beginPath();
+        ctx.arc(CX, CY, R, aB, aB + diff * pArcs);
+        ctx.strokeStyle = CYAN;
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.4 * pArcs;
+        ctx.stroke();
+        clearGlow();
+        ctx.globalAlpha = 1;
+    }
+
     /* Points and labels */
-    let oA = labelOffset(pts[0].a), oB = labelOffset(pts[1].a), oC = labelOffset(pts[2].a);
-    drawDot(A.x, A.y, CORAL);
-    drawLabel(A.x, A.y, 'A', CORAL, oA.ox, oA.oy);
-    drawDot(B.x, B.y, WHITE);
-    drawLabel(B.x, B.y, 'B', WHITE, oB.ox, oB.oy);
-    drawDot(C.x, C.y, WHITE);
-    drawLabel(C.x, C.y, 'C', WHITE, oC.ox, oC.oy);
-    drawCenterDot(GOLD);
-    drawLabel(CX, CY, 'O', GOLD, 14, 14);
+    if (pLabel > 0) {
+        ctx.globalAlpha = pLabel;
+        let oA = labelOffset(pts[0].a), oB = labelOffset(pts[1].a), oC = labelOffset(pts[2].a);
+        drawDot(A.x, A.y, ROSE);
+        drawLabel(A.x, A.y, 'A', ROSE, oA.ox, oA.oy);
+        drawDot(B.x, B.y, CYAN);
+        drawLabel(B.x, B.y, 'B', CYAN, oB.ox, oB.oy);
+        drawDot(C.x, C.y, CYAN);
+        drawLabel(C.x, C.y, 'C', CYAN, oC.ox, oC.oy);
+        drawCenterDot(GOLD);
+        drawLabel(CX, CY, 'O', GOLD, 14, 14);
+        ctx.globalAlpha = 1;
+    }
+
     document.getElementById('meas').innerHTML =
         'Inscribed angle BAC = <span class="val">' + inscribed.toFixed(1) + '\u00b0</span>&emsp;' +
         'Central angle BOC = <span class="val-gold">' + central.toFixed(1) + '\u00b0</span>&emsp;' +
@@ -321,40 +547,83 @@ function drawInscribed() {
 }
 
 function drawTangent() {
+    let pCircle = easeOut(introProgress(0, INTRO_CIRCLE));
+    let pLines  = easeOut(introProgress(INTRO_CIRCLE, INTRO_LINES));
+    let pArcs   = easeOut(introProgress(INTRO_LINES, INTRO_ARCS));
+    let pLabel  = easeOut(introProgress(INTRO_ARCS, INTRO_LABEL));
+
+    /* Auto-animate: T moves around the circle, tangent line follows */
+    if (introPhase && animTime > AUTO_START && drag < 0) {
+        let t = ((animTime - AUTO_START) % (AUTO_PERIOD * 1.5)) / (AUTO_PERIOD * 1.5);
+        pts[0].a = Math.PI * 0.35 + 2 * Math.PI * t;
+    }
+
     let T = ptXY(pts[0]), P = pts[1];
-    drawMainCircle();
+
+    drawMainCircle(pCircle);
     drawCenterDot();
+
     /* Radius OT */
-    drawSeg(CX, CY, T.x, T.y, WHITE, 1.2);
+    drawSegGlow(CX, CY, T.x, T.y, TEAL, 1.2, 6, pLines);
+
     /* Tangent direction: perpendicular to radius */
     let dx = T.x - CX, dy = T.y - CY;
     let len = Math.hypot(dx, dy);
     let tx = -dy / len, ty = dx / len;
-    drawSeg(T.x - tx * 220, T.y - ty * 220, T.x + tx * 220, T.y + ty * 220, CORAL, 1.5);
-    drawRightAngle(T.x, T.y, CX, CY, T.x + tx * 60, T.y + ty * 60, CORAL, 14);
+
+    if (pLines > 0) {
+        let tangentLen = 220 * pLines;
+        setGlow(CYAN, 10);
+        drawSeg(T.x - tx * tangentLen, T.y - ty * tangentLen, T.x + tx * tangentLen, T.y + ty * tangentLen, CYAN, 1.5);
+        clearGlow();
+    }
+
+    /* Right angle at T */
+    if (pArcs > 0) {
+        ctx.globalAlpha = pArcs;
+        drawRightAngle(T.x, T.y, CX, CY, T.x + tx * 60, T.y + ty * 60, CYAN, 14, 12);
+        ctx.globalAlpha = 1;
+    }
+
     /* Tangent from external point P */
     let dpx = P.x - CX, dpy = P.y - CY;
     let dP = Math.hypot(dpx, dpy);
     let measHTML = 'Tangent is perpendicular to radius at T (90\u00b0)';
+
     if (dP > R + 5) {
         let baseAngle = Math.atan2(dpy, dpx);
         let angOff = Math.acos(Math.min(1, R / dP));
         let t1a = baseAngle + angOff, t2a = baseAngle - angOff;
         let T1 = circleXY(t1a), T2 = circleXY(t2a);
-        /* Dim radii to tangent points */
-        drawSeg(CX, CY, T1.x, T1.y, 'rgba(255,255,255,0.1)', 1);
-        drawSeg(CX, CY, T2.x, T2.y, 'rgba(255,255,255,0.1)', 1);
-        /* Tangent segments */
-        drawSeg(P.x, P.y, T1.x, T1.y, GOLD, 1.5);
-        drawSeg(P.x, P.y, T2.x, T2.y, GOLD, 1.5);
-        /* Right angle marks */
-        drawRightAngle(T1.x, T1.y, CX, CY, P.x, P.y, GOLD, 12);
-        drawRightAngle(T2.x, T2.y, CX, CY, P.x, P.y, GOLD, 12);
-        let oT1 = labelOffset(t1a), oT2 = labelOffset(t2a);
-        drawDot(T1.x, T1.y, GOLD);
-        drawLabel(T1.x, T1.y, 'T\u2081', GOLD, oT1.ox, oT1.oy);
-        drawDot(T2.x, T2.y, GOLD);
-        drawLabel(T2.x, T2.y, 'T\u2082', GOLD, oT2.ox, oT2.oy);
+
+        if (pLines > 0) {
+            ctx.globalAlpha = 0.15 * pLines;
+            drawSeg(CX, CY, T1.x, T1.y, TEAL, 1);
+            drawSeg(CX, CY, T2.x, T2.y, TEAL, 1);
+            ctx.globalAlpha = 1;
+        }
+
+        /* Tangent segments with glow */
+        drawSegGlow(P.x, P.y, T1.x, T1.y, GOLD, 1.5, 8, pLines);
+        drawSegGlow(P.x, P.y, T2.x, T2.y, GOLD, 1.5, 8, pLines);
+
+        if (pArcs > 0) {
+            ctx.globalAlpha = pArcs;
+            drawRightAngle(T1.x, T1.y, CX, CY, P.x, P.y, GOLD, 12, 8);
+            drawRightAngle(T2.x, T2.y, CX, CY, P.x, P.y, GOLD, 12, 8);
+            ctx.globalAlpha = 1;
+        }
+
+        if (pLabel > 0) {
+            ctx.globalAlpha = pLabel;
+            let oT1 = labelOffset(t1a), oT2 = labelOffset(t2a);
+            drawDot(T1.x, T1.y, GOLD);
+            drawLabel(T1.x, T1.y, 'T\u2081', GOLD, oT1.ox, oT1.oy);
+            drawDot(T2.x, T2.y, GOLD);
+            drawLabel(T2.x, T2.y, 'T\u2082', GOLD, oT2.ox, oT2.oy);
+            ctx.globalAlpha = 1;
+        }
+
         let pt1 = dist(P.x, P.y, T1.x, T1.y);
         let pt2 = dist(P.x, P.y, T2.x, T2.y);
         measHTML += '&emsp;|&emsp;PT\u2081 = <span class="val-gold">' + pt1.toFixed(1) +
@@ -362,59 +631,96 @@ function drawTangent() {
     } else {
         measHTML += '&emsp;(drag P outside the circle to see two tangents)';
     }
-    let oT = labelOffset(pts[0].a);
-    drawDot(T.x, T.y, CORAL);
-    drawLabel(T.x, T.y, 'T', CORAL, oT.ox, oT.oy);
-    drawDot(P.x, P.y, GOLD);
-    drawLabel(P.x, P.y, 'P', GOLD, 16, -14);
-    drawCenterDot(DIM);
-    drawLabel(CX, CY, 'O', DIM, -14, 14);
+
+    if (pLabel > 0) {
+        ctx.globalAlpha = pLabel;
+        let oT = labelOffset(pts[0].a);
+        drawDot(T.x, T.y, CYAN);
+        drawLabel(T.x, T.y, 'T', CYAN, oT.ox, oT.oy);
+        drawDot(P.x, P.y, GOLD);
+        drawLabel(P.x, P.y, 'P', GOLD, 16, -14);
+        drawCenterDot(TEAL);
+        drawLabel(CX, CY, 'O', TEAL, -14, 14);
+        ctx.globalAlpha = 1;
+    }
+
     document.getElementById('meas').innerHTML = measHTML;
 }
 
 function drawPower() {
+    let pCircle = easeOut(introProgress(0, INTRO_CIRCLE));
+    let pLines  = easeOut(introProgress(INTRO_CIRCLE, INTRO_LINES));
+    let pArcs   = easeOut(introProgress(INTRO_LINES, INTRO_ARCS));
+    let pLabel  = easeOut(introProgress(INTRO_ARCS, INTRO_LABEL));
+
+    /* Auto-animate: rotate the two secant lines */
+    if (introPhase && animTime > AUTO_START && drag < 0) {
+        let t = ((animTime - AUTO_START) % AUTO_PERIOD) / AUTO_PERIOD;
+        pts[1].lineAngle = 0.35 + Math.sin(t * 2 * Math.PI) * 0.6;
+        pts[2].lineAngle = -0.8 + Math.cos(t * 2 * Math.PI) * 0.5;
+    }
+
     let P = pts[0];
     let a1 = pts[1].lineAngle, a2 = pts[2].lineAngle;
-    drawMainCircle();
+
+    drawMainCircle(pCircle);
     drawCenterDot();
+
     let d1x = Math.cos(a1), d1y = Math.sin(a1);
     let d2x = Math.cos(a2), d2y = Math.sin(a2);
     let hits1 = lineCircleIntersect(P.x, P.y, d1x, d1y);
     let hits2 = lineCircleIntersect(P.x, P.y, d2x, d2y);
     let measHTML = 'Drag P or the small handles to rotate the lines';
+
     if (hits1.length === 2 && hits2.length === 2) {
         let A = hits1[0], B = hits1[1], C = hits2[0], D = hits2[1];
-        /* Draw full chord/secant lines */
-        drawSeg(A.x, A.y, B.x, B.y, CORAL, 1.5);
-        drawSeg(C.x, C.y, D.x, D.y, GOLD, 1.5);
+
+        /* Draw full chord/secant lines with glow */
+        drawSegGlow(A.x, A.y, B.x, B.y, ROSE, 1.5, 8, pLines);
+        drawSegGlow(C.x, C.y, D.x, D.y, GOLD, 1.5, 8, pLines);
+
         let dA = dist(P.x, P.y, A.x, A.y), dB = dist(P.x, P.y, B.x, B.y);
         let dC = dist(P.x, P.y, C.x, C.y), dD = dist(P.x, P.y, D.x, D.y);
         let prod1 = dA * dB, prod2 = dC * dD;
         let inside = dist(P.x, P.y, CX, CY) < R;
-        /* Intersection point labels offset outward from circle */
-        let aA = Math.atan2(A.y - CY, A.x - CX), aB = Math.atan2(B.y - CY, B.x - CX);
-        let aC = Math.atan2(C.y - CY, C.x - CX), aD = Math.atan2(D.y - CY, D.x - CX);
-        drawDot(A.x, A.y, CORAL, 5);
-        drawLabel(A.x, A.y, 'A', CORAL, Math.cos(aA) * 18, Math.sin(aA) * 18);
-        drawDot(B.x, B.y, CORAL, 5);
-        drawLabel(B.x, B.y, 'B', CORAL, Math.cos(aB) * 18, Math.sin(aB) * 18);
-        drawDot(C.x, C.y, GOLD, 5);
-        drawLabel(C.x, C.y, 'C', GOLD, Math.cos(aC) * 18, Math.sin(aC) * 18);
-        drawDot(D.x, D.y, GOLD, 5);
-        drawLabel(D.x, D.y, 'D', GOLD, Math.cos(aD) * 18, Math.sin(aD) * 18);
+
+        if (pLabel > 0) {
+            ctx.globalAlpha = pLabel;
+            let aA = Math.atan2(A.y - CY, A.x - CX), aB = Math.atan2(B.y - CY, B.x - CX);
+            let aC = Math.atan2(C.y - CY, C.x - CX), aD = Math.atan2(D.y - CY, D.x - CX);
+            drawDot(A.x, A.y, ROSE, 5);
+            drawLabel(A.x, A.y, 'A', ROSE, Math.cos(aA) * 18, Math.sin(aA) * 18);
+            drawDot(B.x, B.y, ROSE, 5);
+            drawLabel(B.x, B.y, 'B', ROSE, Math.cos(aB) * 18, Math.sin(aB) * 18);
+            drawDot(C.x, C.y, GOLD, 5);
+            drawLabel(C.x, C.y, 'C', GOLD, Math.cos(aC) * 18, Math.sin(aC) * 18);
+            drawDot(D.x, D.y, GOLD, 5);
+            drawLabel(D.x, D.y, 'D', GOLD, Math.cos(aD) * 18, Math.sin(aD) * 18);
+            ctx.globalAlpha = 1;
+        }
+
+        /* Pulsing glow on the product values when they match */
+        let matchGlow = Math.abs(prod1 - prod2) < 1 ? 0.3 + 0.15 * Math.sin(animTime * 3) : 0;
+
         measHTML = 'PA \u00d7 PB = <span class="val">' + prod1.toFixed(1) + '</span>&emsp;' +
             'PC \u00d7 PD = <span class="val-gold">' + prod2.toFixed(1) + '</span>&emsp;' +
             (inside ? '(P inside circle)' : '(P outside circle)');
     }
+
     /* Draw small draggable handle dots for line angle controls */
-    let h1x = P.x + 70 * d1x, h1y = P.y + 70 * d1y;
-    let h2x = P.x + 70 * d2x, h2y = P.y + 70 * d2y;
-    drawDot(h1x, h1y, 'rgba(248,113,113,0.5)', 4);
-    drawDot(h2x, h2y, 'rgba(251,191,36,0.5)', 4);
-    drawDot(P.x, P.y, WHITE);
-    drawLabel(P.x, P.y, 'P', WHITE, 0, -18);
-    drawCenterDot(DIM);
-    drawLabel(CX, CY, 'O', DIM, 14, 14);
+    if (pLabel > 0) {
+        ctx.globalAlpha = pLabel;
+        let h1x = P.x + 70 * d1x, h1y = P.y + 70 * d1y;
+        let h2x = P.x + 70 * d2x, h2y = P.y + 70 * d2y;
+        drawDot(h1x, h1y, 'rgba(232,121,168,0.5)', 4);
+        drawDot(h2x, h2y, 'rgba(251,191,36,0.5)', 4);
+        drawDot(P.x, P.y, WHITE);
+        drawLabel(P.x, P.y, 'P', WHITE, 0, -18);
+        drawCenterDot(DIM);
+        drawLabel(CX, CY, 'O', DIM, 14, 14);
+        ctx.globalAlpha = 1;
+    }
+
     document.getElementById('meas').innerHTML = measHTML;
 }
 
@@ -423,16 +729,46 @@ function render() {
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = '#0a0a1a';
     ctx.fillRect(0, 0, W, H);
+
     /* Subtle grid dots */
     ctx.fillStyle = 'rgba(255,255,255,0.025)';
     for (let x = 25; x < W; x += 50)
         for (let y = 25; y < H; y += 50) {
             ctx.beginPath(); ctx.arc(x, y, 1, 0, Math.PI * 2); ctx.fill();
         }
+
+    /* Transition fade */
+    if (transitionProgress < 1) {
+        ctx.globalAlpha = easeInOut(transitionProgress);
+    }
+
     if (mode === 0) drawThales();
     else if (mode === 1) drawInscribed();
     else if (mode === 2) drawTangent();
     else drawPower();
+
+    ctx.globalAlpha = 1;
+}
+
+/* ===== Animation Loop (requestAnimationFrame) ===== */
+function animationLoop(timestamp) {
+    if (!lastFrameTime) lastFrameTime = timestamp;
+    let dt = (timestamp - lastFrameTime) / 1000;
+    lastFrameTime = timestamp;
+
+    /* Clamp dt to avoid huge jumps when tab is backgrounded */
+    if (dt > 0.1) dt = 0.016;
+
+    if (!animPaused) {
+        animTime += dt;
+        if (transitionProgress < 1) {
+            transitionProgress += dt * 2.5; /* ~0.4s transition */
+            if (transitionProgress > 1) transitionProgress = 1;
+        }
+    }
+
+    render();
+    requestAnimationFrame(animationLoop);
 }
 
 /* ===== UI ===== */
@@ -444,11 +780,16 @@ function buildTabs() {
     document.getElementById('tabs').innerHTML = html;
     document.querySelectorAll('.tab-btn').forEach(function(b) {
         b.addEventListener('click', function() {
-            mode = parseInt(b.dataset.i);
+            let newMode = parseInt(b.dataset.i);
+            if (newMode === mode) return;
+            transitionFrom = mode;
+            transitionProgress = 0;
+            mode = newMode;
             initPoints();
+            animTime = 0; /* restart intro for new theorem */
+            introPhase = true;
             buildTabs();
             updateText();
-            render();
         });
     });
 }
@@ -460,6 +801,29 @@ function updateText() {
     document.getElementById('eName').textContent = t.name;
     document.getElementById('eText').textContent = t.insight;
 }
+
+/* ===== Pause / Play / Replay ===== */
+document.getElementById('btnPlayPause').addEventListener('click', function() {
+    animPaused = !animPaused;
+    document.getElementById('iconPause').style.display = animPaused ? 'none' : '';
+    document.getElementById('iconPlay').style.display = animPaused ? '' : 'none';
+    document.getElementById('ppLabel').textContent = animPaused ? 'Play' : 'Pause';
+    this.classList.toggle('active', animPaused);
+});
+
+document.getElementById('btnReplay').addEventListener('click', function() {
+    animTime = 0;
+    introPhase = true;
+    transitionProgress = 0;
+    initPoints();
+    if (animPaused) {
+        animPaused = false;
+        document.getElementById('iconPause').style.display = '';
+        document.getElementById('iconPlay').style.display = 'none';
+        document.getElementById('ppLabel').textContent = 'Pause';
+        document.getElementById('btnPlayPause').classList.remove('active');
+    }
+});
 
 /* ===== INTERACTION ===== */
 function getMousePos(e) {
@@ -486,7 +850,12 @@ function hitTest(mx, my) {
     return best;
 }
 
-function onDown(mx, my) { drag = hitTest(mx, my); }
+function onDown(mx, my) {
+    drag = hitTest(mx, my);
+    if (drag >= 0) {
+        introPhase = false; /* stop auto-animate once user interacts */
+    }
+}
 
 function onMove(mx, my) {
     if (drag < 0) return;
@@ -494,11 +863,9 @@ function onMove(mx, my) {
     if (p.onCircle) {
         let a = Math.atan2(my - CY, mx - CX);
         if (mode === 0 && drag < 2) {
-            /* Diameter endpoints stay opposite */
             pts[0].a = (drag === 0) ? a : a + Math.PI;
             pts[1].a = (drag === 0) ? a + Math.PI : a;
         } else if (mode === 0 && drag === 2) {
-            /* Keep C off the diameter */
             let dA = a - pts[0].a;
             while (dA < -Math.PI) dA += 2 * Math.PI;
             while (dA > Math.PI) dA -= 2 * Math.PI;
@@ -514,13 +881,12 @@ function onMove(mx, my) {
         p.x = mx;
         p.y = my;
     }
-    render();
 }
 
 function onUp() { drag = -1; }
 
 /* Mouse events */
-cvs.addEventListener('mousedown', function(e) { onDown.apply(null, [getMousePos(e).x, getMousePos(e).y]); });
+cvs.addEventListener('mousedown', function(e) { let m = getMousePos(e); onDown(m.x, m.y); });
 cvs.addEventListener('mousemove', function(e) { let m = getMousePos(e); onMove(m.x, m.y); });
 cvs.addEventListener('mouseup', onUp);
 cvs.addEventListener('mouseleave', onUp);
@@ -542,7 +908,7 @@ cvs.addEventListener('touchend', function(e) { e.preventDefault(); onUp(); }, {p
 initPoints();
 buildTabs();
 updateText();
-render();
+requestAnimationFrame(animationLoop);
 </script>
 <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
     <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>

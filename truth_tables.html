@@ -58,9 +58,10 @@
         .tt-card h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;padding:0 16px;margin-bottom:10px}
         table{border-collapse:collapse;width:100%}
         th{padding:6px 16px;text-align:center;font-weight:400;font-size:0.88em;color:#c084fc;border-bottom:1px solid rgba(255,255,255,0.08)}
-        td{padding:5px 16px;text-align:center;font-size:1.05em;font-family:'Courier New',monospace;transition:background 0.15s}
+        td{padding:5px 16px;text-align:center;font-size:1.05em;font-family:'Courier New',monospace;transition:background 0.3s,color 0.3s}
         tr.trow:hover{background:rgba(192,132,252,0.06);cursor:pointer}
-        .tv{color:#2ecc71}.fv{color:rgba(231,76,60,0.45)}
+        tr.trow.tt-active{background:rgba(16,185,129,0.1)}
+        .tv{color:#10b981}.fv{color:rgba(251,113,133,0.7)}
         .equiv-note{padding:10px 16px 0;font-size:0.82em;color:#808098}
         .equiv-note span{color:#c084fc;cursor:pointer}
         .equiv-note span:hover{text-decoration:underline}
@@ -73,9 +74,24 @@
         .expr-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
         .expr-btn.active{background:rgba(192,132,252,0.13);border-color:rgba(192,132,252,0.4);color:#c084fc}
 
-        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-bottom:28px}
         .explain-name{color:#c084fc;font-size:1.1em;margin-bottom:6px}
         .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+
+        .gate-section{margin-bottom:28px}
+        .gate-section h2{font-size:1.2em;font-weight:400;color:#fff;margin-bottom:6px}
+        .gate-section .gate-sub{color:#808098;font-size:0.88em;margin-bottom:14px}
+        .gate-controls{display:flex;gap:12px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+        .gate-btn{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#b0b0c4;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em;transition:all 0.2s}
+        .gate-btn:hover{background:rgba(255,255,255,0.08);color:#e0e0ef}
+        .gate-btn.g-active{background:rgba(250,204,21,0.12);border-color:rgba(250,204,21,0.4);color:#facc15}
+        .pause-btn{background:rgba(192,132,252,0.1);border:1px solid rgba(192,132,252,0.3);color:#c084fc;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.88em}
+        .pause-btn:hover{background:rgba(192,132,252,0.2)}
+        .input-toggle{display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none;font-size:0.88em;padding:4px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);transition:all 0.2s}
+        .input-toggle:hover{background:rgba(255,255,255,0.05)}
+        .input-toggle .dot{width:10px;height:10px;border-radius:50%;transition:background 0.2s}
+        .input-toggle.on .dot{background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.6)}
+        .input-toggle.off .dot{background:#fb7185;box-shadow:0 0 8px rgba(251,113,133,0.4)}
 
         @media(max-width:768px){.venn-panel{flex:1 1 100%}}
     </style>
@@ -90,6 +106,25 @@
     <span style="color:#b0b0c0">Truth Tables &amp; Logical Connectives</span>
 </nav><h1>Truth Tables &amp; Logical Connectives</h1>
     <p class="subtitle">AND, OR, NOT, implication &mdash; build the language of reasoning</p>
+
+    <!-- Logic Gate Animation Section -->
+    <div class="gate-section">
+        <h2>Logic Gate Signal Propagation</h2>
+        <p class="gate-sub">Click inputs to toggle TRUE/FALSE &mdash; watch signals flow through the gate</p>
+        <div class="gate-controls">
+            <button class="gate-btn g-active" data-gate="AND">AND</button>
+            <button class="gate-btn" data-gate="OR">OR</button>
+            <button class="gate-btn" data-gate="NOT">NOT</button>
+            <button class="gate-btn" data-gate="XOR">XOR</button>
+            <button class="gate-btn" data-gate="NAND">NAND</button>
+            <button class="gate-btn" data-gate="NOR">NOR</button>
+            <span style="flex:1"></span>
+            <span class="input-toggle on" id="togA"><span class="dot"></span> A = TRUE</span>
+            <span class="input-toggle on" id="togB"><span class="dot"></span> B = TRUE</span>
+            <button class="pause-btn" id="pauseBtn">Pause</button>
+        </div>
+        <canvas id="gateCanvas" width="760" height="300"></canvas>
+    </div>
 
     <div class="main-row">
         <div class="venn-panel"><canvas id="venn" width="420" height="340"></canvas></div>
@@ -107,6 +142,7 @@
 </div>
 
 <script>
+/* ── Expression data (original) ── */
 const E=[
   {l:"P \u2227 Q",name:"Conjunction (AND)",v:2,fn:(p,q)=>p&&q,g:"basic",
    ex:"True only when BOTH P and Q are true. The fundamental building block \u2014 both conditions must hold simultaneously."},
@@ -154,21 +190,35 @@ const E=[
 const GL={basic:"Basic Connectives",laws:"Logical Laws",special:"Special",three:"Three Variables"};
 
 let cur=0, hoverVals=null;
-const cvs=document.getElementById("venn"),ctx=cvs.getContext("2d"),W=cvs.width,H=cvs.height;
+
+/* ── HiDPI helper ── */
+function hiDPI(canvas){
+    const dpr=window.devicePixelRatio||1;
+    const rect=canvas.getBoundingClientRect();
+    const w=parseInt(canvas.getAttribute('width')),h=parseInt(canvas.getAttribute('height'));
+    canvas.width=w*dpr;canvas.height=h*dpr;
+    canvas.style.width=w+'px';canvas.style.height=h+'px';
+    const c=canvas.getContext('2d');c.scale(dpr,dpr);
+    return {ctx:c,w,h,dpr};
+}
+
+/* ── Venn Diagram (original logic, using HiDPI) ── */
+const vCvs=document.getElementById("venn");
+const {ctx:vCtx,w:VW,h:VH}=hiDPI(vCvs);
 
 function drawVenn(){
     const e=E[cur],nv=e.v;
     let circles;
     if(nv===2){
         circles=[
-            {cx:W*.38,cy:H*.52,r:H*.32,label:"P",lx:W*.19,ly:H*.52},
-            {cx:W*.62,cy:H*.52,r:H*.32,label:"Q",lx:W*.81,ly:H*.52},
+            {cx:VW*.38,cy:VH*.52,r:VH*.32,label:"P",lx:VW*.19,ly:VH*.52},
+            {cx:VW*.62,cy:VH*.52,r:VH*.32,label:"Q",lx:VW*.81,ly:VH*.52},
         ];
     }else{
         circles=[
-            {cx:W*.40,cy:H*.38,r:H*.28,label:"P",lx:W*.22,ly:H*.22},
-            {cx:W*.60,cy:H*.38,r:H*.28,label:"Q",lx:W*.78,ly:H*.22},
-            {cx:W*.50,cy:H*.62,r:H*.28,label:"R",lx:W*.50,ly:H*.92},
+            {cx:VW*.40,cy:VH*.38,r:VH*.28,label:"P",lx:VW*.22,ly:VH*.22},
+            {cx:VW*.60,cy:VH*.38,r:VH*.28,label:"Q",lx:VW*.78,ly:VH*.22},
+            {cx:VW*.50,cy:VH*.62,r:VH*.28,label:"R",lx:VW*.50,ly:VH*.92},
         ];
     }
     circles.forEach(c=>c.r2=c.r*c.r);
@@ -178,10 +228,13 @@ function drawVenn(){
         const P=!(i>>(nv-1)&1),Q=!(i>>(nv-2)&1),R=nv===3?!(i&1):false;
         if(e.fn(P,Q,R))nTrue++;
     }
-    const img=ctx.createImageData(W,H),d=img.data;
-    for(let y=0;y<H;y++){
-        for(let x=0;x<W;x++){
-            const idx=(y*W+x)*4;
+    const dpr=window.devicePixelRatio||1;
+    const img=vCtx.createImageData(VW*dpr,VH*dpr),d=img.data;
+    for(let py=0;py<VH*dpr;py++){
+        const y=py/dpr;
+        for(let px=0;px<VW*dpr;px++){
+            const x=px/dpr;
+            const idx=(py*VW*dpr+px)*4;
             const dx0=x-circles[0].cx,dy0=y-circles[0].cy;
             const dx1=x-circles[1].cx,dy1=y-circles[1].cy;
             const inP=dx0*dx0+dy0*dy0<=circles[0].r2;
@@ -206,17 +259,20 @@ function drawVenn(){
             }
         }
     }
-    ctx.putImageData(img,0,0);
-    ctx.strokeStyle="rgba(255,255,255,0.35)";ctx.lineWidth=1.5;
-    for(const c of circles){ctx.beginPath();ctx.arc(c.cx,c.cy,c.r,0,Math.PI*2);ctx.stroke();}
-    ctx.font="22px Georgia";ctx.fillStyle="rgba(255,255,255,0.6)";ctx.textAlign="center";ctx.textBaseline="middle";
-    for(const c of circles)ctx.fillText(c.label,c.lx,c.ly);
-    ctx.font="15px Georgia";ctx.fillStyle="#c084fc";ctx.textAlign="left";ctx.textBaseline="top";
-    ctx.fillText(e.l,12,10);
-    ctx.font="11px Georgia";ctx.fillStyle="#606078";
-    ctx.fillText(nTrue+" of "+nRows+" true",12,30);
-    ctx.textAlign="right";ctx.fillText("U (Universe)",W-10,10);
+    vCtx.putImageData(img,0,0);
+    vCtx.strokeStyle="rgba(255,255,255,0.35)";vCtx.lineWidth=1.5;
+    for(const c of circles){vCtx.beginPath();vCtx.arc(c.cx,c.cy,c.r,0,Math.PI*2);vCtx.stroke();}
+    vCtx.font="22px Georgia";vCtx.fillStyle="rgba(255,255,255,0.6)";vCtx.textAlign="center";vCtx.textBaseline="middle";
+    for(const c of circles)vCtx.fillText(c.label,c.lx,c.ly);
+    vCtx.font="15px Georgia";vCtx.fillStyle="#c084fc";vCtx.textAlign="left";vCtx.textBaseline="top";
+    vCtx.fillText(e.l,12,10);
+    vCtx.font="11px Georgia";vCtx.fillStyle="#606078";
+    vCtx.fillText(nTrue+" of "+nRows+" true",12,30);
+    vCtx.textAlign="right";vCtx.fillText("U (Universe)",VW-10,10);
 }
+
+/* ── Truth table with row-by-row highlight animation ── */
+let ttAnimRow=-1,ttAnimTimer=null;
 
 function renderTable(){
     const e=E[cur],nv=e.v,nRows=nv===2?4:8;
@@ -227,7 +283,7 @@ function renderTable(){
         const P=!(i>>(nv-1)&1),Q=!(i>>(nv-2)&1),R=nv===3?!(i&1):false;
         const res=e.fn(P,Q,R);
         const vals=JSON.stringify({P,Q,R});
-        html+='<tr class="trow" data-vals=\''+vals+"'>";
+        html+='<tr class="trow" data-vals=\''+vals+"' data-row='"+i+"'>";
         html+="<td class='"+(P?"tv":"fv")+"'>"+(P?"T":"F")+"</td>";
         html+="<td class='"+(Q?"tv":"fv")+"'>"+(Q?"T":"F")+"</td>";
         if(nv===3)html+="<td class='"+(R?"tv":"fv")+"'>"+(R?"T":"F")+"</td>";
@@ -246,6 +302,18 @@ function renderTable(){
         row.addEventListener("mouseenter",()=>{hoverVals=JSON.parse(row.dataset.vals);drawVenn();});
         row.addEventListener("mouseleave",()=>{hoverVals=null;drawVenn();});
     });
+    startTTAnim(nRows);
+}
+
+function startTTAnim(nRows){
+    if(ttAnimTimer)clearInterval(ttAnimTimer);
+    ttAnimRow=-1;
+    ttAnimTimer=setInterval(()=>{
+        ttAnimRow=(ttAnimRow+1)%nRows;
+        document.querySelectorAll('.trow').forEach(r=>{
+            r.classList.toggle('tt-active',parseInt(r.dataset.row)===ttAnimRow);
+        });
+    },1200);
 }
 
 function renderButtons(){
@@ -272,6 +340,324 @@ function renderExplain(){
 
 function select(idx){cur=idx;hoverVals=null;drawVenn();renderTable();renderButtons();renderExplain();}
 select(0);
+
+/* ══════════════════════════════════════════════════
+   Logic Gate Animation Engine
+   ══════════════════════════════════════════════════ */
+const gCvs=document.getElementById("gateCanvas");
+const {ctx:G,w:GW,h:GH}=hiDPI(gCvs);
+
+const TRUE_COL='#10b981', FALSE_COL='#fb7185', GATE_COL='#facc15', WIRE_DIM='#2a2a3a', GATE_FILL='#1a1a2e';
+
+let gateType='AND', inputA=true, inputB=true, paused=false;
+let pulses=[], gateTime=0;
+
+/* Gate evaluation */
+function evalGate(type,a,b){
+    switch(type){
+        case'AND':return a&&b;case'OR':return a||b;case'NOT':return!a;
+        case'XOR':return a!==b;case'NAND':return!(a&&b);case'NOR':return!(a||b);
+    }
+}
+
+/* Gate shape paths */
+function gateShape(type,cx,cy,s){
+    const isNot=type==='NOT';
+    const isOr=type==='OR'||type==='XOR'||type==='NOR';
+    const hasNeg=type==='NOT'||type==='NAND'||type==='NOR';
+    return{cx,cy,s,type,isOr,hasNeg,isNot};
+}
+
+function drawGateBody(g){
+    const{cx,cy,s,isOr,hasNeg,isNot}=g;
+    G.save();
+    G.strokeStyle=GATE_COL;G.lineWidth=2;G.fillStyle=GATE_FILL;
+
+    if(isNot){
+        /* Triangle */
+        G.beginPath();
+        G.moveTo(cx-s,cy-s*0.8);
+        G.lineTo(cx+s*0.8,cy);
+        G.lineTo(cx-s,cy+s*0.8);
+        G.closePath();
+        G.fill();G.stroke();
+        /* Bubble */
+        G.beginPath();G.arc(cx+s*0.8+7,cy,6,0,Math.PI*2);G.fill();G.stroke();
+    }else if(isOr){
+        /* OR-family curved shape */
+        G.beginPath();
+        G.moveTo(cx-s,cy-s*0.8);
+        G.quadraticCurveTo(cx-s*0.3,cy-s*0.8,cx+s*0.8,cy);
+        G.quadraticCurveTo(cx-s*0.3,cy+s*0.8,cx-s,cy+s*0.8);
+        G.quadraticCurveTo(cx-s*0.4,cy,cx-s,cy-s*0.8);
+        G.closePath();G.fill();G.stroke();
+        if(hasNeg){G.beginPath();G.arc(cx+s*0.8+7,cy,6,0,Math.PI*2);G.fill();G.stroke();}
+        if(g.type==='XOR'){
+            G.beginPath();
+            G.moveTo(cx-s-8,cy-s*0.8);
+            G.quadraticCurveTo(cx-s*0.4-8,cy,cx-s-8,cy+s*0.8);
+            G.stroke();
+        }
+    }else{
+        /* AND-family: flat left, curved right */
+        G.beginPath();
+        G.moveTo(cx-s,cy-s*0.8);
+        G.lineTo(cx,cy-s*0.8);
+        G.arc(cx,cy,s*0.8,Math.PI*1.5,Math.PI*0.5);
+        G.lineTo(cx-s,cy+s*0.8);
+        G.closePath();G.fill();G.stroke();
+        if(hasNeg){G.beginPath();G.arc(cx+s*0.8+7,cy,6,0,Math.PI*2);G.fill();G.stroke();}
+    }
+
+    /* Label */
+    G.font="bold 13px Georgia";G.fillStyle=GATE_COL;G.textAlign="center";G.textBaseline="middle";
+    G.fillText(g.type,cx-(isNot?s*0.15:s*0.1),cy);
+    G.restore();
+}
+
+/* Wire layout geometry */
+function getWireLayout(){
+    const isNot=gateType==='NOT';
+    const gcx=GW*0.5, gcy=GH*0.5, gs=40;
+    const hasNeg=gateType==='NOT'||gateType==='NAND'||gateType==='NOR';
+    const outStartX=hasNeg?gcx+gs*0.8+13:gcx+gs*0.8;
+    const wires={
+        inA:{x0:60,y0:isNot?gcy:gcy-24,x1:gcx-gs,y1:isNot?gcy:gcy-24},
+        out:{x0:outStartX,y0:gcy,x1:GW-60,y1:gcy},
+        gate:gateShape(gateType,gcx,gcy,gs)
+    };
+    if(!isNot){
+        wires.inB={x0:60,y0:gcy+24,x1:gcx-gs,y1:gcy+24};
+    }
+    return wires;
+}
+
+/* Pulse class */
+class Pulse{
+    constructor(wire,val,delay){
+        this.wire=wire;this.val=val;this.t=-delay;this.speed=0.012;this.done=false;
+    }
+    update(dt){this.t+=this.speed*dt;if(this.t>1)this.done=true;}
+    get progress(){return Math.max(0,Math.min(1,this.t));}
+}
+
+function colForVal(v){return v?TRUE_COL:FALSE_COL;}
+
+function drawWire(x0,y0,x1,y1,baseCol){
+    G.strokeStyle=baseCol;G.lineWidth=3;G.lineCap='round';
+    G.beginPath();G.moveTo(x0,y0);G.lineTo(x1,y1);G.stroke();
+}
+
+function drawGlow(x,y,col,radius){
+    const grad=G.createRadialGradient(x,y,0,x,y,radius);
+    grad.addColorStop(0,col+'cc');grad.addColorStop(1,col+'00');
+    G.fillStyle=grad;G.beginPath();G.arc(x,y,radius,0,Math.PI*2);G.fill();
+}
+
+function drawPulseOnWire(wire,progress,val){
+    const col=colForVal(val);
+    const px=wire.x0+(wire.x1-wire.x0)*progress;
+    const py=wire.y0+(wire.y1-wire.y0)*progress;
+
+    /* Glowing trail */
+    const trailLen=0.25;
+    const tStart=Math.max(0,progress-trailLen);
+    const grad=G.createLinearGradient(
+        wire.x0+(wire.x1-wire.x0)*tStart, wire.y0+(wire.y1-wire.y0)*tStart,
+        px, py
+    );
+    grad.addColorStop(0,col+'00');grad.addColorStop(1,col+'bb');
+    G.strokeStyle=grad;G.lineWidth=5;G.lineCap='round';
+    G.beginPath();
+    G.moveTo(wire.x0+(wire.x1-wire.x0)*tStart, wire.y0+(wire.y1-wire.y0)*tStart);
+    G.lineTo(px,py);G.stroke();
+
+    /* Glow dot */
+    drawGlow(px,py,col,14);
+
+    /* Bright core */
+    G.fillStyle=col;G.beginPath();G.arc(px,py,4,0,Math.PI*2);G.fill();
+}
+
+function drawInputLabel(x,y,label,val){
+    G.font="bold 14px Georgia";G.textAlign="right";G.textBaseline="middle";
+    G.fillStyle=colForVal(val);
+    G.fillText(label+" = "+(val?"TRUE":"FALSE"),x-6,y);
+}
+
+function drawOutputLabel(x,y,val){
+    G.font="bold 14px Georgia";G.textAlign="left";G.textBaseline="middle";
+    G.fillStyle=colForVal(val);
+    G.fillText("OUT = "+(val?"TRUE":"FALSE"),x+6,y);
+}
+
+/* Draw the truth-table mini overlay synced with animation */
+function drawMiniTT(wires){
+    const isNot=gateType==='NOT';
+    const x=GW-190,y=20;
+    G.save();
+    G.globalAlpha=0.85;
+    G.fillStyle='#0e0e20';G.strokeStyle='rgba(255,255,255,0.08)';
+    const rows=isNot?2:4;
+    const h=20+rows*20+4;
+    G.fillRect(x,y,175,h);G.strokeRect(x,y,175,h);
+
+    G.font="11px 'Courier New',monospace";G.textBaseline="top";
+    /* Header */
+    G.fillStyle='#c084fc';
+    if(isNot){
+        G.textAlign="center";
+        G.fillText("A",x+40,y+4);G.fillText("OUT",x+120,y+4);
+    }else{
+        G.textAlign="center";
+        G.fillText("A",x+30,y+4);G.fillText("B",x+80,y+4);G.fillText("OUT",x+140,y+4);
+    }
+    /* Rows */
+    for(let i=0;i<rows;i++){
+        const a=isNot?!(i&1):!(i>>1&1);
+        const b=isNot?false:!(i&1);
+        const out=evalGate(gateType,a,b);
+        const ry=y+22+i*20;
+        /* Highlight current */
+        if(a===inputA&&(isNot||b===inputB)){
+            G.fillStyle='rgba(16,185,129,0.12)';G.fillRect(x+1,ry-2,173,18);
+        }
+        if(isNot){
+            G.fillStyle=a?TRUE_COL:FALSE_COL;G.textAlign="center";G.fillText(a?"T":"F",x+40,ry);
+            G.fillStyle=out?TRUE_COL:FALSE_COL;G.fillText(out?"T":"F",x+120,ry);
+        }else{
+            G.fillStyle=a?TRUE_COL:FALSE_COL;G.textAlign="center";G.fillText(a?"T":"F",x+30,ry);
+            G.fillStyle=b?TRUE_COL:FALSE_COL;G.fillText(b?"T":"F",x+80,ry);
+            G.fillStyle=out?TRUE_COL:FALSE_COL;G.fillText(out?"T":"F",x+140,ry);
+        }
+    }
+    G.restore();
+}
+
+/* ── Main animation loop ── */
+let lastTime=0, cycleTime=0;
+const CYCLE_MS=2400; /* pulse cycle duration */
+
+function spawnPulses(){
+    pulses=[];
+    const isNot=gateType==='NOT';
+    pulses.push(new Pulse('inA',inputA,0));
+    if(!isNot)pulses.push(new Pulse('inB',inputB,0));
+    const outVal=evalGate(gateType,inputA,inputB);
+    pulses.push(new Pulse('out',outVal,600/CYCLE_MS/0.012));
+}
+
+function animFrame(ts){
+    if(!lastTime)lastTime=ts;
+    const dt=Math.min(ts-lastTime,50);
+    lastTime=ts;
+
+    if(!paused){
+        cycleTime+=dt;
+        if(cycleTime>=CYCLE_MS){cycleTime=0;spawnPulses();}
+        pulses.forEach(p=>p.update(dt));
+        pulses=pulses.filter(p=>!p.done);
+    }
+
+    const wires=getWireLayout();
+
+    /* Clear */
+    G.clearRect(0,0,GW,GH);
+    G.fillStyle='#0a0a1a';G.fillRect(0,0,GW,GH);
+
+    /* Draw dim wires */
+    drawWire(wires.inA.x0,wires.inA.y0,wires.inA.x1,wires.inA.y1,WIRE_DIM);
+    if(wires.inB)drawWire(wires.inB.x0,wires.inB.y0,wires.inB.x1,wires.inB.y1,WIRE_DIM);
+    drawWire(wires.out.x0,wires.out.y0,wires.out.x1,wires.out.y1,WIRE_DIM);
+
+    /* Draw pulses */
+    for(const p of pulses){
+        const w=p.wire==='inA'?wires.inA:p.wire==='inB'?wires.inB:wires.out;
+        if(w)drawPulseOnWire(w,p.progress,p.val);
+    }
+
+    /* Draw gate */
+    drawGateBody(wires.gate);
+
+    /* Labels */
+    const isNot=gateType==='NOT';
+    drawInputLabel(wires.inA.x0,wires.inA.y0,"A",inputA);
+    if(!isNot)drawInputLabel(wires.inB.x0,wires.inB.y0,"B",inputB);
+    const outVal=evalGate(gateType,inputA,inputB);
+    drawOutputLabel(wires.out.x1,wires.out.y1,outVal);
+
+    /* Input dots (clickable indicators) */
+    G.fillStyle=colForVal(inputA);
+    G.beginPath();G.arc(wires.inA.x0,wires.inA.y0,7,0,Math.PI*2);G.fill();
+    drawGlow(wires.inA.x0,wires.inA.y0,colForVal(inputA),12);
+    if(!isNot){
+        G.fillStyle=colForVal(inputB);
+        G.beginPath();G.arc(wires.inB.x0,wires.inB.y0,7,0,Math.PI*2);G.fill();
+        drawGlow(wires.inB.x0,wires.inB.y0,colForVal(inputB),12);
+    }
+
+    /* Output dot */
+    G.fillStyle=colForVal(outVal);
+    G.beginPath();G.arc(wires.out.x1,wires.out.y1,7,0,Math.PI*2);G.fill();
+    drawGlow(wires.out.x1,wires.out.y1,colForVal(outVal),12);
+
+    /* Mini truth table */
+    drawMiniTT(wires);
+
+    requestAnimationFrame(animFrame);
+}
+
+spawnPulses();
+requestAnimationFrame(animFrame);
+
+/* ── Gate canvas click → toggle inputs ── */
+gCvs.addEventListener('click',function(ev){
+    const rect=gCvs.getBoundingClientRect();
+    const dpr=window.devicePixelRatio||1;
+    const mx=(ev.clientX-rect.left)*(parseInt(gCvs.getAttribute('width'))/dpr)/rect.width;
+    const my=(ev.clientY-rect.top)*(parseInt(gCvs.getAttribute('height'))/dpr)/rect.height;
+    const wires=getWireLayout();
+    const distA=Math.hypot(mx-wires.inA.x0,my-wires.inA.y0);
+    if(distA<30){toggleInput('A');return;}
+    if(wires.inB){
+        const distB=Math.hypot(mx-wires.inB.x0,my-wires.inB.y0);
+        if(distB<30){toggleInput('B');return;}
+    }
+});
+
+function toggleInput(which){
+    if(which==='A'){inputA=!inputA;}else{inputB=!inputB;}
+    updateToggleUI();cycleTime=0;spawnPulses();
+}
+
+function updateToggleUI(){
+    const tA=document.getElementById('togA');
+    tA.className='input-toggle '+(inputA?'on':'off');
+    tA.innerHTML='<span class="dot"></span> A = '+(inputA?'TRUE':'FALSE');
+    const tB=document.getElementById('togB');
+    tB.className='input-toggle '+(inputB?'on':'off');
+    tB.innerHTML='<span class="dot"></span> B = '+(inputB?'TRUE':'FALSE');
+    tB.style.display=gateType==='NOT'?'none':'inline-flex';
+}
+
+/* ── UI event handlers ── */
+document.getElementById('togA').addEventListener('click',()=>toggleInput('A'));
+document.getElementById('togB').addEventListener('click',()=>toggleInput('B'));
+
+document.getElementById('pauseBtn').addEventListener('click',function(){
+    paused=!paused;this.textContent=paused?'Play':'Pause';
+});
+
+document.querySelectorAll('.gate-btn').forEach(btn=>{
+    btn.addEventListener('click',function(){
+        document.querySelectorAll('.gate-btn').forEach(b=>b.classList.remove('g-active'));
+        this.classList.add('g-active');
+        gateType=this.dataset.gate;
+        updateToggleUI();cycleTime=0;spawnPulses();
+    });
+});
+
+updateToggleUI();
 </script>
 <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
     <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>

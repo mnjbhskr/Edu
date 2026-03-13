@@ -37,6 +37,14 @@
             font-size: 14px;
         }
 
+        /* Constellation canvas */
+        #constellation-canvas {
+            display: block;
+            width: 100%;
+            height: 220px;
+            background: transparent;
+        }
+
         a {
             color: #60a5fa;
             text-decoration: none;
@@ -209,15 +217,31 @@
             border-radius: 6px;
             padding: 18px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease, border-color 0.3s ease, opacity 0.4s ease;
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-left: 4px solid #60a5fa;
+            opacity: 0;
+            transform: translateY(24px);
+        }
+
+        .card.card-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .card.card-hidden {
+            opacity: 0;
+            transform: scale(0.92) translateY(8px);
+            pointer-events: none;
+            position: absolute;
+            visibility: hidden;
         }
 
         .card:hover {
             background: rgba(255, 255, 255, 0.06);
             border-color: rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(96, 165, 250, 0.12), 0 0 15px rgba(96, 165, 250, 0.06);
         }
 
         .card.expanded {
@@ -392,7 +416,7 @@
             position: relative;
             padding: 10px 0 10px 60px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: background 0.3s, transform 0.3s, box-shadow 0.3s;
             border-radius: 6px;
             margin: 0 -8px;
             padding-right: 8px;
@@ -400,6 +424,7 @@
 
         .timeline-entry:hover {
             background: rgba(255, 255, 255, 0.03);
+            transform: translateX(4px);
         }
 
         .timeline-dot {
@@ -411,6 +436,11 @@
             border-radius: 50%;
             border: 2px solid #0a0a1a;
             z-index: 2;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .timeline-entry:hover .timeline-dot {
+            box-shadow: 0 0 10px currentColor;
         }
 
         .timeline-entry-name {
@@ -585,6 +615,8 @@
 <link rel="canonical" href="https://mathsedu.org/mathematicians.html">
   </head>
 <body>
+    <canvas id="constellation-canvas" aria-hidden="true"></canvas>
+
     <header>
         <div class="container">
             <div class="header-back">
@@ -684,6 +716,139 @@
 
     <script src="js/mathematician-cards.js"></script>
     <script>
+        /* ── Constellation canvas ── */
+        (function() {
+            const canvas = document.getElementById('constellation-canvas');
+            const ctx = canvas.getContext('2d');
+            let dpr = 1, W = 0, H = 0, stars = [], connections = [];
+            const ERA_COLOURS = {
+                ancient: '#fbbf24', medieval: '#fb923c', renaissance: '#f87171',
+                enlightenment: '#60a5fa', nineteenth: '#818cf8', modern: '#22d3ee',
+                contemporary: '#10b981'
+            };
+            const ERA_ORDER = ['ancient','medieval','renaissance','enlightenment','nineteenth','modern','contemporary'];
+
+            function resize() {
+                dpr = window.devicePixelRatio || 1;
+                W = canvas.clientWidth; H = canvas.clientHeight;
+                canvas.width = W * dpr; canvas.height = H * dpr;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+            let _lastData = null;
+            window.addEventListener('resize', () => {
+                resize();
+                if (_lastData) buildConstellation(_lastData);
+            });
+            resize();
+
+            function buildConstellation(mathematicians) {
+                _lastData = mathematicians;
+                stars = []; connections = [];
+                if (!mathematicians || mathematicians.length === 0) return;
+
+                const pad = 40;
+                const usable = W - pad * 2;
+                const sorted = [...mathematicians].sort((a, b) => a.birthYear - b.birthYear);
+                const minY = sorted[0].birthYear, maxY = sorted[sorted.length - 1].birthYear;
+                const range = maxY - minY || 1;
+
+                sorted.forEach((m, i) => {
+                    const xFrac = (m.birthYear - minY) / range;
+                    const x = pad + xFrac * usable;
+                    // Spread vertically with deterministic hash
+                    let hash = 0;
+                    for (let c = 0; c < m.name.length; c++) hash = ((hash << 5) - hash + m.name.charCodeAt(c)) | 0;
+                    const yOff = (Math.abs(hash) % 1000) / 1000;
+                    const y = 30 + yOff * (H - 60);
+                    const colour = ERA_COLOURS[m.era] || '#60a5fa';
+                    const radius = 1.5 + Math.min(m.connections?.length || 0, 5) * 0.4;
+                    stars.push({ x, y, baseRadius: radius, radius, colour, phase: Math.random() * Math.PI * 2, speed: 0.3 + Math.random() * 0.7, id: m.id, name: m.name });
+                });
+
+                // Build connection lines from influence data
+                const idMap = {};
+                stars.forEach((s, i) => idMap[s.id] = i);
+                sorted.forEach(m => {
+                    if (!m.connections) return;
+                    const fromIdx = idMap[m.id];
+                    m.connections.forEach(cid => {
+                        const toIdx = idMap[cid];
+                        if (toIdx !== undefined && fromIdx < toIdx) {
+                            connections.push({ from: fromIdx, to: toIdx });
+                        }
+                    });
+                });
+            }
+
+            let t = 0;
+            function draw() {
+                t += 0.016;
+                ctx.clearRect(0, 0, W, H);
+
+                // Draw connection lines
+                connections.forEach(c => {
+                    const a = stars[c.from], b = stars[c.to];
+                    const alpha = 0.06 + 0.03 * Math.sin(t * 0.5 + c.from);
+                    ctx.beginPath();
+                    ctx.moveTo(a.x, a.y);
+                    ctx.lineTo(b.x, b.y);
+                    ctx.strokeStyle = `rgba(96,165,250,${alpha})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                });
+
+                // Draw stars with twinkling
+                stars.forEach(s => {
+                    const twinkle = 0.5 + 0.5 * Math.sin(t * s.speed + s.phase);
+                    const r = s.baseRadius * (0.7 + 0.6 * twinkle);
+                    const alpha = 0.4 + 0.6 * twinkle;
+
+                    // Glow
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, r * 3, 0, Math.PI * 2);
+                    ctx.fillStyle = s.colour.replace(')', `,${alpha * 0.15})`).replace('rgb', 'rgba').replace('#', '');
+                    // Use hex to rgba
+                    const glowAlpha = alpha * 0.12;
+                    ctx.fillStyle = `${s.colour}${Math.round(glowAlpha * 255).toString(16).padStart(2, '0')}`;
+                    ctx.fill();
+
+                    // Core
+                    ctx.beginPath();
+                    ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+                    ctx.fillStyle = s.colour;
+                    ctx.globalAlpha = alpha;
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                });
+
+                requestAnimationFrame(draw);
+            }
+            requestAnimationFrame(draw);
+
+            // Expose for use after data loads
+            window._constellationBuild = buildConstellation;
+        })();
+
+        /* ── Card entrance observer ── */
+        const cardObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const card = entry.target;
+                    const delay = parseInt(card.dataset.stagger || '0', 10);
+                    setTimeout(() => card.classList.add('card-visible'), delay);
+                    cardObserver.unobserve(card);
+                }
+            });
+        }, { threshold: 0.05, rootMargin: '0px 0px -30px 0px' });
+
+        function observeCards() {
+            document.querySelectorAll('.card:not(.card-visible)').forEach((card, i) => {
+                card.dataset.stagger = String(Math.min(i * 50, 600));
+                cardObserver.observe(card);
+            });
+        }
+    </script>
+    <script>
         const eraColours = {
             ancient: '#fbbf24',
             medieval: '#fb923c',
@@ -747,6 +912,7 @@
                     connections: m.connections || []
                 }));
                 filteredMathematicians = [...allMathematicians];
+                if (window._constellationBuild) window._constellationBuild(allMathematicians);
                 setupEventListeners();
                 render();
             } catch (error) {
@@ -780,6 +946,8 @@
             const selectedEra = eraFilter.value;
             const selectedField = fieldFilter.value;
 
+            const prevIds = new Set(filteredMathematicians.map(m => m.id));
+
             filteredMathematicians = allMathematicians.filter(m => {
                 const matchesSearch = !searchTerm ||
                     m.name.toLowerCase().includes(searchTerm) ||
@@ -792,7 +960,28 @@
                 return matchesSearch && matchesEra && matchesField;
             });
 
-            render();
+            const newIds = new Set(filteredMathematicians.map(m => m.id));
+
+            // Animate cards out that no longer match, then re-render
+            if (currentView === 'grid') {
+                const cardsToRemove = document.querySelectorAll('.card');
+                let animating = false;
+                cardsToRemove.forEach(card => {
+                    if (!newIds.has(card.dataset.id)) {
+                        animating = true;
+                        card.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.92) translateY(8px)';
+                    }
+                });
+                if (animating) {
+                    setTimeout(() => render(), 260);
+                } else {
+                    render();
+                }
+            } else {
+                render();
+            }
         }
 
         function switchView(view) {
@@ -841,6 +1030,7 @@
         function renderGrid() {
             gridViewEl.innerHTML = filteredMathematicians.map(m => createCard(m)).join('');
             attachCardListeners();
+            observeCards();
         }
 
         function createCard(m) {
@@ -1045,6 +1235,7 @@
 
             groupViewEl.innerHTML = html;
             attachCardListeners();
+            observeCards();
         }
 
         window.addEventListener('load', loadMathematicians);

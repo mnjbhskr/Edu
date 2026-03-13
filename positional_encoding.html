@@ -80,6 +80,8 @@
         .word-token{display:inline-block;padding:4px 10px;margin:3px;border-radius:6px;font-family:'Courier New',monospace;font-size:0.9em;border:1px solid rgba(255,255,255,0.1);position:relative}
         .word-token .pos-idx{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:0.65em;color:#a78bfa;white-space:nowrap}
         .sentence-display{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px;padding:12px 8px;min-height:50px}
+        .play-btn{background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.35);color:#a78bfa;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;display:inline-flex;align-items:center;gap:6px}
+        .play-btn:hover{background:rgba(167,139,250,0.22);color:#c4b5fd}
         @media(max-width:600px){
             canvas{width:100%!important;height:auto!important}
             .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
@@ -141,9 +143,38 @@
          ═══════════════════════════════════════════════════════════ -->
     <h2>2. Sinusoidal Encoding Waves</h2>
     <div class="panel">
+        <h3>Encoding waves building up</h3>
+        <div class="btn-row">
+            <button class="play-btn" id="btnPlayWaves"><span id="wavePlayIcon">&#9654;</span> Play</button>
+            <button class="btn" id="btnResetWaves">Reset</button>
+        </div>
+        <canvas id="canvasWaveBuild" width="700" height="280"></canvas>
+        <p class="micro-note">Watch sin (cyan) and cos (rose) waves at different frequencies layer on top of each other to form a unique positional fingerprint.</p>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">sin wave</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">cos wave</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Combined signal</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Layers shown:</label>
+            <span class="slider-val" id="vWaveLayers">0 / 8</span>
+        </div>
+        <div class="result-box">
+            <div id="waveBuildResults" class="math-line"></div>
+        </div>
+        <div class="insight-box">
+            Each dimension adds a wave at a different frequency. Low-index dimensions oscillate rapidly (fine detail), while high-index dimensions oscillate slowly (coarse position). Together they create a unique encoding vector &mdash; no two positions share the same combination.
+        </div>
+    </div>
+
+    <div class="panel">
         <h3>Positional encoding heatmap</h3>
+        <div class="btn-row">
+            <button class="play-btn" id="btnPlayHeatmap"><span id="heatPlayIcon">&#9654;</span> Play</button>
+            <button class="btn" id="btnResetHeatmap">Reset</button>
+        </div>
         <canvas id="canvas2" width="700" height="380"></canvas>
-        <p class="micro-note">Rows = positions (0&ndash;49), columns = encoding dimensions (0&ndash;127). Hover to inspect values.</p>
+        <p class="micro-note">Rows = positions (0&ndash;49), columns = encoding dimensions (0&ndash;127). Hover to inspect values. Watch cells fill in row by row.</p>
         <div class="grid-legend">
             <div class="legend-item"><div class="legend-swatch" style="background:#7c3aed"></div><span style="color:#7c3aed">Negative (sin/cos &lt; 0)</span></div>
             <div class="legend-item"><div class="legend-swatch" style="background:#0a0a1a"></div><span style="color:#808098">Zero</span></div>
@@ -184,6 +215,60 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════
+         Section 3: Stacked Wave Viewer
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. Position Vector as Stacked Waves</h2>
+    <div class="panel">
+        <h3>Hover or select a position to see its encoding vector</h3>
+        <canvas id="canvasStacked" width="700" height="320"></canvas>
+        <p class="micro-note">Each row shows one dimension's contribution. Click any position (0&ndash;19) to animate its encoding vector assembling from individual wave components.</p>
+        <div class="slider-row">
+            <label>Position:</label>
+            <input type="range" id="sStackPos" min="0" max="19" step="1" value="0">
+            <span class="slider-val" id="vStackPos">0</span>
+        </div>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">sin components</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">cos components</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">Selected position</span></div>
+        </div>
+        <div class="result-box">
+            <div id="stackedResults" class="math-line"></div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 4: Dot Product Similarity
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>4. Dot Product Similarity</h2>
+    <div class="panel">
+        <h3>How similar are position vectors?</h3>
+        <div class="btn-row">
+            <button class="play-btn" id="btnPlayDot"><span id="dotPlayIcon">&#9654;</span> Play</button>
+            <button class="btn" id="btnResetDot">Reset</button>
+        </div>
+        <canvas id="canvasDot" width="700" height="340"></canvas>
+        <p class="micro-note">The dot product between two position vectors measures their similarity. Nearby positions have high similarity; distant ones approach zero. Watch the comparison animate.</p>
+        <div class="slider-row">
+            <label>Position A:</label>
+            <input type="range" id="sDotA" min="0" max="19" step="1" value="0">
+            <span class="slider-val" id="vDotA">0</span>
+        </div>
+        <div class="slider-row">
+            <label>Position B:</label>
+            <input type="range" id="sDotB" min="0" max="19" step="1" value="5">
+            <span class="slider-val" id="vDotB">5</span>
+        </div>
+        <div class="result-box">
+            <div id="dotResults" class="math-line"></div>
+        </div>
+        <div class="insight-box">
+            The dot product similarity between positional encodings decays smoothly with distance. This is precisely the property that allows Transformers to learn relative position: nearby words naturally attend more strongly to each other.
+        </div>
+        <p class="section-summary">Dot product similarity reveals the distance structure baked into sinusoidal encodings &mdash; nearby positions are naturally more similar.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
          Closing Explain Section
          ═══════════════════════════════════════════════════════════ -->
     <div class="explain">
@@ -212,63 +297,51 @@
 
 <script>
 /* ================================================================
-   SHARED: Utilities
+   SHARED: HiDPI + Utilities
    ================================================================ */
+var DPR = window.devicePixelRatio || 1;
+
+function hiDPI(canvas, w, h) {
+    canvas.width = w * DPR;
+    canvas.height = h * DPR;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    var c = canvas.getContext('2d');
+    c.scale(DPR, DPR);
+    return c;
+}
+
 function isVisible(el) {
     var r = el.getBoundingClientRect();
     return r.bottom > 0 && r.top < window.innerHeight;
 }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+/* PE computation */
+var D_MODEL = 128;
+function peValue(pos, dim) {
+    var i = Math.floor(dim / 2);
+    var freq = 1.0 / Math.pow(10000, (2 * i) / D_MODEL);
+    return dim % 2 === 0 ? Math.sin(pos * freq) : Math.cos(pos * freq);
+}
 
 /* ================================================================
-   Section 1: Why Order Matters
+   Section 1: Why Order Matters (unchanged logic, HiDPI)
    ================================================================ */
 (function() {
     var cvs = document.getElementById('canvas1');
-    var ctx = cvs.getContext('2d');
-    var W = cvs.width, H = cvs.height;
+    var ctx = hiDPI(cvs, 700, 250);
+    var W = 700, H = 250;
 
     var EXAMPLES = [
-        {
-            id: 'ex1',
-            original: ['The', 'dog', 'bit', 'the', 'man'],
-            roles:     ['det', 'subj', 'verb', 'det', 'obj'],
-            meaning1:  'A dog attacked a person',
-            meaning2:  'Meaning changes with order!'
-        },
-        {
-            id: 'ex2',
-            original: ['Time', 'flies', 'like', 'an', 'arrow'],
-            roles:     ['subj', 'verb', 'prep', 'det', 'obj'],
-            meaning1:  'Time passes quickly',
-            meaning2:  'Meaning changes with order!'
-        },
-        {
-            id: 'ex3',
-            original: ['The', 'cat', 'sat', 'on', 'the', 'mat'],
-            roles:     ['det', 'subj', 'verb', 'prep', 'det', 'obj'],
-            meaning1:  'A cat is sitting on a mat',
-            meaning2:  'Meaning changes with order!'
-        }
+        { id:'ex1', original:['The','dog','bit','the','man'], roles:['det','subj','verb','det','obj'], meaning1:'A dog attacked a person', meaning2:'Meaning changes with order!' },
+        { id:'ex2', original:['Time','flies','like','an','arrow'], roles:['subj','verb','prep','det','obj'], meaning1:'Time passes quickly', meaning2:'Meaning changes with order!' },
+        { id:'ex3', original:['The','cat','sat','on','the','mat'], roles:['det','subj','verb','prep','det','obj'], meaning1:'A cat is sitting on a mat', meaning2:'Meaning changes with order!' }
     ];
 
-    var curExample = 0;
-    var displayWords = [];
-    var displayPositions = [];
-    var isShuffled = false;
-    var shuffleAnim = null;
-    var shuffleFrame = 0;
-    var SHUFFLE_FRAMES = 40;
-    var startPositions = [];
-    var endPositions = [];
-
-    var ROLE_COLORS = {
-        'subj': '#10b981',
-        'verb': '#fbbf24',
-        'obj': '#f472b6',
-        'det': '#808098',
-        'prep': '#22d3ee'
-    };
+    var curExample = 0, displayWords = [], displayPositions = [], isShuffled = false;
+    var ROLE_COLORS = { subj:'#10b981', verb:'#fbbf24', obj:'#f472b6', det:'#808098', prep:'#22d3ee' };
 
     function init() {
         var ex = EXAMPLES[curExample];
@@ -276,28 +349,21 @@ function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
         displayPositions = [];
         for (var i = 0; i < displayWords.length; i++) displayPositions.push(i);
         isShuffled = false;
-        if (shuffleAnim) { cancelAnimationFrame(shuffleAnim); shuffleAnim = null; }
-        shuffleFrame = 0;
-        draw();
-        updateResults();
+        draw(); updateResults();
     }
 
-    function getWordLayout(words, yCenter, totalW) {
+    function getWordLayout(words, yCenter) {
         var padding = 14;
         ctx.font = '16px Courier New, monospace';
-        var widths = [];
-        var totalWidth = 0;
+        var widths = [], totalWidth = 0;
         for (var i = 0; i < words.length; i++) {
             var w = ctx.measureText(words[i]).width + padding * 2;
-            widths.push(w);
-            totalWidth += w + 6;
+            widths.push(w); totalWidth += w + 6;
         }
         totalWidth -= 6;
-        var startX = (totalW - totalWidth) / 2;
-        var positions = [];
-        var cx = startX;
+        var startX = (W - totalWidth) / 2, positions = [], cx = startX;
         for (var i = 0; i < words.length; i++) {
-            positions.push({ x: cx, y: yCenter - 16, w: widths[i], h: 32 });
+            positions.push({ x:cx, y:yCenter - 16, w:widths[i], h:32 });
             cx += widths[i] + 6;
         }
         return positions;
@@ -309,295 +375,331 @@ function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
             var p = positions[i];
             var role = roles[posIndices ? posIndices[i] : i];
             var color = ROLE_COLORS[role] || '#808098';
-
-            /* Box */
             ctx.fillStyle = 'rgba(255,255,255,0.04)';
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.roundRect(p.x, p.y + (yOffset || 0), p.w, p.h, 6);
-            ctx.fill();
-            ctx.stroke();
-
-            /* Word text */
-            ctx.fillStyle = '#e0e0e0';
-            ctx.font = '16px Courier New, monospace';
+            ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.roundRect(p.x, p.y + (yOffset||0), p.w, p.h, 6); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#e0e0e0'; ctx.font = '16px Courier New, monospace';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(words[i], p.x + p.w/2, p.y + p.h/2 + (yOffset||0));
+            ctx.fillStyle = '#a78bfa'; ctx.font = '10px Courier New, monospace';
             ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(words[i], p.x + p.w / 2, p.y + p.h / 2 + (yOffset || 0));
-
-            /* Position index */
-            ctx.fillStyle = '#a78bfa';
-            ctx.font = '10px Courier New, monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('pos ' + i, p.x + p.w / 2, p.y - 8 + (yOffset || 0));
+            ctx.fillText('pos ' + i, p.x + p.w/2, p.y - 8 + (yOffset||0));
         }
         ctx.globalAlpha = 1;
     }
 
     function draw() {
-        ctx.clearRect(0, 0, W, H);
-        ctx.fillStyle = '#0a0a1a';
-        ctx.fillRect(0, 0, W, H);
-
+        ctx.clearRect(0,0,W,H); ctx.fillStyle = '#0a0a1a'; ctx.fillRect(0,0,W,H);
         var ex = EXAMPLES[curExample];
-
-        /* Title labels */
-        ctx.fillStyle = '#a0a0b8';
-        ctx.font = '13px Georgia, serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Original order', W / 2, 22);
-
-        /* Original sentence - top */
-        var origLayout = getWordLayout(ex.original, 58, W);
-        var origRoleMap = [];
-        for (var i = 0; i < ex.original.length; i++) origRoleMap.push(i);
+        ctx.fillStyle = '#a0a0b8'; ctx.font = '13px Georgia, serif'; ctx.textAlign = 'center';
+        ctx.fillText('Original order', W/2, 22);
+        var origLayout = getWordLayout(ex.original, 58);
+        var origRoleMap = []; for (var i=0;i<ex.original.length;i++) origRoleMap.push(i);
         drawWordBoxes(ex.original, ex.roles, origLayout, origRoleMap, 1, 0);
-
-        /* Arrow or equals */
-        ctx.fillStyle = '#808098';
-        ctx.font = '20px Georgia, serif';
-        ctx.textAlign = 'center';
+        ctx.fillStyle = '#808098'; ctx.font = '20px Georgia, serif'; ctx.textAlign = 'center';
         if (isShuffled) {
-            ctx.fillText('\u2260', W / 2, 110);
-            ctx.fillStyle = '#f472b6';
-            ctx.font = '11px Georgia, serif';
-            ctx.fillText('different meaning!', W / 2, 126);
-        } else {
-            ctx.fillText('\u2193', W / 2, 110);
-        }
-
-        /* Shuffled / current order - bottom */
-        ctx.fillStyle = '#a0a0b8';
-        ctx.font = '13px Georgia, serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(isShuffled ? 'Shuffled order' : 'Current order', W / 2, 148);
-
-        var shuffledLayout = getWordLayout(displayWords, 184, W);
-        /* Map roles from original indices through current display positions */
-        var shuffledRoleMap = displayPositions.slice();
-        drawWordBoxes(displayWords, ex.roles, shuffledLayout, shuffledRoleMap, 1, 0);
-
-        /* Bag-of-words comparison at bottom */
-        ctx.fillStyle = '#808098';
-        ctx.font = '11px Courier New, monospace';
-        ctx.textAlign = 'center';
+            ctx.fillText('\u2260', W/2, 110);
+            ctx.fillStyle = '#f472b6'; ctx.font = '11px Georgia, serif';
+            ctx.fillText('different meaning!', W/2, 126);
+        } else { ctx.fillText('\u2193', W/2, 110); }
+        ctx.fillStyle = '#a0a0b8'; ctx.font = '13px Georgia, serif'; ctx.textAlign = 'center';
+        ctx.fillText(isShuffled ? 'Shuffled order' : 'Current order', W/2, 148);
+        var shuffledLayout = getWordLayout(displayWords, 184);
+        drawWordBoxes(displayWords, ex.roles, shuffledLayout, displayPositions.slice(), 1, 0);
+        ctx.fillStyle = '#808098'; ctx.font = '11px Courier New, monospace'; ctx.textAlign = 'center';
         var sorted1 = ex.original.slice().sort().join(', ');
         var sorted2 = displayWords.slice().sort().join(', ');
         var same = sorted1 === sorted2;
         ctx.fillStyle = same ? '#10b981' : '#f472b6';
-        ctx.fillText('Bag of words: {' + sorted2 + '} ' + (same ? '= identical set' : '\u2260 different set'), W / 2, 232);
+        ctx.fillText('Bag of words: {' + sorted2 + '} ' + (same ? '= identical set' : '\u2260 different set'), W/2, 232);
     }
 
     function shuffleWords() {
         var ex = EXAMPLES[curExample];
-        /* Fisher-Yates shuffle */
-        var indices = [];
-        for (var i = 0; i < ex.original.length; i++) indices.push(i);
-        for (var i = indices.length - 1; i > 0; i--) {
-            var j = Math.floor(Math.random() * (i + 1));
-            var tmp = indices[i]; indices[i] = indices[j]; indices[j] = tmp;
-        }
-        /* Only accept if it's actually different from original */
-        var same = true;
-        for (var i = 0; i < indices.length; i++) {
-            if (indices[i] !== i) { same = false; break; }
-        }
-        if (same && indices.length > 1) {
-            /* Swap first two to guarantee difference */
-            var t = indices[0]; indices[0] = indices[1]; indices[1] = t;
-        }
-
-        displayWords = [];
-        displayPositions = [];
-        for (var i = 0; i < indices.length; i++) {
-            displayWords.push(ex.original[indices[i]]);
-            displayPositions.push(indices[i]);
-        }
-        isShuffled = true;
-        draw();
-        updateResults();
+        var indices = []; for (var i=0;i<ex.original.length;i++) indices.push(i);
+        for (var i=indices.length-1;i>0;i--) { var j=Math.floor(Math.random()*(i+1)); var t=indices[i];indices[i]=indices[j];indices[j]=t; }
+        var same=true; for(var i=0;i<indices.length;i++){if(indices[i]!==i){same=false;break;}}
+        if(same&&indices.length>1){var t=indices[0];indices[0]=indices[1];indices[1]=t;}
+        displayWords=[]; displayPositions=[];
+        for(var i=0;i<indices.length;i++){displayWords.push(ex.original[indices[i]]);displayPositions.push(indices[i]);}
+        isShuffled=true; draw(); updateResults();
     }
 
     function updateResults() {
-        var ex = EXAMPLES[curExample];
-        var html = '';
+        var ex = EXAMPLES[curExample], html = '';
         if (isShuffled) {
-            html += '<span class="violet">Original:</span> "' + ex.original.join(' ') + '" &rarr; <span class="green">' + ex.meaning1 + '</span><br>';
-            html += '<span class="violet">Shuffled:</span> "' + displayWords.join(' ') + '" &rarr; <span class="pink">Different meaning!</span><br>';
+            html += '<span class="violet">Original:</span> "'+ex.original.join(' ')+'" &rarr; <span class="green">'+ex.meaning1+'</span><br>';
+            html += '<span class="violet">Shuffled:</span> "'+displayWords.join(' ')+'" &rarr; <span class="pink">Different meaning!</span><br>';
             html += '<span class="muted">Same tokens, same bag-of-words &mdash; but order changes everything.</span>';
         } else {
-            html += '<span class="violet">Sentence:</span> "' + ex.original.join(' ') + '"<br>';
-            html += '<span class="muted">Meaning:</span> <span class="green">' + ex.meaning1 + '</span><br>';
+            html += '<span class="violet">Sentence:</span> "'+ex.original.join(' ')+'"<br>';
+            html += '<span class="muted">Meaning:</span> <span class="green">'+ex.meaning1+'</span><br>';
             html += '<span class="muted">Click "Shuffle Words" to see why position matters.</span>';
         }
         document.getElementById('s1Results').innerHTML = html;
     }
 
-    /* Event listeners */
     document.getElementById('btnShuffle').addEventListener('click', shuffleWords);
     document.getElementById('btnReset1').addEventListener('click', init);
-
-    ['btnEx1', 'btnEx2', 'btnEx3'].forEach(function(id, idx) {
-        document.getElementById(id).addEventListener('click', function() {
-            document.querySelectorAll('#btnEx1,#btnEx2,#btnEx3').forEach(function(b) { b.classList.remove('active'); });
-            this.classList.add('active');
-            curExample = idx;
-            init();
+    ['btnEx1','btnEx2','btnEx3'].forEach(function(id,idx){
+        document.getElementById(id).addEventListener('click',function(){
+            document.querySelectorAll('#btnEx1,#btnEx2,#btnEx3').forEach(function(b){b.classList.remove('active');});
+            this.classList.add('active'); curExample=idx; init();
         });
     });
-
-    /* Init */
     init();
 })();
 
 /* ================================================================
-   Section 2: Sinusoidal Encoding Heatmap
+   Section 2a: Wave Build-Up Animation
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvasWaveBuild');
+    var ctx = hiDPI(cvs, 700, 280);
+    var W = 700, H = 280;
+    var PAD = { left:50, right:20, top:20, bottom:30 };
+    var pW = W - PAD.left - PAD.right, pH = H - PAD.top - PAD.bottom;
+
+    var NUM_LAYERS = 8; /* Show 8 frequency pairs (sin+cos) */
+    var NUM_PTS = 200;
+    var layerProgress = 0; /* 0 to NUM_LAYERS, fractional during animation */
+    var playing = false, animId = null;
+    var LAYER_DIMS = [0,1, 8,9, 20,21, 40,41, 60,61, 80,81, 100,101, 120,121];
+
+    function getLayerDimPair(layer) { return [LAYER_DIMS[layer*2], LAYER_DIMS[layer*2+1]]; }
+
+    function draw() {
+        ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        /* Axes */
+        ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=0.5;
+        var zeroY = PAD.top + pH/2;
+        ctx.beginPath(); ctx.moveTo(PAD.left,zeroY); ctx.lineTo(PAD.left+pW,zeroY); ctx.stroke();
+        ctx.fillStyle='#808098'; ctx.font='9px Courier New, monospace';
+        ctx.textAlign='right'; ctx.textBaseline='middle';
+        ctx.fillText('+1',PAD.left-6,PAD.top+4);
+        ctx.fillText(' 0',PAD.left-6,zeroY);
+        ctx.fillText('-1',PAD.left-6,PAD.top+pH-4);
+        ctx.fillStyle='#a0a0b8'; ctx.font='10px Georgia, serif';
+        ctx.textAlign='center'; ctx.textBaseline='top';
+        ctx.fillText('Position (0\u201349)', PAD.left+pW/2, H-12);
+
+        var fullLayers = Math.floor(layerProgress);
+        var partialT = layerProgress - fullLayers;
+
+        /* Draw individual layer waves with fade */
+        for (var l = 0; l < Math.min(fullLayers + 1, NUM_LAYERS); l++) {
+            var dims = getLayerDimPair(l);
+            var alpha = l < fullLayers ? 0.25 : (0.25 * partialT);
+            if (l < fullLayers) alpha = 0.2;
+
+            /* Sin wave (cyan) */
+            ctx.strokeStyle = 'rgba(34,211,238,' + (l < fullLayers ? 0.3 : clamp(partialT,0.05,0.5)) + ')';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (var p = 0; p < NUM_PTS; p++) {
+                var pos = (p / (NUM_PTS-1)) * 49;
+                var val = peValue(pos, dims[0]);
+                if (l >= fullLayers) val *= partialT;
+                var x = PAD.left + (p/(NUM_PTS-1))*pW;
+                var y = zeroY - val * (pH/2 - 4) * 0.3;
+                if (p===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            }
+            ctx.stroke();
+
+            /* Cos wave (rose) */
+            ctx.strokeStyle = 'rgba(244,114,182,' + (l < fullLayers ? 0.3 : clamp(partialT,0.05,0.5)) + ')';
+            ctx.beginPath();
+            for (var p = 0; p < NUM_PTS; p++) {
+                var pos = (p / (NUM_PTS-1)) * 49;
+                var val = peValue(pos, dims[1]);
+                if (l >= fullLayers) val *= partialT;
+                var x = PAD.left + (p/(NUM_PTS-1))*pW;
+                var y = zeroY - val * (pH/2 - 4) * 0.3;
+                if (p===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            }
+            ctx.stroke();
+        }
+
+        /* Combined signal (gold) - sum of all active layers */
+        if (layerProgress > 0.01) {
+            ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (var p = 0; p < NUM_PTS; p++) {
+                var pos = (p / (NUM_PTS-1)) * 49;
+                var sum = 0;
+                for (var l = 0; l < Math.min(fullLayers + 1, NUM_LAYERS); l++) {
+                    var dims = getLayerDimPair(l);
+                    var t = l < fullLayers ? 1 : partialT;
+                    sum += peValue(pos, dims[0]) * t;
+                    sum += peValue(pos, dims[1]) * t;
+                }
+                /* Normalise for display */
+                var maxAmp = (Math.min(fullLayers+1, NUM_LAYERS)) * 2;
+                if (maxAmp > 0) sum /= maxAmp;
+                var x = PAD.left + (p/(NUM_PTS-1))*pW;
+                var y = zeroY - sum * (pH/2 - 4);
+                if (p===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            }
+            ctx.stroke();
+        }
+
+        /* Layer label */
+        ctx.fillStyle='#a78bfa'; ctx.font='11px Georgia, serif';
+        ctx.textAlign='left'; ctx.textBaseline='top';
+        ctx.fillText(fullLayers + ' of ' + NUM_LAYERS + ' frequency pairs', PAD.left, 4);
+
+        /* Current layer info */
+        if (fullLayers < NUM_LAYERS) {
+            var dims = getLayerDimPair(Math.min(fullLayers, NUM_LAYERS-1));
+            ctx.fillStyle='#808098'; ctx.font='10px Courier New, monospace';
+            ctx.textAlign='right';
+            ctx.fillText('Adding dims ' + dims[0] + ' (sin) + ' + dims[1] + ' (cos)', PAD.left+pW, 6);
+        }
+
+        document.getElementById('vWaveLayers').textContent = fullLayers + ' / ' + NUM_LAYERS;
+        updateWaveBuildResults(fullLayers);
+    }
+
+    function updateWaveBuildResults(layers) {
+        var html = '<span class="violet">Active layers:</span> <span class="cyan">' + layers + '</span> of ' + NUM_LAYERS + '<br>';
+        if (layers > 0) {
+            var dims = getLayerDimPair(Math.min(layers-1, NUM_LAYERS-1));
+            var i = Math.floor(dims[0]/2);
+            var freq = 1.0/Math.pow(10000,(2*i)/D_MODEL);
+            html += '<span class="muted">Last added: dims '+dims[0]+','+dims[1]+' &mdash; freq = '+freq.toExponential(2)+'</span>';
+        } else {
+            html += '<span class="muted">Press Play to watch waves build up one frequency at a time.</span>';
+        }
+        document.getElementById('waveBuildResults').innerHTML = html;
+    }
+
+    function animate() {
+        if (!playing) return;
+        layerProgress += 0.015;
+        if (layerProgress >= NUM_LAYERS) { layerProgress = NUM_LAYERS; playing = false; updatePlayBtn(); }
+        draw();
+        if (playing) animId = requestAnimationFrame(animate);
+    }
+
+    function updatePlayBtn() {
+        var icon = document.getElementById('wavePlayIcon');
+        icon.innerHTML = playing ? '&#10074;&#10074;' : '&#9654;';
+        document.getElementById('btnPlayWaves').lastChild.textContent = playing ? ' Pause' : ' Play';
+    }
+
+    document.getElementById('btnPlayWaves').addEventListener('click', function() {
+        playing = !playing;
+        updatePlayBtn();
+        if (playing) {
+            if (layerProgress >= NUM_LAYERS) layerProgress = 0;
+            animId = requestAnimationFrame(animate);
+        } else if (animId) { cancelAnimationFrame(animId); }
+    });
+    document.getElementById('btnResetWaves').addEventListener('click', function() {
+        playing = false; if (animId) cancelAnimationFrame(animId);
+        layerProgress = 0; updatePlayBtn(); draw();
+    });
+
+    draw();
+})();
+
+/* ================================================================
+   Section 2b: Sinusoidal Encoding Heatmap (animated fill)
    ================================================================ */
 (function() {
     var cvs = document.getElementById('canvas2');
-    var ctx = cvs.getContext('2d');
-    var W = cvs.width, H = cvs.height;
+    var ctx = hiDPI(cvs, 700, 380);
+    var W = 700, H = 380;
 
     var waveCvs = document.getElementById('canvas2wave');
-    var waveCtx = waveCvs.getContext('2d');
-    var wW = waveCvs.width, wH = waveCvs.height;
+    var waveCtx = hiDPI(waveCvs, 700, 120);
+    var wW = 700, wH = 120;
 
     var NUM_POSITIONS = 50;
-    var D_MODEL = 128;
-    var PAD = { left: 50, right: 20, top: 30, bottom: 30 };
+    var PAD = { left:50, right:20, top:30, bottom:30 };
     var plotW = W - PAD.left - PAD.right;
     var plotH = H - PAD.top - PAD.bottom;
 
-    var mode = 'sinusoidal'; /* sinusoidal | learned */
-    var selectedDim = 0;
-    var selectedPos = 0;
-    var heatmapImg = null;
+    var mode = 'sinusoidal';
+    var selectedDim = 0, selectedPos = 0;
     var learnedMatrix = null;
-    var hoverPos = -1;
-    var hoverDim = -1;
+    var hoverPos = -1, hoverDim = -1;
 
-    /* Compute PE value */
-    function peValue(pos, dim) {
-        var i = Math.floor(dim / 2);
-        var freq = 1.0 / Math.pow(10000, (2 * i) / D_MODEL);
-        if (dim % 2 === 0) {
-            return Math.sin(pos * freq);
-        } else {
-            return Math.cos(pos * freq);
-        }
-    }
+    /* Heatmap animation state */
+    var heatRevealRow = NUM_POSITIONS; /* fully revealed initially */
+    var heatPlaying = false, heatAnimId = null;
 
-    /* Generate random learned encoding (fixed pattern for consistency) */
     function generateLearnedMatrix() {
-        /* Use a seeded pseudo-random for reproducibility */
         var seed = 42;
-        function seededRandom() {
-            seed = (seed * 16807 + 0) % 2147483647;
-            return (seed - 1) / 2147483646;
-        }
+        function sr() { seed = (seed*16807+0)%2147483647; return (seed-1)/2147483646; }
         learnedMatrix = [];
-        for (var p = 0; p < NUM_POSITIONS; p++) {
-            learnedMatrix[p] = [];
-            for (var d = 0; d < D_MODEL; d++) {
-                learnedMatrix[p][d] = (seededRandom() * 2 - 1); /* -1 to 1 */
-            }
-        }
+        for (var p=0;p<NUM_POSITIONS;p++) { learnedMatrix[p]=[]; for(var d=0;d<D_MODEL;d++) learnedMatrix[p][d]=sr()*2-1; }
     }
 
     function getValue(pos, dim) {
-        if (mode === 'sinusoidal') {
-            return peValue(pos, dim);
-        } else {
-            return learnedMatrix[pos][dim];
-        }
+        return mode === 'sinusoidal' ? peValue(pos, dim) : learnedMatrix[pos][dim];
     }
 
-    /* Colour map: value in [-1, 1] -> RGB */
     function valueToRGB(v) {
-        /* Negative: dark purple, Zero: near-black, Positive: bright green/yellow */
-        var t = clamp(v, -1, 1);
-        var r, g, b;
-        if (t < 0) {
-            /* -1 (deep purple) to 0 (black) */
-            var s = -t; /* 0 to 1 */
-            r = Math.round(s * 124);
-            g = Math.round(s * 58);
-            b = Math.round(s * 237);
-        } else {
-            /* 0 (black) to 1 (bright green/yellow) */
-            var s = t;
-            r = Math.round(s * 50);
-            g = Math.round(s * 185);
-            b = Math.round(s * 129);
-        }
-        return [r, g, b];
-    }
-
-    /* Render heatmap using ImageData for performance */
-    function renderHeatmap() {
-        heatmapImg = ctx.createImageData(W, H);
-        var data = heatmapImg.data;
-
-        /* Fill entire image with background */
-        for (var py = 0; py < H; py++) {
-            for (var px = 0; px < W; px++) {
-                var idx = (py * W + px) * 4;
-                data[idx] = 10;
-                data[idx + 1] = 10;
-                data[idx + 2] = 26;
-                data[idx + 3] = 255;
-            }
-        }
-
-        /* Cell dimensions */
-        var cellW = plotW / D_MODEL;
-        var cellH = plotH / NUM_POSITIONS;
-
-        for (var p = 0; p < NUM_POSITIONS; p++) {
-            for (var d = 0; d < D_MODEL; d++) {
-                var val = getValue(p, d);
-                var rgb = valueToRGB(val);
-
-                var x0 = Math.floor(PAD.left + d * cellW);
-                var y0 = Math.floor(PAD.top + p * cellH);
-                var x1 = Math.floor(PAD.left + (d + 1) * cellW);
-                var y1 = Math.floor(PAD.top + (p + 1) * cellH);
-
-                for (var py = y0; py < y1 && py < H; py++) {
-                    for (var px = x0; px < x1 && px < W; px++) {
-                        var idx = (py * W + px) * 4;
-                        data[idx] = rgb[0];
-                        data[idx + 1] = rgb[1];
-                        data[idx + 2] = rgb[2];
-                        data[idx + 3] = 255;
-                    }
-                }
-            }
-        }
+        var t = clamp(v,-1,1), r, g, b;
+        if (t < 0) { var s=-t; r=Math.round(s*124);g=Math.round(s*58);b=Math.round(s*237); }
+        else { var s=t; r=Math.round(s*50);g=Math.round(s*185);b=Math.round(s*129); }
+        return [r,g,b];
     }
 
     function draw() {
-        ctx.clearRect(0, 0, W, H);
-        ctx.fillStyle = '#0a0a1a';
-        ctx.fillRect(0, 0, W, H);
-
-        /* Heatmap */
-        if (heatmapImg) ctx.putImageData(heatmapImg, 0, 0);
+        ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
 
         var cellW = plotW / D_MODEL;
         var cellH = plotH / NUM_POSITIONS;
+        var visibleRows = Math.min(Math.floor(heatRevealRow), NUM_POSITIONS);
+        var partialT = heatRevealRow - visibleRows;
+
+        /* Draw heatmap cells */
+        for (var p = 0; p < visibleRows; p++) {
+            for (var d = 0; d < D_MODEL; d++) {
+                var val = getValue(p, d);
+                var rgb = valueToRGB(val);
+                var x0 = PAD.left + d * cellW;
+                var y0 = PAD.top + p * cellH;
+                ctx.fillStyle = 'rgb('+rgb[0]+','+rgb[1]+','+rgb[2]+')';
+                ctx.fillRect(x0, y0, Math.ceil(cellW), Math.ceil(cellH));
+            }
+        }
+        /* Partial row with alpha */
+        if (visibleRows < NUM_POSITIONS && partialT > 0) {
+            ctx.globalAlpha = partialT;
+            for (var d = 0; d < D_MODEL; d++) {
+                var val = getValue(visibleRows, d);
+                var rgb = valueToRGB(val);
+                var x0 = PAD.left + d * cellW;
+                var y0 = PAD.top + visibleRows * cellH;
+                ctx.fillStyle = 'rgb('+rgb[0]+','+rgb[1]+','+rgb[2]+')';
+                ctx.fillRect(x0, y0, Math.ceil(cellW), Math.ceil(cellH));
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        /* Glow line at reveal front */
+        if (heatRevealRow < NUM_POSITIONS && heatRevealRow > 0) {
+            var fy = PAD.top + heatRevealRow * cellH;
+            var grad = ctx.createLinearGradient(PAD.left, fy-3, PAD.left, fy+3);
+            grad.addColorStop(0, 'rgba(251,191,36,0)');
+            grad.addColorStop(0.5, 'rgba(251,191,36,0.6)');
+            grad.addColorStop(1, 'rgba(251,191,36,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(PAD.left, fy-3, plotW, 6);
+        }
 
         /* Highlight selected dimension (column) */
         var dimX = PAD.left + selectedDim * cellW;
-        ctx.strokeStyle = 'rgba(167,139,250,0.7)';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(167,139,250,0.7)'; ctx.lineWidth = 1.5;
         ctx.strokeRect(dimX, PAD.top, cellW, plotH);
 
         /* Highlight selected position (row) */
         var posY = PAD.top + selectedPos * cellH;
-        ctx.strokeStyle = 'rgba(251,191,36,0.7)';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(251,191,36,0.7)'; ctx.lineWidth = 1.5;
         ctx.strokeRect(PAD.left, posY, plotW, cellH);
 
         /* Crosshair intersection */
@@ -607,301 +709,511 @@ function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
         /* Hover tooltip */
         if (hoverPos >= 0 && hoverPos < NUM_POSITIONS && hoverDim >= 0 && hoverDim < D_MODEL) {
             var val = getValue(hoverPos, hoverDim);
-            var hx = PAD.left + hoverDim * cellW + cellW / 2;
+            var hx = PAD.left + hoverDim * cellW + cellW/2;
             var hy = PAD.top + hoverPos * cellH;
-            var label = 'pos=' + hoverPos + ' dim=' + hoverDim + ' val=' + val.toFixed(4);
+            var label = 'pos='+hoverPos+' dim='+hoverDim+' val='+val.toFixed(4);
             ctx.font = '10px Courier New, monospace';
             var tw = ctx.measureText(label).width + 12;
-            var tx = Math.min(hx - tw / 2, W - tw - 5);
-            tx = Math.max(tx, 5);
-            var ty = hy - 20;
-            if (ty < 5) ty = hy + cellH + 5;
+            var tx = Math.min(hx - tw/2, W - tw - 5); tx = Math.max(tx, 5);
+            var ty = hy - 20; if (ty < 5) ty = hy + cellH + 5;
             ctx.fillStyle = 'rgba(10,10,26,0.92)';
-            ctx.beginPath();
-            ctx.roundRect(tx, ty, tw, 18, 4);
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(167,139,250,0.4)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            ctx.fillStyle = '#e0e0e0';
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(label, tx + 6, ty + 9);
+            ctx.beginPath(); ctx.roundRect(tx, ty, tw, 18, 4); ctx.fill();
+            ctx.strokeStyle = 'rgba(167,139,250,0.4)'; ctx.lineWidth = 1; ctx.stroke();
+            ctx.fillStyle = '#e0e0e0'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+            ctx.fillText(label, tx+6, ty+9);
         }
 
         /* Axis labels */
-        ctx.fillStyle = '#a0a0b8';
-        ctx.font = '11px Georgia, serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.fillText('Encoding Dimension', PAD.left + plotW / 2, H - 12);
-
-        /* Dimension tick marks */
-        ctx.fillStyle = '#808098';
-        ctx.font = '9px Courier New, monospace';
-        var dimTicks = [0, 32, 64, 96, 127];
-        for (var t = 0; t < dimTicks.length; t++) {
-            var dx = PAD.left + dimTicks[t] * cellW + cellW / 2;
-            ctx.textAlign = 'center';
-            ctx.fillText(dimTicks[t].toString(), dx, PAD.top + plotH + 4);
+        ctx.fillStyle = '#a0a0b8'; ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText('Encoding Dimension', PAD.left + plotW/2, H - 12);
+        ctx.fillStyle = '#808098'; ctx.font = '9px Courier New, monospace';
+        var dimTicks = [0,32,64,96,127];
+        for (var t=0;t<dimTicks.length;t++) {
+            var dx = PAD.left + dimTicks[t]*cellW + cellW/2;
+            ctx.textAlign='center'; ctx.fillText(dimTicks[t].toString(), dx, PAD.top+plotH+4);
         }
-
-        /* Position tick marks */
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        var posTicks = [0, 10, 20, 30, 40, 49];
-        for (var t = 0; t < posTicks.length; t++) {
-            var py = PAD.top + posTicks[t] * cellH + cellH / 2;
-            ctx.fillText(posTicks[t].toString(), PAD.left - 6, py);
+        ctx.textAlign='right'; ctx.textBaseline='middle';
+        var posTicks=[0,10,20,30,40,49];
+        for(var t=0;t<posTicks.length;t++){var py=PAD.top+posTicks[t]*cellH+cellH/2;ctx.fillText(posTicks[t].toString(),PAD.left-6,py);}
+        ctx.save(); ctx.translate(12, PAD.top+plotH/2); ctx.rotate(-Math.PI/2);
+        ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle='#a0a0b8'; ctx.font='11px Georgia, serif';
+        ctx.fillText('Position',0,0); ctx.restore();
+        ctx.fillStyle='#a78bfa'; ctx.font='11px Georgia, serif'; ctx.textAlign='left'; ctx.textBaseline='top';
+        ctx.fillText(mode==='sinusoidal'?'Sinusoidal PE':'Learned PE (random)', PAD.left, 6);
+        if (mode==='sinusoidal') {
+            ctx.fillStyle='#808098'; ctx.font='9px Courier New, monospace';
+            ctx.textAlign='left'; ctx.fillText('\u2190 high freq', PAD.left, PAD.top-6);
+            ctx.textAlign='right'; ctx.fillText('low freq \u2192', PAD.left+plotW, PAD.top-6);
         }
-
-        ctx.save();
-        ctx.translate(12, PAD.top + plotH / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#a0a0b8';
-        ctx.font = '11px Georgia, serif';
-        ctx.fillText('Position', 0, 0);
-        ctx.restore();
-
-        /* Mode label */
-        ctx.fillStyle = '#a78bfa';
-        ctx.font = '11px Georgia, serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(mode === 'sinusoidal' ? 'Sinusoidal PE' : 'Learned PE (random)', PAD.left, 6);
-
-        /* Frequency annotation */
-        if (mode === 'sinusoidal') {
-            ctx.fillStyle = '#808098';
-            ctx.font = '9px Courier New, monospace';
-            ctx.textAlign = 'left';
-            ctx.fillText('\u2190 high freq', PAD.left, PAD.top - 6);
-            ctx.textAlign = 'right';
-            ctx.fillText('low freq \u2192', PAD.left + plotW, PAD.top - 6);
-        }
-
         updateResults();
     }
 
     function drawWave() {
-        waveCtx.clearRect(0, 0, wW, wH);
-        waveCtx.fillStyle = '#0a0a1a';
-        waveCtx.fillRect(0, 0, wW, wH);
+        waveCtx.clearRect(0,0,wW,wH); waveCtx.fillStyle='#0a0a1a'; waveCtx.fillRect(0,0,wW,wH);
+        var wPad={left:50,right:20,top:15,bottom:25};
+        var wpW=wW-wPad.left-wPad.right, wpH=wH-wPad.top-wPad.bottom;
+        var zeroY=wPad.top+wpH/2;
+        waveCtx.strokeStyle='rgba(255,255,255,0.1)'; waveCtx.lineWidth=0.5;
+        waveCtx.beginPath(); waveCtx.moveTo(wPad.left,zeroY); waveCtx.lineTo(wPad.left+wpW,zeroY); waveCtx.stroke();
+        waveCtx.fillStyle='#808098'; waveCtx.font='9px Courier New, monospace';
+        waveCtx.textAlign='right'; waveCtx.textBaseline='middle';
+        waveCtx.fillText('+1',wPad.left-6,wPad.top);
+        waveCtx.fillText(' 0',wPad.left-6,zeroY);
+        waveCtx.fillText('-1',wPad.left-6,wPad.top+wpH);
+        waveCtx.fillStyle='#a0a0b8'; waveCtx.font='10px Georgia, serif';
+        waveCtx.textAlign='center'; waveCtx.textBaseline='top';
+        waveCtx.fillText('Position',wPad.left+wpW/2,wH-10);
+        waveCtx.fillStyle='#808098'; waveCtx.font='9px Courier New, monospace';
+        var xTicks=[0,10,20,30,40,49];
+        for(var t=0;t<xTicks.length;t++){var x=wPad.left+(xTicks[t]/(NUM_POSITIONS-1))*wpW;waveCtx.textAlign='center';waveCtx.textBaseline='top';waveCtx.fillText(xTicks[t].toString(),x,wPad.top+wpH+3);}
 
-        var wPad = { left: 50, right: 20, top: 15, bottom: 25 };
-        var wpW = wW - wPad.left - wPad.right;
-        var wpH = wH - wPad.top - wPad.bottom;
-
-        /* Grid */
-        waveCtx.strokeStyle = 'rgba(255,255,255,0.04)';
-        waveCtx.lineWidth = 0.5;
-        /* Horizontal zero line */
-        var zeroY = wPad.top + wpH / 2;
-        waveCtx.strokeStyle = 'rgba(255,255,255,0.1)';
-        waveCtx.beginPath();
-        waveCtx.moveTo(wPad.left, zeroY);
-        waveCtx.lineTo(wPad.left + wpW, zeroY);
-        waveCtx.stroke();
-
-        /* Y axis ticks */
-        waveCtx.fillStyle = '#808098';
-        waveCtx.font = '9px Courier New, monospace';
-        waveCtx.textAlign = 'right';
-        waveCtx.textBaseline = 'middle';
-        waveCtx.fillText('+1', wPad.left - 6, wPad.top);
-        waveCtx.fillText(' 0', wPad.left - 6, zeroY);
-        waveCtx.fillText('-1', wPad.left - 6, wPad.top + wpH);
-
-        /* X axis label */
-        waveCtx.fillStyle = '#a0a0b8';
-        waveCtx.font = '10px Georgia, serif';
-        waveCtx.textAlign = 'center';
-        waveCtx.textBaseline = 'top';
-        waveCtx.fillText('Position', wPad.left + wpW / 2, wH - 10);
-
-        /* X axis ticks */
-        waveCtx.fillStyle = '#808098';
-        waveCtx.font = '9px Courier New, monospace';
-        var xTicks = [0, 10, 20, 30, 40, 49];
-        for (var t = 0; t < xTicks.length; t++) {
-            var x = wPad.left + (xTicks[t] / (NUM_POSITIONS - 1)) * wpW;
-            waveCtx.textAlign = 'center';
-            waveCtx.textBaseline = 'top';
-            waveCtx.fillText(xTicks[t].toString(), x, wPad.top + wpH + 3);
-        }
-
-        if (mode === 'sinusoidal') {
-            /* Draw the wave for the selected dimension across all positions */
-            waveCtx.strokeStyle = '#a78bfa';
+        if (mode==='sinusoidal') {
+            /* Colour by sin(cyan) or cos(rose) */
+            var isSin = selectedDim % 2 === 0;
+            waveCtx.strokeStyle = isSin ? '#22d3ee' : '#f472b6';
             waveCtx.lineWidth = 2;
             waveCtx.beginPath();
-            for (var p = 0; p < NUM_POSITIONS; p++) {
-                var val = peValue(p, selectedDim);
-                var x = wPad.left + (p / (NUM_POSITIONS - 1)) * wpW;
-                var y = zeroY - val * (wpH / 2 - 2);
-                if (p === 0) waveCtx.moveTo(x, y); else waveCtx.lineTo(x, y);
-            }
+            for(var p=0;p<NUM_POSITIONS;p++){var val=peValue(p,selectedDim);var x=wPad.left+(p/(NUM_POSITIONS-1))*wpW;var y=zeroY-val*(wpH/2-2);if(p===0)waveCtx.moveTo(x,y);else waveCtx.lineTo(x,y);}
             waveCtx.stroke();
-
-            /* Highlight selected position on the wave */
-            var selVal = peValue(selectedPos, selectedDim);
-            var selX = wPad.left + (selectedPos / (NUM_POSITIONS - 1)) * wpW;
-            var selY = zeroY - selVal * (wpH / 2 - 2);
-            waveCtx.fillStyle = '#fbbf24';
-            waveCtx.beginPath();
-            waveCtx.arc(selX, selY, 5, 0, Math.PI * 2);
-            waveCtx.fill();
-            waveCtx.strokeStyle = '#fff';
-            waveCtx.lineWidth = 1;
-            waveCtx.stroke();
-
-            /* Value label at dot */
-            waveCtx.fillStyle = '#fbbf24';
-            waveCtx.font = '10px Courier New, monospace';
-            waveCtx.textAlign = 'left';
-            waveCtx.textBaseline = 'bottom';
-            waveCtx.fillText(selVal.toFixed(4), selX + 8, selY - 4);
-
-            /* Update wave label */
-            var i = Math.floor(selectedDim / 2);
-            var wavelength = 2 * Math.PI * Math.pow(10000, (2 * i) / D_MODEL);
-            var freqStr = selectedDim < 4 ? 'highest frequency' : (selectedDim > 120 ? 'lowest frequency' : 'mid frequency');
-            var sincos = selectedDim % 2 === 0 ? 'sin' : 'cos';
-            document.getElementById('waveLabel').innerHTML = 'Dimension ' + selectedDim + ' (' + sincos + '): wavelength \u2248 ' + (wavelength < 100 ? wavelength.toFixed(1) : wavelength.toExponential(1)) + ' &mdash; ' + freqStr;
+            var selVal=peValue(selectedPos,selectedDim);
+            var selX=wPad.left+(selectedPos/(NUM_POSITIONS-1))*wpW;
+            var selY=zeroY-selVal*(wpH/2-2);
+            waveCtx.fillStyle='#fbbf24'; waveCtx.beginPath(); waveCtx.arc(selX,selY,5,0,Math.PI*2); waveCtx.fill();
+            waveCtx.strokeStyle='#fff'; waveCtx.lineWidth=1; waveCtx.stroke();
+            waveCtx.fillStyle='#fbbf24'; waveCtx.font='10px Courier New, monospace';
+            waveCtx.textAlign='left'; waveCtx.textBaseline='bottom';
+            waveCtx.fillText(selVal.toFixed(4),selX+8,selY-4);
+            var i=Math.floor(selectedDim/2);
+            var wavelength=2*Math.PI*Math.pow(10000,(2*i)/D_MODEL);
+            var freqStr=selectedDim<4?'highest frequency':(selectedDim>120?'lowest frequency':'mid frequency');
+            var sincos=selectedDim%2===0?'sin':'cos';
+            document.getElementById('waveLabel').innerHTML='Dimension '+selectedDim+' ('+sincos+'): wavelength \u2248 '+(wavelength<100?wavelength.toFixed(1):wavelength.toExponential(1))+' &mdash; '+freqStr;
         } else {
-            /* Learned: draw the encoding vector for the selected position */
-            waveCtx.strokeStyle = '#22d3ee';
-            waveCtx.lineWidth = 1.5;
-            waveCtx.beginPath();
-            for (var d = 0; d < D_MODEL; d++) {
-                var val = learnedMatrix[selectedPos][d];
-                var x = wPad.left + (d / (D_MODEL - 1)) * wpW;
-                var y = zeroY - val * (wpH / 2 - 2);
-                if (d === 0) waveCtx.moveTo(x, y); else waveCtx.lineTo(x, y);
-            }
+            waveCtx.strokeStyle='#22d3ee'; waveCtx.lineWidth=1.5; waveCtx.beginPath();
+            for(var d=0;d<D_MODEL;d++){var val=learnedMatrix[selectedPos][d];var x=wPad.left+(d/(D_MODEL-1))*wpW;var y=zeroY-val*(wpH/2-2);if(d===0)waveCtx.moveTo(x,y);else waveCtx.lineTo(x,y);}
             waveCtx.stroke();
-
-            /* Highlight selected dimension */
-            var selVal = learnedMatrix[selectedPos][selectedDim];
-            var selX = wPad.left + (selectedDim / (D_MODEL - 1)) * wpW;
-            var selY = zeroY - selVal * (wpH / 2 - 2);
-            waveCtx.fillStyle = '#fbbf24';
-            waveCtx.beginPath();
-            waveCtx.arc(selX, selY, 5, 0, Math.PI * 2);
-            waveCtx.fill();
-
-            document.getElementById('waveLabel').innerHTML = 'Learned encoding vector for position ' + selectedPos + ' (random &mdash; no structure)';
+            var selVal=learnedMatrix[selectedPos][selectedDim];
+            var selX=wPad.left+(selectedDim/(D_MODEL-1))*wpW;
+            var selY=zeroY-selVal*(wpH/2-2);
+            waveCtx.fillStyle='#fbbf24'; waveCtx.beginPath(); waveCtx.arc(selX,selY,5,0,Math.PI*2); waveCtx.fill();
+            document.getElementById('waveLabel').innerHTML='Learned encoding vector for position '+selectedPos+' (random &mdash; no structure)';
         }
     }
 
     function updateResults() {
-        var val = getValue(selectedPos, selectedDim);
-        var sincos = selectedDim % 2 === 0 ? 'sin' : 'cos';
-        var i = Math.floor(selectedDim / 2);
-        var freq = 1.0 / Math.pow(10000, (2 * i) / D_MODEL);
-        var html = '';
-        html += '<span class="violet">Position:</span> <span class="cyan">' + selectedPos + '</span>';
-        html += ' &nbsp;&nbsp; <span class="violet">Dimension:</span> <span class="gold">' + selectedDim + '</span>';
-        html += ' &nbsp;&nbsp; <span class="violet">Value:</span> <span class="green">' + val.toFixed(6) + '</span><br>';
-        if (mode === 'sinusoidal') {
-            html += '<span class="muted">' + sincos + '(' + selectedPos + ' / 10000^(' + (2*i) + '/' + D_MODEL + ')) = ' + sincos + '(' + selectedPos + ' &times; ' + freq.toExponential(3) + ') = ' + val.toFixed(6) + '</span>';
-        } else {
-            html += '<span class="muted">Learned value (no mathematical structure &mdash; must be trained)</span>';
-        }
-        document.getElementById('s2Results').innerHTML = html;
+        var val=getValue(selectedPos,selectedDim);
+        var sincos=selectedDim%2===0?'sin':'cos';
+        var i=Math.floor(selectedDim/2);
+        var freq=1.0/Math.pow(10000,(2*i)/D_MODEL);
+        var html='<span class="violet">Position:</span> <span class="cyan">'+selectedPos+'</span>';
+        html+=' &nbsp;&nbsp; <span class="violet">Dimension:</span> <span class="gold">'+selectedDim+'</span>';
+        html+=' &nbsp;&nbsp; <span class="violet">Value:</span> <span class="green">'+val.toFixed(6)+'</span><br>';
+        if(mode==='sinusoidal'){html+='<span class="muted">'+sincos+'('+selectedPos+' / 10000^('+2*i+'/'+D_MODEL+')) = '+sincos+'('+selectedPos+' &times; '+freq.toExponential(3)+') = '+val.toFixed(6)+'</span>';}
+        else{html+='<span class="muted">Learned value (no mathematical structure &mdash; must be trained)</span>';}
+        document.getElementById('s2Results').innerHTML=html;
     }
 
-    /* Mouse hover for heatmap */
+    /* Heatmap animation */
+    function animateHeat() {
+        if (!heatPlaying) return;
+        heatRevealRow += 0.4;
+        if (heatRevealRow >= NUM_POSITIONS) { heatRevealRow = NUM_POSITIONS; heatPlaying = false; updateHeatBtn(); }
+        draw();
+        if (heatPlaying) heatAnimId = requestAnimationFrame(animateHeat);
+    }
+    function updateHeatBtn() {
+        var icon = document.getElementById('heatPlayIcon');
+        icon.innerHTML = heatPlaying ? '&#10074;&#10074;' : '&#9654;';
+    }
+    document.getElementById('btnPlayHeatmap').addEventListener('click', function() {
+        heatPlaying = !heatPlaying; updateHeatBtn();
+        if (heatPlaying) { if (heatRevealRow>=NUM_POSITIONS) heatRevealRow=0; heatAnimId=requestAnimationFrame(animateHeat); }
+        else if(heatAnimId){cancelAnimationFrame(heatAnimId);}
+    });
+    document.getElementById('btnResetHeatmap').addEventListener('click', function() {
+        heatPlaying=false; if(heatAnimId)cancelAnimationFrame(heatAnimId);
+        heatRevealRow=0; updateHeatBtn(); draw();
+    });
+
+    /* Mouse events */
     cvs.addEventListener('mousemove', function(e) {
+        var rect=cvs.getBoundingClientRect();
+        var mx=(e.clientX-rect.left)*(W/rect.width);
+        var my=(e.clientY-rect.top)*(H/rect.height);
+        var cellW=plotW/D_MODEL, cellH=plotH/NUM_POSITIONS;
+        if(mx>=PAD.left&&mx<=PAD.left+plotW&&my>=PAD.top&&my<=PAD.top+plotH){
+            hoverDim=clamp(Math.floor((mx-PAD.left)/cellW),0,D_MODEL-1);
+            hoverPos=clamp(Math.floor((my-PAD.top)/cellH),0,NUM_POSITIONS-1);
+        } else { hoverPos=-1; hoverDim=-1; }
+        draw();
+    });
+    cvs.addEventListener('mouseleave', function(){hoverPos=-1;hoverDim=-1;draw();});
+    cvs.addEventListener('click', function(e) {
+        var rect=cvs.getBoundingClientRect();
+        var mx=(e.clientX-rect.left)*(W/rect.width);
+        var my=(e.clientY-rect.top)*(H/rect.height);
+        var cellW=plotW/D_MODEL, cellH=plotH/NUM_POSITIONS;
+        if(mx>=PAD.left&&mx<=PAD.left+plotW&&my>=PAD.top&&my<=PAD.top+plotH){
+            var d=clamp(Math.floor((mx-PAD.left)/cellW),0,D_MODEL-1);
+            var p=clamp(Math.floor((my-PAD.top)/cellH),0,NUM_POSITIONS-1);
+            selectedDim=d; selectedPos=p;
+            document.getElementById('sDim').value=d; document.getElementById('sPos').value=p;
+            document.getElementById('vDim').textContent=d; document.getElementById('vPos').textContent=p;
+            draw(); drawWave();
+        }
+    });
+
+    document.getElementById('sDim').addEventListener('input',function(){selectedDim=parseInt(this.value);document.getElementById('vDim').textContent=selectedDim;draw();drawWave();});
+    document.getElementById('sPos').addEventListener('input',function(){selectedPos=parseInt(this.value);document.getElementById('vPos').textContent=selectedPos;draw();drawWave();});
+
+    document.getElementById('btnSinusoidal').addEventListener('click',function(){mode='sinusoidal';this.classList.add('active');document.getElementById('btnLearned').classList.remove('active');draw();drawWave();});
+    document.getElementById('btnLearned').addEventListener('click',function(){mode='learned';this.classList.add('active');document.getElementById('btnSinusoidal').classList.remove('active');draw();drawWave();});
+
+    generateLearnedMatrix();
+    draw(); drawWave();
+})();
+
+/* ================================================================
+   Section 3: Stacked Wave Viewer (position highlighting)
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvasStacked');
+    var ctx = hiDPI(cvs, 700, 320);
+    var W = 700, H = 320;
+    var PAD = { left:50, right:20, top:20, bottom:30 };
+    var pW = W - PAD.left - PAD.right, pH = H - PAD.top - PAD.bottom;
+
+    var selectedPos = 0;
+    var NUM_DIMS_SHOW = 16; /* Show first 16 dimensions stacked */
+    var animProgress = 0; /* 0 to NUM_DIMS_SHOW */
+    var animId = null, animating = false;
+    var NUM_POS = 20;
+
+    function draw() {
+        ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        var rowH = pH / NUM_DIMS_SHOW;
+        var fullDims = Math.min(Math.floor(animProgress), NUM_DIMS_SHOW);
+        var partialT = animProgress - fullDims;
+
+        /* Draw each dimension row */
+        for (var d = 0; d < Math.min(fullDims + (partialT > 0 ? 1 : 0), NUM_DIMS_SHOW); d++) {
+            var yMid = PAD.top + d * rowH + rowH / 2;
+            var alpha = d < fullDims ? 1.0 : partialT;
+            ctx.globalAlpha = alpha;
+
+            /* Zero line */
+            ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5;
+            ctx.beginPath(); ctx.moveTo(PAD.left, yMid); ctx.lineTo(PAD.left+pW, yMid); ctx.stroke();
+
+            /* Dim label */
+            ctx.fillStyle = '#808098'; ctx.font = '8px Courier New, monospace';
+            ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+            ctx.fillText('d'+d, PAD.left-6, yMid);
+
+            /* Draw bars for each position */
+            var barW = pW / NUM_POS - 2;
+            for (var p = 0; p < NUM_POS; p++) {
+                var val = peValue(p, d);
+                var x = PAD.left + p * (pW / NUM_POS) + 1;
+                var barH = val * (rowH * 0.4);
+                var isSin = d % 2 === 0;
+                var isSelected = p === selectedPos;
+
+                if (isSelected) {
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.shadowColor = '#fbbf24'; ctx.shadowBlur = 6;
+                } else {
+                    ctx.fillStyle = isSin ? 'rgba(34,211,238,0.6)' : 'rgba(244,114,182,0.6)';
+                    ctx.shadowBlur = 0;
+                }
+
+                ctx.fillRect(x, yMid - barH, barW, barH);
+                ctx.shadowBlur = 0;
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        /* Position labels along bottom */
+        ctx.fillStyle = '#808098'; ctx.font = '9px Courier New, monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (var p = 0; p < NUM_POS; p++) {
+            var x = PAD.left + p * (pW/NUM_POS) + (pW/NUM_POS)/2;
+            ctx.fillStyle = p === selectedPos ? '#fbbf24' : '#808098';
+            ctx.fillText(p.toString(), x, PAD.top + pH + 4);
+        }
+
+        /* Title */
+        ctx.fillStyle = '#a78bfa'; ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText('Position ' + selectedPos + ' encoding vector (' + NUM_DIMS_SHOW + ' dimensions)', PAD.left, 4);
+
+        updateStackedResults();
+    }
+
+    function updateStackedResults() {
+        var html = '<span class="violet">Position:</span> <span class="gold">' + selectedPos + '</span><br>';
+        html += '<span class="muted">PE = [';
+        var vals = [];
+        for (var d = 0; d < 6; d++) vals.push(peValue(selectedPos, d).toFixed(3));
+        html += vals.join(', ') + ', \u2026]</span>';
+        document.getElementById('stackedResults').innerHTML = html;
+    }
+
+    function startAnim() {
+        animProgress = 0; animating = true;
+        function step() {
+            if (!animating) return;
+            animProgress += 0.08;
+            if (animProgress >= NUM_DIMS_SHOW) { animProgress = NUM_DIMS_SHOW; animating = false; }
+            draw();
+            if (animating) animId = requestAnimationFrame(step);
+        }
+        animId = requestAnimationFrame(step);
+    }
+
+    document.getElementById('sStackPos').addEventListener('input', function() {
+        selectedPos = parseInt(this.value);
+        document.getElementById('vStackPos').textContent = selectedPos;
+        if (animId) cancelAnimationFrame(animId);
+        startAnim();
+    });
+
+    /* Click on canvas to select position */
+    cvs.addEventListener('click', function(e) {
         var rect = cvs.getBoundingClientRect();
         var mx = (e.clientX - rect.left) * (W / rect.width);
-        var my = (e.clientY - rect.top) * (H / rect.height);
-
-        var cellW = plotW / D_MODEL;
-        var cellH = plotH / NUM_POSITIONS;
-
-        if (mx >= PAD.left && mx <= PAD.left + plotW && my >= PAD.top && my <= PAD.top + plotH) {
-            hoverDim = Math.floor((mx - PAD.left) / cellW);
-            hoverPos = Math.floor((my - PAD.top) / cellH);
-            hoverDim = clamp(hoverDim, 0, D_MODEL - 1);
-            hoverPos = clamp(hoverPos, 0, NUM_POSITIONS - 1);
-        } else {
-            hoverPos = -1;
-            hoverDim = -1;
+        if (mx >= PAD.left && mx <= PAD.left + pW) {
+            var p = Math.floor((mx - PAD.left) / (pW / NUM_POS));
+            p = clamp(p, 0, NUM_POS - 1);
+            selectedPos = p;
+            document.getElementById('sStackPos').value = p;
+            document.getElementById('vStackPos').textContent = p;
+            if (animId) cancelAnimationFrame(animId);
+            startAnim();
         }
-        draw();
     });
 
-    cvs.addEventListener('mouseleave', function() {
-        hoverPos = -1;
-        hoverDim = -1;
+    animProgress = NUM_DIMS_SHOW;
+    draw();
+})();
+
+/* ================================================================
+   Section 4: Dot Product Similarity Animation
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('canvasDot');
+    var ctx = hiDPI(cvs, 700, 340);
+    var W = 700, H = 340;
+    var PAD = { left:50, right:30, top:30, bottom:40 };
+    var pW = W - PAD.left - PAD.right, pH = H - PAD.top - PAD.bottom;
+
+    var posA = 0, posB = 5;
+    var NUM_POS = 20;
+    var DOT_DIMS = 128; /* Use full 128 dims for dot product */
+    var animProgress = 0; /* 0 to 1 */
+    var playing = false, animId = null;
+
+    /* Compute dot product between two position encodings */
+    function dotProduct(pA, pB) {
+        var sum = 0;
+        for (var d = 0; d < DOT_DIMS; d++) sum += peValue(pA, d) * peValue(pB, d);
+        return sum;
+    }
+
+    /* Compute all dot products for the similarity matrix */
+    function dotMatrix() {
+        var mat = [];
+        for (var i = 0; i < NUM_POS; i++) {
+            mat[i] = [];
+            for (var j = 0; j < NUM_POS; j++) mat[i][j] = dotProduct(i, j);
+        }
+        return mat;
+    }
+
+    function draw() {
+        ctx.clearRect(0,0,W,H); ctx.fillStyle='#0a0a1a'; ctx.fillRect(0,0,W,H);
+
+        var mat = dotMatrix();
+        /* Find max for normalisation */
+        var maxVal = 0;
+        for (var i=0;i<NUM_POS;i++) for(var j=0;j<NUM_POS;j++) { var a=Math.abs(mat[i][j]); if(a>maxVal) maxVal=a; }
+
+        /* Split canvas: left = similarity matrix, right = vector comparison */
+        var matSize = Math.min(pW * 0.45, pH);
+        var cellS = matSize / NUM_POS;
+        var matX = PAD.left;
+        var matY = PAD.top + (pH - matSize) / 2;
+
+        /* Draw similarity matrix */
+        var revealCells = Math.floor(animProgress * NUM_POS * NUM_POS);
+        var cellIdx = 0;
+        for (var i = 0; i < NUM_POS; i++) {
+            for (var j = 0; j < NUM_POS; j++) {
+                cellIdx++;
+                if (cellIdx > revealCells && playing) continue;
+                var norm = mat[i][j] / maxVal;
+                var r, g, b;
+                if (norm > 0) {
+                    r = Math.round(34 + norm * 0); g = Math.round(34 + norm * 177); b = Math.round(34 + norm * 204);
+                } else {
+                    var s = -norm;
+                    r = Math.round(s * 124); g = Math.round(s * 58); b = Math.round(s * 237);
+                }
+                ctx.fillStyle = 'rgb('+r+','+g+','+b+')';
+                ctx.fillRect(matX + j*cellS, matY + i*cellS, Math.ceil(cellS), Math.ceil(cellS));
+            }
+        }
+
+        /* Highlight selected pair */
+        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2;
+        ctx.strokeRect(matX + posB*cellS, matY + posA*cellS, cellS, cellS);
+        /* Row/col highlights */
+        ctx.strokeStyle = 'rgba(34,211,238,0.5)'; ctx.lineWidth = 1;
+        ctx.strokeRect(matX, matY + posA*cellS, matSize, cellS);
+        ctx.strokeStyle = 'rgba(244,114,182,0.5)';
+        ctx.strokeRect(matX + posB*cellS, matY, cellS, matSize);
+
+        /* Axis labels for matrix */
+        ctx.fillStyle = '#808098'; ctx.font = '8px Courier New, monospace';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        for (var i = 0; i < NUM_POS; i += 2) {
+            ctx.fillStyle = i===posB ? '#fbbf24' : '#808098';
+            ctx.fillText(i.toString(), matX + i*cellS + cellS/2, matY + matSize + 3);
+        }
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        for (var i = 0; i < NUM_POS; i += 2) {
+            ctx.fillStyle = i===posA ? '#22d3ee' : '#808098';
+            ctx.fillText(i.toString(), matX - 4, matY + i*cellS + cellS/2);
+        }
+
+        /* Right panel: vector comparison */
+        var rX = PAD.left + matSize + 40;
+        var rW = pW - matSize - 40;
+        var rY = PAD.top;
+        var rH = pH;
+        var barDims = 32; /* Show first 32 dims for visual clarity */
+        var barW = rW / barDims - 1;
+        var barMaxH = rH * 0.22;
+
+        /* Vector A (cyan) */
+        ctx.fillStyle = '#22d3ee'; ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText('PE(pos=' + posA + ')', rX, rY);
+        for (var d = 0; d < barDims; d++) {
+            var val = peValue(posA, d);
+            var x = rX + d * (rW/barDims);
+            var bH = val * barMaxH;
+            var midY = rY + 20 + barMaxH;
+            ctx.fillStyle = val >= 0 ? 'rgba(34,211,238,0.7)' : 'rgba(34,211,238,0.4)';
+            ctx.fillRect(x, midY - Math.max(bH, 0), barW, Math.abs(bH));
+        }
+
+        /* Vector B (rose) */
+        var secY = rY + barMaxH * 2 + 50;
+        ctx.fillStyle = '#f472b6'; ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText('PE(pos=' + posB + ')', rX, secY);
+        for (var d = 0; d < barDims; d++) {
+            var val = peValue(posB, d);
+            var x = rX + d * (rW/barDims);
+            var bH = val * barMaxH;
+            var midY = secY + 20 + barMaxH;
+            ctx.fillStyle = val >= 0 ? 'rgba(244,114,182,0.7)' : 'rgba(244,114,182,0.4)';
+            ctx.fillRect(x, midY - Math.max(bH, 0), barW, Math.abs(bH));
+        }
+
+        /* Dot product result */
+        var dpVal = dotProduct(posA, posB);
+        var dpNorm = dpVal / maxVal;
+        var resY = secY + barMaxH * 2 + 50;
+        ctx.fillStyle = '#fbbf24'; ctx.font = '13px Georgia, serif';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText('Dot product = ' + dpVal.toFixed(2), rX, resY);
+
+        /* Animated bar for dot product */
+        var barFullW = rW * 0.8;
+        var dpBarW = Math.abs(dpNorm) * barFullW * (playing ? Math.min(animProgress * 3, 1) : 1);
+        ctx.fillStyle = 'rgba(251,191,36,0.15)';
+        ctx.fillRect(rX, resY + 22, barFullW, 14);
+        ctx.fillStyle = dpNorm >= 0 ? '#fbbf24' : '#f472b6';
+        ctx.fillRect(rX, resY + 22, dpBarW, 14);
+
+        /* Similarity label */
+        ctx.fillStyle = '#808098'; ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        var simLabel = dpNorm > 0.8 ? 'Very similar' : (dpNorm > 0.4 ? 'Somewhat similar' : (dpNorm > 0.1 ? 'Weakly similar' : 'Nearly orthogonal'));
+        ctx.fillText(simLabel + ' (' + (dpNorm*100).toFixed(0) + '%)', rX, resY + 40);
+
+        /* Title */
+        ctx.fillStyle = '#a78bfa'; ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+        ctx.fillText('Similarity Matrix (20\u00d720)', matX, matY - 18);
+
+        updateDotResults(dpVal, dpNorm);
+    }
+
+    function updateDotResults(dpVal, dpNorm) {
+        var html = '<span class="violet">Position A:</span> <span class="cyan">' + posA + '</span>';
+        html += ' &nbsp;&nbsp; <span class="violet">Position B:</span> <span class="pink">' + posB + '</span>';
+        html += ' &nbsp;&nbsp; <span class="violet">Distance:</span> <span class="gold">' + Math.abs(posA-posB) + '</span><br>';
+        html += '<span class="muted">PE('+posA+') &middot; PE('+posB+') = '+dpVal.toFixed(2)+' &nbsp; (normalised: '+(dpNorm*100).toFixed(1)+'%)</span>';
+        document.getElementById('dotResults').innerHTML = html;
+    }
+
+    function animate() {
+        if (!playing) return;
+        animProgress += 0.008;
+        if (animProgress >= 1) { animProgress = 1; playing = false; updateDotBtn(); }
         draw();
+        if (playing) animId = requestAnimationFrame(animate);
+    }
+
+    function updateDotBtn() {
+        document.getElementById('dotPlayIcon').innerHTML = playing ? '&#10074;&#10074;' : '&#9654;';
+    }
+
+    document.getElementById('btnPlayDot').addEventListener('click', function() {
+        playing = !playing; updateDotBtn();
+        if (playing) { if (animProgress >= 1) animProgress = 0; animId = requestAnimationFrame(animate); }
+        else if (animId) cancelAnimationFrame(animId);
+    });
+    document.getElementById('btnResetDot').addEventListener('click', function() {
+        playing = false; if(animId) cancelAnimationFrame(animId);
+        animProgress = 0; updateDotBtn(); draw();
     });
 
-    /* Click on heatmap to select */
+    document.getElementById('sDotA').addEventListener('input', function() {
+        posA = parseInt(this.value); document.getElementById('vDotA').textContent = posA;
+        animProgress = 1; draw();
+    });
+    document.getElementById('sDotB').addEventListener('input', function() {
+        posB = parseInt(this.value); document.getElementById('vDotB').textContent = posB;
+        animProgress = 1; draw();
+    });
+
+    /* Click on matrix to select pair */
     cvs.addEventListener('click', function(e) {
         var rect = cvs.getBoundingClientRect();
         var mx = (e.clientX - rect.left) * (W / rect.width);
         var my = (e.clientY - rect.top) * (H / rect.height);
-
-        var cellW = plotW / D_MODEL;
-        var cellH = plotH / NUM_POSITIONS;
-
-        if (mx >= PAD.left && mx <= PAD.left + plotW && my >= PAD.top && my <= PAD.top + plotH) {
-            var d = Math.floor((mx - PAD.left) / cellW);
-            var p = Math.floor((my - PAD.top) / cellH);
-            d = clamp(d, 0, D_MODEL - 1);
-            p = clamp(p, 0, NUM_POSITIONS - 1);
-            selectedDim = d;
-            selectedPos = p;
-            document.getElementById('sDim').value = d;
-            document.getElementById('sPos').value = p;
-            document.getElementById('vDim').textContent = d;
-            document.getElementById('vPos').textContent = p;
-            draw();
-            drawWave();
+        var matSize = Math.min(pW * 0.45, pH);
+        var cellS = matSize / NUM_POS;
+        var matX = PAD.left;
+        var matY = PAD.top + (pH - matSize) / 2;
+        if (mx >= matX && mx < matX + matSize && my >= matY && my < matY + matSize) {
+            var j = clamp(Math.floor((mx - matX) / cellS), 0, NUM_POS-1);
+            var i = clamp(Math.floor((my - matY) / cellS), 0, NUM_POS-1);
+            posA = i; posB = j;
+            document.getElementById('sDotA').value = posA; document.getElementById('vDotA').textContent = posA;
+            document.getElementById('sDotB').value = posB; document.getElementById('vDotB').textContent = posB;
+            animProgress = 1; draw();
         }
     });
 
-    /* Sliders */
-    document.getElementById('sDim').addEventListener('input', function() {
-        selectedDim = parseInt(this.value);
-        document.getElementById('vDim').textContent = selectedDim;
-        draw();
-        drawWave();
-    });
-    document.getElementById('sPos').addEventListener('input', function() {
-        selectedPos = parseInt(this.value);
-        document.getElementById('vPos').textContent = selectedPos;
-        draw();
-        drawWave();
-    });
-
-    /* Mode buttons */
-    document.getElementById('btnSinusoidal').addEventListener('click', function() {
-        mode = 'sinusoidal';
-        document.getElementById('btnSinusoidal').classList.add('active');
-        document.getElementById('btnLearned').classList.remove('active');
-        renderHeatmap();
-        draw();
-        drawWave();
-    });
-    document.getElementById('btnLearned').addEventListener('click', function() {
-        mode = 'learned';
-        document.getElementById('btnLearned').classList.add('active');
-        document.getElementById('btnSinusoidal').classList.remove('active');
-        renderHeatmap();
-        draw();
-        drawWave();
-    });
-
-    /* Init */
-    generateLearnedMatrix();
-    renderHeatmap();
+    animProgress = 1;
     draw();
-    drawWave();
 })();
 </script>
 

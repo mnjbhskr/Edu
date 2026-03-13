@@ -78,6 +78,8 @@
         .app-input:focus{outline:none;border-color:rgba(251,191,36,0.4)}
         .app-result{font-family:'Courier New',monospace;font-size:0.88em;color:#c0c0d8;margin:8px 0;line-height:1.8;min-height:1.8em}
         .step-box{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:6px;padding:10px 14px;margin:8px 0;font-family:'Courier New',monospace;font-size:0.82em;color:#a0a0b8;line-height:1.9;overflow-x:auto}
+        .pause-btn{background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;padding:4px 14px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.85em;transition:all 0.2s;margin-left:auto}
+        .pause-btn:hover{background:rgba(251,191,36,0.2)}
         @media(max-width:600px){canvas{width:100%!important;height:auto!important}.mod-table td,.mod-table th{width:22px;height:22px;font-size:0.7em}}
     </style>
 <link rel="canonical" href="https://mathsedu.org/modular_arithmetic.html">
@@ -90,7 +92,7 @@
     <span style="margin:0 6px">&rsaquo;</span>
     <span style="color:#b0b0c0">Modular Arithmetic</span>
 </nav><h1>Modular Arithmetic</h1>
-    <p class="subtitle">Clock math &mdash; when numbers wrap around</p>
+    <p class="subtitle">Clock maths &mdash; when numbers wrap around</p>
 
     <!-- Section 1: Clock Visualization -->
     <h2>The Clock</h2>
@@ -99,6 +101,7 @@
         <div class="btn-row" id="clockModeBtns">
             <button class="btn active" data-mode="add">Addition</button>
             <button class="btn" data-mode="mul">Multiplication</button>
+            <button class="pause-btn" id="clockPause">Pause</button>
         </div>
         <div class="slider-row">
             <span class="math-line muted">modulus n =</span>
@@ -108,6 +111,24 @@
         <div style="color:#808098;font-size:0.82em;margin-bottom:10px">Click two numbers on the clock to compute. First click selects <span style="color:#60a5fa">a</span>, second selects <span style="color:#fbbf24">b</span>.</div>
         <canvas id="clockCanvas" width="450" height="450" style="margin:0 auto"></canvas>
         <div class="math-line" id="clockResult" style="text-align:center;margin-top:12px;font-size:1.05em">&nbsp;</div>
+    </div>
+
+    <!-- Section 1b: Remainder Visualisation -->
+    <h2>Remainder Visualisation</h2>
+    <div class="panel">
+        <div class="slider-row">
+            <span class="math-line muted">dividend =</span>
+            <input type="range" id="remDividend" min="1" max="30" value="17">
+            <span class="slider-label" id="remDividendLabel">17</span>
+        </div>
+        <div class="slider-row">
+            <span class="math-line muted">divisor =</span>
+            <input type="range" id="remDivisor" min="2" max="12" value="5">
+            <span class="slider-label" id="remDivisorLabel">5</span>
+            <button class="pause-btn" id="remPause">Pause</button>
+        </div>
+        <canvas id="remCanvas" width="700" height="160" style="margin:0 auto"></canvas>
+        <div class="math-line" id="remResult" style="text-align:center;margin-top:10px"></div>
     </div>
 
     <!-- Section 2: Operation Tables -->
@@ -215,18 +236,47 @@
    MODULAR ARITHMETIC — Interactive Education Page
    ============================================================ */
 
+/* ── HiDPI Canvas Scaling ── */
+const DPR = window.devicePixelRatio || 1;
+function hiDPI(cvs, w, h) {
+    cvs.width = w * DPR;
+    cvs.height = h * DPR;
+    cvs.style.width = w + 'px';
+    cvs.style.height = h + 'px';
+    const ctx = cvs.getContext('2d');
+    ctx.scale(DPR, DPR);
+    return ctx;
+}
+
 /* ── Global State ── */
 let modN = 7;
 let clockMode = 'add'; // 'add' or 'mul'
 let clockA = null;      // first selected number
 let clockB = null;      // second selected number
-let clockAnim = null;   // animation state
 
 const GOLD = '#fbbf24';
 const BLUE = '#60a5fa';
 const GREEN = '#2ecc71';
+const MAGENTA = '#e879f9';
+const CORAL = '#fb7185';
+const CYAN = '#22d3ee';
 const MUTED = '#808098';
 const BG = '#0a0a1a';
+
+/* ── Animation State ── */
+let clockAnimT = 0;       // 0..1 sweep progress
+let clockAnimating = false;
+let clockPaused = false;
+let clockHandAngle = -Math.PI / 2; // idle sweep angle
+let clockIdleRAF = null;
+
+let remAnimT = 0;
+let remAnimating = false;
+let remPaused = false;
+let remCurrentJump = 0;
+
+let tableAnimT = 0;       // 0..1 wave reveal progress
+let tableAnimating = false;
 
 /* ── Math Helpers ── */
 function mod(a, n) { return ((a % n) + n) % n; }
@@ -263,8 +313,6 @@ function isPrime(n) {
 }
 
 function extendedGCD(a, b) {
-    // Returns [gcd, x, y] such that a*x + b*y = gcd
-    // Also returns steps for display
     const steps = [];
     let old_r = a, r = b;
     let old_s = 1, s = 0;
@@ -296,10 +344,12 @@ function powerCycle(base, n) {
     return values;
 }
 
+function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
 /* ── Clock Canvas ── */
 const clockCvs = document.getElementById('clockCanvas');
-const clockCtx = clockCvs.getContext('2d');
-const CW = clockCvs.width, CH = clockCvs.height;
+const CW = 450, CH = 450;
+const clockCtx = hiDPI(clockCvs, CW, CH);
 const clockCX = CW / 2, clockCY = CH / 2;
 const clockR = 170;
 
@@ -308,18 +358,23 @@ function clockPos(k, n, radius) {
     return { x: clockCX + radius * Math.cos(angle), y: clockCY + radius * Math.sin(angle), angle: angle };
 }
 
-function drawClock() {
+/* ── Animated Clock Drawing ── */
+function drawClock(timestamp) {
     const ctx = clockCtx;
     ctx.clearRect(0, 0, CW, CH);
     ctx.fillStyle = BG;
     ctx.fillRect(0, 0, CW, CH);
 
-    // Circle outline
+    // Outer circle with subtle glow
+    ctx.save();
+    ctx.shadowColor = 'rgba(251,191,36,0.08)';
+    ctx.shadowBlur = 20;
     ctx.beginPath();
     ctx.arc(clockCX, clockCY, clockR, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.1)';
     ctx.lineWidth = 1.5;
     ctx.stroke();
+    ctx.restore();
 
     // Inner circle
     ctx.beginPath();
@@ -328,66 +383,76 @@ function drawClock() {
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Draw connecting lines from center (subtle)
+    // Tick marks
     for (let k = 0; k < modN; k++) {
         const p = clockPos(k, modN, clockR);
         ctx.beginPath();
-        ctx.moveTo(clockCX, clockCY);
-        ctx.lineTo(p.x, p.y);
-        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-        ctx.lineWidth = 1;
+        ctx.moveTo(clockCX + (clockR - 5) * Math.cos(p.angle), clockCY + (clockR - 5) * Math.sin(p.angle));
+        ctx.lineTo(clockCX + (clockR + 5) * Math.cos(p.angle), clockCY + (clockR + 5) * Math.sin(p.angle));
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 2;
         ctx.stroke();
     }
 
-    // Compute result for animation/display
+    // Compute result
     let result = null;
     if (clockA !== null && clockB !== null) {
-        if (clockMode === 'add') {
-            result = mod(clockA + clockB, modN);
-        } else {
-            result = mod(clockA * clockB, modN);
-        }
+        result = clockMode === 'add' ? mod(clockA + clockB, modN) : mod(clockA * clockB, modN);
     }
 
-    // Draw animation arc if both selected
-    if (clockA !== null && clockB !== null && !clockAnim) {
-        drawClockArc(clockA, clockB, result);
+    // Animated arc sweep
+    if (clockA !== null && clockB !== null) {
+        drawAnimatedArc(ctx, clockA, clockB, result, clockAnimT);
     }
 
-    // Draw number positions
+    // Sweeping hand (idle or pointing to result)
+    drawClockHand(ctx, timestamp, result);
+
+    // Number positions with cycling glow
+    const time = timestamp || 0;
     for (let k = 0; k < modN; k++) {
         const p = clockPos(k, modN, clockR);
         let dotR = 18;
         let fillColor = 'rgba(255,255,255,0.06)';
         let textColor = '#808098';
         let borderColor = 'rgba(255,255,255,0.1)';
+        let glowStrength = 0;
+
+        // Idle cycling glow: numbers light up in sequence
+        if (clockA === null && clockB === null) {
+            const phase = (time / 1200 + k / modN) % 1;
+            const pulse = Math.max(0, Math.sin(phase * Math.PI * 2) * 0.5 + 0.1);
+            fillColor = 'rgba(251,191,36,' + (0.02 + pulse * 0.08) + ')';
+            borderColor = 'rgba(251,191,36,' + (0.1 + pulse * 0.3) + ')';
+            textColor = 'rgba(251,191,36,' + (0.4 + pulse * 0.6) + ')';
+        }
 
         if (k === clockA) {
             fillColor = 'rgba(96,165,250,0.2)';
             textColor = BLUE;
             borderColor = 'rgba(96,165,250,0.5)';
+            glowStrength = 12;
         }
         if (k === clockB) {
             fillColor = 'rgba(251,191,36,0.15)';
             textColor = GOLD;
             borderColor = 'rgba(251,191,36,0.5)';
+            glowStrength = 12;
         }
-        if (result !== null && k === result) {
-            fillColor = 'rgba(46,204,113,0.15)';
+        if (result !== null && k === result && clockAnimT >= 1) {
+            const pulse = 0.5 + 0.5 * Math.sin(time / 300);
+            fillColor = 'rgba(46,204,113,' + (0.1 + pulse * 0.1) + ')';
             textColor = GREEN;
-            borderColor = 'rgba(46,204,113,0.6)';
-            // Glow
-            ctx.save();
-            ctx.shadowColor = GREEN;
-            ctx.shadowBlur = 16;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, dotR + 2, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(46,204,113,0.08)';
-            ctx.fill();
-            ctx.restore();
+            borderColor = 'rgba(46,204,113,' + (0.4 + pulse * 0.3) + ')';
+            glowStrength = 10 + pulse * 10;
         }
 
-        // Dot background
+        if (glowStrength > 0) {
+            ctx.save();
+            ctx.shadowColor = borderColor;
+            ctx.shadowBlur = glowStrength;
+        }
+
         ctx.beginPath();
         ctx.arc(p.x, p.y, dotR, 0, Math.PI * 2);
         ctx.fillStyle = fillColor;
@@ -396,7 +461,8 @@ function drawClock() {
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
-        // Number text
+        if (glowStrength > 0) ctx.restore();
+
         ctx.font = '15px Georgia';
         ctx.fillStyle = textColor;
         ctx.textAlign = 'center';
@@ -404,80 +470,135 @@ function drawClock() {
         ctx.fillText(k, p.x, p.y);
     }
 
-    // Center label
+    // Centre label
     ctx.font = '11px Georgia';
     ctx.fillStyle = MUTED;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('mod ' + modN, clockCX, clockCY);
 
-    // Update result text
     updateClockResult(result);
 }
 
-function drawClockArc(a, b, result) {
-    const ctx = clockCtx;
-    if (clockMode === 'add') {
-        // Arc from position a, sweep b steps clockwise
-        if (b === 0) return;
-        const startAngle = 2 * Math.PI * a / modN - Math.PI / 2;
-        const endAngle = 2 * Math.PI * result / modN - Math.PI / 2;
-        const arcR = clockR - 40;
+function drawClockHand(ctx, timestamp, result) {
+    const time = timestamp || 0;
+    let angle;
+    if (clockA !== null && clockB !== null && result !== null && clockAnimT >= 1) {
+        // Point to result
+        angle = 2 * Math.PI * result / modN - Math.PI / 2;
+    } else if (clockA !== null && clockB === null) {
+        angle = 2 * Math.PI * clockA / modN - Math.PI / 2;
+    } else {
+        // Idle: slow sweep
+        angle = (time / 4000) * Math.PI * 2 - Math.PI / 2;
+    }
 
-        // Draw stepping arcs
-        ctx.strokeStyle = 'rgba(251,191,36,0.4)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([4, 3]);
-        for (let step = 0; step < b; step++) {
+    const handLen = clockR - 50;
+    const hx = clockCX + handLen * Math.cos(angle);
+    const hy = clockCY + handLen * Math.sin(angle);
+
+    // Glowing hand
+    ctx.save();
+    ctx.shadowColor = GOLD;
+    ctx.shadowBlur = 15;
+    ctx.strokeStyle = 'rgba(251,191,36,0.6)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(clockCX, clockCY);
+    ctx.lineTo(hx, hy);
+    ctx.stroke();
+
+    // Hand tip dot
+    ctx.beginPath();
+    ctx.arc(hx, hy, 4, 0, Math.PI * 2);
+    ctx.fillStyle = GOLD;
+    ctx.fill();
+    ctx.restore();
+
+    // Centre hub
+    ctx.beginPath();
+    ctx.arc(clockCX, clockCY, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(251,191,36,0.4)';
+    ctx.fill();
+}
+
+function drawAnimatedArc(ctx, a, b, result, t) {
+    if (t <= 0) return;
+    const et = easeInOut(Math.min(t, 1));
+
+    if (clockMode === 'add') {
+        if (b === 0) return;
+        const arcR = clockR - 42;
+        const stepsToShow = Math.floor(et * b);
+        const partialStep = (et * b) - stepsToShow;
+
+        for (let step = 0; step <= stepsToShow && step < b; step++) {
             const fromK = mod(a + step, modN);
             const toK = mod(a + step + 1, modN);
             const fromAngle = 2 * Math.PI * fromK / modN - Math.PI / 2;
-            const toAngle = 2 * Math.PI * toK / modN - Math.PI / 2;
-            let sweepEnd = toAngle;
-            if (sweepEnd <= fromAngle) sweepEnd += 2 * Math.PI;
-            ctx.beginPath();
-            ctx.arc(clockCX, clockCY, arcR - step * 2, fromAngle, sweepEnd);
-            ctx.stroke();
-        }
-        ctx.setLineDash([]);
+            let toAngle = 2 * Math.PI * toK / modN - Math.PI / 2;
+            if (toAngle <= fromAngle) toAngle += 2 * Math.PI;
 
-        // Arrow at final position
-        const finalAngle = 2 * Math.PI * result / modN - Math.PI / 2;
-        const fp = { x: clockCX + (arcR - (b - 1) * 2) * Math.cos(finalAngle), y: clockCY + (arcR - (b - 1) * 2) * Math.sin(finalAngle) };
-        const tangent = finalAngle + Math.PI / 2;
-        ctx.fillStyle = GOLD;
-        ctx.beginPath();
-        ctx.moveTo(fp.x, fp.y);
-        ctx.lineTo(fp.x - 8 * Math.cos(tangent - 0.4), fp.y - 8 * Math.sin(tangent - 0.4));
-        ctx.lineTo(fp.x - 8 * Math.cos(tangent + 0.4), fp.y - 8 * Math.sin(tangent + 0.4));
-        ctx.closePath();
-        ctx.fill();
+            const progress = step < stepsToShow ? 1 : partialStep;
+            const drawTo = fromAngle + (toAngle - fromAngle) * progress;
+            const alpha = 0.3 + 0.4 * (step / b);
+            const hue = 40 + step * (280 / b);
+
+            ctx.strokeStyle = 'hsla(' + hue + ',80%,60%,' + alpha + ')';
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.arc(clockCX, clockCY, arcR - step * 1.5, fromAngle, drawTo);
+            ctx.stroke();
+
+            // Dot at arc end
+            if (progress >= 1 && step < b - 1) {
+                const dp = clockPos(toK, modN, arcR - step * 1.5);
+                ctx.beginPath();
+                ctx.arc(dp.x, dp.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = 'hsla(' + hue + ',80%,60%,0.6)';
+                ctx.fill();
+            }
+        }
     } else {
-        // Multiplication: show b hops of size a from 0
         if (b === 0 || a === 0) return;
-        const arcR = clockR - 40;
-        ctx.strokeStyle = 'rgba(251,191,36,0.35)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([4, 3]);
-        for (let step = 0; step < b; step++) {
+        const arcR = clockR - 42;
+        const stepsToShow = Math.floor(et * b);
+        const partialStep = (et * b) - stepsToShow;
+
+        for (let step = 0; step <= stepsToShow && step < b; step++) {
             const fromK = mod(a * step, modN);
             const toK = mod(a * (step + 1), modN);
             const fromAngle = 2 * Math.PI * fromK / modN - Math.PI / 2;
             let toAngle = 2 * Math.PI * toK / modN - Math.PI / 2;
             if (toAngle <= fromAngle) toAngle += 2 * Math.PI;
+
+            const progress = step < stepsToShow ? 1 : partialStep;
+            const drawTo = fromAngle + (toAngle - fromAngle) * progress;
+            const hue = 280 + step * (80 / b);
+
+            ctx.strokeStyle = 'hsla(' + hue + ',70%,60%,0.4)';
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([]);
             ctx.beginPath();
-            ctx.arc(clockCX, clockCY, arcR - step * 2, fromAngle, toAngle);
+            ctx.arc(clockCX, clockCY, arcR - step * 1.5, fromAngle, drawTo);
             ctx.stroke();
 
-            // Small dot at intermediate position
-            const midP = clockPos(toK, modN, arcR - step * 2);
-            ctx.fillStyle = 'rgba(251,191,36,0.3)';
-            ctx.beginPath();
-            ctx.arc(midP.x, midP.y, 3, 0, Math.PI * 2);
-            ctx.fill();
+            if (progress >= 1) {
+                const dp = clockPos(toK, modN, arcR - step * 1.5);
+                ctx.beginPath();
+                ctx.arc(dp.x, dp.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = 'hsla(' + hue + ',70%,60%,0.6)';
+                ctx.fill();
+            }
         }
-        ctx.setLineDash([]);
     }
+}
+
+function startClockAnim() {
+    clockAnimT = 0;
+    clockAnimating = true;
 }
 
 function updateClockResult(result) {
@@ -502,7 +623,6 @@ function handleClockClick(e) {
     const mx = (e.clientX - rect.left) * scaleX;
     const my = (e.clientY - rect.top) * scaleY;
 
-    // Find closest number
     let closest = -1;
     let minDist = Infinity;
     for (let k = 0; k < modN; k++) {
@@ -520,12 +640,13 @@ function handleClockClick(e) {
         clockA = closest;
     } else if (clockB === null) {
         clockB = closest;
+        startClockAnim();
     } else {
-        // Reset and start new selection
         clockA = closest;
         clockB = null;
+        clockAnimT = 0;
+        clockAnimating = false;
     }
-    drawClock();
 }
 
 clockCvs.addEventListener('click', handleClockClick);
@@ -545,19 +666,24 @@ clockCvs.addEventListener('touchend', function(e) {
     }
     if (closest < 0) return;
     if (clockA === null) { clockA = closest; }
-    else if (clockB === null) { clockB = closest; }
-    else { clockA = closest; clockB = null; }
-    drawClock();
+    else if (clockB === null) { clockB = closest; startClockAnim(); }
+    else { clockA = closest; clockB = null; clockAnimT = 0; clockAnimating = false; }
 });
 
 // Mode buttons
 document.getElementById('clockModeBtns').addEventListener('click', function(e) {
     if (!e.target.dataset.mode) return;
     clockMode = e.target.dataset.mode;
-    document.querySelectorAll('#clockModeBtns .btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#clockModeBtns .btn').forEach(function(b) { b.classList.remove('active'); });
     e.target.classList.add('active');
     clockA = null; clockB = null;
-    drawClock();
+    clockAnimT = 0; clockAnimating = false;
+});
+
+// Pause button
+document.getElementById('clockPause').addEventListener('click', function() {
+    clockPaused = !clockPaused;
+    this.textContent = clockPaused ? 'Play' : 'Pause';
 });
 
 // Modulus slider
@@ -566,13 +692,160 @@ modSlider.addEventListener('input', function() {
     modN = parseInt(this.value);
     document.getElementById('modLabel').textContent = modN;
     clockA = null; clockB = null;
+    clockAnimT = 0; clockAnimating = false;
     updateBaseSlider();
     updateInvSlider();
-    drawClock();
     buildTables();
     drawPowers();
     updateGCDPanel();
 });
+
+/* ── Section 1b: Remainder Number-Line ── */
+const remCvs = document.getElementById('remCanvas');
+const RW = 700, RH = 160;
+const remCtx = hiDPI(remCvs, RW, RH);
+
+function startRemAnim() {
+    remAnimT = 0;
+    remCurrentJump = 0;
+    remAnimating = true;
+}
+
+document.getElementById('remDividend').addEventListener('input', function() {
+    document.getElementById('remDividendLabel').textContent = this.value;
+    startRemAnim();
+});
+document.getElementById('remDivisor').addEventListener('input', function() {
+    document.getElementById('remDivisorLabel').textContent = this.value;
+    startRemAnim();
+});
+document.getElementById('remPause').addEventListener('click', function() {
+    remPaused = !remPaused;
+    this.textContent = remPaused ? 'Play' : 'Pause';
+});
+
+function drawRemainder(timestamp) {
+    const ctx = remCtx;
+    const dividend = parseInt(document.getElementById('remDividend').value);
+    const divisor = parseInt(document.getElementById('remDivisor').value);
+    const quotient = Math.floor(dividend / divisor);
+    const remainder = dividend % divisor;
+
+    ctx.clearRect(0, 0, RW, RH);
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, RW, RH);
+
+    const margin = 50;
+    const lineY = 90;
+    const lineW = RW - margin * 2;
+    const maxVal = dividend + 2;
+    const scale = lineW / maxVal;
+
+    // Number line
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(margin, lineY);
+    ctx.lineTo(margin + lineW, lineY);
+    ctx.stroke();
+
+    // Tick marks
+    for (let i = 0; i <= dividend; i++) {
+        const x = margin + i * scale;
+        const isMajor = i % divisor === 0;
+        ctx.beginPath();
+        ctx.moveTo(x, lineY - (isMajor ? 10 : 5));
+        ctx.lineTo(x, lineY + (isMajor ? 10 : 5));
+        ctx.strokeStyle = isMajor ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = isMajor ? 2 : 1;
+        ctx.stroke();
+
+        if (isMajor || i === dividend) {
+            ctx.font = '11px "Courier New", monospace';
+            ctx.fillStyle = isMajor ? GOLD : MUTED;
+            ctx.textAlign = 'center';
+            ctx.fillText(i, x, lineY + 24);
+        }
+    }
+
+    // Animated jumps
+    const totalJumps = quotient;
+    const jumpDuration = 0.8 / Math.max(totalJumps, 1);
+    const jumpsToShow = Math.min(Math.floor(remAnimT / jumpDuration), totalJumps);
+    const partialJump = (remAnimT / jumpDuration) - jumpsToShow;
+
+    for (let j = 0; j <= jumpsToShow && j < totalJumps; j++) {
+        const startX = margin + j * divisor * scale;
+        const endX = margin + (j + 1) * divisor * scale;
+        const midX = (startX + endX) / 2;
+        const arcHeight = 35 + Math.min(divisor * 2, 20);
+
+        const progress = j < jumpsToShow ? 1 : easeInOut(Math.min(partialJump, 1));
+        const hue = 200 + j * (160 / Math.max(totalJumps, 1));
+
+        ctx.strokeStyle = 'hsla(' + hue + ',70%,60%,' + (0.5 + progress * 0.3) + ')';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        // Draw arc as quadratic bezier
+        const steps = 30;
+        for (let s = 0; s <= steps * progress; s++) {
+            const t = s / steps;
+            const px = startX + (endX - startX) * t;
+            const py = lineY - arcHeight * 4 * t * (1 - t);
+            if (s === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // Jump label
+        if (progress >= 1) {
+            ctx.font = '10px Georgia';
+            ctx.fillStyle = 'hsla(' + hue + ',70%,70%,0.8)';
+            ctx.textAlign = 'center';
+            ctx.fillText('\u00D7' + (j + 1), midX, lineY - arcHeight - 4);
+        }
+    }
+
+    // Remainder glow
+    const remShowT = remAnimT - (totalJumps * jumpDuration);
+    if (remShowT > 0 && remainder > 0) {
+        const remStartX = margin + quotient * divisor * scale;
+        const remEndX = margin + dividend * scale;
+        const pulse = 0.5 + 0.5 * Math.sin((timestamp || 0) / 250);
+
+        ctx.save();
+        ctx.shadowColor = GREEN;
+        ctx.shadowBlur = 10 + pulse * 10;
+        ctx.strokeStyle = 'rgba(46,204,113,' + (0.5 + pulse * 0.3) + ')';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(remStartX, lineY);
+        ctx.lineTo(remEndX, lineY);
+        ctx.stroke();
+        ctx.restore();
+
+        // Remainder bracket
+        ctx.font = '13px Georgia';
+        ctx.fillStyle = GREEN;
+        ctx.textAlign = 'center';
+        ctx.fillText('remainder = ' + remainder, (remStartX + remEndX) / 2, lineY - 14);
+    }
+
+    // Result label
+    ctx.font = '12px Georgia';
+    ctx.fillStyle = MUTED;
+    ctx.textAlign = 'left';
+    ctx.fillText(dividend + ' \u00F7 ' + divisor + ' = ' + quotient + ' remainder ' + remainder, margin, 20);
+
+    // Update result text
+    const el = document.getElementById('remResult');
+    el.innerHTML = '<span class="gold">' + dividend + '</span> = ' +
+        '<span style="color:' + BLUE + '">' + divisor + '</span> \u00D7 ' +
+        '<span style="color:' + CYAN + '">' + quotient + '</span> + ' +
+        '<span style="color:' + GREEN + '">' + remainder + '</span>' +
+        '  &rArr;  ' + dividend + ' mod ' + divisor + ' \u2261 <span style="color:' + GREEN + '">' + remainder + '</span>';
+}
 
 /* ── Section 2: Operation Tables ── */
 function cellColor(val, n) {
@@ -583,6 +856,8 @@ function cellColor(val, n) {
 function buildTables() {
     document.getElementById('addTableN').textContent = modN;
     document.getElementById('mulTableN').textContent = modN;
+    tableAnimT = 0;
+    tableAnimating = true;
     buildTable('addTableWrap', 'add');
     buildTable('mulTableWrap', 'mul');
 }
@@ -596,8 +871,7 @@ function buildTable(wrapperId, op) {
         html += '<tr><th>' + i + '</th>';
         for (let j = 0; j < modN; j++) {
             const val = op === 'add' ? mod(i + j, modN) : mod(i * j, modN);
-            const bg = cellColor(val, modN);
-            html += '<td data-i="' + i + '" data-j="' + j + '" data-val="' + val + '" data-op="' + op + '" style="background:' + bg + ';color:#d0d0e0">' + val + '</td>';
+            html += '<td data-i="' + i + '" data-j="' + j + '" data-val="' + val + '" data-op="' + op + '" style="color:#d0d0e0;opacity:0">' + val + '</td>';
         }
         html += '</tr>';
     }
@@ -611,21 +885,21 @@ function buildTable(wrapperId, op) {
         if (!td) return;
         const ri = parseInt(td.dataset.i);
         const ci = parseInt(td.dataset.j);
-        table.querySelectorAll('td, th').forEach(c => {
+        table.querySelectorAll('td, th').forEach(function(c) {
             c.classList.remove('highlight-row', 'highlight-col', 'highlight-cell');
         });
-        table.querySelectorAll('tr').forEach((row, rowIdx) => {
+        table.querySelectorAll('tr').forEach(function(row, rowIdx) {
             if (rowIdx === ri + 1) {
-                row.querySelectorAll('td, th').forEach(c => c.classList.add('highlight-row'));
+                row.querySelectorAll('td, th').forEach(function(c) { c.classList.add('highlight-row'); });
             }
-            row.querySelectorAll('td, th').forEach((c, colIdx) => {
+            row.querySelectorAll('td, th').forEach(function(c, colIdx) {
                 if (colIdx === ci + 1) c.classList.add('highlight-col');
             });
         });
         td.classList.add('highlight-cell');
     });
     table.addEventListener('mouseleave', function() {
-        table.querySelectorAll('td, th').forEach(c => {
+        table.querySelectorAll('td, th').forEach(function(c) {
             c.classList.remove('highlight-row', 'highlight-col', 'highlight-cell');
         });
     });
@@ -637,18 +911,55 @@ function buildTable(wrapperId, op) {
         clockA = parseInt(td.dataset.i);
         clockB = parseInt(td.dataset.j);
         clockMode = td.dataset.op;
-        document.querySelectorAll('#clockModeBtns .btn').forEach(b => {
+        document.querySelectorAll('#clockModeBtns .btn').forEach(function(b) {
             b.classList.toggle('active', b.dataset.mode === clockMode);
         });
-        drawClock();
+        startClockAnim();
         clockCvs.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
 }
 
+function animateTables(timestamp) {
+    if (!tableAnimating) return;
+    const t = easeInOut(Math.min(tableAnimT, 1));
+    const totalCells = modN * modN;
+    const cellsToShow = Math.floor(t * totalCells * 1.2); // overshoot for completion
+
+    ['addTableWrap', 'mulTableWrap'].forEach(function(wid) {
+        const wrap = document.getElementById(wid);
+        const cells = wrap.querySelectorAll('td[data-i]');
+        cells.forEach(function(td) {
+            const i = parseInt(td.dataset.i);
+            const j = parseInt(td.dataset.j);
+            const val = parseInt(td.dataset.val);
+            // Wave pattern: cells appear diagonally
+            const cellIdx = i + j;
+            const maxDiag = (modN - 1) * 2;
+            const threshold = cellsToShow / totalCells * maxDiag;
+
+            if (cellIdx <= threshold) {
+                const bg = cellColor(val, modN);
+                td.style.background = bg;
+                td.style.opacity = '1';
+
+                // Pulse congruent values
+                const time = timestamp || 0;
+                const pulsePhase = (time / 800 + val / modN) % 1;
+                const pulse = Math.sin(pulsePhase * Math.PI * 2) * 0.15;
+                if (pulse > 0 && tableAnimT >= 1) {
+                    td.style.background = cellColor(val, modN).replace('0.35', (0.35 + pulse).toFixed(2));
+                }
+            }
+        });
+    });
+
+    if (tableAnimT >= 1) tableAnimating = false;
+}
+
 /* ── Section 3: Powers & Patterns ── */
 const powCvs = document.getElementById('powersCanvas');
-const powCtx = powCvs.getContext('2d');
-const PW = powCvs.width, PH = powCvs.height;
+const PW = 500, PH = 300;
+const powCtx = hiDPI(powCvs, PW, PH);
 
 function updateBaseSlider() {
     const slider = document.getElementById('baseSlider');
@@ -702,7 +1013,6 @@ function drawPowers() {
     }
 
     // Draw arrows connecting consecutive powers
-    const fullPath = [1].concat(cycle.slice(0, -1)); // positions: 1, a, a^2, ..., before wrapping back
     for (let i = 0; i < cycle.length; i++) {
         const fromK = i === 0 ? 1 : cycle[i - 1];
         const toK = cycle[i];
@@ -716,9 +1026,6 @@ function drawPowers() {
         const tx = cx + fr * Math.cos(toAngle);
         const ty = cy + fr * Math.sin(toAngle);
 
-        // Use a curved arrow (quadratic bezier through center-ish)
-        const midAngle = (fromAngle + toAngle) / 2;
-        // Handle wrapping
         let angleDiff = toAngle - fromAngle;
         if (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
         if (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
@@ -808,7 +1115,7 @@ function drawPowers() {
 
     if (cycle[cycle.length - 1] === 1 && gcd(base, modN) === 1) {
         infoEl.innerHTML = '<span class="gold">Cycle: ' +
-            cycle.map((v, i) => base + '<sup>' + (i + 1) + '</sup>\u2261' + v).join(', ') +
+            cycle.map(function(v, i) { return base + '<sup>' + (i + 1) + '</sup>\u2261' + v; }).join(', ') +
             ' &mdash; repeats with period ' + cycleLen + '</span>';
         eulerEl.innerHTML = '\u03C6(' + modN + ') = ' + phi +
             (cycleLen <= phi ? ' and ' + cycleLen + ' divides ' + phi + ' \u2714 (Euler\'s theorem)' : '');
@@ -1000,17 +1307,60 @@ document.getElementById('daySlider').addEventListener('input', updateDayResult);
 renderDayBtns();
 updateDayResult();
 
-/* ── Initial draw ── */
+/* ── Master Animation Loop ── */
+let lastTime = 0;
+
+function mainLoop(timestamp) {
+    const dt = Math.min(timestamp - lastTime, 50) / 1000; // cap at 50ms
+    lastTime = timestamp;
+
+    // Clock animation
+    if (!clockPaused) {
+        if (clockAnimating) {
+            clockAnimT += dt * 1.2;
+            if (clockAnimT >= 1) {
+                clockAnimT = 1;
+                clockAnimating = false;
+            }
+        }
+        drawClock(timestamp);
+    }
+
+    // Remainder animation
+    if (!remPaused) {
+        if (remAnimating) {
+            remAnimT += dt * 0.8;
+            if (remAnimT >= 1.5) {
+                remAnimating = false;
+            }
+        }
+        drawRemainder(timestamp);
+    }
+
+    // Table wave animation
+    if (tableAnimating) {
+        tableAnimT += dt * 0.8;
+        if (tableAnimT > 1) tableAnimT = 1;
+    }
+    animateTables(timestamp);
+
+    requestAnimationFrame(mainLoop);
+}
+
+/* ── Initial Setup ── */
 updateBaseSlider();
 updateInvSlider();
-drawClock();
 buildTables();
 drawPowers();
 updateGCDPanel();
+startRemAnim();
 
 // Trigger ISBN default
 document.getElementById('isbnInput').value = '978030640615';
 document.getElementById('isbnInput').dispatchEvent(new Event('input'));
+
+// Start animation loop
+requestAnimationFrame(mainLoop);
 </script>
 <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
     <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>

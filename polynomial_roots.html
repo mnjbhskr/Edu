@@ -70,6 +70,10 @@
         .toggle-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.85em;transition:all 0.2s}
         .toggle-btn.on{background:rgba(96,165,250,0.13);border-color:rgba(96,165,250,0.4);color:#60a5fa}
 
+        .anim-btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.85em;transition:all 0.2s}
+        .anim-btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .anim-btn.on{background:rgba(167,139,250,0.15);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+
         .formula{font-size:1.05em;line-height:1.8;font-family:'Courier New',monospace;color:#c8c8d8}
         .root-color{color:#fbbf24}
         .coeff-color{color:#60a5fa}
@@ -102,7 +106,7 @@
 </nav><h1>Polynomial Roots &amp; Factoring</h1>
     <p class="subtitle">Vieta's formulas and root-coefficient relationships</p>
 
-    <canvas id="graph" width="700" height="400"></canvas>
+    <canvas id="graph"></canvas>
 
     <div class="controls-row">
         <div class="ctrl-group">
@@ -110,6 +114,8 @@
             <select id="degSel"><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select>
         </div>
         <button class="toggle-btn" id="complexToggle">Allow Complex Roots</button>
+        <button class="anim-btn" id="newtonToggle">Newton's Method</button>
+        <button class="anim-btn" id="pauseBtn">Pause</button>
         <div class="ctrl-group" id="complexInfo" style="display:none">
             <span class="ctrl-label" style="color:#60a5fa;font-style:italic">Complex pair replaces last two real roots</span>
         </div>
@@ -140,10 +146,41 @@
 </div>
 
 <script>
-const cvs=document.getElementById("graph"),ctx=cvs.getContext("2d"),W=cvs.width,H=cvs.height;
+const cvs=document.getElementById("graph"),ctx=cvs.getContext("2d");
+
+/* HiDPI setup */
+const dpr=window.devicePixelRatio||1;
+function sizeCanvas(){
+    const rect=cvs.parentElement.getBoundingClientRect();
+    const w=Math.min(960,rect.width-56);
+    cvs.style.width=w+"px";cvs.style.height=Math.round(w*0.57)+"px";
+    cvs.width=Math.round(w*dpr);cvs.height=Math.round(w*0.57*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+sizeCanvas();
+window.addEventListener("resize",()=>{sizeCanvas();update();});
+function W(){return cvs.width/dpr;}
+function H(){return cvs.height/dpr;}
+
+/* Colours */
+const COL={
+    rose:"#f43f5e",roseGlow:"rgba(244,63,94,0.5)",
+    gold:"#fbbf24",goldGlow:"rgba(251,191,36,0.45)",
+    cyan:"#22d3ee",cyanGlow:"rgba(34,211,238,0.4)",
+    violet:"#a78bfa",violetGlow:"rgba(167,139,250,0.45)",
+    bg:"#0a0a1a"
+};
 
 let degree=3, roots=[-2,0,3], complexOn=false, complexA=0, complexB=1;
 let dragging=-1, activePreset=-1, insightMode="default";
+
+/* Animation state */
+let paused=false, animTime=0, lastTs=0, rafId=0;
+let curveProgress=0; /* 0-1 for curve drawing anim */
+let prevCoeffs=null, targetCoeffs=null, morphT=1; /* coefficient morphing */
+let newtonOn=false, newtonX=null, newtonIter=[], newtonAnimT=0, newtonStep=0;
+let complexPlaneAlpha=[]; /* per-root fade-in */
+let rootPulse=[]; /* per-root glow phase */
 
 const presets=[
     {label:"x\u00B2 \u2212 1",deg:2,roots:[-1,1],cx:false},
@@ -153,8 +190,9 @@ const presets=[
     {label:"x\u00B2 + 1",deg:2,roots:[],cx:true,ca:0,cb:1,forceDeg:2},
 ];
 
-function init(){renderPresets();setDegree(degree);update();}
+function init(){renderPresets();setDegree(degree);triggerCurveAnim();startLoop();}
 
+/* ---------- Presets ---------- */
 function renderPresets(){
     const c=document.getElementById("presets");
     c.innerHTML=presets.map((p,i)=>"<button class='preset-btn"+(i===activePreset?" active":"")+"' data-i='"+i+"'>"+p.label+"</button>").join("");
@@ -167,7 +205,7 @@ function renderPresets(){
         complexOn=!!p.cx;
         if(p.cx){complexA=p.ca||0;complexB=p.cb||1;}
         document.getElementById("complexToggle").classList.toggle("on",complexOn);
-        syncComplexUI();update();renderPresets();
+        syncComplexUI();triggerMorph();triggerCurveAnim();renderPresets();
     }));
 }
 
@@ -181,14 +219,31 @@ function setDegree(d){
 document.getElementById("degSel").addEventListener("change",e=>{
     degree=+e.target.value;
     if(complexOn&&degree<2){complexOn=false;document.getElementById("complexToggle").classList.remove("on");}
-    setDegree(degree);activePreset=-1;syncComplexUI();update();renderPresets();
+    setDegree(degree);activePreset=-1;syncComplexUI();triggerMorph();triggerCurveAnim();renderPresets();
 });
 
 document.getElementById("complexToggle").addEventListener("click",()=>{
     if(degree<2)return;
     complexOn=!complexOn;
     document.getElementById("complexToggle").classList.toggle("on",complexOn);
-    setDegree(degree);activePreset=-1;syncComplexUI();update();renderPresets();
+    setDegree(degree);activePreset=-1;syncComplexUI();triggerMorph();triggerCurveAnim();renderPresets();
+});
+
+/* Newton toggle */
+document.getElementById("newtonToggle").addEventListener("click",()=>{
+    newtonOn=!newtonOn;
+    document.getElementById("newtonToggle").classList.toggle("on",newtonOn);
+    if(newtonOn){startNewton();}else{newtonIter=[];newtonStep=0;}
+    insightMode=newtonOn?"newton":"default";
+    update();
+});
+
+/* Pause/Play */
+document.getElementById("pauseBtn").addEventListener("click",()=>{
+    paused=!paused;
+    document.getElementById("pauseBtn").textContent=paused?"Play":"Pause";
+    document.getElementById("pauseBtn").classList.toggle("on",paused);
+    if(!paused){lastTs=0;rafId=requestAnimationFrame(loop);}
 });
 
 function syncComplexUI(){
@@ -201,8 +256,8 @@ function syncComplexUI(){
     updateCPairDisplay();
 }
 
-document.getElementById("cReal").addEventListener("input",e=>{complexA=+e.target.value;document.getElementById("cRealVal").textContent=fmtN(complexA);updateCPairDisplay();activePreset=-1;update();renderPresets();});
-document.getElementById("cImag").addEventListener("input",e=>{complexB=+e.target.value;document.getElementById("cImagVal").textContent=fmtN(complexB);updateCPairDisplay();activePreset=-1;update();renderPresets();});
+document.getElementById("cReal").addEventListener("input",e=>{complexA=+e.target.value;document.getElementById("cRealVal").textContent=fmtN(complexA);updateCPairDisplay();activePreset=-1;triggerMorph();renderPresets();});
+document.getElementById("cImag").addEventListener("input",e=>{complexB=+e.target.value;document.getElementById("cImagVal").textContent=fmtN(complexB);updateCPairDisplay();activePreset=-1;triggerMorph();renderPresets();});
 
 function updateCPairDisplay(){
     const s1=fmtN(complexA)+(complexB>=0?"+":"")+fmtN(complexB)+"i";
@@ -212,53 +267,42 @@ function updateCPairDisplay(){
 
 function fmtN(v){return Math.round(v*1000)/1000===Math.round(v)?v.toFixed(0):(Math.round(v*100)/100).toString();}
 
-/* Polynomial from roots: multiply coefficient arrays [1,-r] for each real root,
-   then [1, -2a, a^2+b^2] for complex pair */
+/* ---------- Polynomial maths ---------- */
 function getCoeffs(){
     let c=[1];
     for(const r of roots)c=polyMul(c,[1,-r]);
     if(complexOn)c=polyMul(c,[1,-2*complexA,complexA*complexA+complexB*complexB]);
     return c;
 }
-
 function polyMul(a,b){
     const r=new Array(a.length+b.length-1).fill(0);
     for(let i=0;i<a.length;i++)for(let j=0;j<b.length;j++)r[i+j]+=a[i]*b[j];
     return r;
 }
-
-function evalPoly(coeffs,x){
-    let v=0;for(let i=0;i<coeffs.length;i++)v=v*x+coeffs[i];return v;
+function evalPoly(coeffs,x){let v=0;for(let i=0;i<coeffs.length;i++)v=v*x+coeffs[i];return v;}
+function evalPolyDeriv(coeffs,x){
+    const n=coeffs.length-1;let v=0;
+    for(let i=0;i<n;i++)v=v*x+coeffs[i]*(n-i);
+    return v;
 }
 
-/* All roots (real + complex) for symmetric function computation */
 function allRoots(){
     const all=roots.map(r=>({re:r,im:0}));
     if(complexOn){all.push({re:complexA,im:complexB});all.push({re:complexA,im:-complexB});}
     return all;
 }
-
-/* Elementary symmetric polynomials e_k from all roots */
 function symFuncs(rts){
     const n=rts.length, e=[{re:1,im:0}];
     for(let k=1;k<=n;k++){
         let sum={re:0,im:0};
-        // Use coefficients: e_k = (-1)^k * a_{n-k} where coeffs[0]=1
-        // But compute directly for display
         const combos=kSubsets(rts,k);
-        for(const combo of combos){
-            let prod={re:1,im:0};
-            for(const r of combo)prod=cMul(prod,r);
-            sum=cAdd(sum,prod);
-        }
+        for(const combo of combos){let prod={re:1,im:0};for(const r of combo)prod=cMul(prod,r);sum=cAdd(sum,prod);}
         e.push(sum);
     }
     return e;
 }
-
 function cAdd(a,b){return{re:a.re+b.re,im:a.im+b.im};}
 function cMul(a,b){return{re:a.re*b.re-a.im*b.im,im:a.re*b.im+a.im*b.re};}
-
 function kSubsets(arr,k){
     if(k===0)return[[]];if(k>arr.length)return[];
     const res=[];
@@ -269,70 +313,135 @@ function kSubsets(arr,k){
     bt(0,[]);return res;
 }
 
-/* Drawing */
+/* ---------- Animation triggers ---------- */
+function triggerCurveAnim(){curveProgress=0;}
+function triggerMorph(){
+    const newC=getCoeffs();
+    if(targetCoeffs){
+        prevCoeffs=blendCoeffs(prevCoeffs||targetCoeffs,targetCoeffs,morphT);
+    }else{
+        prevCoeffs=newC;
+    }
+    targetCoeffs=newC;
+    morphT=0;
+}
+function blendCoeffs(a,b,t){
+    const maxLen=Math.max(a.length,b.length);
+    const out=[];
+    for(let i=0;i<maxLen;i++){
+        const av=i<a.length?a[i]:0;
+        const bv=i<b.length?b[i]:0;
+        out.push(av+(bv-av)*t);
+    }
+    return out;
+}
+function currentCoeffs(){
+    if(!prevCoeffs||!targetCoeffs||morphT>=1)return targetCoeffs||getCoeffs();
+    return blendCoeffs(prevCoeffs,targetCoeffs,easeInOut(morphT));
+}
+function easeInOut(t){return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;}
+
+/* ---------- Newton's method ---------- */
+function startNewton(){
+    const coeffs=currentCoeffs();
+    /* Pick a starting x away from the roots */
+    const allR=roots.length?roots:[0];
+    const xMax=Math.max(...allR.map(Math.abs))+2;
+    newtonX=xMax+1;
+    newtonIter=[];newtonAnimT=0;newtonStep=0;
+    runNewtonSteps(coeffs);
+}
+function runNewtonSteps(coeffs){
+    newtonIter=[];
+    let x=newtonX;
+    for(let i=0;i<8;i++){
+        const y=evalPoly(coeffs,x);
+        const dy=evalPolyDeriv(coeffs,x);
+        if(Math.abs(dy)<1e-12)break;
+        const xNext=x-y/dy;
+        newtonIter.push({x,y,xNext,yNext:0,slope:dy});
+        if(Math.abs(y)<1e-10)break;
+        x=xNext;
+    }
+}
+
+/* ---------- Main animation loop ---------- */
+function startLoop(){lastTs=0;rafId=requestAnimationFrame(loop);}
+function loop(ts){
+    if(paused)return;
+    const dt=lastTs?Math.min(ts-lastTs,50)/1000:0.016;
+    lastTs=ts;
+    animTime+=dt;
+
+    /* Advance curve drawing */
+    if(curveProgress<1)curveProgress=Math.min(1,curveProgress+dt*1.2);
+    /* Advance morph */
+    if(morphT<1)morphT=Math.min(1,morphT+dt*2.5);
+    /* Advance Newton anim */
+    if(newtonOn&&newtonIter.length)newtonAnimT+=dt*0.8;
+    /* Root pulse */
+    for(let i=0;i<roots.length;i++){
+        if(!rootPulse[i])rootPulse[i]=Math.random()*Math.PI*2;
+    }
+
+    update();
+    rafId=requestAnimationFrame(loop);
+}
+
+/* ---------- Update ---------- */
 function update(){
-    const coeffs=getCoeffs();
+    const coeffs=currentCoeffs();
     drawGraph(coeffs);
     drawFactored();
-    drawExpanded(coeffs);
-    drawVieta(coeffs);
-    drawVerify(coeffs);
+    drawExpanded(targetCoeffs||coeffs);
+    drawVieta(targetCoeffs||coeffs);
+    drawVerify(targetCoeffs||coeffs);
     drawInsight();
 }
 
+/* ---------- Drawing ---------- */
 function drawGraph(coeffs){
-    ctx.clearRect(0,0,W,H);
-    ctx.fillStyle="#0a0a1a";ctx.fillRect(0,0,W,H);
+    const w=W(),h=H();
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle=COL.bg;ctx.fillRect(0,0,w,h);
 
-    // Determine x range from roots
     const allR=roots.length?roots:[0];
     const xMin_r=Math.min(...allR),xMax_r=Math.max(...allR);
     const pad=Math.max(2,(xMax_r-xMin_r)*0.5);
     const xMin=Math.floor(xMin_r-pad),xMax=Math.ceil(xMax_r+pad);
 
-    // Sample y to determine y range
-    const samples=200;
-    let yVals=[];
-    for(let i=0;i<=samples;i++){
-        const x=xMin+(xMax-xMin)*i/samples;
-        yVals.push(evalPoly(coeffs,x));
-    }
-    // Clip extreme values for nice display
+    const samples=200;let yVals=[];
+    for(let i=0;i<=samples;i++){const x=xMin+(xMax-xMin)*i/samples;yVals.push(evalPoly(coeffs,x));}
     yVals.sort((a,b)=>a-b);
     const yLo=yVals[Math.floor(samples*0.02)],yHi=yVals[Math.floor(samples*0.98)];
     const yPad=Math.max(1,(yHi-yLo)*0.15);
     const yMin=Math.min(yLo-yPad,-1),yMax=Math.max(yHi+yPad,1);
 
-    const mx=40,my=30; // margins
-    const gw=W-2*mx,gh=H-2*my;
-
+    const mx=40,my=30,gw=w-2*mx,gh=h-2*my;
     function toSx(x){return mx+(x-xMin)/(xMax-xMin)*gw;}
     function toSy(y){return my+(yMax-y)/(yMax-yMin)*gh;}
 
-    // Grid
+    /* Grid */
     ctx.strokeStyle="rgba(255,255,255,0.04)";ctx.lineWidth=1;
     const xStep=niceStep(xMax-xMin,8),yStep=niceStep(yMax-yMin,6);
     ctx.font="11px Georgia";ctx.fillStyle="#606078";ctx.textAlign="center";ctx.textBaseline="top";
     for(let x=Math.ceil(xMin/xStep)*xStep;x<=xMax;x+=xStep){
-        const sx=toSx(x);
-        ctx.beginPath();ctx.moveTo(sx,my);ctx.lineTo(sx,my+gh);ctx.stroke();
+        const sx=toSx(x);ctx.beginPath();ctx.moveTo(sx,my);ctx.lineTo(sx,my+gh);ctx.stroke();
         ctx.fillText(fmtN(x),sx,my+gh+4);
     }
     ctx.textAlign="right";ctx.textBaseline="middle";
     for(let y=Math.ceil(yMin/yStep)*yStep;y<=yMax;y+=yStep){
-        const sy=toSy(y);
-        ctx.beginPath();ctx.moveTo(mx,sy);ctx.lineTo(mx+gw,sy);ctx.stroke();
+        const sy=toSy(y);ctx.beginPath();ctx.moveTo(mx,sy);ctx.lineTo(mx+gw,sy);ctx.stroke();
         ctx.fillText(fmtN(y),mx-6,sy);
     }
 
-    // Axes
+    /* Axes */
     ctx.strokeStyle="rgba(255,255,255,0.15)";ctx.lineWidth=1;
     if(yMin<=0&&yMax>=0){const sy=toSy(0);ctx.beginPath();ctx.moveTo(mx,sy);ctx.lineTo(mx+gw,sy);ctx.stroke();}
     if(xMin<=0&&xMax>=0){const sx=toSx(0);ctx.beginPath();ctx.moveTo(sx,my);ctx.lineTo(sx,my+gh);ctx.stroke();}
 
-    // Shaded regions and curve
+    /* Shading */
     const pts=500;
-    // Shading: p(x)>0 blue, p(x)<0 coral
     for(let i=0;i<pts;i++){
         const x0=xMin+(xMax-xMin)*i/pts,x1=xMin+(xMax-xMin)*(i+1)/pts;
         const y0=evalPoly(coeffs,x0),y1=evalPoly(coeffs,x1);
@@ -340,31 +449,44 @@ function drawGraph(coeffs){
         const sy0=toSy(Math.max(yMin,Math.min(yMax,y0)));
         const sy1=toSy(Math.max(yMin,Math.min(yMax,y1)));
         const syZero=toSy(0);
-        const clampedSyZero=Math.max(my,Math.min(my+gh,syZero));
-        if((y0>0&&y1>0)||(y0>=0&&y1>=0)){
-            ctx.fillStyle="rgba(96,165,250,0.06)";
-            ctx.beginPath();ctx.moveTo(sx0,clampedSyZero);ctx.lineTo(sx0,sy0);ctx.lineTo(sx1,sy1);ctx.lineTo(sx1,clampedSyZero);ctx.fill();
-        }else if((y0<0&&y1<0)||(y0<=0&&y1<=0)){
-            ctx.fillStyle="rgba(248,113,113,0.06)";
-            ctx.beginPath();ctx.moveTo(sx0,clampedSyZero);ctx.lineTo(sx0,sy0);ctx.lineTo(sx1,sy1);ctx.lineTo(sx1,clampedSyZero);ctx.fill();
+        const csyZ=Math.max(my,Math.min(my+gh,syZero));
+        if(y0>=0&&y1>=0){ctx.fillStyle="rgba(244,63,94,0.04)";ctx.beginPath();ctx.moveTo(sx0,csyZ);ctx.lineTo(sx0,sy0);ctx.lineTo(sx1,sy1);ctx.lineTo(sx1,csyZ);ctx.fill();}
+        else if(y0<=0&&y1<=0){ctx.fillStyle="rgba(34,211,238,0.04)";ctx.beginPath();ctx.moveTo(sx0,csyZ);ctx.lineTo(sx0,sy0);ctx.lineTo(sx1,sy1);ctx.lineTo(sx1,csyZ);ctx.fill();}
+    }
+
+    /* Curve with progressive drawing and glow */
+    const drawPts=Math.floor(pts*curveProgress);
+    if(drawPts>1){
+        /* Glow layer */
+        ctx.save();ctx.shadowColor=COL.roseGlow;ctx.shadowBlur=12;
+        ctx.strokeStyle=COL.rose;ctx.lineWidth=2.8;ctx.beginPath();
+        let started=false;
+        for(let i=0;i<=drawPts;i++){
+            const x=xMin+(xMax-xMin)*i/pts;
+            const y=evalPoly(coeffs,x);
+            const sx=toSx(x),sy=toSy(y);
+            if(sy<my-50||sy>my+gh+50){started=false;continue;}
+            if(!started){ctx.moveTo(sx,Math.max(my-2,Math.min(my+gh+2,sy)));started=true;}
+            else ctx.lineTo(sx,Math.max(my-2,Math.min(my+gh+2,sy)));
+        }
+        ctx.stroke();ctx.restore();
+
+        /* Tracer point at the drawing edge */
+        if(curveProgress<1){
+            const tx=xMin+(xMax-xMin)*drawPts/pts;
+            const ty=evalPoly(coeffs,tx);
+            const tsx=toSx(tx),tsy=toSy(ty);
+            if(tsy>=my-10&&tsy<=my+gh+10){
+                const glow=0.5+0.5*Math.sin(animTime*8);
+                ctx.save();ctx.shadowColor=COL.roseGlow;ctx.shadowBlur=16+8*glow;
+                ctx.fillStyle=COL.rose;ctx.beginPath();ctx.arc(tsx,tsy,5,0,Math.PI*2);ctx.fill();
+                ctx.restore();
+            }
         }
     }
 
-    // Curve
-    ctx.strokeStyle="#60a5fa";ctx.lineWidth=2.5;ctx.beginPath();
-    let started=false;
-    for(let i=0;i<=pts;i++){
-        const x=xMin+(xMax-xMin)*i/pts;
-        const y=evalPoly(coeffs,x);
-        const sx=toSx(x),sy=toSy(y);
-        if(sy<my-50||sy>my+gh+50){started=false;continue;}
-        if(!started){ctx.moveTo(sx,Math.max(my-2,Math.min(my+gh+2,sy)));started=true;}
-        else ctx.lineTo(sx,Math.max(my-2,Math.min(my+gh+2,sy)));
-    }
-    ctx.stroke();
-
-    // Local extrema
-    ctx.fillStyle="rgba(96,165,250,0.5)";
+    /* Local extrema */
+    ctx.fillStyle="rgba(244,63,94,0.4)";
     for(let i=1;i<pts-1;i++){
         const x0=xMin+(xMax-xMin)*(i-1)/pts,x1=xMin+(xMax-xMin)*i/pts,x2=xMin+(xMax-xMin)*(i+1)/pts;
         const y0=evalPoly(coeffs,x0),y1=evalPoly(coeffs,x1),y2=evalPoly(coeffs,x2);
@@ -374,93 +496,210 @@ function drawGraph(coeffs){
         }
     }
 
-    // Root dots (draggable)
+    /* Newton's method animation */
+    if(newtonOn&&newtonIter.length){
+        const maxVisible=Math.min(newtonIter.length,Math.floor(newtonAnimT)+1);
+        for(let s=0;s<maxVisible;s++){
+            const it=newtonIter[s];
+            const frac=s<maxVisible-1?1:Math.min(1,(newtonAnimT-s));
+            const sx=toSx(it.x),sy=toSy(it.y);
+            const sxN=toSx(it.xNext),syN=toSy(0);
+
+            /* Tangent line from (x,y) towards x-axis intercept */
+            ctx.save();ctx.globalAlpha=0.6*frac;
+            ctx.strokeStyle=COL.cyan;ctx.lineWidth=1.5;
+            ctx.shadowColor=COL.cyanGlow;ctx.shadowBlur=8;
+            ctx.setLineDash([4,4]);
+            ctx.beginPath();ctx.moveTo(sx,sy);
+            const endX=sx+(sxN-sx)*frac;
+            const endY=sy+(syN-sy)*frac;
+            ctx.lineTo(endX,endY);ctx.stroke();
+            ctx.setLineDash([]);
+
+            /* Vertical line from curve to axis */
+            ctx.strokeStyle="rgba(34,211,238,0.3)";ctx.lineWidth=1;
+            ctx.beginPath();ctx.moveTo(sx,toSy(0));ctx.lineTo(sx,sy);ctx.stroke();
+
+            /* Dot on curve */
+            ctx.fillStyle=COL.cyan;ctx.beginPath();ctx.arc(sx,sy,4,0,Math.PI*2);ctx.fill();
+
+            /* x-intercept dot bouncing to curve */
+            if(frac>=1&&s<newtonIter.length-1){
+                const bounceFrac=Math.min(1,(newtonAnimT-s-0.5)*2);
+                if(bounceFrac>0){
+                    ctx.fillStyle=COL.gold;
+                    ctx.beginPath();ctx.arc(sxN,syN,4*bounceFrac,0,Math.PI*2);ctx.fill();
+                }
+            }
+            ctx.restore();
+        }
+
+        /* Label */
+        ctx.font="11px Georgia";ctx.fillStyle=COL.cyan;ctx.textAlign="left";
+        const lastVis=Math.min(newtonIter.length-1,Math.floor(newtonAnimT));
+        const it=newtonIter[lastVis];
+        ctx.fillText("x"+"\u2099"+" \u2248 "+fmtN(Math.round(it.xNext*1000)/1000),toSx(it.xNext)+8,toSy(0)-8);
+    }
+
+    /* Root dots with pulsing glow */
     const syAxis=toSy(0);
     roots.forEach((r,i)=>{
         const sx=toSx(r),sy=Math.max(my,Math.min(my+gh,syAxis));
+        const pulse=0.5+0.5*Math.sin(animTime*3+(rootPulse[i]||0));
+        ctx.save();
+        ctx.shadowColor=COL.goldGlow;ctx.shadowBlur=10+8*pulse;
         ctx.beginPath();ctx.arc(sx,sy,7,0,Math.PI*2);
-        ctx.fillStyle="#fbbf24";ctx.fill();
+        ctx.fillStyle=COL.gold;ctx.fill();
         ctx.strokeStyle="rgba(0,0,0,0.4)";ctx.lineWidth=1.5;ctx.stroke();
-        ctx.fillStyle="#0a0a1a";ctx.font="bold 9px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.restore();
+        ctx.fillStyle=COL.bg;ctx.font="bold 9px monospace";ctx.textAlign="center";ctx.textBaseline="middle";
         ctx.fillText("r"+(i+1),sx,sy);
     });
 
-    // Store mapping for drag
+    /* Complex plane inset when complex roots are on */
+    if(complexOn){
+        const cpW=Math.min(160,gw*0.22),cpH=cpW;
+        const cpX=w-mx-cpW-4,cpY=my+4;
+        ctx.save();
+        ctx.fillStyle="rgba(10,10,26,0.85)";
+        ctx.strokeStyle="rgba(167,139,250,0.2)";ctx.lineWidth=1;
+        ctx.beginPath();ctx.roundRect(cpX,cpY,cpW,cpH,6);ctx.fill();ctx.stroke();
+
+        ctx.font="10px Georgia";ctx.fillStyle="#808098";ctx.textAlign="center";
+        ctx.fillText("Complex Plane",cpX+cpW/2,cpY+12);
+
+        /* Axes */
+        const cx=cpX+cpW/2,cy=cpY+cpH/2+4;
+        const scale=cpW/(Math.max(Math.abs(complexA),complexB,2)*3);
+        ctx.strokeStyle="rgba(255,255,255,0.1)";ctx.lineWidth=0.5;
+        ctx.beginPath();ctx.moveTo(cpX+4,cy);ctx.lineTo(cpX+cpW-4,cy);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(cx,cpY+18);ctx.lineTo(cx,cpY+cpH-4);ctx.stroke();
+
+        ctx.fillStyle="#606078";ctx.font="9px Georgia";
+        ctx.textAlign="center";ctx.textBaseline="top";
+        ctx.fillText("Re",cpX+cpW-12,cy+2);
+        ctx.textAlign="left";ctx.textBaseline="middle";
+        ctx.fillText("Im",cx+3,cpY+20);
+
+        /* Plot all roots */
+        const ar=allRoots();
+        ar.forEach((rt,idx)=>{
+            const px=cx+rt.re*scale,py=cy-rt.im*scale;
+            if(px<cpX||px>cpX+cpW||py<cpY||py>cpY+cpH)return;
+            /* Fade-in */
+            if(!complexPlaneAlpha[idx])complexPlaneAlpha[idx]=0;
+            complexPlaneAlpha[idx]=Math.min(1,complexPlaneAlpha[idx]+0.03);
+            const a=complexPlaneAlpha[idx];
+            const isReal=Math.abs(rt.im)<1e-9;
+            const pulse=0.5+0.5*Math.sin(animTime*3+idx);
+            ctx.save();
+            if(isReal){
+                ctx.shadowColor=COL.goldGlow;ctx.shadowBlur=6+4*pulse;
+                ctx.fillStyle=COL.gold;
+            }else{
+                ctx.shadowColor=COL.violetGlow;ctx.shadowBlur=8+6*pulse;
+                ctx.fillStyle=COL.violet;
+            }
+            ctx.globalAlpha=a;
+            ctx.beginPath();ctx.arc(px,py,4,0,Math.PI*2);ctx.fill();
+            ctx.restore();
+        });
+        ctx.restore();
+    }else{
+        complexPlaneAlpha=[];
+    }
+
     cvs._xMin=xMin;cvs._xMax=xMax;cvs._mx=mx;cvs._gw=gw;cvs._my=my;cvs._gh=gh;cvs._yMin=yMin;cvs._yMax=yMax;
 }
 
 function niceStep(range,maxTicks){
-    const rough=range/maxTicks;
-    const mag=Math.pow(10,Math.floor(Math.log10(rough)));
-    const norm=rough/mag;
-    let step;
-    if(norm<=1.5)step=1;else if(norm<=3)step=2;else if(norm<=7)step=5;else step=10;
+    const rough=range/maxTicks;const mag=Math.pow(10,Math.floor(Math.log10(rough)));const norm=rough/mag;
+    let step;if(norm<=1.5)step=1;else if(norm<=3)step=2;else if(norm<=7)step=5;else step=10;
     return step*mag;
 }
 
-/* Drag interaction */
+/* ---------- Drag interaction ---------- */
+function getMousePos(e){
+    const rect=cvs.getBoundingClientRect();
+    return{x:(e.clientX-rect.left)*(W()/rect.width),y:(e.clientY-rect.top)*(H()/rect.height)};
+}
 cvs.addEventListener("mousedown",e=>{
-    const rect=cvs.getBoundingClientRect(),sx=e.clientX-rect.left,sy=e.clientY-rect.top;
-    const scaleX=W/rect.width,scaleY=H/rect.height;
-    const cx=sx*scaleX,cy=sy*scaleY;
+    const p=getMousePos(e);
     const syAxis=cvs._my+(cvs._yMax-0)/(cvs._yMax-cvs._yMin)*cvs._gh;
     for(let i=0;i<roots.length;i++){
         const rx=cvs._mx+(roots[i]-cvs._xMin)/(cvs._xMax-cvs._xMin)*cvs._gw;
         const ry=Math.max(cvs._my,Math.min(cvs._my+cvs._gh,syAxis));
-        if(Math.hypot(cx-rx,cy-ry)<15){dragging=i;insightMode="drag";break;}
+        if(Math.hypot(p.x-rx,p.y-ry)<15){dragging=i;insightMode="drag";break;}
     }
 });
 cvs.addEventListener("mousemove",e=>{
     if(dragging<0)return;
-    const rect=cvs.getBoundingClientRect(),sx=e.clientX-rect.left;
-    const cx=sx*(W/rect.width);
-    const x=cvs._xMin+(cx-cvs._mx)/cvs._gw*(cvs._xMax-cvs._xMin);
+    const p=getMousePos(e);
+    const x=cvs._xMin+(p.x-cvs._mx)/cvs._gw*(cvs._xMax-cvs._xMin);
     roots[dragging]=Math.round(x*20)/20;
-    activePreset=-1;renderPresets();update();
+    activePreset=-1;renderPresets();
+    /* Live morph during drag */
+    targetCoeffs=getCoeffs();if(!prevCoeffs)prevCoeffs=targetCoeffs;morphT=1;
+    if(newtonOn)runNewtonSteps(currentCoeffs());
 });
 cvs.addEventListener("mouseup",()=>{dragging=-1;});
 cvs.addEventListener("mouseleave",()=>{dragging=-1;});
 
-/* Factored form display */
+/* Touch support */
+cvs.addEventListener("touchstart",e=>{
+    e.preventDefault();
+    const t=e.touches[0];
+    const rect=cvs.getBoundingClientRect();
+    const p={x:(t.clientX-rect.left)*(W()/rect.width),y:(t.clientY-rect.top)*(H()/rect.height)};
+    const syAxis=cvs._my+(cvs._yMax-0)/(cvs._yMax-cvs._yMin)*cvs._gh;
+    for(let i=0;i<roots.length;i++){
+        const rx=cvs._mx+(roots[i]-cvs._xMin)/(cvs._xMax-cvs._xMin)*cvs._gw;
+        const ry=Math.max(cvs._my,Math.min(cvs._my+cvs._gh,syAxis));
+        if(Math.hypot(p.x-rx,p.y-ry)<25){dragging=i;insightMode="drag";break;}
+    }
+},{passive:false});
+cvs.addEventListener("touchmove",e=>{
+    if(dragging<0)return;e.preventDefault();
+    const t=e.touches[0];
+    const rect=cvs.getBoundingClientRect();
+    const px=(t.clientX-rect.left)*(W()/rect.width);
+    const x=cvs._xMin+(px-cvs._mx)/cvs._gw*(cvs._xMax-cvs._xMin);
+    roots[dragging]=Math.round(x*20)/20;
+    activePreset=-1;renderPresets();
+    targetCoeffs=getCoeffs();if(!prevCoeffs)prevCoeffs=targetCoeffs;morphT=1;
+    if(newtonOn)runNewtonSteps(currentCoeffs());
+},{passive:false});
+cvs.addEventListener("touchend",()=>{dragging=-1;});
+
+/* ---------- Text panels ---------- */
 function drawFactored(){
     const parts=roots.map((r,i)=>{
-        const color="#fbbf24";
         const sign=r<0?"+":r>0?"\u2212":"";
         const val=r===0?"x":"(x "+sign+" "+fmtN(Math.abs(r))+")";
-        return "<span style='color:"+color+"'>"+val+"</span>";
+        return "<span style='color:"+COL.gold+"'>"+val+"</span>";
     });
     if(complexOn){
         const a=complexA,b=complexB;
-        const linCoeff=-2*a, constCoeff=a*a+b*b;
+        const linCoeff=-2*a,constCoeff=a*a+b*b;
         let q="(x\u00B2";
-        if(Math.abs(linCoeff)>1e-9){
-            q+=(linCoeff>=0?" + ":" \u2212 ")+fmtN(Math.abs(Math.round(linCoeff*1000)/1000))+"x";
-        }
+        if(Math.abs(linCoeff)>1e-9)q+=(linCoeff>=0?" + ":" \u2212 ")+fmtN(Math.abs(Math.round(linCoeff*1000)/1000))+"x";
         q+=" + "+fmtN(Math.round(constCoeff*1000)/1000)+")";
         parts.push("<span style='color:#60a5fa'>"+q+"</span>");
     }
     document.getElementById("factored").innerHTML="p(x) = "+parts.join(" ");
 }
 
-/* Expanded form display */
 function drawExpanded(coeffs){
-    let terms=[];
-    const n=coeffs.length-1;
+    let terms=[];const n=coeffs.length-1;
     for(let i=0;i<=n;i++){
-        const power=n-i;
-        let c=Math.round(coeffs[i]*10000)/10000;
+        const power=n-i;let c=Math.round(coeffs[i]*10000)/10000;
         if(Math.abs(c)<1e-10)continue;
-        let sign=c>=0?"+":"\u2212";
-        let absC=Math.abs(c);
-        let cStr="";
+        let sign=c>=0?"+":"\u2212";let absC=Math.abs(c);let cStr="";
         if(power===0)cStr=fmtN(absC);
         else if(power===1)cStr=(absC===1?"":""+fmtN(absC))+"x";
         else cStr=(absC===1?"":""+fmtN(absC))+"x"+supNum(power);
-        if(terms.length===0){
-            terms.push((c<0?"\u2212 ":"")+cStr);
-        }else{
-            terms.push(" "+sign+" "+cStr);
-        }
+        if(terms.length===0)terms.push((c<0?"\u2212 ":"")+cStr);
+        else terms.push(" "+sign+" "+cStr);
     }
     document.getElementById("expanded").innerHTML="<span class='coeff-color'>p(x) = "+terms.join("")+"</span>";
 }
@@ -470,22 +709,14 @@ function supNum(n){
     return String(n).split("").map(d=>sups[+d]).join("");
 }
 
-/* Vieta's formulas display */
 function drawVieta(coeffs){
-    const rts=allRoots(),n=rts.length;
-    const ef=symFuncs(rts);
-    let html="";
+    const rts=allRoots(),n=rts.length;const ef=symFuncs(rts);let html="";
     const labels=["Sum of roots","Sum of pairwise products","Sum of triple products","Sum of quadruple products","Product of all roots"];
     for(let k=1;k<=n;k++){
-        const signFactor=Math.pow(-1,k);
-        const coeffVal=Math.round(coeffs[k]*10000)/10000;
-        const symVal=ef[k];
-        const symStr=fmtComplex(symVal);
+        const signFactor=Math.pow(-1,k);const coeffVal=Math.round(coeffs[k]*10000)/10000;
+        const symVal=ef[k];const symStr=fmtComplex(symVal);
         const label=k<n?labels[Math.min(k-1,3)]||("e"+k):labels[4];
-        const power=n-k;
-        const coeffName=power===0?"constant term":"coefficient of x"+(power>1?supNum(power):"");
-
-        // Generate root expression
+        const power=n-k;const coeffName=power===0?"constant term":"coefficient of x"+(power>1?supNum(power):"");
         let rootExpr="";
         if(k===1)rootExpr=rts.map((_,i)=>"<span class='root-color'>r"+(i+1)+"</span>").join(" + ");
         else if(k===n)rootExpr=rts.map((_,i)=>"<span class='root-color'>r"+(i+1)+"</span>").join(" \u00D7 ");
@@ -494,17 +725,12 @@ function drawVieta(coeffs){
             rootExpr=subs.slice(0,8).map(s=>s.map(j=>"<span class='root-color'>r"+(j+1)+"</span>").join("\u00B7")).join(" + ");
             if(subs.length>8)rootExpr+=" + ...";
         }
-
-        // e_k = (-1)^k * coeffs[k]
         const rhs=Math.round(signFactor*coeffVal*10000)/10000;
-        const signLabel=signFactor===-1?"\u2212("+coeffName+")":"("+coeffName+")";
-        html+="<div class='vieta-row'>"
-            +"<span class='vieta-label'>e<sub>"+k+"</sub> ("+label+"):</span>"
+        html+="<div class='vieta-row'><span class='vieta-label'>e<sub>"+k+"</sub> ("+label+"):</span>"
             +"<span class='vieta-val'>"+rootExpr
             +" = <span class='root-color'>"+symStr+"</span>"
             +" = "+(signFactor===-1?"\u2212":"")+"<span class='coeff-color'>("+fmtN(coeffVal)+")</span>"
-            +" = <span class='coeff-color'>"+fmtN(rhs)+"</span>"
-            +"</span></div>";
+            +" = <span class='coeff-color'>"+fmtN(rhs)+"</span></span></div>";
     }
     document.getElementById("vieta").innerHTML=html;
 }
@@ -515,43 +741,33 @@ function fmtComplex(c){
     return fmtN(r)+(i>=0?"+":"")+fmtN(i)+"i";
 }
 
-/* Verification panel */
 function drawVerify(coeffs){
-    const rts=allRoots(),n=rts.length;
-    const ef=symFuncs(rts);
-    let html="";
-    // Show roots
+    const rts=allRoots(),n=rts.length;const ef=symFuncs(rts);let html="";
     const rootStrs=rts.map(r=>fmtComplex(r));
     html+="<div class='verify-line'>Roots: ["+rootStrs.map(s=>"<span class='root-color'>"+s+"</span>").join(", ")+"]</div>";
-
     const labels=["Sum","Pairwise products sum","Triple products sum","Quadruple products sum","Product"];
     for(let k=1;k<=n;k++){
-        const signFactor=Math.pow(-1,k);
-        const coeffVal=Math.round(coeffs[k]*10000)/10000;
-        const symVal=ef[k];
-        const symStr=fmtComplex(symVal);
+        const signFactor=Math.pow(-1,k);const coeffVal=Math.round(coeffs[k]*10000)/10000;
+        const symVal=ef[k];const symStr=fmtComplex(symVal);
         const rhs=Math.round(signFactor*coeffVal*10000)/10000;
         const label=k<n?labels[Math.min(k-1,3)]:labels[4];
-        const power=n-k;
-        const coeffDesc=power===0?"constant":"coeff of x"+(power>1?supNum(power):"");
-
+        const power=n-k;const coeffDesc=power===0?"constant":"coeff of x"+(power>1?supNum(power):"");
         const match=Math.abs(symVal.re-rhs)<0.01&&Math.abs(symVal.im)<0.01;
-        html+="<div class='verify-line'>"
-            +label+": <span class='root-color'>"+symStr+"</span>"
+        html+="<div class='verify-line'>"+label+": <span class='root-color'>"+symStr+"</span>"
             +" = "+(signFactor===-1?"\u2212":"")+"(<span class='coeff-color'>"+fmtN(coeffVal)+"</span>)"
-            +" ("+coeffDesc+")"
-            +" = <span class='coeff-color'>"+fmtN(rhs)+"</span>"
-            +(match?" <span class='check'>\u2713</span>":"")
-            +"</div>";
+            +" ("+coeffDesc+")"+" = <span class='coeff-color'>"+fmtN(rhs)+"</span>"
+            +(match?" <span class='check'>\u2713</span>":"")+"</div>";
     }
     document.getElementById("verify").innerHTML=html;
 }
 
-/* Insight panel */
 function drawInsight(){
     const title=document.getElementById("insightTitle");
     const text=document.getElementById("insightText");
-    if(complexOn){
+    if(newtonOn){
+        title.textContent="Newton\u2019s Method";
+        text.textContent="Newton\u2019s method iteratively refines an estimate of a root. At each step, we draw the tangent line to the curve and follow it to the x-axis. Where the tangent crosses zero becomes our next estimate. Watch the cyan tangent lines converge \u2014 each iteration typically doubles the number of correct decimal places. This quadratic convergence makes it one of the most powerful root-finding algorithms in mathematics.";
+    }else if(complexOn){
         title.textContent="Complex Roots";
         text.textContent="Complex roots of real polynomials always come in conjugate pairs: if a+bi is a root, so is a\u2212bi. Each conjugate pair contributes a real quadratic factor (x\u00B2 \u2212 2ax + a\u00B2 + b\u00B2) to the polynomial. This is why a real polynomial of odd degree must always have at least one real root.";
     }else if(insightMode==="drag"){
