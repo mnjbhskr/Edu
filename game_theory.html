@@ -581,84 +581,169 @@ function findMixedNE(game) {
         else ctx.fillText(ne.map(n => '(' + ['Coop','Defect'][n[0]] + ', ' + ['Coop','Defect'][n[1]] + ')').join('  '), 200, infoY + 44);
 
         // ── Animated story: two player icons ──
-        const p1x = 80, p2x = w - 80, py = infoY + 100;
+        const p1x = 80, p2x = w - 80, py = infoY + 90;
+        const isAnimating = animState.running || animState.phase >= 3;
+        const animT = Math.min(1, animState.t * 1.5); // faster fade-in
 
-        // Player 1 circle
+        // Player 1 circle — pulse when thinking
+        const p1Pulse = (animState.phase === 1) ? 0.5 + 0.5 * Math.sin(animState.t * 4) : 0;
+        ctx.save();
+        if (animState.phase >= 1 && animState.phase < 3) {
+            ctx.shadowColor = ROSE;
+            ctx.shadowBlur = 10 + 14 * p1Pulse;
+        }
         ctx.beginPath();
-        ctx.arc(p1x, py, 24, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(231,76,142,0.12)';
+        ctx.arc(p1x, py, 26, 0, Math.PI * 2);
+        ctx.fillStyle = animState.phase >= 1 && animState.phase < 4 ? 'rgba(231,76,142,0.22)' : 'rgba(231,76,142,0.10)';
         ctx.fill();
         ctx.strokeStyle = ROSE;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = animState.phase >= 1 && animState.phase < 3 ? 3 : 2;
         ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.restore();
         ctx.fillStyle = ROSE;
-        ctx.font = '11px Georgia';
+        ctx.font = 'bold 13px Georgia';
         ctx.textAlign = 'center';
-        ctx.fillText('P1', p1x, py + 4);
+        ctx.fillText('P1', p1x, py + 5);
 
-        // Player 2 circle
+        // Player 2 circle — pulse when thinking
+        const p2Pulse = (animState.phase === 2) ? 0.5 + 0.5 * Math.sin(animState.t * 4) : 0;
+        ctx.save();
+        if (animState.phase >= 2 && animState.phase < 3) {
+            ctx.shadowColor = CYAN;
+            ctx.shadowBlur = 10 + 14 * p2Pulse;
+        }
         ctx.beginPath();
-        ctx.arc(p2x, py, 24, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(34,211,238,0.08)';
+        ctx.arc(p2x, py, 26, 0, Math.PI * 2);
+        ctx.fillStyle = animState.phase >= 2 && animState.phase < 4 ? 'rgba(34,211,238,0.18)' : 'rgba(34,211,238,0.08)';
         ctx.fill();
         ctx.strokeStyle = CYAN;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = animState.phase >= 2 && animState.phase < 3 ? 3 : 2;
         ctx.stroke();
+        ctx.shadowBlur = 0;
+        ctx.restore();
         ctx.fillStyle = CYAN;
-        ctx.fillText('P2', p2x, py + 4);
+        ctx.font = 'bold 13px Georgia';
+        ctx.fillText('P2', p2x, py + 5);
 
         // Thought bubbles during animation
-        if (animState.running || animState.phase >= 4) {
+        if (isAnimating || animState.phase >= 4) {
             const labels = ['Cooperate', 'Defect'];
             if (animState.phase >= 1) {
-                // Thinking bubble P1 — fade in
-                const bubT = easeOutCubic(Math.min(1, animState.t));
+                // Thought bubble P1 — prominent with glow
+                const bubT = easeOutCubic(Math.min(1, animT));
                 ctx.globalAlpha = bubT;
-                ctx.fillStyle = 'rgba(231,76,142,0.08)';
-                drawRoundRect(p1x - 60, py - 70, 120, 30, 8);
+                ctx.save();
+                ctx.shadowColor = ROSE;
+                ctx.shadowBlur = 12;
+                ctx.fillStyle = 'rgba(231,76,142,0.15)';
+                drawRoundRect(p1x - 70, py - 78, 140, 36, 10);
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(231,76,142,0.25)';
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(231,76,142,0.5)';
+                ctx.lineWidth = 1.5;
                 ctx.stroke();
-                ctx.fillStyle = '#c0c0d8';
-                ctx.font = '10px Georgia';
-                ctx.fillText(animState.phase < 3 ? 'Thinking...' : labels[animState.choice1], p1x, py - 51);
+                ctx.shadowBlur = 0;
+                ctx.restore();
+                // Bubble tail
+                ctx.beginPath();
+                ctx.moveTo(p1x - 6, py - 42);
+                ctx.lineTo(p1x + 6, py - 42);
+                ctx.lineTo(p1x, py - 32);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(231,76,142,0.15)';
+                ctx.fill();
+                // Text
+                ctx.fillStyle = animState.phase < 3 ? '#e0b0c4' : (animState.choice1 === 0 ? GREEN : '#f59e0b');
+                ctx.font = animState.phase >= 3 ? 'bold 13px Georgia' : '12px Georgia';
+                const p1Text = animState.phase < 3 ? 'Thinking...' : labels[animState.choice1];
+                ctx.fillText(p1Text, p1x, py - 55);
                 ctx.globalAlpha = 1;
             }
             if (animState.phase >= 2) {
-                const bubT = easeOutCubic(Math.min(1, animState.t));
+                const bubT = easeOutCubic(Math.min(1, animT));
                 ctx.globalAlpha = bubT;
-                ctx.fillStyle = 'rgba(34,211,238,0.06)';
-                drawRoundRect(p2x - 60, py - 70, 120, 30, 8);
+                ctx.save();
+                ctx.shadowColor = CYAN;
+                ctx.shadowBlur = 12;
+                ctx.fillStyle = 'rgba(34,211,238,0.12)';
+                drawRoundRect(p2x - 70, py - 78, 140, 36, 10);
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(34,211,238,0.2)';
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(34,211,238,0.4)';
+                ctx.lineWidth = 1.5;
                 ctx.stroke();
-                ctx.fillStyle = '#c0c0d8';
-                ctx.font = '10px Georgia';
-                ctx.fillText(animState.phase < 3 ? 'Thinking...' : labels[animState.choice2], p2x, py - 51);
+                ctx.shadowBlur = 0;
+                ctx.restore();
+                // Bubble tail
+                ctx.beginPath();
+                ctx.moveTo(p2x - 6, py - 42);
+                ctx.lineTo(p2x + 6, py - 42);
+                ctx.lineTo(p2x, py - 32);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(34,211,238,0.12)';
+                ctx.fill();
+                // Text
+                ctx.fillStyle = animState.phase < 3 ? '#b0d4e0' : (animState.choice2 === 0 ? GREEN : '#f59e0b');
+                ctx.font = animState.phase >= 3 ? 'bold 13px Georgia' : '12px Georgia';
+                const p2Text = animState.phase < 3 ? 'Thinking...' : labels[animState.choice2];
+                ctx.fillText(p2Text, p2x, py - 55);
                 ctx.globalAlpha = 1;
             }
+            // Connecting line when choices revealed
+            if (animState.phase >= 3) {
+                const lineT = easeOutCubic(Math.min(1, animT));
+                ctx.globalAlpha = lineT * 0.6;
+                ctx.setLineDash([6, 4]);
+                ctx.strokeStyle = GOLD;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(p1x + 28, py);
+                const lineEnd = p1x + 28 + (p2x - 28 - p1x - 28) * lineT;
+                ctx.lineTo(lineEnd, py);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.globalAlpha = 1;
+
+                // Highlight chosen cell in payoff matrix
+                const ci = animState.choice1, cj = animState.choice2;
+                const cellX = tableX + cj * cellW;
+                const cellY = tableY + ci * cellH;
+                ctx.save();
+                ctx.shadowColor = GOLD;
+                ctx.shadowBlur = 20 + 8 * Math.sin(animState.t * 3);
+                ctx.strokeStyle = 'rgba(251,191,36,0.7)';
+                ctx.lineWidth = 3;
+                drawRoundRect(cellX, cellY, cellW, cellH, 6);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                ctx.restore();
+            }
             if (animState.phase >= 4) {
-                const revealT = easeOutCubic(Math.min(1, animState.t));
+                const revealT = easeOutCubic(Math.min(1, animT));
                 ctx.globalAlpha = revealT;
                 const idx = animState.choice1 * 2 + animState.choice2;
                 const pay = game.payoffs[idx];
-                // Payoff reveal with scale
+                // Payoff reveal with scale and glow
                 ctx.save();
-                const sc = 0.6 + 0.4 * revealT;
+                const sc = 0.7 + 0.3 * revealT;
                 ctx.translate(w/2, py + 50);
                 ctx.scale(sc, sc);
+                ctx.shadowColor = GOLD;
+                ctx.shadowBlur = 16;
                 ctx.fillStyle = GOLD;
-                ctx.font = '14px Courier New';
+                ctx.font = 'bold 16px Courier New';
                 ctx.fillText('Payoff: (' + pay[0] + ', ' + pay[1] + ')', 0, 0);
+                ctx.shadowBlur = 0;
                 ctx.restore();
 
                 const isNEResult = ne.some(n => n[0] === animState.choice1 && n[1] === animState.choice2);
-                ctx.fillStyle = isNEResult ? GREEN : '#808098';
-                ctx.font = '11px Georgia';
+                ctx.save();
+                ctx.shadowColor = isNEResult ? GREEN : 'transparent';
+                ctx.shadowBlur = isNEResult ? 12 : 0;
+                ctx.fillStyle = isNEResult ? GREEN : '#a0a0b8';
+                ctx.font = 'bold 13px Georgia';
                 ctx.textAlign = 'center';
-                ctx.fillText(isNEResult ? 'This is a Nash Equilibrium' : 'Not a Nash Equilibrium', w / 2, py + 70);
+                ctx.fillText(isNEResult ? '\u2605 This is a Nash Equilibrium \u2605' : 'Not a Nash Equilibrium', w / 2, py + 72);
+                ctx.restore();
                 ctx.globalAlpha = 1;
             }
         }
@@ -694,6 +779,8 @@ function findMixedNE(game) {
     const STEP_DURATION = 1200; // ms per reasoning step
 
     function animate() {
+        // Ensure animation runs even if paused
+        if (paused) { paused = false; pauseBtn.textContent = 'Pause'; }
         animState = { phase: 0, t: 0, running: true, choice1: -1, choice2: -1 };
         const game = readPayoffs();
         const m = { a: [[game.payoffs[0][0], game.payoffs[1][0]], [game.payoffs[2][0], game.payoffs[3][0]]],
