@@ -505,6 +505,21 @@ Journey acts use a different structure: sticky header with progress dots, screen
 - Screens use `.screen` / `.screen.active` with `goToScreen(n)` navigation
 - Progress dots reflect current screen state
 
+**Journey navigation (mandatory):**
+
+Every journey act page must provide clear navigation so students can always move backward or return home. This is a core design principle — students must never feel trapped.
+
+1. **Header back-link** — every act must display a persistent back-link in the top-left corner:
+   - Act 1: links to `../index.html` (main site index)
+   - Acts 2+: links to the previous act (e.g. `art_of_maths_act1.html`)
+   - Format: `← Back to Index` (act 1) or `← Previous Act` (acts 2+)
+   - Style: same as topic page back-link — `position: fixed; top: 12px; left: 16px; z-index: 100; color: #808098; font-size: 0.85em;`
+2. **Final screen of each act** — the completion screen must include:
+   - A **"Next Act →"** button linking to the next act (for all acts except the last)
+   - A **"← Back to Index"** link to `../index.html` (on every act, including the last)
+   - The last act's completion screen should prominently feature the **"Return to Index"** button
+3. **Home link in header** — the site branding text (e.g. "mathsedu.org") in the top-left should always link to `../index.html`
+
 ---
 
 ## 8. Visual Quality Standards

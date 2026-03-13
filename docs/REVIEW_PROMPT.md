@@ -51,7 +51,13 @@ Open the HTML file in a browser at desktop width (1024px+) and mobile width (375
 - [ ] No duplicate branding (e.g. both a fixed back-link AND a header logo)
 - [ ] Breadcrumb present on navigation pages (topic-*, level-*)
 
-**BLOCK if:** No way to return to home page.
+**Journey act pages additionally require:**
+- [ ] Persistent back-link in top-left: Act 1 → `../index.html`, Acts 2+ → previous act
+- [ ] Site branding text links to `../index.html`
+- [ ] Final screen has "Next Act →" button (except last act) and "← Back to Index" link
+- [ ] Last act's final screen has a prominent "Return to Index" button
+
+**BLOCK if:** No way to return to home page. **BLOCK if:** Journey act has no back navigation.
 
 ---
 
