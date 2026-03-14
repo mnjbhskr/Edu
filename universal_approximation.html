@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Approximation &mdash; A Visual Discovery of Mathematics</title>
+    <meta name="description" content="Visualise the universal approximation theorem. See how neural networks with one hidden layer can approximate any continuous function by combining simple units.">
+    <link rel="canonical" href="https://mathsedu.org/universal_approximation.html">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "LearningResource",
+        "name": "Universal Approximation",
+        "url": "https://mathsedu.org/universal_approximation.html",
+        "description": "Visualise the universal approximation theorem. See how neural networks with one hidden layer can approximate any continuous function by combining simple units.",
+        "educationalLevel": "Intermediate",
+        "teaches": "Universal approximation theorem, neural network function approximation, sigmoid neurons, width vs depth trade-offs",
+        "learningResourceType": "Interactive visualisation",
+        "interactivityType": "active",
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "creator": { "@type": "Person", "name": "Manoj Bhaskar" },
+        "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        "isPartOf": {
+            "@type": "Course",
+            "name": "AI & Intelligence",
+            "url": "https://mathsedu.org/"
+        }
+    }
+    </script>
+
+    <meta property="og:title" content="Universal Approximation">
+    <meta property="og:description" content="Visualise the universal approximation theorem. See how neural networks with one hidden layer can approximate any continuous function by combining simple units.">
+    <meta property="og:url" content="https://mathsedu.org/universal_approximation.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="MathsEdu.org">
+    <meta property="og:locale" content="en_GB">
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Universal Approximation">
+    <meta name="twitter:description" content="Visualise the universal approximation theorem. See how neural networks with one hidden layer can approximate any continuous function by combining simple units.">
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#a78bfa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:8px}
+        .intro-text{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(167,139,250,0.13);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#a78bfa;cursor:pointer}
+        .slider-val{color:#a78bfa;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .insight-box{background:rgba(167,139,250,0.04);border-left:3px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .micro-note{color:#808098;font-size:0.85em;font-style:italic;margin:8px 0 4px;line-height:1.6}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#a78bfa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2}
+        @media(max-width:600px){
+            .container{padding:16px 12px}
+            h1{font-size:1.4em}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+            .btn-row{flex-wrap:wrap}
+            canvas{width:100%!important;height:auto!important}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <nav style="font-size:0.82em;color:#707088;margin:6px 0 18px">
+        <a href="index.html" style="color:#707088;text-decoration:none">Home</a>
+        <span style="margin:0 6px">&rsaquo;</span>
+        <span style="color:#b0b0c0">Universal Approximation</span>
+    </nav>
+    <h1>Universal Approximation</h1>
+    <p class="subtitle">Why neural networks can learn any function</p>
+    <p class="intro-text">
+        A single hidden layer of sigmoid neurons can approximate any continuous function to arbitrary precision.
+        This remarkable result &mdash; the universal approximation theorem &mdash; is the theoretical foundation of deep learning.
+        Build up the intuition from one neuron to many, and watch the approximation emerge.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: One Neuron, One Step
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. One Neuron, One Step</h2>
+    <div class="panel">
+        <h3>A single sigmoid unit</h3>
+        <canvas id="canvas1" width="700" height="400"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">&sigma;(wx + b)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24;height:1px;border-top:2px dashed #fbbf24"></div><span style="color:#fbbf24">Target step</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Weight <em>w</em></label>
+            <input type="range" id="s1w" min="-10" max="10" step="0.1" value="5">
+            <span class="slider-val" id="v1w">5.0</span>
+        </div>
+        <div class="slider-row">
+            <label>Bias <em>b</em></label>
+            <input type="range" id="s1b" min="-5" max="5" step="0.1" value="0">
+            <span class="slider-val" id="v1b">0.0</span>
+        </div>
+        <p class="micro-note">Increase the weight to steepen the curve towards the target step. Shift the bias to slide it left or right.</p>
+        <div class="insight-box">
+            <strong>Key idea:</strong> A single sigmoid neuron outputs &sigma;(wx + b) = 1 / (1 + e<sup>&minus;(wx+b)</sup>).
+            As |w| grows large, the sigmoid approaches a step function &mdash; a building block for more complex shapes.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: Two Neurons, One Bump
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. Two Neurons, One Bump</h2>
+    <div class="panel">
+        <h3>Combining two sigmoids into a bump</h3>
+        <canvas id="canvas2" width="700" height="400"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Bump (difference)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">&sigma;(w(x &minus; a))</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">&sigma;(w(x &minus; b))</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24;height:1px;border-top:2px dashed #fbbf24"></div><span style="color:#fbbf24">Target pulse</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Left edge <em>a</em></label>
+            <input type="range" id="s2a" min="-4" max="2" step="0.05" value="-1">
+            <span class="slider-val" id="v2a">-1.0</span>
+        </div>
+        <div class="slider-row">
+            <label>Right edge <em>b</em></label>
+            <input type="range" id="s2b" min="-2" max="4" step="0.05" value="1">
+            <span class="slider-val" id="v2b">1.0</span>
+        </div>
+        <div class="slider-row">
+            <label>Steepness <em>w</em></label>
+            <input type="range" id="s2w" min="1" max="30" step="0.5" value="10">
+            <span class="slider-val" id="v2w">10.0</span>
+        </div>
+        <div class="slider-row">
+            <label>Height <em>h</em></label>
+            <input type="range" id="s2h" min="0.1" max="2" step="0.05" value="1">
+            <span class="slider-val" id="v2h">1.00</span>
+        </div>
+        <p class="micro-note">By subtracting two shifted sigmoids we create a bump. This is the fundamental primitive &mdash; any function can be built from bumps.</p>
+        <div class="insight-box">
+            <strong>The trick:</strong> h &middot; [&sigma;(w(x &minus; a)) &minus; &sigma;(w(x &minus; b))] produces a rectangular bump between <em>a</em> and <em>b</em> with height <em>h</em>, when <em>w</em> is large enough.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 3: N Neurons, Any Function
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. N Neurons, Any Function</h2>
+    <div class="panel">
+        <h3>Approximating arbitrary functions</h3>
+        <canvas id="canvas3" width="700" height="500"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Network output</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24;height:1px;border-top:2px dashed #fbbf24"></div><span style="color:#fbbf24">Target function</span></div>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="btnSine">Sine</button>
+            <button class="btn" id="btnSquare">Square</button>
+            <button class="btn" id="btnSawtooth">Sawtooth</button>
+            <button class="btn" id="btnGaussian">Gaussian</button>
+            <button class="btn" id="btnCustom">Custom (draw)</button>
+        </div>
+        <div class="slider-row">
+            <label>Neurons <em>N</em></label>
+            <input type="range" id="s3n" min="1" max="100" step="1" value="8">
+            <span class="slider-val" id="v3n">8</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnStep3">Step through</button>
+            <button class="btn" id="btnReset3">Reset</button>
+        </div>
+        <div class="result-box" id="mseBox">MSE: <span id="mseVal" style="color:#a78bfa;font-family:'Courier New',monospace">0.0000</span></div>
+        <p class="micro-note" id="drawHint" style="display:none">Click and drag on the canvas to draw your own target function.</p>
+        <div class="insight-box">
+            <strong>Universal approximation in action:</strong> With enough neurons, the network output (solid) converges on the target (dashed).
+            Increase <em>N</em> and watch the mean squared error shrink towards zero.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 4: Width vs Depth
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>4. Width vs Depth</h2>
+    <div class="panel">
+        <h3>Shallow-wide vs narrow-deep networks</h3>
+        <canvas id="canvas4" width="600" height="400"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Wide &amp; shallow (1 layer)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f87171"></div><span style="color:#f87171">Narrow &amp; deep (multi-layer)</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24;height:1px;border-top:2px dashed #fbbf24"></div><span style="color:#fbbf24">Target</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Wide: neurons</label>
+            <input type="range" id="s4wide" min="2" max="60" step="1" value="10">
+            <span class="slider-val" id="v4wide">10</span>
+        </div>
+        <div class="slider-row">
+            <label>Deep: layers</label>
+            <input type="range" id="s4deep" min="1" max="8" step="1" value="3">
+            <span class="slider-val" id="v4deep">3</span>
+        </div>
+        <div class="result-box">
+            <div style="display:flex;gap:24px;flex-wrap:wrap">
+                <div><span style="color:#22d3ee">Wide MSE:</span> <span id="wideMse" style="color:#22d3ee;font-family:'Courier New',monospace">0.0000</span> &nbsp; <span style="color:#808098;font-size:0.85em">(<span id="wideParams">0</span> params)</span></div>
+                <div><span style="color:#f87171">Deep MSE:</span> <span id="deepMse" style="color:#f87171;font-family:'Courier New',monospace">0.0000</span> &nbsp; <span style="color:#808098;font-size:0.85em">(<span id="deepParams">0</span> params)</span></div>
+            </div>
+        </div>
+        <div class="insight-box">
+            <strong>Depth advantage:</strong> Both architectures can approximate the function, but deeper networks often achieve comparable accuracy with fewer total parameters &mdash; they compose features hierarchically rather than enumerating bumps.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 5: What Have We Learnt?
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>5. What Have We Learnt?</h2>
+    <div class="explain">
+        <div class="explain-name">The Universal Approximation Theorem</div>
+        <div class="explain-text">
+            <p style="margin-bottom:12px">
+                In 1989, George Cybenko proved that a feedforward network with a single hidden layer of sigmoid neurons
+                can approximate any continuous function on a compact set to arbitrary precision, given enough neurons.
+                Kurt Hornik extended this in 1991, showing the result holds for <em>any</em> non-constant, bounded, continuous activation function &mdash; it is not special to the sigmoid.
+            </p>
+            <p style="margin-bottom:12px">
+                The theorem tells us <strong>existence</strong>, not efficiency. It guarantees that a wide-enough single layer <em>can</em> represent any function,
+                but says nothing about how many neurons you need or how to find the right weights. In practice, deep networks
+                (many narrow layers) often generalise better and need fewer parameters than the astronomically wide shallow networks the theorem permits.
+            </p>
+            <div class="formula-block">
+                <span style="color:#a78bfa">f(x)</span> <span style="color:#808098">=</span>
+                <span style="color:#808098">&Sigma;</span><sub>i</sub>
+                <span style="color:#22d3ee">v<sub>i</sub></span>
+                <span style="color:#808098">&middot;</span>
+                <span style="color:#10b981">&sigma;</span>(<span style="color:#fbbf24">w<sub>i</sub></span>x + <span style="color:#f87171">b<sub>i</sub></span>)
+                <span style="color:#808098">+ c</span>
+            </div>
+            <p style="margin-bottom:12px">
+                Each sigmoid creates a step-like feature. Weighted sums of these features build bumps. Enough bumps approximate any shape.
+                This is strikingly similar to how Fourier series build functions from sine waves &mdash; a different basis, the same principle.
+            </p>
+        </div>
+    </div>
+    <div class="explain" style="margin-top:14px">
+        <div class="explain-name">Connections</div>
+        <div class="explain-text">
+            <ul style="margin:0;padding-left:20px">
+                <li style="margin-bottom:8px"><strong>Fourier analysis</strong> &mdash; approximation by summing basis functions is a universal theme in mathematics</li>
+                <li style="margin-bottom:8px"><strong>Stone&ndash;Weierstrass theorem</strong> &mdash; the classical result that polynomials are dense in C[a,b]; universal approximation is the neural-network analogue</li>
+                <li style="margin-bottom:8px"><strong>Gradient descent</strong> &mdash; the theorem says good weights exist; gradient descent is how we <em>find</em> them</li>
+                <li style="margin-bottom:8px"><strong>Depth vs width</strong> &mdash; Telgarsky (2016) showed functions that require exponentially many neurons in a shallow network but only polynomially many in a deep one</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="terms.html" style="color:#606078;text-decoration:none">Terms of Use</a>
+        &nbsp;&middot;&nbsp;
+        <a href="intellectual-property.html" style="color:#606078;text-decoration:none">Intellectual Property</a>
+        &nbsp;&middot;&nbsp;
+        <a href="privacy.html" style="color:#606078;text-decoration:none">Privacy Policy</a>
+    </div>
+</footer>
+
+<script>
+/* ============================================================
+   Shared utilities
+   ============================================================ */
+function setupHiDPI(canvas, cssW, cssH) {
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return { ctx: ctx, w: cssW, h: cssH };
+}
+
+function sigmoid(x) {
+    if (x > 500) return 1;
+    if (x < -500) return 0;
+    return 1 / (1 + Math.exp(-x));
+}
+
+/* ============================================================
+   Section 1: One Neuron, One Step
+   ============================================================ */
+(function() {
+    var c = document.getElementById('canvas1');
+    var r = setupHiDPI(c, 700, 400);
+    var ctx = r.ctx, W = r.w, H = r.h;
+    var PAD = { left: 70, right: 30, top: 30, bottom: 50 };
+    var xMin = -5, xMax = 5, yMin = -0.1, yMax = 1.1;
+
+    var sW = document.getElementById('s1w');
+    var sB = document.getElementById('s1b');
+    var vW = document.getElementById('v1w');
+    var vB = document.getElementById('v1b');
+
+    function tx(x) { return PAD.left + (x - xMin) / (xMax - xMin) * (W - PAD.left - PAD.right); }
+    function ty(y) { return PAD.top + (1 - (y - yMin) / (yMax - yMin)) * (H - PAD.top - PAD.bottom); }
+
+    function drawGrid() {
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 1;
+        for (var x = -4; x <= 4; x++) {
+            ctx.beginPath(); ctx.moveTo(tx(x), PAD.top); ctx.lineTo(tx(x), H - PAD.bottom); ctx.stroke();
+        }
+        for (var y = 0; y <= 1; y += 0.25) {
+            ctx.beginPath(); ctx.moveTo(PAD.left, ty(y)); ctx.lineTo(W - PAD.right, ty(y)); ctx.stroke();
+        }
+    }
+
+    function drawAxes() {
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, ty(0)); ctx.lineTo(W - PAD.right, ty(0)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tx(0), PAD.top); ctx.lineTo(tx(0), H - PAD.bottom); ctx.stroke();
+
+        ctx.fillStyle = '#707088';
+        ctx.font = '12px Georgia';
+        ctx.textAlign = 'center';
+        for (var x = -4; x <= 4; x += 2) {
+            ctx.fillText(x, tx(x), H - PAD.bottom + 18);
+        }
+        ctx.textAlign = 'right';
+        for (var y = 0; y <= 1; y += 0.25) {
+            ctx.fillText(y.toFixed(2), PAD.left - 8, ty(y) + 4);
+        }
+        ctx.fillStyle = '#808098';
+        ctx.textAlign = 'center';
+        ctx.fillText('x', W - PAD.right + 15, ty(0) + 4);
+        ctx.fillText('y', tx(0), PAD.top - 10);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        drawGrid();
+        drawAxes();
+
+        var w = parseFloat(sW.value);
+        var b = parseFloat(sB.value);
+        vW.textContent = w.toFixed(1);
+        vB.textContent = b.toFixed(1);
+
+        // Target step function (step at x=0)
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(tx(xMin), ty(0));
+        ctx.lineTo(tx(0), ty(0));
+        ctx.lineTo(tx(0), ty(1));
+        ctx.lineTo(tx(xMax), ty(1));
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Sigmoid curve
+        ctx.strokeStyle = '#a78bfa';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        var steps = 400;
+        for (var i = 0; i <= steps; i++) {
+            var x = xMin + (xMax - xMin) * i / steps;
+            var y = sigmoid(w * x + b);
+            var px = tx(x), py = ty(y);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // Formula
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '13px "Courier New", monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('\u03C3(' + w.toFixed(1) + 'x + ' + b.toFixed(1) + ')', PAD.left + 10, PAD.top + 20);
+    }
+
+    sW.addEventListener('input', draw);
+    sB.addEventListener('input', draw);
+    draw();
+})();
+
+/* ============================================================
+   Section 2: Two Neurons, One Bump
+   ============================================================ */
+(function() {
+    var c = document.getElementById('canvas2');
+    var r = setupHiDPI(c, 700, 400);
+    var ctx = r.ctx, W = r.w, H = r.h;
+    var PAD = { left: 70, right: 30, top: 30, bottom: 50 };
+    var xMin = -5, xMax = 5, yMin = -0.3, yMax = 2.2;
+
+    var sA = document.getElementById('s2a');
+    var sB = document.getElementById('s2b');
+    var sWt = document.getElementById('s2w');
+    var sH = document.getElementById('s2h');
+    var vA = document.getElementById('v2a');
+    var vBv = document.getElementById('v2b');
+    var vWt = document.getElementById('v2w');
+    var vH = document.getElementById('v2h');
+
+    function tx(x) { return PAD.left + (x - xMin) / (xMax - xMin) * (W - PAD.left - PAD.right); }
+    function ty(y) { return PAD.top + (1 - (y - yMin) / (yMax - yMin)) * (H - PAD.top - PAD.bottom); }
+
+    function drawGrid() {
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 1;
+        for (var x = -4; x <= 4; x++) {
+            ctx.beginPath(); ctx.moveTo(tx(x), PAD.top); ctx.lineTo(tx(x), H - PAD.bottom); ctx.stroke();
+        }
+        for (var y = 0; y <= 2; y += 0.5) {
+            ctx.beginPath(); ctx.moveTo(PAD.left, ty(y)); ctx.lineTo(W - PAD.right, ty(y)); ctx.stroke();
+        }
+    }
+
+    function drawAxes() {
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, ty(0)); ctx.lineTo(W - PAD.right, ty(0)); ctx.stroke();
+
+        ctx.fillStyle = '#707088';
+        ctx.font = '12px Georgia';
+        ctx.textAlign = 'center';
+        for (var x = -4; x <= 4; x += 2) {
+            ctx.fillText(x, tx(x), H - PAD.bottom + 18);
+        }
+        ctx.textAlign = 'right';
+        for (var y = 0; y <= 2; y += 0.5) {
+            ctx.fillText(y.toFixed(1), PAD.left - 8, ty(y) + 4);
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        drawGrid();
+        drawAxes();
+
+        var a = parseFloat(sA.value);
+        var b = parseFloat(sB.value);
+        var w = parseFloat(sWt.value);
+        var h = parseFloat(sH.value);
+        vA.textContent = a.toFixed(2);
+        vBv.textContent = b.toFixed(2);
+        vWt.textContent = w.toFixed(1);
+        vH.textContent = h.toFixed(2);
+
+        var steps = 400;
+
+        // Target rectangular pulse
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(tx(xMin), ty(0));
+        ctx.lineTo(tx(a), ty(0));
+        ctx.lineTo(tx(a), ty(h));
+        ctx.lineTo(tx(b), ty(h));
+        ctx.lineTo(tx(b), ty(0));
+        ctx.lineTo(tx(xMax), ty(0));
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Individual sigmoids (faded)
+        // sigma(w(x-a))
+        ctx.strokeStyle = 'rgba(34,211,238,0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (var i = 0; i <= steps; i++) {
+            var x = xMin + (xMax - xMin) * i / steps;
+            var y = h * sigmoid(w * (x - a));
+            var px = tx(x), py = ty(y);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // sigma(w(x-b))
+        ctx.strokeStyle = 'rgba(16,185,129,0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (var i = 0; i <= steps; i++) {
+            var x = xMin + (xMax - xMin) * i / steps;
+            var y = h * sigmoid(w * (x - b));
+            var px = tx(x), py = ty(y);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+
+        // Bump = difference
+        ctx.strokeStyle = '#a78bfa';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        for (var i = 0; i <= steps; i++) {
+            var x = xMin + (xMax - xMin) * i / steps;
+            var y = h * (sigmoid(w * (x - a)) - sigmoid(w * (x - b)));
+            var px = tx(x), py = ty(y);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+    }
+
+    sA.addEventListener('input', draw);
+    sB.addEventListener('input', draw);
+    sWt.addEventListener('input', draw);
+    sH.addEventListener('input', draw);
+    draw();
+})();
+
+/* ============================================================
+   Section 3: N Neurons, Any Function
+   ============================================================ */
+(function() {
+    var c = document.getElementById('canvas3');
+    var r = setupHiDPI(c, 700, 500);
+    var ctx = r.ctx, W = r.w, H = r.h;
+    var PAD = { left: 70, right: 30, top: 30, bottom: 50 };
+    var xMin = -3, xMax = 3, yMin = -1.5, yMax = 1.5;
+
+    var sN = document.getElementById('s3n');
+    var vN = document.getElementById('v3n');
+    var mseVal = document.getElementById('mseVal');
+    var drawHint = document.getElementById('drawHint');
+
+    var currentFunc = 'sine';
+    var stepMode = false;
+    var stepCount = 0;
+    var customPoints = null;
+    var isDrawing = false;
+
+    // Target functions
+    function targetSine(x) { return Math.sin(Math.PI * x); }
+    function targetSquare(x) {
+        var p = Math.PI;
+        var v = Math.sin(p * x);
+        return v >= 0 ? 1 : -1;
+    }
+    function targetSawtooth(x) {
+        // Period 2, range -1 to 1
+        var t = ((x + 1) % 2 + 2) % 2 - 1;
+        return t;
+    }
+    function targetGaussian(x) { return Math.exp(-x * x); }
+
+    function getTarget(x) {
+        if (currentFunc === 'custom' && customPoints) {
+            // Interpolate custom points
+            var idx = (x - xMin) / (xMax - xMin) * (customPoints.length - 1);
+            var lo = Math.max(0, Math.min(customPoints.length - 2, Math.floor(idx)));
+            var hi = lo + 1;
+            var t = idx - lo;
+            return customPoints[lo] * (1 - t) + customPoints[hi] * t;
+        }
+        switch(currentFunc) {
+            case 'sine': return targetSine(x);
+            case 'square': return targetSquare(x);
+            case 'sawtooth': return targetSawtooth(x);
+            case 'gaussian': return targetGaussian(x);
+            default: return targetSine(x);
+        }
+    }
+
+    // Fit N bump neurons to target using simple sampling
+    function fitBumps(N) {
+        var numSamples = 200;
+        var samples = [];
+        for (var i = 0; i < numSamples; i++) {
+            var x = xMin + (xMax - xMin) * i / (numSamples - 1);
+            samples.push({ x: x, y: getTarget(x) });
+        }
+
+        // Divide the domain into N equal bumps
+        var bumps = [];
+        var dx = (xMax - xMin) / N;
+        var steepness = 40;
+        for (var i = 0; i < N; i++) {
+            var left = xMin + i * dx;
+            var right = left + dx;
+            var mid = (left + right) / 2;
+            // Average the target in this region
+            var sum = 0, count = 0;
+            for (var j = 0; j < samples.length; j++) {
+                if (samples[j].x >= left && samples[j].x <= right) {
+                    sum += samples[j].y;
+                    count++;
+                }
+            }
+            var height = count > 0 ? sum / count : 0;
+            bumps.push({ left: left, right: right, height: height, steepness: steepness });
+        }
+        return bumps;
+    }
+
+    function evalBumps(bumps, x) {
+        var y = 0;
+        for (var i = 0; i < bumps.length; i++) {
+            var b = bumps[i];
+            y += b.height * (sigmoid(b.steepness * (x - b.left)) - sigmoid(b.steepness * (x - b.right)));
+        }
+        return y;
+    }
+
+    function tx(x) { return PAD.left + (x - xMin) / (xMax - xMin) * (W - PAD.left - PAD.right); }
+    function ty(y) { return PAD.top + (1 - (y - yMin) / (yMax - yMin)) * (H - PAD.top - PAD.bottom); }
+
+    function drawGrid() {
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 1;
+        for (var x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+            ctx.beginPath(); ctx.moveTo(tx(x), PAD.top); ctx.lineTo(tx(x), H - PAD.bottom); ctx.stroke();
+        }
+        for (var y = Math.ceil(yMin * 2) / 2; y <= yMax; y += 0.5) {
+            ctx.beginPath(); ctx.moveTo(PAD.left, ty(y)); ctx.lineTo(W - PAD.right, ty(y)); ctx.stroke();
+        }
+    }
+
+    function drawAxes() {
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, ty(0)); ctx.lineTo(W - PAD.right, ty(0)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tx(0), PAD.top); ctx.lineTo(tx(0), H - PAD.bottom); ctx.stroke();
+
+        ctx.fillStyle = '#707088';
+        ctx.font = '12px Georgia';
+        ctx.textAlign = 'center';
+        for (var x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+            ctx.fillText(x, tx(x), H - PAD.bottom + 18);
+        }
+        ctx.textAlign = 'right';
+        for (var y = -1; y <= 1; y += 0.5) {
+            ctx.fillText(y.toFixed(1), PAD.left - 8, ty(y) + 4);
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        drawGrid();
+        drawAxes();
+
+        var N = parseInt(sN.value);
+        vN.textContent = N;
+
+        var useN = stepMode ? Math.min(stepCount, N) : N;
+        var bumps = fitBumps(N);
+
+        // Target function (dashed)
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        var steps = 500;
+        for (var i = 0; i <= steps; i++) {
+            var x = xMin + (xMax - xMin) * i / steps;
+            var y = getTarget(x);
+            y = Math.max(yMin, Math.min(yMax, y));
+            var px = tx(x), py = ty(y);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Network output using useN bumps
+        var activeBumps = bumps.slice(0, useN);
+        ctx.strokeStyle = '#a78bfa';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        var mse = 0;
+        for (var i = 0; i <= steps; i++) {
+            var x = xMin + (xMax - xMin) * i / steps;
+            var y = evalBumps(activeBumps, x);
+            var target = getTarget(x);
+            mse += (y - target) * (y - target);
+            y = Math.max(yMin, Math.min(yMax, y));
+            var px = tx(x), py = ty(y);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+        mse /= (steps + 1);
+        mseVal.textContent = mse.toFixed(4);
+
+        // Show active bump count in step mode
+        if (stepMode) {
+            ctx.fillStyle = '#808098';
+            ctx.font = '13px Georgia';
+            ctx.textAlign = 'left';
+            ctx.fillText('Showing ' + useN + ' of ' + N + ' neurons', PAD.left + 10, PAD.top + 20);
+        }
+    }
+
+    // Function selector buttons
+    var funcBtns = {
+        'btnSine': 'sine',
+        'btnSquare': 'square',
+        'btnSawtooth': 'sawtooth',
+        'btnGaussian': 'gaussian',
+        'btnCustom': 'custom'
+    };
+    Object.keys(funcBtns).forEach(function(id) {
+        document.getElementById(id).addEventListener('click', function() {
+            Object.keys(funcBtns).forEach(function(bid) {
+                document.getElementById(bid).classList.remove('active');
+            });
+            this.classList.add('active');
+            currentFunc = funcBtns[id];
+            stepMode = false;
+            stepCount = 0;
+            if (currentFunc === 'custom') {
+                drawHint.style.display = 'block';
+                if (!customPoints) {
+                    // Initialise flat custom curve
+                    customPoints = [];
+                    for (var i = 0; i < 200; i++) customPoints.push(0);
+                }
+            } else {
+                drawHint.style.display = 'none';
+            }
+            draw();
+        });
+    });
+
+    // Step through button
+    document.getElementById('btnStep3').addEventListener('click', function() {
+        var N = parseInt(sN.value);
+        if (!stepMode) {
+            stepMode = true;
+            stepCount = 1;
+        } else {
+            stepCount++;
+            if (stepCount > N) stepCount = N;
+        }
+        draw();
+    });
+
+    document.getElementById('btnReset3').addEventListener('click', function() {
+        stepMode = false;
+        stepCount = 0;
+        draw();
+    });
+
+    sN.addEventListener('input', function() {
+        stepMode = false;
+        stepCount = 0;
+        draw();
+    });
+
+    // Custom drawing on canvas
+    function getCanvasXY(e) {
+        var rect = c.getBoundingClientRect();
+        var scaleX = W / rect.width;
+        var scaleY = H / rect.height;
+        var cx, cy;
+        if (e.touches) {
+            cx = (e.touches[0].clientX - rect.left) * scaleX;
+            cy = (e.touches[0].clientY - rect.top) * scaleY;
+        } else {
+            cx = (e.clientX - rect.left) * scaleX;
+            cy = (e.clientY - rect.top) * scaleY;
+        }
+        // Convert pixel to data coords
+        var dataX = xMin + (cx - PAD.left) / (W - PAD.left - PAD.right) * (xMax - xMin);
+        var dataY = yMax - (cy - PAD.top) / (H - PAD.top - PAD.bottom) * (yMax - yMin);
+        return { x: dataX, y: dataY };
+    }
+
+    function paintCustom(e) {
+        if (currentFunc !== 'custom' || !customPoints) return;
+        var pt = getCanvasXY(e);
+        var idx = Math.round((pt.x - xMin) / (xMax - xMin) * (customPoints.length - 1));
+        var radius = 5;
+        for (var i = Math.max(0, idx - radius); i <= Math.min(customPoints.length - 1, idx + radius); i++) {
+            var blend = 1 - Math.abs(i - idx) / (radius + 1);
+            customPoints[i] = customPoints[i] * (1 - blend) + pt.y * blend;
+        }
+        draw();
+    }
+
+    c.addEventListener('mousedown', function(e) {
+        if (currentFunc !== 'custom') return;
+        isDrawing = true;
+        paintCustom(e);
+    });
+    c.addEventListener('mousemove', function(e) {
+        if (isDrawing) paintCustom(e);
+    });
+    c.addEventListener('mouseup', function() { isDrawing = false; });
+    c.addEventListener('mouseleave', function() { isDrawing = false; });
+    c.addEventListener('touchstart', function(e) {
+        if (currentFunc !== 'custom') return;
+        isDrawing = true;
+        paintCustom(e);
+        e.preventDefault();
+    }, { passive: false });
+    c.addEventListener('touchmove', function(e) {
+        if (isDrawing) { paintCustom(e); e.preventDefault(); }
+    }, { passive: false });
+    c.addEventListener('touchend', function() { isDrawing = false; });
+
+    draw();
+})();
+
+/* ============================================================
+   Section 4: Width vs Depth
+   ============================================================ */
+(function() {
+    var c = document.getElementById('canvas4');
+    var r = setupHiDPI(c, 600, 400);
+    var ctx = r.ctx, W = r.w, H = r.h;
+    var PAD = { left: 70, right: 30, top: 30, bottom: 50 };
+    var xMin = -3, xMax = 3, yMin = -1.5, yMax = 1.5;
+
+    var sWide = document.getElementById('s4wide');
+    var sDeep = document.getElementById('s4deep');
+    var vWide = document.getElementById('v4wide');
+    var vDeep = document.getElementById('v4deep');
+    var wideMseEl = document.getElementById('wideMse');
+    var deepMseEl = document.getElementById('deepMse');
+    var wideParamsEl = document.getElementById('wideParams');
+    var deepParamsEl = document.getElementById('deepParams');
+
+    // Target: a complex function that benefits from depth
+    function target(x) {
+        return 0.5 * Math.sin(2 * Math.PI * x) + 0.3 * Math.sin(4 * Math.PI * x) + 0.1 * Math.cos(6 * Math.PI * x);
+    }
+
+    function tx(x) { return PAD.left + (x - xMin) / (xMax - xMin) * (W - PAD.left - PAD.right); }
+    function ty(y) { return PAD.top + (1 - (y - yMin) / (yMax - yMin)) * (H - PAD.top - PAD.bottom); }
+
+    // Wide: N bump neurons in 1 layer (same approach as section 3)
+    function evalWide(N, x) {
+        var dx = (xMax - xMin) / N;
+        var steepness = 40;
+        var y = 0;
+        for (var i = 0; i < N; i++) {
+            var left = xMin + i * dx;
+            var right = left + dx;
+            var mid = (left + right) / 2;
+            var h = target(mid);
+            y += h * (sigmoid(steepness * (x - left)) - sigmoid(steepness * (x - right)));
+        }
+        return y;
+    }
+
+    // Deep: multi-layer composition using piecewise-linear-like approximation
+    // Each layer refines the previous one. More layers = finer detail with fewer neurons per layer.
+    function evalDeep(layers, x) {
+        // Neurons per layer: fixed at 4 per layer for comparison
+        var neuronsPerLayer = 4;
+        // First layer: coarse bumps
+        var totalBumps = neuronsPerLayer;
+        var dx = (xMax - xMin) / totalBumps;
+        var steepness = 20;
+        var baseValues = [];
+        for (var i = 0; i < totalBumps; i++) {
+            var left = xMin + i * dx;
+            var mid = (left + left + dx) / 2;
+            baseValues.push({ left: left, right: left + dx, height: target(mid) });
+        }
+
+        // Each additional layer adds residual correction
+        var allBumps = [baseValues];
+        for (var l = 1; l < layers; l++) {
+            // Sample residual error
+            var numBumps = neuronsPerLayer;
+            var lDx = (xMax - xMin) / numBumps;
+            var layerBumps = [];
+            for (var i = 0; i < numBumps; i++) {
+                var left = xMin + i * lDx;
+                var right = left + lDx;
+                var mid = (left + right) / 2;
+                // Compute current output at mid
+                var current = 0;
+                for (var ll = 0; ll < allBumps.length; ll++) {
+                    for (var j = 0; j < allBumps[ll].length; j++) {
+                        var b = allBumps[ll][j];
+                        current += b.height * (sigmoid(steepness * (1 + ll) * (mid - b.left)) - sigmoid(steepness * (1 + ll) * (mid - b.right)));
+                    }
+                }
+                var residual = target(mid) - current;
+                layerBumps.push({ left: left, right: right, height: residual });
+            }
+            allBumps.push(layerBumps);
+        }
+
+        // Evaluate
+        var y = 0;
+        for (var ll = 0; ll < allBumps.length; ll++) {
+            for (var j = 0; j < allBumps[ll].length; j++) {
+                var b = allBumps[ll][j];
+                y += b.height * (sigmoid(steepness * (1 + ll) * (x - b.left)) - sigmoid(steepness * (1 + ll) * (x - b.right)));
+            }
+        }
+        return y;
+    }
+
+    function drawGrid() {
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 1;
+        for (var x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+            ctx.beginPath(); ctx.moveTo(tx(x), PAD.top); ctx.lineTo(tx(x), H - PAD.bottom); ctx.stroke();
+        }
+        for (var y = -1; y <= 1; y += 0.5) {
+            ctx.beginPath(); ctx.moveTo(PAD.left, ty(y)); ctx.lineTo(W - PAD.right, ty(y)); ctx.stroke();
+        }
+    }
+
+    function drawAxes() {
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, ty(0)); ctx.lineTo(W - PAD.right, ty(0)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(tx(0), PAD.top); ctx.lineTo(tx(0), H - PAD.bottom); ctx.stroke();
+
+        ctx.fillStyle = '#707088';
+        ctx.font = '12px Georgia';
+        ctx.textAlign = 'center';
+        for (var x = Math.ceil(xMin); x <= Math.floor(xMax); x++) {
+            ctx.fillText(x, tx(x), H - PAD.bottom + 18);
+        }
+        ctx.textAlign = 'right';
+        for (var y = -1; y <= 1; y += 0.5) {
+            ctx.fillText(y.toFixed(1), PAD.left - 8, ty(y) + 4);
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        drawGrid();
+        drawAxes();
+
+        var nWide = parseInt(sWide.value);
+        var nDeep = parseInt(sDeep.value);
+        vWide.textContent = nWide;
+        vDeep.textContent = nDeep;
+
+        var steps = 400;
+
+        // Target (dashed)
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (var i = 0; i <= steps; i++) {
+            var x = xMin + (xMax - xMin) * i / steps;
+            var y = Math.max(yMin, Math.min(yMax, target(x)));
+            if (i === 0) ctx.moveTo(tx(x), ty(y)); else ctx.lineTo(tx(x), ty(y));
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Wide network (cyan)
+        var wideMse = 0;
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (var i = 0; i <= steps; i++) {
+            var x = xMin + (xMax - xMin) * i / steps;
+            var y = evalWide(nWide, x);
+            var t = target(x);
+            wideMse += (y - t) * (y - t);
+            y = Math.max(yMin, Math.min(yMax, y));
+            if (i === 0) ctx.moveTo(tx(x), ty(y)); else ctx.lineTo(tx(x), ty(y));
+        }
+        ctx.stroke();
+        wideMse /= (steps + 1);
+
+        // Deep network (red)
+        var deepMse = 0;
+        ctx.strokeStyle = '#f87171';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (var i = 0; i <= steps; i++) {
+            var x = xMin + (xMax - xMin) * i / steps;
+            var y = evalDeep(nDeep, x);
+            var t = target(x);
+            deepMse += (y - t) * (y - t);
+            y = Math.max(yMin, Math.min(yMax, y));
+            if (i === 0) ctx.moveTo(tx(x), ty(y)); else ctx.lineTo(tx(x), ty(y));
+        }
+        ctx.stroke();
+        deepMse /= (steps + 1);
+
+        wideMseEl.textContent = wideMse.toFixed(4);
+        deepMseEl.textContent = deepMse.toFixed(4);
+
+        // Parameter counts
+        // Wide: N neurons, each with 1 weight + 1 bias + 1 output weight = 3N + 1 (output bias)
+        var wideP = 3 * nWide + 1;
+        // Deep: 4 neurons per layer, layers connected: input->4 = 8, 4->4 = 20 per hidden, 4->1 = 5
+        var neuronsPerLayer = 4;
+        var deepP;
+        if (nDeep === 1) {
+            deepP = 3 * neuronsPerLayer + 1;
+        } else {
+            deepP = (2 * neuronsPerLayer + neuronsPerLayer) + // input layer: 1*4 weights + 4 biases + ... simplified
+                    (nDeep - 1) * (neuronsPerLayer * neuronsPerLayer + neuronsPerLayer) + // hidden layers
+                    (neuronsPerLayer + 1); // output layer
+        }
+        wideParamsEl.textContent = wideP;
+        deepParamsEl.textContent = deepP;
+    }
+
+    sWide.addEventListener('input', draw);
+    sDeep.addEventListener('input', draw);
+    draw();
+})();
+</script>
+</body>
+</html>

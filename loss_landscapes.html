@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loss Landscapes</title>
+    <meta name="description" content="Visualise neural network loss landscapes. Explore gradient descent paths, local minima, saddle points, and the role of learning rate in optimisation.">
+    <link rel="canonical" href="https://mathsedu.org/loss_landscapes.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Loss Landscapes",
+      "url": "https://mathsedu.org/loss_landscapes.html",
+      "description": "Visualise neural network loss landscapes. Explore gradient descent paths, local minima, saddle points, and the role of learning rate in optimisation.",
+      "educationalLevel": "Intermediate",
+      "teaches": "Loss landscapes, gradient descent, saddle points, local minima, learning rate, SGD, momentum, Adam, RMSProp, optimisation",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en-GB",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "The Mathematics of Intelligence",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="Loss Landscapes">
+    <meta property="og:description" content="Visualise neural network loss landscapes. Explore gradient descent paths, local minima, saddle points, and the role of learning rate in optimisation.">
+    <meta property="og:url" content="https://mathsedu.org/loss_landscapes.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Loss Landscapes">
+    <meta name="twitter:description" content="Visualise neural network loss landscapes. Explore gradient descent paths, local minima, saddle points, and the role of learning rate in optimisation.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#a78bfa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:8px}
+        .difficulty{display:inline-block;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);border-radius:12px;padding:2px 12px;font-size:0.78em;color:#a78bfa;margin-bottom:16px}
+        .intro-text{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(167,139,250,0.13);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .violet{color:#a78bfa}.math-line .cyan{color:#22d3ee}.math-line .green{color:#10b981}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#a78bfa;cursor:pointer}
+        .slider-val{color:#a78bfa;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .insight-box{background:rgba(167,139,250,0.04);border-left:3px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#a78bfa;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .micro-note{color:#808098;font-size:0.85em;font-style:italic;margin:8px 0 4px;line-height:1.6}
+        .status-text{font-family:'Courier New',monospace;font-size:0.95em;color:#a78bfa;margin:6px 0}
+        .ref-table{width:100%;border-collapse:collapse;margin:14px 0;font-size:0.88em}
+        .ref-table th{text-align:left;color:#808098;font-weight:400;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06);text-transform:uppercase;font-size:0.8em;letter-spacing:0.5px}
+        .ref-table td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.03);color:#b0b0c8}
+        .ref-table tr:hover td{background:rgba(167,139,250,0.03)}
+        .ref-table .fn-name{color:#a78bfa}
+        .connections{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+        .conn-link{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.15);border-radius:8px;padding:6px 14px;color:#a0a0b8;text-decoration:none;font-size:0.85em;transition:all 0.2s}
+        .conn-link:hover{background:rgba(167,139,250,0.12);color:#a78bfa}
+        @media(max-width:600px){
+            .container{padding:16px 14px 36px}
+            h1{font-size:1.4em}
+            canvas{max-width:100%}
+            .btn{padding:4px 10px;font-size:0.84em}
+            .slider-row{flex-wrap:wrap}
+            .slider-row label{min-width:100%}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a href="index.html" class="back">&larr; Home</a>
+    <h1>Loss Landscapes</h1>
+    <p class="subtitle">The geometry of neural network optimisation</p>
+    <span class="difficulty">Intermediate</span>
+    <p class="intro-text">
+        Training a neural network means finding weights that minimise a loss function.
+        That loss function defines a surface &mdash; a landscape &mdash; over the space of all possible weights.
+        The shape of this landscape determines whether training succeeds or fails, whether it converges quickly or slowly,
+        and why we need sophisticated optimisers rather than simple gradient descent.
+        Here we visualise these landscapes and watch optimisers navigate them.
+    </p>
+
+    <!-- ===================== SECTION 1: THE LOSS SURFACE IN 2D ===================== -->
+    <h2>1 &middot; The Loss Surface in 2D</h2>
+    <p class="micro-note">A contour map of L(w&#8321;, w&#8322;). Click to set a starting point and watch gradient descent find the minimum.</p>
+    <div class="panel">
+        <h3>Landscape</h3>
+        <div class="btn-row">
+            <button class="btn active" id="surfBowl" onclick="setSurface('bowl')">Simple bowl</button>
+            <button class="btn" id="surfTwo" onclick="setSurface('two')">Two minima</button>
+            <button class="btn" id="surfSaddle" onclick="setSurface('saddle')">Saddle point</button>
+            <button class="btn" id="surfRast" onclick="setSurface('rastrigin')">Rastrigin</button>
+            <button class="btn" id="surfRosen" onclick="setSurface('rosenbrock')">Rosenbrock</button>
+        </div>
+        <h3>Optimiser</h3>
+        <div class="btn-row">
+            <button class="btn active" id="optGD" onclick="setOptimiser('gd')">GD</button>
+            <button class="btn" id="optSGD" onclick="setOptimiser('sgd')">SGD (noisy)</button>
+            <button class="btn" id="optMom" onclick="setOptimiser('momentum')">Momentum</button>
+            <button class="btn" id="optAdam" onclick="setOptimiser('adam')">Adam</button>
+        </div>
+        <canvas id="cvSurface" width="700" height="500"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Descent path</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Gradient arrow</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fff;opacity:0.6"></div><span style="color:#808098">Start</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Learning rate:</label>
+            <input type="range" id="sLR1" min="1" max="100" value="20">
+            <span class="slider-val" id="vLR1">0.020</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" onclick="resetSurfacePath()">Reset path</button>
+        </div>
+        <div class="result-box">
+            <div id="surfResult" class="math-line">Click on the contour map to set a starting point</div>
+        </div>
+        <div class="insight-box">
+            The loss landscape determines everything about training. A smooth bowl converges easily.
+            A landscape with saddle points and narrow valleys is why we need momentum and adaptive learning rates.
+        </div>
+    </div>
+
+    <!-- ===================== SECTION 2: LEARNING RATE EFFECTS ===================== -->
+    <h2>2 &middot; Learning Rate Effects</h2>
+    <p class="micro-note">Three gradient descent paths run simultaneously with different learning rates on the same landscape.</p>
+    <div class="panel">
+        <canvas id="cvLR" width="600" height="400"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#60a5fa"></div><span style="color:#60a5fa">Low LR</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Medium LR</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">High LR</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Low LR:</label>
+            <input type="range" id="sLRLow" min="1" max="50" value="5">
+            <span class="slider-val" id="vLRLow">0.005</span>
+        </div>
+        <div class="slider-row">
+            <label>Medium LR:</label>
+            <input type="range" id="sLRMed" min="5" max="80" value="30">
+            <span class="slider-val" id="vLRMed">0.030</span>
+        </div>
+        <div class="slider-row">
+            <label>High LR:</label>
+            <input type="range" id="sLRHigh" min="20" max="200" value="100">
+            <span class="slider-val" id="vLRHigh">0.100</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" onclick="resetLRPaths()">Reset</button>
+            <button class="btn" onclick="startLRAnimation()">Run</button>
+        </div>
+        <div class="result-box">
+            <div id="lrResult" class="math-line">Press Run to compare learning rates</div>
+        </div>
+        <div class="insight-box">
+            Too small a learning rate wastes computation. Too large and the optimiser bounces around or even diverges.
+            The &lsquo;Goldilocks zone&rsquo; depends on the landscape curvature &mdash; which is why adaptive methods like Adam adjust the rate automatically.
+        </div>
+    </div>
+
+    <!-- ===================== SECTION 3: SADDLE POINTS VS LOCAL MINIMA ===================== -->
+    <h2>3 &middot; Saddle Points vs Local Minima</h2>
+    <p class="micro-note">A 3D wireframe of a saddle surface. Watch how noise and momentum help escape saddle points.</p>
+    <div class="panel">
+        <canvas id="cvSaddle" width="600" height="500"></canvas>
+        <div class="slider-row">
+            <label>Noise level (SGD):</label>
+            <input type="range" id="sSaddleNoise" min="0" max="100" value="10">
+            <span class="slider-val" id="vSaddleNoise">0.10</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn active" id="saddleNoMom" onclick="setSaddleMomentum(false)">No momentum</button>
+            <button class="btn" id="saddleMom" onclick="setSaddleMomentum(true)">Add momentum</button>
+            <button class="btn" onclick="resetSaddle()">Reset paths</button>
+        </div>
+        <div class="result-box">
+            <div id="saddleResult" class="math-line">
+                Hessian eigenvalues at saddle: <span class="violet">&lambda;&#8321; = +1.0</span>, <span class="pink">&lambda;&#8322; = &minus;1.0</span> &mdash; mixed signs indicate a saddle point
+            </div>
+        </div>
+        <div class="insight-box">
+            In high-dimensional networks, saddle points are far more common than local minima.
+            At a saddle, the loss decreases in some directions and increases in others.
+            SGD noise and momentum both help escape these plateaux.
+        </div>
+    </div>
+
+    <!-- ===================== SECTION 4: OPTIMISER COMPARISON ===================== -->
+    <h2>4 &middot; Optimiser Comparison</h2>
+    <p class="micro-note">Four optimisers tackle the narrow Rosenbrock valley simultaneously. Fewer steps to the minimum is better.</p>
+    <div class="panel">
+        <canvas id="cvOptim" width="700" height="500"></canvas>
+        <div class="grid-legend">
+            <div class="legend-item"><div class="legend-swatch" style="background:#60a5fa"></div><span style="color:#60a5fa">SGD</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">SGD + Momentum</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#fbbf24"></div><span style="color:#fbbf24">RMSProp</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#a78bfa"></div><span style="color:#a78bfa">Adam</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Global learning rate:</label>
+            <input type="range" id="sOptLR" min="1" max="100" value="30">
+            <span class="slider-val" id="vOptLR">0.0030</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" onclick="resetOptim()">Reset</button>
+            <button class="btn" onclick="startOptimAnimation()">Run</button>
+        </div>
+        <div class="result-box">
+            <div id="optimResult" class="math-line">Press Run to compare optimisers on the Rosenbrock valley</div>
+        </div>
+        <div class="insight-box">
+            Adam combines the best of momentum (remembers direction) and RMSProp (adapts to curvature).
+            It is the default optimiser for most deep learning because it works well across diverse landscapes.
+        </div>
+    </div>
+
+    <!-- ===================== SECTION 5: WHAT HAVE WE LEARNT? ===================== -->
+    <h2>5 &middot; What Have We Learnt?</h2>
+    <div class="panel">
+        <p class="explain-text" style="margin-bottom:14px">
+            We have explored the geometry that underlies neural network training: the loss landscape.
+            From smooth bowls to treacherous saddle points and narrow valleys, the shape of this surface
+            determines how &mdash; and whether &mdash; optimisation succeeds.
+        </p>
+        <table class="ref-table">
+            <thead>
+                <tr><th>Concept</th><th>Key idea</th></tr>
+            </thead>
+            <tbody>
+                <tr><td class="fn-name">Loss surface</td><td>The loss function defines a landscape over weight space; minima are good parameter settings</td></tr>
+                <tr><td class="fn-name">Learning rate</td><td>Controls step size &mdash; too small is slow, too large diverges; adaptive methods adjust automatically</td></tr>
+                <tr><td class="fn-name">Saddle points</td><td>More common than local minima in high dimensions; noise and momentum help escape them</td></tr>
+                <tr><td class="fn-name">SGD</td><td>Stochastic gradient descent &mdash; noisy gradients from mini-batches; helps explore the landscape</td></tr>
+                <tr><td class="fn-name">Momentum</td><td>Accumulates gradient direction over time; carries the optimiser through flat regions</td></tr>
+                <tr><td class="fn-name">RMSProp</td><td>Adapts learning rate per parameter using a running average of squared gradients</td></tr>
+                <tr><td class="fn-name">Adam</td><td>Combines momentum and RMSProp; the default choice for most deep learning tasks</td></tr>
+            </tbody>
+        </table>
+        <p class="explain-text" style="margin-top:14px"><strong style="color:#a78bfa">Connections:</strong></p>
+        <div class="connections">
+            <a class="conn-link" href="gradient_descent.html">Gradient Descent</a>
+            <a class="conn-link" href="backpropagation.html">Backpropagation</a>
+            <a class="conn-link" href="activation_functions.html">Activation Functions</a>
+        </div>
+    </div>
+</div>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px"><div>&copy; 2025&ndash;2026 Manoj Bhaskar &middot; Coded by <a href="https://claude.ai/claude-code" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">Claude</a> &middot; <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" style="color:#606078;text-decoration:none" target="_blank" rel="noopener">CC BY-NC-SA 4.0</a></div></footer>
+
+<script>
+/* =========================================================================
+   UTILITIES
+   ========================================================================= */
+var DPR = window.devicePixelRatio || 1;
+
+function hiDPICanvas(canvas, w, h) {
+    canvas.width = w * DPR;
+    canvas.height = h * DPR;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(DPR, DPR);
+    return ctx;
+}
+
+var ACCENT = '#a78bfa';
+var CYAN   = '#22d3ee';
+var BLUE   = '#60a5fa';
+var GREEN  = '#10b981';
+var GOLD   = '#fbbf24';
+var PINK   = '#f472b6';
+var BG     = '#0a0a1a';
+var GRID   = 'rgba(255,255,255,0.04)';
+var AXIS   = 'rgba(255,255,255,0.12)';
+
+/* =========================================================================
+   LOSS FUNCTIONS
+   ========================================================================= */
+function lossBowl(x, y) {
+    return x * x + y * y;
+}
+function gradBowl(x, y) {
+    return [2 * x, 2 * y];
+}
+
+function lossTwo(x, y) {
+    return (x * x - 2.25) * (x * x - 2.25) + 2 * y * y + 2;
+}
+function gradTwo(x, y) {
+    return [4 * x * (x * x - 2.25), 4 * y];
+}
+
+function lossSaddle(x, y) {
+    return x * x - y * y;
+}
+function gradSaddleFn(x, y) {
+    return [2 * x, -2 * y];
+}
+
+function lossRastrigin(x, y) {
+    var A = 2;
+    return A * 2 + (x * x - A * Math.cos(2 * Math.PI * x)) + (y * y - A * Math.cos(2 * Math.PI * y));
+}
+function gradRastrigin(x, y) {
+    var A = 2;
+    return [
+        2 * x + A * 2 * Math.PI * Math.sin(2 * Math.PI * x),
+        2 * y + A * 2 * Math.PI * Math.sin(2 * Math.PI * y)
+    ];
+}
+
+function lossRosenbrock(x, y) {
+    var a = 1, b = 10;
+    return (a - x) * (a - x) + b * (y - x * x) * (y - x * x);
+}
+function gradRosenbrock(x, y) {
+    var a = 1, b = 10;
+    return [
+        -2 * (a - x) - 4 * b * x * (y - x * x),
+        2 * b * (y - x * x)
+    ];
+}
+
+/* =========================================================================
+   SURFACE DEFINITIONS
+   ========================================================================= */
+var surfaces = {
+    bowl:       { fn: lossBowl,       grad: gradBowl,       range: [-3, 3], maxLoss: 9,  name: 'Simple bowl' },
+    two:        { fn: lossTwo,        grad: gradTwo,        range: [-3, 3], maxLoss: 12, name: 'Two minima' },
+    saddle:     { fn: lossSaddle,     grad: gradSaddleFn,   range: [-3, 3], maxLoss: 9,  name: 'Saddle point' },
+    rastrigin:  { fn: lossRastrigin,  grad: gradRastrigin,  range: [-3, 3], maxLoss: 14, name: 'Rastrigin' },
+    rosenbrock: { fn: lossRosenbrock, grad: gradRosenbrock, range: [-2, 3], maxLoss: 50, name: 'Rosenbrock' }
+};
+
+/* =========================================================================
+   COLOUR HELPER
+   ========================================================================= */
+function lossToColour(val, maxVal) {
+    var t = Math.min(1, Math.max(0, val / maxVal));
+    var r, g, b;
+    if (t < 0.5) {
+        var s = t * 2;
+        r = Math.floor(10 + s * 157);
+        g = Math.floor(10 + s * 119);
+        b = Math.floor(40 + s * 210);
+    } else {
+        var s = (t - 0.5) * 2;
+        r = Math.floor(167 + s * 77);
+        g = Math.floor(129 - s * 60);
+        b = Math.floor(250 - s * 68);
+    }
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+
+/* =========================================================================
+   CONTOUR MAP RENDERER
+   ========================================================================= */
+function drawContours(ctx, w, h, surf, pad) {
+    var s = surfaces[surf];
+    var fn = s.fn;
+    var range = s.range;
+    var maxL = s.maxLoss;
+    var plotW = w - pad.left - pad.right;
+    var plotH = h - pad.top - pad.bottom;
+    var res = 3;
+
+    // Heat map fill
+    for (var px = 0; px < plotW; px += res) {
+        for (var py = 0; py < plotH; py += res) {
+            var x = range[0] + (px / plotW) * (range[1] - range[0]);
+            var y = range[1] - (py / plotH) * (range[1] - range[0]);
+            var val = fn(x, y);
+            ctx.fillStyle = lossToColour(val, maxL);
+            ctx.fillRect(pad.left + px, pad.top + py, res, res);
+        }
+    }
+
+    // Contour lines via edge detection
+    var numLevels = 10;
+    ctx.fillStyle = 'rgba(255,255,255,0.13)';
+    for (var c = 1; c <= numLevels; c++) {
+        var level = (c / numLevels) * maxL * 0.8;
+        for (var px = 0; px < plotW - res; px += res) {
+            for (var py = 0; py < plotH - res; py += res) {
+                var x  = range[0] + (px / plotW) * (range[1] - range[0]);
+                var y  = range[1] - (py / plotH) * (range[1] - range[0]);
+                var xr = range[0] + ((px + res) / plotW) * (range[1] - range[0]);
+                var yd = range[1] - ((py + res) / plotH) * (range[1] - range[0]);
+                var v0 = fn(x, y);
+                var vr = fn(xr, y);
+                var vd = fn(x, yd);
+                if ((v0 < level) !== (vr < level) || (v0 < level) !== (vd < level)) {
+                    ctx.fillRect(pad.left + px, pad.top + py, 1, 1);
+                }
+            }
+        }
+    }
+
+    // Axis labels
+    ctx.fillStyle = '#808098';
+    ctx.font = '12px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('w\u2081', pad.left + plotW / 2, h - 5);
+    ctx.save();
+    ctx.translate(12, pad.top + plotH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('w\u2082', 0, 0);
+    ctx.restore();
+
+    // Tick labels
+    ctx.font = '10px Courier New, monospace';
+    ctx.fillStyle = '#606078';
+    ctx.textAlign = 'center';
+    for (var i = 0; i <= 4; i++) {
+        var val = range[0] + (i / 4) * (range[1] - range[0]);
+        ctx.fillText(val.toFixed(1), pad.left + (i / 4) * plotW, h - pad.bottom + 16);
+    }
+    ctx.textAlign = 'right';
+    for (var i = 0; i <= 4; i++) {
+        var val = range[1] - (i / 4) * (range[1] - range[0]);
+        ctx.fillText(val.toFixed(1), pad.left - 6, pad.top + (i / 4) * plotH + 4);
+    }
+}
+
+/* =========================================================================
+   SECTION 1: THE LOSS SURFACE IN 2D
+   ========================================================================= */
+var cvSurf = document.getElementById('cvSurface');
+var W1 = 700, H1 = 500;
+var ctxSurf = hiDPICanvas(cvSurf, W1, H1);
+var surfPad = { left: 50, right: 20, top: 20, bottom: 35 };
+
+var curSurface   = 'bowl';
+var curOptimiser = 'gd';
+var surfPath     = [];
+var surfAnimId   = null;
+var surfStep     = 0;
+var surfVel      = [0, 0];
+var surfM        = [0, 0];
+var surfV        = [0, 0];
+var surfT        = 0;
+
+function setSurface(name) {
+    curSurface = name;
+    var ids = { bowl: 'surfBowl', two: 'surfTwo', saddle: 'surfSaddle', rastrigin: 'surfRast', rosenbrock: 'surfRosen' };
+    Object.keys(ids).forEach(function(k) { document.getElementById(ids[k]).classList.toggle('active', k === name); });
+    resetSurfacePath();
+    drawSurface();
+}
+
+function setOptimiser(name) {
+    curOptimiser = name;
+    var ids = { gd: 'optGD', sgd: 'optSGD', momentum: 'optMom', adam: 'optAdam' };
+    Object.keys(ids).forEach(function(k) { document.getElementById(ids[k]).classList.toggle('active', k === name); });
+    resetSurfacePath();
+}
+
+function resetSurfacePath() {
+    if (surfAnimId) { cancelAnimationFrame(surfAnimId); surfAnimId = null; }
+    surfPath = [];
+    surfStep = 0;
+    surfVel = [0, 0]; surfM = [0, 0]; surfV = [0, 0]; surfT = 0;
+    document.getElementById('surfResult').innerHTML = 'Click on the contour map to set a starting point';
+    drawSurface();
+}
+
+function w2c1(x, y) {
+    var s = surfaces[curSurface], r = s.range;
+    var pW = W1 - surfPad.left - surfPad.right;
+    var pH = H1 - surfPad.top  - surfPad.bottom;
+    return [surfPad.left + ((x - r[0]) / (r[1] - r[0])) * pW,
+            surfPad.top  + ((r[1] - y) / (r[1] - r[0])) * pH];
+}
+function c2w1(cx, cy) {
+    var s = surfaces[curSurface], r = s.range;
+    var pW = W1 - surfPad.left - surfPad.right;
+    var pH = H1 - surfPad.top  - surfPad.bottom;
+    return [r[0] + ((cx - surfPad.left) / pW) * (r[1] - r[0]),
+            r[1] - ((cy - surfPad.top)  / pH) * (r[1] - r[0])];
+}
+
+function drawSurface() {
+    ctxSurf.clearRect(0, 0, W1, H1);
+    drawContours(ctxSurf, W1, H1, curSurface, surfPad);
+
+    if (surfPath.length > 1) {
+        ctxSurf.strokeStyle = ACCENT;
+        ctxSurf.lineWidth = 2;
+        ctxSurf.beginPath();
+        var p0 = w2c1(surfPath[0][0], surfPath[0][1]);
+        ctxSurf.moveTo(p0[0], p0[1]);
+        for (var i = 1; i < surfPath.length; i++) {
+            var p = w2c1(surfPath[i][0], surfPath[i][1]);
+            ctxSurf.lineTo(p[0], p[1]);
+        }
+        ctxSurf.stroke();
+
+        // Gradient arrow at current position
+        var last = surfPath[surfPath.length - 1];
+        var prev = surfPath[Math.max(0, surfPath.length - 2)];
+        var pl = w2c1(last[0], last[1]);
+        var pp = w2c1(prev[0], prev[1]);
+        var dx = pl[0] - pp[0], dy = pl[1] - pp[1];
+        var len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 2) {
+            var ax = dx / len, ay = dy / len;
+            ctxSurf.fillStyle = CYAN;
+            ctxSurf.beginPath();
+            ctxSurf.moveTo(pl[0], pl[1]);
+            ctxSurf.lineTo(pl[0] - ax * 10 - ay * 5, pl[1] - ay * 10 + ax * 5);
+            ctxSurf.lineTo(pl[0] - ax * 10 + ay * 5, pl[1] - ay * 10 - ax * 5);
+            ctxSurf.fill();
+        }
+    }
+
+    // Start marker
+    if (surfPath.length > 0) {
+        var sp = w2c1(surfPath[0][0], surfPath[0][1]);
+        ctxSurf.fillStyle = 'rgba(255,255,255,0.85)';
+        ctxSurf.beginPath();
+        ctxSurf.arc(sp[0], sp[1], 5, 0, Math.PI * 2);
+        ctxSurf.fill();
+    }
+    // Current position marker
+    if (surfPath.length > 0) {
+        var cur = surfPath[surfPath.length - 1];
+        var cp = w2c1(cur[0], cur[1]);
+        ctxSurf.fillStyle = ACCENT;
+        ctxSurf.beginPath();
+        ctxSurf.arc(cp[0], cp[1], 5, 0, Math.PI * 2);
+        ctxSurf.fill();
+        ctxSurf.strokeStyle = '#fff';
+        ctxSurf.lineWidth = 1.5;
+        ctxSurf.stroke();
+    }
+}
+
+function surfOptimStep() {
+    if (surfPath.length === 0) return true;
+    var s  = surfaces[curSurface];
+    var lr = parseInt(document.getElementById('sLR1').value) / 1000;
+    var cur = surfPath[surfPath.length - 1];
+    var g   = s.grad(cur[0], cur[1]);
+    var nx, ny;
+
+    if (curOptimiser === 'gd') {
+        nx = cur[0] - lr * g[0];
+        ny = cur[1] - lr * g[1];
+    } else if (curOptimiser === 'sgd') {
+        var noise = lr * 0.5;
+        nx = cur[0] - lr * g[0] + (Math.random() - 0.5) * noise;
+        ny = cur[1] - lr * g[1] + (Math.random() - 0.5) * noise;
+    } else if (curOptimiser === 'momentum') {
+        var mu = 0.9;
+        surfVel[0] = mu * surfVel[0] + lr * g[0];
+        surfVel[1] = mu * surfVel[1] + lr * g[1];
+        nx = cur[0] - surfVel[0];
+        ny = cur[1] - surfVel[1];
+    } else {
+        var b1 = 0.9, b2 = 0.999, eps = 1e-8;
+        surfT++;
+        surfM[0] = b1 * surfM[0] + (1 - b1) * g[0];
+        surfM[1] = b1 * surfM[1] + (1 - b1) * g[1];
+        surfV[0] = b2 * surfV[0] + (1 - b2) * g[0] * g[0];
+        surfV[1] = b2 * surfV[1] + (1 - b2) * g[1] * g[1];
+        var mh0 = surfM[0] / (1 - Math.pow(b1, surfT));
+        var mh1 = surfM[1] / (1 - Math.pow(b1, surfT));
+        var vh0 = surfV[0] / (1 - Math.pow(b2, surfT));
+        var vh1 = surfV[1] / (1 - Math.pow(b2, surfT));
+        nx = cur[0] - lr * mh0 / (Math.sqrt(vh0) + eps);
+        ny = cur[1] - lr * mh1 / (Math.sqrt(vh1) + eps);
+    }
+
+    var r = s.range;
+    nx = Math.max(r[0], Math.min(r[1], nx));
+    ny = Math.max(r[0], Math.min(r[1], ny));
+    surfPath.push([nx, ny]);
+    surfStep++;
+
+    var loss = s.fn(nx, ny);
+    var gradMag = Math.sqrt(g[0] * g[0] + g[1] * g[1]);
+    var converged = gradMag < 0.01;
+    document.getElementById('surfResult').innerHTML =
+        '<span class="violet">Loss:</span> ' + loss.toFixed(4) +
+        ' &nbsp;&middot;&nbsp; <span class="cyan">Iteration:</span> ' + surfStep +
+        ' &nbsp;&middot;&nbsp; <span class="muted">' + (converged ? 'Converged \u2713' : 'Optimising\u2026') + '</span>';
+    return converged;
+}
+
+function animateSurface() {
+    var done = surfOptimStep();
+    drawSurface();
+    if (!done && surfStep < 500) {
+        surfAnimId = requestAnimationFrame(animateSurface);
+    }
+}
+
+cvSurf.addEventListener('click', function(e) {
+    var rect = cvSurf.getBoundingClientRect();
+    var mx = (e.clientX - rect.left) * (W1 / rect.width);
+    var my = (e.clientY - rect.top)  * (H1 / rect.height);
+    var world = c2w1(mx, my);
+    if (surfAnimId) { cancelAnimationFrame(surfAnimId); surfAnimId = null; }
+    surfPath = [[world[0], world[1]]];
+    surfStep = 0; surfVel = [0,0]; surfM = [0,0]; surfV = [0,0]; surfT = 0;
+    drawSurface();
+    surfAnimId = requestAnimationFrame(animateSurface);
+});
+
+document.getElementById('sLR1').addEventListener('input', function() {
+    document.getElementById('vLR1').textContent = (parseInt(this.value) / 1000).toFixed(3);
+});
+document.getElementById('sLR1').addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+
+drawSurface();
+
+/* =========================================================================
+   SECTION 2: LEARNING RATE EFFECTS
+   ========================================================================= */
+var cvLR  = document.getElementById('cvLR');
+var W2 = 600, H2 = 400;
+var ctxLR = hiDPICanvas(cvLR, W2, H2);
+var lrPad = { left: 50, right: 20, top: 20, bottom: 35 };
+
+var lrPaths   = [[], [], []];
+var lrAnimId  = null;
+var lrStepCt  = 0;
+var lrRange   = [-3, 3];
+
+function w2cLR(x, y) {
+    var pW = W2 - lrPad.left - lrPad.right;
+    var pH = H2 - lrPad.top  - lrPad.bottom;
+    return [lrPad.left + ((x - lrRange[0]) / (lrRange[1] - lrRange[0])) * pW,
+            lrPad.top  + ((lrRange[1] - y) / (lrRange[1] - lrRange[0])) * pH];
+}
+
+function resetLRPaths() {
+    if (lrAnimId) { cancelAnimationFrame(lrAnimId); lrAnimId = null; }
+    var start = [2.0, 2.0];
+    lrPaths = [[start.slice()], [start.slice()], [start.slice()]];
+    lrStepCt = 0;
+    document.getElementById('lrResult').innerHTML = 'Press Run to compare learning rates';
+    drawLR();
+}
+
+function drawLR() {
+    ctxLR.clearRect(0, 0, W2, H2);
+    drawContours(ctxLR, W2, H2, 'bowl', lrPad);
+
+    var colours = [BLUE, ACCENT, GOLD];
+    var dashes  = [[], [], [4, 3]];
+    for (var p = 0; p < 3; p++) {
+        if (lrPaths[p].length < 2) continue;
+        ctxLR.strokeStyle = colours[p];
+        ctxLR.lineWidth = 2;
+        ctxLR.setLineDash(dashes[p]);
+        ctxLR.beginPath();
+        var pt0 = w2cLR(lrPaths[p][0][0], lrPaths[p][0][1]);
+        ctxLR.moveTo(pt0[0], pt0[1]);
+        for (var i = 1; i < lrPaths[p].length; i++) {
+            var pt = w2cLR(lrPaths[p][i][0], lrPaths[p][i][1]);
+            ctxLR.lineTo(pt[0], pt[1]);
+        }
+        ctxLR.stroke();
+        ctxLR.setLineDash([]);
+
+        var last = lrPaths[p][lrPaths[p].length - 1];
+        var lp = w2cLR(last[0], last[1]);
+        ctxLR.fillStyle = colours[p];
+        ctxLR.beginPath();
+        ctxLR.arc(lp[0], lp[1], 4, 0, Math.PI * 2);
+        ctxLR.fill();
+    }
+}
+
+function lrStep() {
+    var lrs = [
+        parseInt(document.getElementById('sLRLow').value) / 1000,
+        parseInt(document.getElementById('sLRMed').value) / 1000,
+        parseInt(document.getElementById('sLRHigh').value) / 1000
+    ];
+    for (var p = 0; p < 3; p++) {
+        var cur = lrPaths[p][lrPaths[p].length - 1];
+        var g = gradBowl(cur[0], cur[1]);
+        var nx = cur[0] - lrs[p] * g[0];
+        var ny = cur[1] - lrs[p] * g[1];
+        nx = Math.max(-10, Math.min(10, nx));
+        ny = Math.max(-10, Math.min(10, ny));
+        lrPaths[p].push([nx, ny]);
+    }
+    lrStepCt++;
+
+    var losses = lrPaths.map(function(path) { var l = path[path.length - 1]; return lossBowl(l[0], l[1]); });
+    var labels = [
+        '<span style="color:' + BLUE   + '">Low</span>',
+        '<span style="color:' + ACCENT + '">Med</span>',
+        '<span style="color:' + GOLD   + '">High</span>'
+    ];
+    document.getElementById('lrResult').innerHTML =
+        'Step ' + lrStepCt + ' &nbsp;&mdash;&nbsp; ' +
+        labels.map(function(l, i) { return l + ': ' + (losses[i] < 100 ? losses[i].toFixed(4) : 'diverged'); }).join(' &nbsp;&middot;&nbsp; ');
+    return lrStepCt >= 200;
+}
+
+function startLRAnimation() {
+    resetLRPaths();
+    function tick() {
+        var done = lrStep();
+        drawLR();
+        if (!done) lrAnimId = requestAnimationFrame(tick);
+    }
+    lrAnimId = requestAnimationFrame(tick);
+}
+
+['sLRLow', 'sLRMed', 'sLRHigh'].forEach(function(id) {
+    var el = document.getElementById(id);
+    el.addEventListener('input', function() {
+        document.getElementById(id.replace('sLR', 'vLR')).textContent = (parseInt(this.value) / 1000).toFixed(3);
+    });
+    el.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+});
+
+resetLRPaths();
+drawLR();
+
+/* =========================================================================
+   SECTION 3: SADDLE POINTS VS LOCAL MINIMA
+   ========================================================================= */
+var cvSad   = document.getElementById('cvSaddle');
+var W3 = 600, H3 = 500;
+var ctxSad  = hiDPICanvas(cvSad, W3, H3);
+
+var saddleMom    = false;
+var sadPaths     = [];
+var sadVels      = [];
+var sadAnimId    = null;
+var sadStep      = 0;
+
+function setSaddleMomentum(on) {
+    saddleMom = on;
+    document.getElementById('saddleNoMom').classList.toggle('active', !on);
+    document.getElementById('saddleMom').classList.toggle('active', on);
+    resetSaddle();
+}
+
+function resetSaddle() {
+    if (sadAnimId) { cancelAnimationFrame(sadAnimId); sadAnimId = null; }
+    sadPaths = [
+        [[-2.0,  0.3]],
+        [[-2.0, -0.3]],
+        [[ 0.3, -2.0]],
+        [[-0.3, -2.0]],
+        [[-1.5,  1.5]],
+        [[ 1.5, -1.5]]
+    ];
+    sadVels = sadPaths.map(function() { return [0, 0]; });
+    sadStep = 0;
+    drawSaddleScene();
+    startSaddleAnim();
+}
+
+function project3D(x, y, z) {
+    var angle = Math.PI / 6;
+    var scale = 55;
+    var px = (x - y) * Math.cos(angle) * scale + W3 / 2;
+    var py = -(x + y) * Math.sin(angle) * scale - z * scale * 0.8 + H3 / 2 + 80;
+    return [px, py];
+}
+
+function drawSaddleScene() {
+    ctxSad.clearRect(0, 0, W3, H3);
+    var range = 2.5, steps = 20;
+
+    // Wireframe mesh along x
+    ctxSad.strokeStyle = 'rgba(167,139,250,0.15)';
+    ctxSad.lineWidth = 0.8;
+    for (var j = 0; j <= steps; j++) {
+        var y = -range + (j / steps) * 2 * range;
+        ctxSad.beginPath();
+        for (var i = 0; i <= steps; i++) {
+            var x = -range + (i / steps) * 2 * range;
+            var z = (x * x - y * y) * 0.3;
+            var p = project3D(x, y, z);
+            if (i === 0) ctxSad.moveTo(p[0], p[1]); else ctxSad.lineTo(p[0], p[1]);
+        }
+        ctxSad.stroke();
+    }
+    // Wireframe mesh along y
+    for (var i = 0; i <= steps; i++) {
+        var x = -range + (i / steps) * 2 * range;
+        ctxSad.beginPath();
+        for (var j = 0; j <= steps; j++) {
+            var y = -range + (j / steps) * 2 * range;
+            var z = (x * x - y * y) * 0.3;
+            var p = project3D(x, y, z);
+            if (j === 0) ctxSad.moveTo(p[0], p[1]); else ctxSad.lineTo(p[0], p[1]);
+        }
+        ctxSad.stroke();
+    }
+
+    // Mark saddle point at origin
+    var sp = project3D(0, 0, 0);
+    ctxSad.fillStyle = PINK;
+    ctxSad.beginPath();
+    ctxSad.arc(sp[0], sp[1], 6, 0, Math.PI * 2);
+    ctxSad.fill();
+    ctxSad.fillStyle = '#e0e0e0';
+    ctxSad.font = '11px Georgia, serif';
+    ctxSad.textAlign = 'left';
+    ctxSad.fillText('Saddle point', sp[0] + 10, sp[1] - 4);
+
+    // Direction labels
+    ctxSad.fillStyle = '#808098';
+    ctxSad.font = '10px Georgia, serif';
+    ctxSad.textAlign = 'center';
+    var xLab = project3D(range + 0.4, 0, 0);
+    ctxSad.fillText('w\u2081 (\u2191 loss)', xLab[0], xLab[1]);
+    var yLab = project3D(0, range + 0.4, 0);
+    ctxSad.fillText('w\u2082 (\u2193 loss)', yLab[0], yLab[1]);
+
+    // Draw paths
+    var pathCol = [ACCENT, ACCENT, CYAN, CYAN, GOLD, GOLD];
+    for (var p = 0; p < sadPaths.length; p++) {
+        var path = sadPaths[p];
+        if (path.length < 2) continue;
+        ctxSad.strokeStyle = pathCol[p];
+        ctxSad.lineWidth = 2;
+        ctxSad.beginPath();
+        for (var i = 0; i < path.length; i++) {
+            var pt = path[i];
+            var z = (pt[0] * pt[0] - pt[1] * pt[1]) * 0.3;
+            var proj = project3D(pt[0], pt[1], z);
+            if (i === 0) ctxSad.moveTo(proj[0], proj[1]); else ctxSad.lineTo(proj[0], proj[1]);
+        }
+        ctxSad.stroke();
+
+        var last = path[path.length - 1];
+        var lz = (last[0] * last[0] - last[1] * last[1]) * 0.3;
+        var lp = project3D(last[0], last[1], lz);
+        ctxSad.fillStyle = pathCol[p];
+        ctxSad.beginPath();
+        ctxSad.arc(lp[0], lp[1], 4, 0, Math.PI * 2);
+        ctxSad.fill();
+    }
+
+    // Update Hessian display based on how paths are behaving
+    var escaped = 0;
+    for (var p = 0; p < sadPaths.length; p++) {
+        var last = sadPaths[p][sadPaths[p].length - 1];
+        if (Math.abs(last[1]) > 1.5) escaped++;
+    }
+    document.getElementById('saddleResult').innerHTML =
+        'Hessian eigenvalues at saddle: <span class="violet">\u03BB\u2081 = +1.0</span>, ' +
+        '<span class="pink">\u03BB\u2082 = \u22121.0</span> &mdash; mixed signs (saddle)' +
+        '<br><span class="muted">Paths escaped: ' + escaped + '/' + sadPaths.length + '</span>';
+}
+
+function sadStepFn() {
+    var noise = parseInt(document.getElementById('sSaddleNoise').value) / 1000;
+    var lr = 0.02, mu = 0.9;
+    for (var p = 0; p < sadPaths.length; p++) {
+        var cur = sadPaths[p][sadPaths[p].length - 1];
+        var g = [2 * cur[0], -2 * cur[1]];
+        g[0] += (Math.random() - 0.5) * noise * 2;
+        g[1] += (Math.random() - 0.5) * noise * 2;
+        var nx, ny;
+        if (saddleMom) {
+            sadVels[p][0] = mu * sadVels[p][0] + lr * g[0];
+            sadVels[p][1] = mu * sadVels[p][1] + lr * g[1];
+            nx = cur[0] - sadVels[p][0];
+            ny = cur[1] - sadVels[p][1];
+        } else {
+            nx = cur[0] - lr * g[0];
+            ny = cur[1] - lr * g[1];
+        }
+        nx = Math.max(-3, Math.min(3, nx));
+        ny = Math.max(-3, Math.min(3, ny));
+        sadPaths[p].push([nx, ny]);
+    }
+    sadStep++;
+    return sadStep >= 300;
+}
+
+function startSaddleAnim() {
+    function tick() {
+        var done = sadStepFn();
+        drawSaddleScene();
+        if (!done) sadAnimId = requestAnimationFrame(tick);
+    }
+    sadAnimId = requestAnimationFrame(tick);
+}
+
+document.getElementById('sSaddleNoise').addEventListener('input', function() {
+    document.getElementById('vSaddleNoise').textContent = (parseInt(this.value) / 100).toFixed(2);
+});
+document.getElementById('sSaddleNoise').addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+
+resetSaddle();
+
+/* =========================================================================
+   SECTION 4: OPTIMISER COMPARISON
+   ========================================================================= */
+var cvOpt  = document.getElementById('cvOptim');
+var W4 = 700, H4 = 500;
+var ctxOpt = hiDPICanvas(cvOpt, W4, H4);
+var optPad = { left: 50, right: 20, top: 20, bottom: 35 };
+var optRange = [-2, 3];
+
+var optPaths = { sgd: [], momentum: [], rmsprop: [], adam: [] };
+var optVels  = { sgd: [0,0], momentum: [0,0], rmsprop: [0,0], adam: [0,0] };
+var optSq    = { rmsprop: [0,0], adam: [0,0] };
+var optMom   = { adam: [0,0] };
+var optTs    = { adam: 0 };
+var optAnimId = null;
+var optStepCt = 0;
+var optConv   = { sgd: false, momentum: false, rmsprop: false, adam: false };
+var optConvAt = { sgd: 0, momentum: 0, rmsprop: 0, adam: 0 };
+
+function w2cOpt(x, y) {
+    var pW = W4 - optPad.left - optPad.right;
+    var pH = H4 - optPad.top  - optPad.bottom;
+    return [optPad.left + ((x - optRange[0]) / (optRange[1] - optRange[0])) * pW,
+            optPad.top  + ((optRange[1] - y) / (optRange[1] - optRange[0])) * pH];
+}
+
+function resetOptim() {
+    if (optAnimId) { cancelAnimationFrame(optAnimId); optAnimId = null; }
+    var start = [-1.0, 2.0];
+    optPaths = { sgd: [start.slice()], momentum: [start.slice()], rmsprop: [start.slice()], adam: [start.slice()] };
+    optVels  = { sgd: [0,0], momentum: [0,0], rmsprop: [0,0], adam: [0,0] };
+    optSq    = { rmsprop: [0,0], adam: [0,0] };
+    optMom   = { adam: [0,0] };
+    optTs    = { adam: 0 };
+    optStepCt = 0;
+    optConv   = { sgd: false, momentum: false, rmsprop: false, adam: false };
+    optConvAt = { sgd: 0, momentum: 0, rmsprop: 0, adam: 0 };
+    document.getElementById('optimResult').innerHTML = 'Press Run to compare optimisers on the Rosenbrock valley';
+    drawOptim();
+}
+
+function drawOptim() {
+    ctxOpt.clearRect(0, 0, W4, H4);
+    var pW = W4 - optPad.left - optPad.right;
+    var pH = H4 - optPad.top  - optPad.bottom;
+    var res = 3;
+
+    // Heat map
+    for (var px = 0; px < pW; px += res) {
+        for (var py = 0; py < pH; py += res) {
+            var x = optRange[0] + (px / pW) * (optRange[1] - optRange[0]);
+            var y = optRange[1] - (py / pH) * (optRange[1] - optRange[0]);
+            ctxOpt.fillStyle = lossToColour(lossRosenbrock(x, y), 50);
+            ctxOpt.fillRect(optPad.left + px, optPad.top + py, res, res);
+        }
+    }
+
+    // Contour lines
+    var levels = [0.5, 2, 5, 10, 20, 40, 80, 150];
+    ctxOpt.fillStyle = 'rgba(255,255,255,0.13)';
+    for (var li = 0; li < levels.length; li++) {
+        var level = levels[li];
+        for (var px = 0; px < pW - res; px += res) {
+            for (var py = 0; py < pH - res; py += res) {
+                var x  = optRange[0] + (px / pW) * (optRange[1] - optRange[0]);
+                var y  = optRange[1] - (py / pH) * (optRange[1] - optRange[0]);
+                var xr = optRange[0] + ((px + res) / pW) * (optRange[1] - optRange[0]);
+                var yd = optRange[1] - ((py + res) / pH) * (optRange[1] - optRange[0]);
+                var v0 = lossRosenbrock(x, y), vr = lossRosenbrock(xr, y), vd = lossRosenbrock(x, yd);
+                if ((v0 < level) !== (vr < level) || (v0 < level) !== (vd < level)) {
+                    ctxOpt.fillRect(optPad.left + px, optPad.top + py, 1, 1);
+                }
+            }
+        }
+    }
+
+    // Minimum marker at (1,1)
+    var mp = w2cOpt(1, 1);
+    ctxOpt.fillStyle = GREEN;
+    ctxOpt.beginPath();
+    ctxOpt.arc(mp[0], mp[1], 5, 0, Math.PI * 2);
+    ctxOpt.fill();
+    ctxOpt.fillStyle = '#808098';
+    ctxOpt.font = '10px Georgia, serif';
+    ctxOpt.textAlign = 'left';
+    ctxOpt.fillText('minimum (1,1)', mp[0] + 8, mp[1] + 4);
+
+    // Axis labels
+    ctxOpt.fillStyle = '#808098';
+    ctxOpt.font = '12px Georgia, serif';
+    ctxOpt.textAlign = 'center';
+    ctxOpt.fillText('w\u2081', optPad.left + pW / 2, H4 - 5);
+    ctxOpt.save();
+    ctxOpt.translate(12, optPad.top + pH / 2);
+    ctxOpt.rotate(-Math.PI / 2);
+    ctxOpt.fillText('w\u2082', 0, 0);
+    ctxOpt.restore();
+
+    // Paths
+    var pd = [
+        { key: 'sgd',      col: BLUE,   name: 'SGD' },
+        { key: 'momentum', col: CYAN,   name: 'Momentum' },
+        { key: 'rmsprop',  col: GOLD,   name: 'RMSProp' },
+        { key: 'adam',      col: ACCENT, name: 'Adam' }
+    ];
+    for (var d = 0; d < pd.length; d++) {
+        var path = optPaths[pd[d].key];
+        if (path.length < 2) continue;
+        ctxOpt.strokeStyle = pd[d].col;
+        ctxOpt.lineWidth = 2;
+        ctxOpt.globalAlpha = 0.85;
+        ctxOpt.beginPath();
+        var p0 = w2cOpt(path[0][0], path[0][1]);
+        ctxOpt.moveTo(p0[0], p0[1]);
+        for (var i = 1; i < path.length; i++) {
+            var pt = w2cOpt(path[i][0], path[i][1]);
+            ctxOpt.lineTo(pt[0], pt[1]);
+        }
+        ctxOpt.stroke();
+        ctxOpt.globalAlpha = 1;
+
+        var last = path[path.length - 1];
+        var lp = w2cOpt(last[0], last[1]);
+        ctxOpt.fillStyle = pd[d].col;
+        ctxOpt.beginPath();
+        ctxOpt.arc(lp[0], lp[1], 4, 0, Math.PI * 2);
+        ctxOpt.fill();
+    }
+}
+
+function optStep() {
+    var gLR = parseInt(document.getElementById('sOptLR').value) / 10000;
+    var eps = 1e-8;
+    var methods = ['sgd', 'momentum', 'rmsprop', 'adam'];
+
+    for (var m = 0; m < methods.length; m++) {
+        var key = methods[m];
+        if (optConv[key]) continue;
+        var cur = optPaths[key][optPaths[key].length - 1];
+        var g   = gradRosenbrock(cur[0], cur[1]);
+        var nx, ny;
+
+        if (key === 'sgd') {
+            nx = cur[0] - gLR * g[0];
+            ny = cur[1] - gLR * g[1];
+        } else if (key === 'momentum') {
+            var mu = 0.9;
+            optVels[key][0] = mu * optVels[key][0] + gLR * g[0];
+            optVels[key][1] = mu * optVels[key][1] + gLR * g[1];
+            nx = cur[0] - optVels[key][0];
+            ny = cur[1] - optVels[key][1];
+        } else if (key === 'rmsprop') {
+            var decay = 0.99;
+            optSq[key][0] = decay * optSq[key][0] + (1 - decay) * g[0] * g[0];
+            optSq[key][1] = decay * optSq[key][1] + (1 - decay) * g[1] * g[1];
+            nx = cur[0] - gLR * g[0] / (Math.sqrt(optSq[key][0]) + eps);
+            ny = cur[1] - gLR * g[1] / (Math.sqrt(optSq[key][1]) + eps);
+        } else {
+            var b1 = 0.9, b2 = 0.999;
+            optTs[key]++;
+            optMom[key][0] = b1 * optMom[key][0] + (1 - b1) * g[0];
+            optMom[key][1] = b1 * optMom[key][1] + (1 - b1) * g[1];
+            optSq[key][0]  = b2 * optSq[key][0]  + (1 - b2) * g[0] * g[0];
+            optSq[key][1]  = b2 * optSq[key][1]  + (1 - b2) * g[1] * g[1];
+            var mh0 = optMom[key][0] / (1 - Math.pow(b1, optTs[key]));
+            var mh1 = optMom[key][1] / (1 - Math.pow(b1, optTs[key]));
+            var vh0 = optSq[key][0]  / (1 - Math.pow(b2, optTs[key]));
+            var vh1 = optSq[key][1]  / (1 - Math.pow(b2, optTs[key]));
+            nx = cur[0] - gLR * mh0 / (Math.sqrt(vh0) + eps);
+            ny = cur[1] - gLR * mh1 / (Math.sqrt(vh1) + eps);
+        }
+
+        nx = Math.max(optRange[0], Math.min(optRange[1], nx));
+        ny = Math.max(optRange[0], Math.min(optRange[1], ny));
+        optPaths[key].push([nx, ny]);
+
+        if (lossRosenbrock(nx, ny) < 0.001 && !optConv[key]) {
+            optConv[key]   = true;
+            optConvAt[key] = optStepCt + 1;
+        }
+    }
+    optStepCt++;
+
+    // Update display
+    var info = [
+        { key: 'sgd',      col: BLUE,   name: 'SGD' },
+        { key: 'momentum', col: CYAN,   name: 'Momentum' },
+        { key: 'rmsprop',  col: GOLD,   name: 'RMSProp' },
+        { key: 'adam',      col: ACCENT, name: 'Adam' }
+    ];
+    var html = 'Step ' + optStepCt + '<br>';
+    for (var i = 0; i < info.length; i++) {
+        var k = info[i].key;
+        var last = optPaths[k][optPaths[k].length - 1];
+        var loss = lossRosenbrock(last[0], last[1]);
+        html += '<span style="color:' + info[i].col + '">' + info[i].name + ':</span> ';
+        html += optConv[k] ? ('converged at step ' + optConvAt[k]) : ('loss = ' + (loss < 1000 ? loss.toFixed(3) : '\u221e'));
+        if (i < info.length - 1) html += ' &nbsp;&middot;&nbsp; ';
+    }
+    document.getElementById('optimResult').innerHTML = html;
+
+    var allDone = methods.every(function(k) { return optConv[k]; });
+    return allDone || optStepCt >= 1000;
+}
+
+function startOptimAnimation() {
+    resetOptim();
+    function tick() {
+        var done = optStep();
+        drawOptim();
+        if (!done) optAnimId = requestAnimationFrame(tick);
+    }
+    optAnimId = requestAnimationFrame(tick);
+}
+
+document.getElementById('sOptLR').addEventListener('input', function() {
+    document.getElementById('vOptLR').textContent = (parseInt(this.value) / 10000).toFixed(4);
+});
+document.getElementById('sOptLR').addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: true });
+
+resetOptim();
+drawOptim();
+
+/* =========================================================================
+   CANVAS RESIZE HANDLING
+   ========================================================================= */
+var resizeTimer;
+window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+        drawSurface();
+        drawLR();
+        drawSaddleScene();
+        drawOptim();
+    }, 150);
+});
+</script>
+</body>
+</html>
