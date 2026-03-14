@@ -749,6 +749,13 @@ var simAlpha = 1.0; // cooling factor
 var needsRedraw = true;
 var frameCount = 0;
 
+// Auto-zoom state: once simulation settles, slowly zoom in to reveal labels
+var autoZoomState = 'waiting'; // 'waiting' | 'pausing' | 'zooming' | 'done'
+var autoZoomPauseFrames = 0;
+var autoZoomTarget = 1.8;
+var autoZoomSpeed = 0.004; // zoom increment per frame
+var userInteracted = false; // cancel auto-zoom if user interacts
+
 /* ====================================================================
    QUADTREE for Barnes-Hut
    ==================================================================== */
@@ -1091,7 +1098,32 @@ var animId = null;
 function animate() {
     frameCount++;
     if (simRunning) simStep();
-    if (needsRedraw || simRunning || searchText.length > 0) {
+
+    // Auto-zoom: once simulation settles, pause briefly then zoom in smoothly
+    if (!userInteracted) {
+        if (autoZoomState === 'waiting' && !simRunning) {
+            autoZoomState = 'pausing';
+            autoZoomPauseFrames = 60; // ~1 second pause at settled state
+        }
+        if (autoZoomState === 'pausing') {
+            autoZoomPauseFrames--;
+            if (autoZoomPauseFrames <= 0) autoZoomState = 'zooming';
+        }
+        if (autoZoomState === 'zooming') {
+            if (camera.zoom < autoZoomTarget) {
+                camera.zoom += autoZoomSpeed;
+                if (camera.zoom >= autoZoomTarget) {
+                    camera.zoom = autoZoomTarget;
+                    autoZoomState = 'done';
+                }
+                needsRedraw = true;
+            } else {
+                autoZoomState = 'done';
+            }
+        }
+    }
+
+    if (needsRedraw || simRunning || searchText.length > 0 || autoZoomState === 'zooming') {
         draw();
         needsRedraw = false;
     }
@@ -1254,6 +1286,7 @@ canvas.addEventListener('mousemove', function(e) {
 });
 
 canvas.addEventListener('mousedown', function(e) {
+    userInteracted = true; autoZoomState = 'done';
     var pos = getMousePos(e);
     var hit = hitTest(pos.x, pos.y);
     if (hit >= 0) {
@@ -1320,6 +1353,7 @@ canvas.addEventListener('mouseleave', function() {
 
 canvas.addEventListener('wheel', function(e) {
     e.preventDefault();
+    userInteracted = true; autoZoomState = 'done';
     var pos = getMousePos(e);
     var wBefore = screenToWorld(pos.x, pos.y);
     var factor = e.deltaY < 0 ? 1.1 : 0.9;
@@ -1335,6 +1369,7 @@ var lastTouchDist = 0;
 var lastTouchMid = null;
 canvas.addEventListener('touchstart', function(e) {
     e.preventDefault();
+    userInteracted = true; autoZoomState = 'done';
     if (e.touches.length === 1) {
         var t = e.touches[0];
         var pos = { x: t.clientX - canvas.getBoundingClientRect().left, y: t.clientY - canvas.getBoundingClientRect().top };
@@ -1397,6 +1432,7 @@ canvas.addEventListener('touchend', function(e) {
    ==================================================================== */
 var searchInput = document.getElementById('searchInput');
 searchInput.addEventListener('input', function() {
+    userInteracted = true; autoZoomState = 'done';
     searchText = this.value.trim().toLowerCase();
     needsRedraw = true;
 });
