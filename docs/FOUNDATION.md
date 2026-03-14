@@ -58,10 +58,24 @@ Licensed under Creative Commons BY-NC-SA 4.0. Anyone can use, share, and adapt t
 - **GitHub Pages** for hosting at [mathsedu.org](https://mathsedu.org)
 
 ### Design Language
-- Dark background (#0a0a1a) with light text for reduced eye strain
-- Chapter-specific accent colours for visual organisation
+
+The site follows a unified **Design System v2.0** documented in `docs/mathsedu_design_system.html`. Key principles:
+
+- **Dark canvas** (`#0a0a1a`) — not pure black; the blue undertone gives depth like a night sky, making coloured mathematical objects luminous
+- **Brand colours**: Navy (`#1B365D`) for structure, Gold (`#B8860B`) for discovery moments
+- **Semantic colour vocabulary** (fixed site-wide, never reassigned):
+  - Cyan (`#22D3EE`) = logic, algorithms, proof steps
+  - Emerald (`#10B981`) = proved, complete, confirmed
+  - Amber (`#FBBF24`) = discovery, found primes, callouts
+  - Pink (`#F472B6`) = interesting error (not failure — observation)
+  - Red (`#C62828`) = RESERVED for true safety issues only
+- **Chapter accent colours** — each chapter has one primary accent (see design system for full map)
+- **Typography**: Georgia for narrative (the human voice), Courier New for mathematics (precise, monospaced)
+- **Components**: panels (`rgba(255,255,255,0.025)` background), insight boxes (left-border accent), result cards (navy-tinted), sliders with chapter accent
+- **Seven Design Principles**: colour carries meaning, the dark canvas, touch first, immediate visual feedback, two typefaces, progressive revelation, no empty praise
 - Floating mathematical symbols as ambient background animation
 - Consistent navigation: every topic page links back to the index
+- Journey acts must always provide back-navigation (see `docs/TECHNICAL_BLUEPRINT.md` §7.2)
 - Difficulty indicators (1–4 filled dots) on every card
 
 ### Structure
