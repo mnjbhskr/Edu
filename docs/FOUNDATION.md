@@ -91,6 +91,9 @@ All topic files sit at the repository root — a flat structure that maps direct
 | 1 | Truth Tables & Logical Connectives | `truth_tables.html` | 1 |
 | 2 | Proof by Contradiction | `proof_by_contradiction.html` | 1 |
 | 3 | Mathematical Induction | `mathematical_induction.html` | 2 |
+| 4 | Set Theory | `set_theory.html` | 1 |
+| 5 | Theory of Computation | `theory_of_computation.html` | 2 |
+| 6 | Gödel's Incompleteness Theorems | `godels_incompleteness.html` | 3 |
 
 ### Chapter 2 — Numbers
 *From counting to infinity*
@@ -103,6 +106,7 @@ All topic files sit at the repository root — a flat structure that maps direct
 | 4 | Infinity & Cantor's Diagonal | `cantors_diagonal.html` | 2 |
 | 5 | Modular Arithmetic | `modular_arithmetic.html` | 2 |
 | 6 | Fermat's Little Theorem & Primality | `fermats_theorem.html` | 2 |
+| 7 | Partition Theory | `partition_theory.html` | 2 |
 
 ### Chapter 3 — Geometry
 *Euclid's gift to the world*
@@ -129,6 +133,7 @@ All topic files sit at the repository root — a flat structure that maps direct
 | 4 | Fundamental Theorem of Algebra | `fundamental_theorem_algebra.html` | 3 |
 | 5 | Polynomial Roots & Factoring | `polynomial_roots.html` | 2 |
 | 6 | Logarithms & Exponentials | `logarithms_exponentials.html` | 1 |
+| 7 | Quaternions & Hypercomplex Numbers | `quaternions.html` | 3 |
 
 ### Chapter 5 — Trigonometry & Waves
 *The mathematics of oscillation*
@@ -155,6 +160,8 @@ All topic files sit at the repository root — a flat structure that maps direct
 | 5 | Taylor Series | `taylor_series.html` | 2 |
 | 6 | Mean Value Theorem | `mean_value_theorem.html` | 2 |
 | 7 | Differential Equations | `differential_equations.html` | 2 |
+| 8 | Optimisation | `optimization.html` | 2 |
+| 9 | Numerical Analysis | `numerical_analysis.html` | 2 |
 
 ### Chapter 7 — Linear Algebra
 *The mathematics of space and transformation*
@@ -190,6 +197,10 @@ All topic files sit at the repository root — a flat structure that maps direct
 | 4 | Mobius Strip & Topology | `mobius_topology.html` | 2 |
 | 5 | Gaussian Curvature | `gaussian_curvature.html` | 3 |
 | 6 | Fixed Point Theorems | `fixed_point_theorems.html` | 3 |
+| 7 | Complex Analysis | `complex_analysis.html` | 3 |
+| 8 | Order Theory | `order_theory.html` | 3 |
+| 9 | Category Theory | `category_theory.html` | 4 |
+| 10 | Measure Theory | `measure_theory.html` | 4 |
 
 ### Chapter 10 — Beautiful Results
 *The crown jewels of mathematics*
@@ -244,6 +255,7 @@ All topic files sit at the repository root — a flat structure that maps direct
 | 17 | Atomic Energy Levels | `atomic_energy_levels.html` | 2 |
 | 18 | The Schrödinger Equation | `schrodinger_equation.html` | 3 |
 | 19 | Entropy and Information Theory | `entropy_information.html` | 2 |
+| 20 | Control Theory | `control_theory.html` | 3 |
 
 ### Chapter 13 — The Mathematics of Intelligence
 *How neural networks and language models actually work*
@@ -267,7 +279,7 @@ All topic files sit at the repository root — a flat structure that maps direct
 | 14 | Retrieval-Augmented Generation | `retrieval_augmented_generation.html` | 2 |
 | 15 | Agentic AI Systems | `agentic_systems.html` | 2 |
 
-**Total: 106 interactive visualisations across 13 chapters**
+**Total: 194 interactive visualisations across 19 chapters**
 
 ## Credits
 
