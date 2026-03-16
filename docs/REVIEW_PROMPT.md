@@ -186,6 +186,84 @@ Test at 375px viewport width:
 
 ---
 
+## 8. Bulk Modification Review
+
+**When to use:** After any batch operation that modifies multiple pages (enhancements, style updates, fix scripts, content migrations). This section supplements the per-page checks above.
+
+### 8.1 Pre-Modification
+
+- [ ] Single source of truth template exists in a skill file (not ad-hoc)
+- [ ] Template has been reviewed and approved on 1–2 test pages before batch execution
+- [ ] Scope of modification is documented (which files, what changes)
+
+**BLOCK if:** No approved template exists before starting batch work.
+
+### 8.2 Structural Consistency
+
+- [ ] Run `validate-site` skill on all modified files — must return PASS
+- [ ] Enhancement sections are inside `.container` div (or wrapped in 960px equivalent)
+- [ ] No double wrapper nesting (960px > 900px or 960px > 880px)
+- [ ] All modified files use identical HTML structure for the same component
+
+**BLOCK if:** `validate-site` returns any BLOCK issue. **BLOCK if:** Template variants detected across files.
+
+### 8.3 CSS Integrity
+
+- [ ] Diff `<style>` blocks before and after modification — should show ZERO changes unless intentional
+- [ ] If a fix script was used, verify it operated ONLY on HTML content, not inside `<style>` or `<script>` blocks
+- [ ] Spot-check `.explain-text`, `.insight-box`, `.panel` CSS classes — values must match original template
+
+**BLOCK if:** Any `<style>` block content was unintentionally modified.
+
+### 8.4 Link & Reference Integrity
+
+- [ ] All Explore Next hrefs resolve to existing files
+- [ ] No self-referential Explore Next links
+- [ ] No broken cross-references between pages
+
+**BLOCK if:** Any link points to a non-existent file.
+
+### 8.5 Regression Spot-Check
+
+- [ ] Open 5 randomly selected modified pages in a browser
+- [ ] Verify canvases render correctly (not blank)
+- [ ] Verify interactivity works (sliders, buttons respond)
+- [ ] Verify enhancement sections are visually aligned with existing content
+- [ ] Verify accent colours match the chapter
+
+**BLOCK if:** Any canvas that previously rendered now appears blank. **BLOCK if:** Enhancement sections are misaligned.
+
+### 8.6 Fix Script Safety (if applicable)
+
+- [ ] Fix script uses DOM-aware or regex-scoped replacement, not global string replacement
+- [ ] Fix script explicitly excludes `<style>` and `<script>` blocks from text mutations
+- [ ] Fix script was tested on 2–3 files before running on the full set
+- [ ] Fix script output was audited (count of modifications per file, files skipped)
+
+**BLOCK if:** Fix script uses unscoped global string replacement.
+
+---
+
+## 9. Mandatory Validation Gate
+
+For any work to be considered complete, the following gate must be passed:
+
+```
+1. Define spec        → locked in a skill file
+2. Execute changes    → using the approved template
+3. Run validate-site  → automated checks, BLOCK/PASS
+4. Fix BLOCK issues   → re-run validation
+5. Spot-check         → 3–5 pages visually in browser
+6. Declare complete   → only after step 5 passes
+```
+
+Work CANNOT be declared complete if:
+- `validate-site` has not been run
+- Any BLOCK issues remain unresolved
+- Visual spot-check has not been performed
+
+---
+
 ## Review Summary Template
 
 ```
@@ -206,4 +284,4 @@ Notes:
 
 ---
 
-**Last updated:** 12 March 2026
+**Last updated:** 16 March 2026
