@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volatility Quoting: Surface to Model Input</title>
+    <meta name="description" content="Convert between strike, delta, and moneyness representations. Build and explore the volatility surface from market quotes with interactive tools.">
+    <link rel="canonical" href="https://mathsedu.org/mc2_vol_surface.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Volatility Quoting: Surface to Model Input",
+      "url": "https://mathsedu.org/mc2_vol_surface.html",
+      "description": "Convert between strike, delta, and moneyness representations. Build and explore the volatility surface from market quotes with interactive tools.",
+      "educationalLevel": "Advanced",
+      "teaches": "Volatility surface conventions and strike representations",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en-GB",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "Quantitative Finance",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="Volatility Quoting: Surface to Model Input">
+    <meta property="og:description" content="Convert between strike, delta, and moneyness representations. Build and explore the volatility surface from market quotes with interactive tools.">
+    <meta property="og:url" content="https://mathsedu.org/mc2_vol_surface.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Volatility Quoting: Surface to Model Input">
+    <meta name="twitter:description" content="Convert between strike, delta, and moneyness representations. Build and explore the volatility surface from market quotes with interactive tools.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#10b981}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(16,185,129,0.13);border-color:rgba(16,185,129,0.4);color:#10b981}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .red{color:#f87171}
+        .math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:160px}
+        .slider-row input[type=range]{flex:1;max-width:280px;accent-color:#10b981;cursor:pointer}
+        .slider-val{color:#10b981;font-family:'Courier New',monospace;font-size:1.05em;min-width:70px;text-align:right}
+        .result-box{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .result-big{font-size:1.5em;color:#10b981;font-family:'Courier New',monospace;font-weight:bold}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#10b981;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2;color:#c0c0d8}
+        .insight-box{background:rgba(16,185,129,0.04);border-left:3px solid rgba(16,185,129,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .anim-ctrl{display:inline-flex;align-items:center;gap:6px;margin:6px 0}
+        .anim-ctrl .btn{padding:3px 10px;font-size:0.82em}
+        .series-nav{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 18px;padding:10px 14px;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.04);border-radius:8px}
+        .series-item{padding:5px 10px;border-radius:5px;font-size:0.75em;text-align:center;line-height:1.3}
+        .series-item.active{background:rgba(16,185,129,0.13);border:1px solid rgba(16,185,129,0.4);color:#10b981}
+        .series-item.future{background:rgba(255,255,255,0.025);color:#606078;pointer-events:none;border:1px solid rgba(255,255,255,0.04)}
+        a.series-item.built{background:rgba(255,255,255,0.025);color:#808098;border:1px solid rgba(255,255,255,0.04);text-decoration:none;display:inline-block;padding:5px 10px;border-radius:5px;font-size:0.75em;text-align:center;line-height:1.3}
+        a.series-item.built:hover{background:rgba(255,255,255,0.05);color:#b0b0c8}
+        details{margin:14px 0}
+        details summary{color:#10b981;cursor:pointer;font-size:0.9em;padding:8px 0}
+        details summary:hover{color:#6ee7b7}
+        details[open] summary{margin-bottom:10px}
+        details .derivation{padding:12px 16px;background:rgba(16,185,129,0.03);border:1px solid rgba(16,185,129,0.12);border-radius:8px;font-size:0.9em;color:#b0b0c8;line-height:1.8}
+        .dcf-table{width:100%;border-collapse:collapse;font-size:0.88em;margin:12px 0}
+        .dcf-table th{text-align:left;color:#808098;font-weight:400;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px}
+        .dcf-table td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:#c0c0d8}
+        .dcf-table td.mono{font-family:'Courier New',monospace}
+        .form-row{display:flex;align-items:center;gap:12px;margin:8px 0;flex-wrap:wrap}
+        .form-row label{color:#a0a0b8;font-size:0.88em;min-width:160px}
+        .form-row select,.form-row input[type=number],.form-row input[type=text],.form-row input[type=date]{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#e0e0e0;padding:6px 10px;border-radius:6px;font-family:Georgia,serif;font-size:0.9em}
+        .form-row select{cursor:pointer}
+        .form-row input:disabled,.form-row select:disabled{opacity:0.35;cursor:not-allowed}
+        .ref-table{width:100%;border-collapse:collapse;font-size:0.85em;margin:12px 0}
+        .ref-table th{text-align:left;color:#10b981;font-weight:400;padding:8px 10px;border-bottom:1px solid rgba(16,185,129,0.2);font-size:0.8em;text-transform:uppercase;letter-spacing:0.5px}
+        .ref-table td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:#b0b0c8}
+        .ref-table td.mono{font-family:'Courier New',monospace;font-size:0.92em}
+        .step{margin:6px 0;padding:8px 12px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.88em;color:#c0c0d8;line-height:1.8}
+        .step .label{color:#808098}.step .val{color:#10b981}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+            .series-nav{overflow-x:auto;flex-wrap:nowrap}
+            .form-row{flex-direction:column;align-items:flex-start}
+            .form-row label{min-width:auto}
+            .dcf-table,.ref-table{font-size:0.78em}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <nav style="font-size:0.82em;color:#707088;margin:6px 0 0">
+        <a href="index.html" style="color:#707088;text-decoration:none">Home</a>
+        <span style="margin:0 6px">&rsaquo;</span>
+        <a href="topic-finance.html" style="color:#707088;text-decoration:none">Quantitative Finance</a>
+        <span style="margin:0 6px">&rsaquo;</span>
+        <span style="color:#b0b0c0">Volatility Quoting: Surface to Model Input</span>
+    </nav>
+
+    <div class="series-nav">
+        <a class="series-item built" href="mc1_day_counts.html"><strong>MC-1</strong><br>Day Counts</a>
+        <div class="series-item active"><strong>MC-2</strong><br>Vol Surface</div>
+        <a href="mc3_fx_options.html" class="series-item built"><strong>MC-3</strong><br>FX Options</a>
+        <a href="mc4_ir_vol.html" class="series-item built"><strong>MC-4</strong><br>IR Vol</a>
+        <a href="mc5_credit.html" class="series-item built"><strong>MC-5</strong><br>Credit</a>
+        <a href="mc6_commodities.html" class="series-item built"><strong>MC-6</strong><br>Commodities</a>
+        <a href="mc7_bootstrapping.html" class="series-item built"><strong>MC-7</strong><br>Bootstrapping</a>
+    </div>
+
+    <h1>Volatility Quoting: Surface to Model Input</h1>
+    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(52,211,153,0.10);border:1px solid rgba(52,211,153,0.25);color:#34d399;padding:4px 12px;border-radius:12px;font-size:0.78em;margin:8px 0 2px"><span style="display:inline-flex;gap:3px"><span style="color:#34d399">&#9679;</span><span style="color:#34d399">&#9679;</span><span style="color:#34d399">&#9679;</span><span style="color:#404058">&#9679;</span></span> Advanced</div>
+    <p class="subtitle">What traders mean by &lsquo;vol&rsquo; &mdash; and how to turn it into a model input</p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: Introduction — Why Markets Quote Vol
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. Why Markets Quote Vol</h2>
+    <div class="panel">
+        <p style="color:#b0b0c8;font-size:0.95em;line-height:1.75;margin-bottom:14px">
+            Option prices are not directly comparable. A call on a &pound;10 stock and a call on a
+            &pound;1,000 stock will have vastly different premiums even if the underlying uncertainty is
+            identical. Prices also depend on time to expiry, interest rates, and the strike level &mdash;
+            making it impossible to compare options across strikes, maturities, or underlyings by looking
+            at premiums alone.
+        </p>
+        <p style="color:#b0b0c8;font-size:0.95em;line-height:1.75;margin-bottom:14px">
+            Implied volatility solves this. By inverting the Black-Scholes formula, the market extracts a
+            single number &mdash; the annualised standard deviation of log-returns that would make the
+            model price equal the observed market price. This normalises away directional effects, time
+            effects, and magnitude effects, leaving a pure measure of uncertainty priced by the market.
+        </p>
+        <p style="color:#b0b0c8;font-size:0.95em;line-height:1.75;margin-bottom:14px">
+            <strong style="color:#e0e0e0">Implied vol is not a model prediction &mdash; it is a market
+            quote expressed in a convenient unit.</strong> Just as bond traders quote yields rather than
+            prices, options traders quote vol rather than premiums. The Black-Scholes formula serves as
+            the translation mechanism, even when market participants do not believe the model is correct.
+        </p>
+        <div class="insight-box">
+            <strong style="color:#e0e0e0">Information content.</strong> When a trader says &ldquo;the
+            25-delta put is trading at 22 vol&rdquo;, they are communicating something far richer than a
+            price. They are saying: the market assigns approximately 22% annualised uncertainty to the
+            downside at that particular strike. This convention allows instant comparison across thousands
+            of option contracts, across asset classes, and across time.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: Strike Representations
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. Strike Representations</h2>
+    <div class="panel">
+        <h3>Four Ways to Specify a Strike</h3>
+        <p style="color:#b0b0c8;font-size:0.92em;line-height:1.7;margin-bottom:14px">
+            Different markets and models express the strike in different units. Each representation
+            has advantages depending on the context &mdash; trading, calibration, or risk management.
+        </p>
+        <table class="dcf-table">
+            <thead>
+                <tr><th>Representation</th><th>Definition</th><th>When Used</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="color:#e0e0e0">Absolute Strike (K)</td>
+                    <td>Actual price level in currency units</td>
+                    <td>Equity options, physically settled contracts</td>
+                </tr>
+                <tr>
+                    <td style="color:#e0e0e0">Moneyness (K/F)</td>
+                    <td class="mono">Strike / Forward, or log(K/F)</td>
+                    <td>SABR model, academic literature</td>
+                </tr>
+                <tr>
+                    <td style="color:#e0e0e0">Delta (&Delta;)</td>
+                    <td>Black-Scholes delta at that strike</td>
+                    <td>FX options, OTC markets</td>
+                </tr>
+                <tr>
+                    <td style="color:#e0e0e0">Standard Deviations</td>
+                    <td class="mono">Distance from ATM in &sigma;&radic;T units</td>
+                    <td>Model-consistent but requires vol input</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <details>
+            <summary>&#9654; Log-moneyness ln(K/F) and why models prefer it</summary>
+            <div class="derivation">
+                <p style="margin-bottom:10px">Simple moneyness K/F has a problem: it is bounded below by zero
+                    and asymmetric around at-the-money. A strike 10% above forward (K/F = 1.10) is not
+                    &ldquo;equally far&rdquo; from ATM as a strike 10% below (K/F = 0.90) in any meaningful
+                    probabilistic sense.</p>
+                <p style="margin-bottom:10px">Log-moneyness k = ln(K/F) fixes both issues. It ranges from
+                    &minus;&infin; to +&infin;, is centred at zero for ATM, and &mdash; crucially &mdash;
+                    corresponds directly to the exponent in the lognormal distribution assumed by
+                    Black-Scholes.</p>
+                <div class="formula-block">
+                    <span class="green">k = ln(K/F)</span><br>
+                    ATM: k = 0 &nbsp;&nbsp;|&nbsp;&nbsp; OTM put: k &lt; 0 &nbsp;&nbsp;|&nbsp;&nbsp; OTM call: k &gt; 0
+                </div>
+                <p style="margin-top:10px">The SABR model, local volatility models, and stochastic volatility
+                    models all parameterise the smile as a function of log-moneyness because it produces smooth,
+                    well-behaved surfaces that extrapolate sensibly into the wings.</p>
+            </div>
+        </details>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 3: Converting Delta to Strike
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. Converting Delta to Strike</h2>
+    <div class="panel">
+        <h3>The Delta-to-Strike Formula</h3>
+        <p style="color:#b0b0c8;font-size:0.92em;line-height:1.7;margin-bottom:10px">
+            In the Black-Scholes framework, the delta of a call option determines a unique strike.
+            Given a call delta &Delta;<sub>call</sub>, the corresponding strike is:
+        </p>
+        <div class="formula-block">
+            <span class="green">K = F &times; exp(&minus;N<sup>&minus;1</sup>(&Delta;<sub>call</sub>) &times; &sigma;&radic;T + &frac12;&sigma;&sup2;T)</span>
+        </div>
+        <p style="color:#b0b0c8;font-size:0.92em;line-height:1.7;margin:14px 0 8px">
+            where F is the forward price, &sigma; is implied volatility, T is time to expiry in years,
+            and N<sup>&minus;1</sup> is the inverse of the standard normal CDF.
+        </p>
+
+        <p style="color:#a0a0b8;font-size:0.9em;margin:16px 0 8px;font-weight:400"><strong style="color:#e0e0e0">Worked Example</strong></p>
+        <div style="background:rgba(255,255,255,0.015);border-radius:8px;padding:14px 18px;margin-bottom:12px">
+            <div class="math-line"><span class="muted">Given:</span> 25-delta call, F = <span class="green">100</span>, &sigma; = <span class="cyan">20%</span>, T = <span class="gold">1 year</span></div>
+            <div class="math-line"><span class="muted">Step 1:</span> N<sup>&minus;1</sup>(0.25) = <span class="green">&minus;0.6745</span></div>
+            <div class="math-line"><span class="muted">Step 2:</span> &sigma;&radic;T = 0.20 &times; 1.0 = <span class="cyan">0.200</span></div>
+            <div class="math-line"><span class="muted">Step 3:</span> K = 100 &times; exp(0.6745 &times; 0.20 + 0.5 &times; 0.04)</div>
+            <div class="math-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 100 &times; exp(0.1349 + 0.0200)</div>
+            <div class="math-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 100 &times; exp(<span class="green">0.1549</span>)</div>
+            <div class="math-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = <span class="green" style="font-size:1.1em">116.76</span></div>
+            <div class="math-line" style="margin-top:8px"><span class="muted">Log-moneyness:</span> ln(116.76/100) = <span class="gold">0.1549</span></div>
+        </div>
+
+        <details>
+            <summary>&#9654; Full derivation from Black-Scholes delta</summary>
+            <div class="derivation">
+                <p style="margin-bottom:10px">The Black-Scholes call delta (forward delta, undiscounted) is:</p>
+                <div class="formula-block">
+                    &Delta;<sub>call</sub> = N(d<sub>1</sub>)
+                    &nbsp;&nbsp;where&nbsp;&nbsp;
+                    d<sub>1</sub> = [ln(F/K) + &frac12;&sigma;&sup2;T] / (&sigma;&radic;T)
+                </div>
+                <p style="margin-top:10px;margin-bottom:10px">Setting &Delta;<sub>call</sub> = &delta; and inverting:</p>
+                <div class="formula-block">
+                    N<sup>&minus;1</sup>(&delta;) = d<sub>1</sub> = [ln(F/K) + &frac12;&sigma;&sup2;T] / (&sigma;&radic;T)<br><br>
+                    N<sup>&minus;1</sup>(&delta;) &times; &sigma;&radic;T = ln(F/K) + &frac12;&sigma;&sup2;T<br><br>
+                    ln(K/F) = &minus;N<sup>&minus;1</sup>(&delta;) &times; &sigma;&radic;T + &frac12;&sigma;&sup2;T<br><br>
+                    <span class="green">K = F &times; exp(&minus;N<sup>&minus;1</sup>(&delta;) &times; &sigma;&radic;T + &frac12;&sigma;&sup2;T)</span>
+                </div>
+                <p style="margin-top:10px">Note: this uses the <em>forward delta</em> convention (no discounting).
+                    The spot delta convention, common in FX markets, multiplies by e<sup>&minus;rT</sup> and
+                    produces a slightly different mapping. For put delta, use
+                    K = F &times; exp(N<sup>&minus;1</sup>(&minus;&Delta;<sub>put</sub>) &times; &sigma;&radic;T + &frac12;&sigma;&sup2;T),
+                    since &Delta;<sub>put</sub> is negative.</p>
+            </div>
+        </details>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 4: Interactive — Strike Converter
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>4. Interactive &mdash; Strike Converter</h2>
+    <div class="panel">
+        <h3>Delta to Strike Converter</h3>
+        <p style="color:#b0b0c8;font-size:0.88em;margin-bottom:14px">
+            Enter option parameters to convert from delta to an absolute strike. The converter shows
+            each intermediate step.
+        </p>
+        <div class="form-row">
+            <label>Delta (call):</label>
+            <input type="number" id="scDelta" value="0.25" step="0.01" min="0.01" max="0.99" style="width:100px">
+        </div>
+        <div class="form-row">
+            <label>Forward price (F):</label>
+            <input type="number" id="scForward" value="100" step="1" min="0.01" style="width:100px">
+        </div>
+        <div class="form-row">
+            <label>Implied vol % (&sigma;):</label>
+            <input type="number" id="scVol" value="20" step="0.5" min="0.1" max="200" style="width:100px">
+        </div>
+        <div class="form-row">
+            <label>Maturity years (T):</label>
+            <input type="number" id="scMaturity" value="1.0" step="0.1" min="0.01" max="30" style="width:100px">
+        </div>
+        <div class="form-row">
+            <label>Risk-free rate % (r):</label>
+            <input type="number" id="scRate" value="5" step="0.25" min="0" max="50" style="width:100px">
+        </div>
+        <div style="margin-top:14px" id="scSteps"></div>
+        <div class="result-box" id="scResult"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 5: The Vol Surface
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>5. The Volatility Surface</h2>
+    <div class="panel">
+        <p style="color:#b0b0c8;font-size:0.95em;line-height:1.75;margin-bottom:14px">
+            Black-Scholes assumes that implied volatility is constant across all strikes and maturities.
+            Markets reject this assumption categorically. If you invert the Black-Scholes formula for every
+            traded option on a single underlying, the resulting implied vols vary systematically with both
+            strike and expiry.
+        </p>
+        <p style="color:#b0b0c8;font-size:0.95em;line-height:1.75;margin-bottom:14px">
+            <strong style="color:#e0e0e0">Equity skew.</strong> Out-of-the-money puts trade at higher implied
+            vol than ATM or OTM calls. This reflects demand for downside protection and the empirical
+            observation that equity returns have negative skewness &mdash; crashes are more violent than
+            rallies. The pattern has persisted since the 1987 crash.
+        </p>
+        <p style="color:#b0b0c8;font-size:0.95em;line-height:1.75;margin-bottom:14px">
+            <strong style="color:#e0e0e0">FX smile.</strong> Currency options often display a more symmetric
+            pattern &mdash; both wings trade at elevated vol relative to ATM. This reflects the symmetric
+            uncertainty in exchange rates: a large move in either direction is considered plausible.
+        </p>
+        <p style="color:#b0b0c8;font-size:0.95em;line-height:1.75;margin-bottom:14px">
+            <strong style="color:#e0e0e0">Term structure.</strong> Near-dated options often exhibit steeper
+            skew and higher ATM vol than longer-dated options, because short-term uncertainty spikes more
+            dramatically around events (earnings, elections, central bank meetings).
+        </p>
+        <canvas id="skewCanvas" width="700" height="220"></canvas>
+        <div class="grid-legend" style="margin-top:10px">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Equity skew</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">FX smile</span></div>
+        </div>
+        <div class="insight-box">
+            The existence of the vol surface is itself a statement about model inadequacy. If Black-Scholes
+            were correct, implied vol would be flat. The surface&rsquo;s shape encodes the market&rsquo;s
+            collective view on tail risk, jump risk, and the failure of lognormal assumptions.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 6: Interactive — Vol Surface Explorer
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>6. Interactive &mdash; Vol Surface Explorer</h2>
+    <div class="panel">
+        <h3>3D Volatility Surface</h3>
+        <p style="color:#b0b0c8;font-size:0.88em;margin-bottom:14px">
+            Adjust the parameters to explore how skew, smile, and term structure shape the surface.
+            Drag on the canvas to rotate the view.
+        </p>
+        <div class="slider-row">
+            <label>ATM vol:</label>
+            <input type="range" id="vsAtm" min="5" max="60" value="20" step="1">
+            <span class="slider-val" id="vAtm">20%</span>
+        </div>
+        <div class="slider-row">
+            <label>Skew:</label>
+            <input type="range" id="vsSkew" min="-50" max="50" value="-15" step="1">
+            <span class="slider-val" id="vSkew">-0.15</span>
+        </div>
+        <div class="slider-row">
+            <label>Smile / curvature:</label>
+            <input type="range" id="vsSmile" min="0" max="30" value="5" step="1">
+            <span class="slider-val" id="vSmile">0.05</span>
+        </div>
+        <div class="slider-row">
+            <label>Max maturity:</label>
+            <input type="range" id="vsMaxT" min="5" max="50" value="30" step="1">
+            <span class="slider-val" id="vMaxT">3.0y</span>
+        </div>
+        <canvas id="surfaceCanvas" width="700" height="400"></canvas>
+        <div class="grid-legend" style="margin-top:10px">
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Low vol</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">ATM vol</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#f472b6"></div><span style="color:#f472b6">High vol</span></div>
+        </div>
+        <div class="insight-box">
+            The surface model used here is: &sigma;(k, T) = ATM + skew &times; k + smile &times; k&sup2;,
+            scaled by a term structure factor (1 + 0.3 &times; exp(&minus;T)). Near-dated options show
+            steeper skew; the surface flattens at longer maturities. Try setting skew to zero and
+            increasing smile to see a pure FX-style symmetric surface.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 7: Where It Matters
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>7. Where It Matters</h2>
+    <div class="explain">
+        <div class="explain-name">Where It Matters</div>
+        <div class="explain-text">
+            <p style="margin-bottom:10px"><strong style="color:#e0e0e0">SABR model calibration.</strong>
+                The SABR model parameterises the vol smile with four parameters (&alpha;, &beta;, &rho;, &nu;).
+                Calibrating it requires converting market quotes &mdash; often given in delta space &mdash;
+                into strikes, then fitting the model to the resulting vol-vs-moneyness curve at each expiry.
+                Incorrect strike conversion propagates directly into mis-calibration.</p>
+            <p style="margin-bottom:10px"><strong style="color:#e0e0e0">Local vol / Dupire&rsquo;s formula.</strong>
+                Dupire showed that a unique local volatility surface can be extracted from European option
+                prices. The input is a smooth, arbitrage-free implied vol surface parameterised by strike and
+                maturity. The quality of the local vol surface depends entirely on the quality of the
+                interpolation and parameterisation of the implied surface.</p>
+            <p><strong style="color:#e0e0e0">Risk management and P&amp;L attribution.</strong>
+                Vega risk is reported per strike bucket and per tenor. Converting between delta and strike
+                representations is essential for aggregating risk across books that use different conventions.
+                P&amp;L attribution separates the contribution of ATM vol moves, skew changes, and
+                curvature changes &mdash; all of which require a well-specified surface parameterisation.</p>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 8: Cross-Links & Explore Next
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>8. Explore Next</h2>
+    <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 22px;margin:20px 0">
+        <h3 style="color:#808098;font-size:0.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;font-weight:400">Explore Next</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+            <a href="volatility_smiles.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #34d399;transition:background 0.2s">
+                <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px">Volatility Smiles</div>
+                <div style="color:#606078;font-size:0.78em">Finance</div>
+            </a>
+            <a href="black_scholes.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #34d399;transition:background 0.2s">
+                <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px">The Black-Scholes Model</div>
+                <div style="color:#606078;font-size:0.78em">Finance</div>
+            </a>
+            <a href="mc1_day_counts.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #34d399;transition:background 0.2s">
+                <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px">Day Count &amp; Compounding</div>
+                <div style="color:#606078;font-size:0.78em">Finance</div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="terms.html" style="color:#606078;text-decoration:none">Terms of Use</a>
+        &nbsp;&middot;&nbsp;
+        <a href="intellectual-property.html" style="color:#606078;text-decoration:none">Intellectual Property</a>
+        &nbsp;&middot;&nbsp;
+        <a href="privacy.html" style="color:#606078;text-decoration:none">Privacy Policy</a>
+    </div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   HiDPI Canvas Setup
+   ═══════════════════════════════════════════════════════════════ */
+function hiDPI(canvas) {
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.width;
+    var h = canvas.height;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return { ctx: ctx, w: w, h: h };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Normal Distribution Functions
+   ═══════════════════════════════════════════════════════════════ */
+function normcdf(x) {
+    if (x < -8) return 0; if (x > 8) return 1;
+    var a1=0.254829592, a2=-0.284496736, a3=1.421413741, a4=-1.453152027, a5=1.061405429, p=0.3275911;
+    var sign = x < 0 ? -1 : 1;
+    x = Math.abs(x) / Math.sqrt(2);
+    var t = 1/(1+p*x);
+    var y = 1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+    return 0.5*(1+sign*y);
+}
+
+function norminv(p) {
+    if (p<=0) return -8; if (p>=1) return 8;
+    if (p<0.5) return -norminv(1-p);
+    var a=[-3.969683028665376e1,2.209460984245205e2,-2.759285104469687e2,1.383577518672690e2,-3.066479806614716e1,2.506628277459239e0];
+    var b=[-5.447609879822406e1,1.615858368580409e2,-1.556989798598866e2,6.680131188771972e1,-1.328068155288572e1];
+    var c=[-7.784894002430293e-3,-3.223964580411365e-1,-2.400758277161838e0,-2.549732539343734e0,4.374664141464968e0,2.938163982698783e0];
+    var d=[7.784695709041462e-3,3.224671290700398e-1,2.445134137142996e0,3.754408661907416e0];
+    var pLow=0.02425, pHigh=1-pLow, q, r;
+    if (p<pLow) { q=Math.sqrt(-2*Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+    else if (p<=pHigh) { q=p-0.5; r=q*q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1); }
+    else { q=Math.sqrt(-2*Math.log(1-p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+}
+
+function deltaToStrike(delta, F, sigma, T) {
+    var sqrtT = Math.sqrt(T);
+    return F * Math.exp(-norminv(delta) * sigma * sqrtT + 0.5 * sigma * sigma * T);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Section 4: Strike Converter
+   ═══════════════════════════════════════════════════════════════ */
+function updateStrikeConverter() {
+    var delta = parseFloat(document.getElementById('scDelta').value);
+    var F = parseFloat(document.getElementById('scForward').value);
+    var volPct = parseFloat(document.getElementById('scVol').value);
+    var T = parseFloat(document.getElementById('scMaturity').value);
+    var rPct = parseFloat(document.getElementById('scRate').value);
+
+    if (!isFinite(delta) || !isFinite(F) || !isFinite(volPct) || !isFinite(T) || !isFinite(rPct)) {
+        document.getElementById('scSteps').innerHTML = '<div class="step" style="color:#f87171">Please enter valid numbers for all inputs.</div>';
+        document.getElementById('scResult').innerHTML = '';
+        return;
+    }
+    if (delta <= 0 || delta >= 1) {
+        document.getElementById('scSteps').innerHTML = '<div class="step" style="color:#f87171">Delta must be between 0 and 1 (exclusive).</div>';
+        document.getElementById('scResult').innerHTML = '';
+        return;
+    }
+    if (F <= 0 || volPct <= 0 || T <= 0) {
+        document.getElementById('scSteps').innerHTML = '<div class="step" style="color:#f87171">Forward, vol, and maturity must be positive.</div>';
+        document.getElementById('scResult').innerHTML = '';
+        return;
+    }
+
+    var sigma = volPct / 100;
+    var r = rPct / 100;
+    var sqrtT = Math.sqrt(T);
+    var nInvDelta = norminv(delta);
+    var sigmaSqrtT = sigma * sqrtT;
+    var halfSigmaSqT = 0.5 * sigma * sigma * T;
+    var exponent = -nInvDelta * sigmaSqrtT + halfSigmaSqT;
+    var K = F * Math.exp(exponent);
+    var logMoneyness = Math.log(K / F);
+
+    var stepsHtml = '';
+    stepsHtml += '<div class="step"><span class="label">Step 1: Inverse normal</span><br>';
+    stepsHtml += 'N<sup>\u22121</sup>(' + delta.toFixed(4) + ') = <span class="val">' + (isFinite(nInvDelta) ? nInvDelta.toFixed(4) : '\u2014') + '</span></div>';
+
+    stepsHtml += '<div class="step"><span class="label">Step 2: Volatility \u00D7 \u221AT</span><br>';
+    stepsHtml += '\u03C3\u221AT = ' + sigma.toFixed(4) + ' \u00D7 ' + sqrtT.toFixed(4) + ' = <span class="val">' + (isFinite(sigmaSqrtT) ? sigmaSqrtT.toFixed(4) : '\u2014') + '</span></div>';
+
+    stepsHtml += '<div class="step"><span class="label">Step 3: Exponent</span><br>';
+    stepsHtml += '\u2212N<sup>\u22121</sup>(\u0394) \u00D7 \u03C3\u221AT + \u00BD\u03C3\u00B2T = '
+        + (-nInvDelta).toFixed(4) + ' \u00D7 ' + sigmaSqrtT.toFixed(4) + ' + ' + halfSigmaSqT.toFixed(4)
+        + ' = <span class="val">' + (isFinite(exponent) ? exponent.toFixed(4) : '\u2014') + '</span></div>';
+
+    stepsHtml += '<div class="step"><span class="label">Step 4: Absolute strike</span><br>';
+    stepsHtml += 'K = ' + F.toFixed(2) + ' \u00D7 exp(' + exponent.toFixed(4) + ') = <span class="val">' + (isFinite(K) ? K.toFixed(2) : '\u2014') + '</span></div>';
+
+    stepsHtml += '<div class="step"><span class="label">Step 5: Log-moneyness</span><br>';
+    stepsHtml += 'ln(K/F) = ln(' + (isFinite(K) ? K.toFixed(2) : '\u2014') + ' / ' + F.toFixed(2) + ') = <span class="val">' + (isFinite(logMoneyness) ? logMoneyness.toFixed(4) : '\u2014') + '</span></div>';
+
+    document.getElementById('scSteps').innerHTML = stepsHtml;
+
+    if (isFinite(K)) {
+        document.getElementById('scResult').innerHTML =
+            '<div class="result-big">K = ' + K.toFixed(2) + '</div>' +
+            '<div class="math-line muted" style="margin-top:6px">Absolute strike for a ' + (delta * 100).toFixed(0) + '-delta call at ' + volPct.toFixed(1) + '% vol, ' + T.toFixed(1) + 'y maturity</div>';
+    } else {
+        document.getElementById('scResult').innerHTML = '';
+    }
+}
+
+var scIds = ['scDelta', 'scForward', 'scVol', 'scMaturity', 'scRate'];
+for (var si = 0; si < scIds.length; si++) {
+    (function(id) {
+        var el = document.getElementById(id);
+        el.addEventListener('input', updateStrikeConverter);
+        el.addEventListener('change', updateStrikeConverter);
+    })(scIds[si]);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Section 5: Skew/Smile Illustrative Canvas
+   ═══════════════════════════════════════════════════════════════ */
+var skCanvas = document.getElementById('skewCanvas');
+var skInfo = hiDPI(skCanvas);
+var skCtx = skInfo.ctx, skW = skInfo.w, skH = skInfo.h;
+var SK_PAD = { left: 70, right: 30, top: 30, bottom: 50 };
+
+function drawSkewSmile() {
+    skCtx.clearRect(0, 0, skW, skH);
+    var plotL = SK_PAD.left, plotR = skW - SK_PAD.right;
+    var plotT = SK_PAD.top, plotB = skH - SK_PAD.bottom;
+    var plotW = plotR - plotL, plotH = plotB - plotT;
+
+    // X-axis: log-moneyness from -0.4 to +0.4
+    var kMin = -0.4, kMax = 0.4;
+    // Y-axis: implied vol from 10% to 40%
+    var vMin = 10, vMax = 40;
+
+    function xPos(k) { return plotL + ((k - kMin) / (kMax - kMin)) * plotW; }
+    function yPos(v) { return plotB - ((v - vMin) / (vMax - vMin)) * plotH; }
+
+    // Gridlines
+    skCtx.strokeStyle = 'rgba(255,255,255,0.05)';
+    skCtx.lineWidth = 1;
+    for (var gk = -0.3; gk <= 0.3; gk += 0.1) {
+        var gx = xPos(gk);
+        skCtx.beginPath(); skCtx.moveTo(gx, plotT); skCtx.lineTo(gx, plotB); skCtx.stroke();
+    }
+    for (var gv = 15; gv <= 35; gv += 5) {
+        var gy = yPos(gv);
+        skCtx.beginPath(); skCtx.moveTo(plotL, gy); skCtx.lineTo(plotR, gy); skCtx.stroke();
+    }
+
+    // Axes
+    skCtx.strokeStyle = 'rgba(255,255,255,0.2)';
+    skCtx.beginPath();
+    skCtx.moveTo(plotL, plotT); skCtx.lineTo(plotL, plotB); skCtx.lineTo(plotR, plotB);
+    skCtx.stroke();
+
+    // ATM dashed line
+    skCtx.strokeStyle = 'rgba(255,255,255,0.12)';
+    skCtx.setLineDash([4, 4]);
+    skCtx.beginPath();
+    var atmX = xPos(0);
+    skCtx.moveTo(atmX, plotT); skCtx.lineTo(atmX, plotB);
+    skCtx.stroke();
+    skCtx.setLineDash([]);
+
+    // Axis labels
+    skCtx.fillStyle = '#808098';
+    skCtx.font = '11px Georgia';
+    skCtx.textAlign = 'center';
+    for (var lk = -0.3; lk <= 0.3; lk += 0.1) {
+        skCtx.fillText(lk.toFixed(1), xPos(lk), plotB + 18);
+    }
+    skCtx.fillText('log-moneyness ln(K/F)', plotL + plotW / 2, plotB + 38);
+
+    skCtx.textAlign = 'right';
+    for (var lv = 15; lv <= 35; lv += 5) {
+        skCtx.fillText(lv + '%', plotL - 8, yPos(lv) + 4);
+    }
+    skCtx.save();
+    skCtx.translate(14, plotT + plotH / 2);
+    skCtx.rotate(-Math.PI / 2);
+    skCtx.textAlign = 'center';
+    skCtx.fillText('Implied vol', 0, 0);
+    skCtx.restore();
+
+    // ATM label
+    skCtx.fillStyle = '#606078';
+    skCtx.font = '10px Georgia';
+    skCtx.textAlign = 'center';
+    skCtx.fillText('ATM', atmX, plotT - 8);
+
+    // Equity skew: vol = 22 - 18*k + 8*k^2
+    skCtx.strokeStyle = '#10b981';
+    skCtx.lineWidth = 2.5;
+    skCtx.beginPath();
+    var step = 0.005;
+    for (var ek = kMin; ek <= kMax; ek += step) {
+        var ev = 22 - 18 * ek + 8 * ek * ek;
+        var px = xPos(ek), py = yPos(ev);
+        if (ek === kMin) skCtx.moveTo(px, py);
+        else skCtx.lineTo(px, py);
+    }
+    skCtx.stroke();
+
+    // FX smile: vol = 18 + 30*k^2
+    skCtx.strokeStyle = '#22d3ee';
+    skCtx.lineWidth = 2.5;
+    skCtx.beginPath();
+    for (var fk = kMin; fk <= kMax; fk += step) {
+        var fv = 18 + 30 * fk * fk;
+        var px2 = xPos(fk), py2 = yPos(fv);
+        if (fk === kMin) skCtx.moveTo(px2, py2);
+        else skCtx.lineTo(px2, py2);
+    }
+    skCtx.stroke();
+
+    // Labels on curves
+    skCtx.font = '11px Georgia';
+    skCtx.fillStyle = '#10b981';
+    skCtx.textAlign = 'left';
+    skCtx.fillText('Equity skew', xPos(0.18), yPos(22 - 18 * 0.18 + 8 * 0.18 * 0.18) - 10);
+    skCtx.fillStyle = '#22d3ee';
+    skCtx.fillText('FX smile', xPos(0.22), yPos(18 + 30 * 0.22 * 0.22) - 10);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Section 6: 3D Vol Surface Explorer
+   ═══════════════════════════════════════════════════════════════ */
+var sfCanvas = document.getElementById('surfaceCanvas');
+var sfInfo = hiDPI(sfCanvas);
+var sfCtx = sfInfo.ctx, sfW = sfInfo.w, sfH = sfInfo.h;
+
+// 3D rotation state
+var surfaceAzimuth = 0.65;
+var surfaceElevation = 0.45;
+var surfaceDragging = false;
+var surfaceLastX = 0, surfaceLastY = 0;
+
+// Mouse drag handlers
+sfCanvas.addEventListener('mousedown', function(e) {
+    surfaceDragging = true;
+    surfaceLastX = e.clientX;
+    surfaceLastY = e.clientY;
+    e.preventDefault();
+});
+window.addEventListener('mousemove', function(e) {
+    if (!surfaceDragging) return;
+    var dx = e.clientX - surfaceLastX;
+    var dy = e.clientY - surfaceLastY;
+    surfaceAzimuth += dx * 0.008;
+    surfaceElevation += dy * 0.008;
+    surfaceElevation = Math.max(-1.2, Math.min(1.2, surfaceElevation));
+    surfaceLastX = e.clientX;
+    surfaceLastY = e.clientY;
+    drawVolSurface();
+});
+window.addEventListener('mouseup', function() {
+    surfaceDragging = false;
+});
+
+// Touch handlers for mobile
+sfCanvas.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) {
+        surfaceDragging = true;
+        surfaceLastX = e.touches[0].clientX;
+        surfaceLastY = e.touches[0].clientY;
+        e.preventDefault();
+    }
+}, { passive: false });
+window.addEventListener('touchmove', function(e) {
+    if (!surfaceDragging || e.touches.length !== 1) return;
+    var dx = e.touches[0].clientX - surfaceLastX;
+    var dy = e.touches[0].clientY - surfaceLastY;
+    surfaceAzimuth += dx * 0.008;
+    surfaceElevation += dy * 0.008;
+    surfaceElevation = Math.max(-1.2, Math.min(1.2, surfaceElevation));
+    surfaceLastX = e.touches[0].clientX;
+    surfaceLastY = e.touches[0].clientY;
+    drawVolSurface();
+}, { passive: true });
+window.addEventListener('touchend', function() {
+    surfaceDragging = false;
+});
+
+function project3D(k, t, vol, azimuth, elevation, scale) {
+    // Normalise inputs to roughly unit cube
+    var x0 = k;       // log-moneyness, range ~-0.5 to +0.5
+    var y0 = vol;      // vol level, will be normalised
+    var z0 = t;        // maturity, will be normalised
+
+    // Rotate around Y axis (azimuth)
+    var cosA = Math.cos(azimuth), sinA = Math.sin(azimuth);
+    var x1 = x0 * cosA - z0 * sinA;
+    var z1 = x0 * sinA + z0 * cosA;
+
+    // Rotate around X axis (elevation)
+    var cosE = Math.cos(elevation), sinE = Math.sin(elevation);
+    var y1 = y0 * cosE - z1 * sinE;
+    var z2 = y0 * sinE + z1 * cosE;
+
+    // Simple perspective
+    var d = 3;
+    var px = x1 * d / (d + z2) * scale;
+    var py = -y1 * d / (d + z2) * scale;
+    return { x: px, y: py };
+}
+
+function volSurfaceModel(k, T, atm, skew, smile) {
+    var termFactor = 1 + 0.3 * Math.exp(-T);
+    return (atm + skew * k + smile * k * k) * termFactor;
+}
+
+function lerpColor(vol, vMin, vMax) {
+    var t = (vol - vMin) / (vMax - vMin);
+    t = Math.max(0, Math.min(1, t));
+    // cyan(34,211,238) -> emerald(16,185,129) -> pink(244,114,182)
+    var r, g, b;
+    if (t < 0.5) {
+        var s = t * 2;
+        r = 34 + (16 - 34) * s;
+        g = 211 + (185 - 211) * s;
+        b = 238 + (129 - 238) * s;
+    } else {
+        var s2 = (t - 0.5) * 2;
+        r = 16 + (244 - 16) * s2;
+        g = 185 + (114 - 185) * s2;
+        b = 129 + (182 - 129) * s2;
+    }
+    return 'rgb(' + Math.round(r) + ',' + Math.round(g) + ',' + Math.round(b) + ')';
+}
+
+function drawVolSurface() {
+    var atm = parseInt(document.getElementById('vsAtm').value, 10) / 100;
+    var skew = parseInt(document.getElementById('vsSkew').value, 10) / 100;
+    var smile = parseInt(document.getElementById('vsSmile').value, 10) / 100;
+    var maxT = parseInt(document.getElementById('vsMaxT').value, 10) / 10;
+
+    document.getElementById('vAtm').textContent = (atm * 100).toFixed(0) + '%';
+    document.getElementById('vSkew').textContent = skew.toFixed(2);
+    document.getElementById('vSmile').textContent = smile.toFixed(2);
+    document.getElementById('vMaxT').textContent = maxT.toFixed(1) + 'y';
+
+    sfCtx.clearRect(0, 0, sfW, sfH);
+
+    var kMin = -0.5, kMax = 0.5;
+    var tMin = 0.05, tMax = maxT;
+    var nk = 30, nt = 20;
+
+    // Generate surface grid
+    var grid = [];
+    var volMin = Infinity, volMax = -Infinity;
+    for (var ik = 0; ik <= nk; ik++) {
+        grid[ik] = [];
+        for (var it = 0; it <= nt; it++) {
+            var kVal = kMin + (kMax - kMin) * ik / nk;
+            var tVal = tMin + (tMax - tMin) * it / nt;
+            var vol = volSurfaceModel(kVal, tVal, atm, skew, smile);
+            if (vol < 0.001) vol = 0.001;
+            grid[ik][it] = { k: kVal, t: tVal, vol: vol };
+            if (vol < volMin) volMin = vol;
+            if (vol > volMax) volMax = vol;
+        }
+    }
+
+    // Normalise coordinates for projection
+    var kRange = kMax - kMin;
+    var tRange = tMax - tMin;
+    var vRange = volMax - volMin;
+    if (vRange < 0.001) vRange = 0.001;
+
+    var scale = 160;
+    var cx = sfW / 2, cy = sfH / 2 + 20;
+
+    function projectPt(kVal, tVal, vol) {
+        // Map to normalised coordinates centred around 0
+        var nk2 = (kVal - (kMin + kMax) / 2) / kRange * 1.8;
+        var nt2 = (tVal - (tMin + tMax) / 2) / tRange * 1.8;
+        var nv = (vol - (volMin + volMax) / 2) / vRange * 0.8;
+        var p = project3D(nk2, nt2, nv, surfaceAzimuth, surfaceElevation, scale);
+        return { x: cx + p.x, y: cy + p.y };
+    }
+
+    // Draw wireframe lines along T (for each k)
+    for (var ik2 = 0; ik2 <= nk; ik2++) {
+        sfCtx.beginPath();
+        for (var it2 = 0; it2 <= nt; it2++) {
+            var pt = grid[ik2][it2];
+            var pp = projectPt(pt.k, pt.t, pt.vol);
+            if (it2 === 0) sfCtx.moveTo(pp.x, pp.y);
+            else sfCtx.lineTo(pp.x, pp.y);
+        }
+        var midVol = grid[ik2][Math.floor(nt / 2)].vol;
+        sfCtx.strokeStyle = lerpColor(midVol, volMin, volMax);
+        sfCtx.lineWidth = 1;
+        sfCtx.globalAlpha = 0.7;
+        sfCtx.stroke();
+    }
+
+    // Draw wireframe lines along k (for each T)
+    for (var it3 = 0; it3 <= nt; it3++) {
+        sfCtx.beginPath();
+        for (var ik3 = 0; ik3 <= nk; ik3++) {
+            var pt2 = grid[ik3][it3];
+            var pp2 = projectPt(pt2.k, pt2.t, pt2.vol);
+            if (ik3 === 0) sfCtx.moveTo(pp2.x, pp2.y);
+            else sfCtx.lineTo(pp2.x, pp2.y);
+        }
+        var midVol2 = grid[Math.floor(nk / 2)][it3].vol;
+        sfCtx.strokeStyle = lerpColor(midVol2, volMin, volMax);
+        sfCtx.lineWidth = 1;
+        sfCtx.stroke();
+    }
+    sfCtx.globalAlpha = 1.0;
+
+    // Axis labels
+    // Project axis endpoints for labels
+    var lblK1 = projectPt(kMin, tMin, volMin);
+    var lblK2 = projectPt(kMax, tMin, volMin);
+    var lblT1 = projectPt(kMin, tMin, volMin);
+    var lblT2 = projectPt(kMin, tMax, volMin);
+
+    sfCtx.font = '11px Georgia';
+    sfCtx.fillStyle = '#808098';
+    sfCtx.textAlign = 'center';
+
+    // K-axis label
+    var kLabelPt = projectPt(0, tMin - tRange * 0.15, volMin - vRange * 0.2);
+    sfCtx.fillText('log-moneyness k', kLabelPt.x, kLabelPt.y);
+
+    // T-axis label
+    var tLabelPt = projectPt(kMin - kRange * 0.15, (tMin + tMax) / 2, volMin - vRange * 0.2);
+    sfCtx.fillText('maturity T', tLabelPt.x, tLabelPt.y);
+
+    // Vol-axis label
+    var vLabelPt = projectPt(kMin - kRange * 0.18, tMin - tRange * 0.1, (volMin + volMax) / 2);
+    sfCtx.fillText('\u03C3(k,T)', vLabelPt.x, vLabelPt.y);
+
+    // Corner info
+    sfCtx.fillStyle = '#606078';
+    sfCtx.font = '10px Georgia';
+    sfCtx.textAlign = 'left';
+    sfCtx.fillText('Drag to rotate', 12, sfH - 8);
+    sfCtx.textAlign = 'right';
+    sfCtx.fillText('Vol range: ' + (volMin * 100).toFixed(1) + '% \u2013 ' + (volMax * 100).toFixed(1) + '%', sfW - 12, sfH - 8);
+}
+
+// Slider event listeners for surface
+var vsIds = ['vsAtm', 'vsSkew', 'vsSmile', 'vsMaxT'];
+for (var vi = 0; vi < vsIds.length; vi++) {
+    (function(id) {
+        document.getElementById(id).addEventListener('input', drawVolSurface);
+    })(vsIds[vi]);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Initial Draws
+   ═══════════════════════════════════════════════════════════════ */
+updateStrikeConverter();
+drawSkewSmile();
+drawVolSurface();
+</script>
+</body>
+</html>
