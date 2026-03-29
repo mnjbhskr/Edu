@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interest Rate Volatility: Normal vs Lognormal</title>
+    <meta name="description" content="Convert between lognormal (Black) and normal (Bachelier) volatility. Calibrate SABR to swaption smiles with interactive tools and step-by-step working.">
+    <link rel="canonical" href="https://mathsedu.org/mc4_ir_vol.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Interest Rate Volatility: Normal vs Lognormal",
+      "url": "https://mathsedu.org/mc4_ir_vol.html",
+      "description": "Convert between lognormal (Black) and normal (Bachelier) volatility. Calibrate SABR to swaption smiles with interactive tools and step-by-step working.",
+      "educationalLevel": "Advanced",
+      "teaches": "Normal and lognormal volatility conventions in interest rate markets",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en-GB",
+      "isAccessibleForFree": true,
+      "creator": {
+        "@type": "Person",
+        "name": "Manoj Bhaskar"
+      },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": {
+        "@type": "Course",
+        "name": "Quantitative Finance",
+        "url": "https://mathsedu.org/"
+      }
+    }
+    </script>
+    <meta property="og:title" content="Interest Rate Volatility: Normal vs Lognormal">
+    <meta property="og:description" content="Convert between lognormal (Black) and normal (Bachelier) volatility. Calibrate SABR to swaption smiles with interactive tools and step-by-step working.">
+    <meta property="og:url" content="https://mathsedu.org/mc4_ir_vol.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Interest Rate Volatility: Normal vs Lognormal">
+    <meta name="twitter:description" content="Convert between lognormal (Black) and normal (Bachelier) volatility. Calibrate SABR to swaption smiles with interactive tools and step-by-step working.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#10b981}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(16,185,129,0.13);border-color:rgba(16,185,129,0.4);color:#10b981}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .green{color:#10b981}.math-line .cyan{color:#22d3ee}.math-line .gold{color:#fbbf24}.math-line .pink{color:#f472b6}.math-line .red{color:#f87171}
+        .math-line .muted{color:#808098}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:160px}
+        .slider-row input[type=range]{flex:1;max-width:280px;accent-color:#10b981;cursor:pointer}
+        .slider-val{color:#10b981;font-family:'Courier New',monospace;font-size:1.05em;min-width:70px;text-align:right}
+        .result-box{background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .result-big{font-size:1.5em;color:#10b981;font-family:'Courier New',monospace;font-weight:bold}
+        .explain{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px 24px;margin-top:20px}
+        .explain-name{color:#10b981;font-size:1.1em;margin-bottom:6px}
+        .explain-text{color:#a0a0b8;font-size:0.9em;line-height:1.75}
+        .formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2;color:#c0c0d8}
+        .insight-box{background:rgba(16,185,129,0.04);border-left:3px solid rgba(16,185,129,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .grid-legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-size:0.85em}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-swatch{width:12px;height:3px;border-radius:1px}
+        .anim-ctrl{display:inline-flex;align-items:center;gap:6px;margin:6px 0}
+        .anim-ctrl .btn{padding:3px 10px;font-size:0.82em}
+        .series-nav{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 18px;padding:10px 14px;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.04);border-radius:8px}
+        .series-item{padding:5px 10px;border-radius:5px;font-size:0.75em;text-align:center;line-height:1.3}
+        .series-item.active{background:rgba(16,185,129,0.13);border:1px solid rgba(16,185,129,0.4);color:#10b981}
+        .series-item.future{background:rgba(255,255,255,0.025);color:#606078;pointer-events:none;border:1px solid rgba(255,255,255,0.04)}
+        a.series-item.built{background:rgba(255,255,255,0.025);color:#808098;border:1px solid rgba(255,255,255,0.04);text-decoration:none;display:inline-block;padding:5px 10px;border-radius:5px;font-size:0.75em;text-align:center;line-height:1.3}
+        a.series-item.built:hover{background:rgba(255,255,255,0.05);color:#b0b0c8}
+        details{margin:14px 0}
+        details summary{color:#10b981;cursor:pointer;font-size:0.9em;padding:8px 0}
+        details summary:hover{color:#6ee7b7}
+        details[open] summary{margin-bottom:10px}
+        details .derivation{padding:12px 16px;background:rgba(16,185,129,0.03);border:1px solid rgba(16,185,129,0.12);border-radius:8px;font-size:0.9em;color:#b0b0c8;line-height:1.8}
+        .dcf-table{width:100%;border-collapse:collapse;font-size:0.88em;margin:12px 0}
+        .dcf-table th{text-align:left;color:#808098;font-weight:400;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.82em;text-transform:uppercase;letter-spacing:0.5px}
+        .dcf-table td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:#c0c0d8}
+        .dcf-table td.mono{font-family:'Courier New',monospace}
+        .form-row{display:flex;align-items:center;gap:12px;margin:8px 0;flex-wrap:wrap}
+        .form-row label{color:#a0a0b8;font-size:0.88em;min-width:160px}
+        .form-row select,.form-row input[type=number],.form-row input[type=text],.form-row input[type=date]{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:#e0e0e0;padding:6px 10px;border-radius:6px;font-family:Georgia,serif;font-size:0.9em}
+        .form-row select{cursor:pointer}
+        .form-row input:disabled,.form-row select:disabled{opacity:0.35;cursor:not-allowed}
+        .ref-table{width:100%;border-collapse:collapse;font-size:0.85em;margin:12px 0}
+        .ref-table th{text-align:left;color:#10b981;font-weight:400;padding:8px 10px;border-bottom:1px solid rgba(16,185,129,0.2);font-size:0.8em;text-transform:uppercase;letter-spacing:0.5px}
+        .ref-table td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:#b0b0c8}
+        .ref-table td.mono{font-family:'Courier New',monospace;font-size:0.92em}
+        .step{margin:6px 0;padding:8px 12px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.88em;color:#c0c0d8;line-height:1.8}
+        .step .label{color:#808098}.step .val{color:#10b981}
+        @media(max-width:600px){
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}
+            .series-nav{overflow-x:auto;flex-wrap:nowrap}
+            .form-row{flex-direction:column;align-items:flex-start}
+            .form-row label{min-width:auto}
+            .dcf-table,.ref-table{font-size:0.78em}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <nav style="font-size:0.82em;color:#707088;margin:6px 0 0">
+        <a href="index.html" style="color:#707088;text-decoration:none">Home</a>
+        <span style="margin:0 6px">&rsaquo;</span>
+        <a href="topic-finance.html" style="color:#707088;text-decoration:none">Quantitative Finance</a>
+        <span style="margin:0 6px">&rsaquo;</span>
+        <span style="color:#b0b0c0">Interest Rate Volatility</span>
+    </nav>
+
+    <div class="series-nav">
+        <a class="series-item built" href="mc1_day_counts.html"><strong>MC-1</strong><br>Day Counts</a>
+        <div class="series-item future"><strong>MC-2</strong><br>Vol Surface</div>
+        <div class="series-item future"><strong>MC-3</strong><br>FX Options</div>
+        <div class="series-item active"><strong>MC-4</strong><br>IR Vol</div>
+        <div class="series-item future"><strong>MC-5</strong><br>Credit</div>
+        <div class="series-item future"><strong>MC-6</strong><br>Commodities</div>
+        <div class="series-item future"><strong>MC-7</strong><br>Bootstrapping</div>
+    </div>
+
+    <h1>Interest Rate Volatility: Normal vs Lognormal</h1>
+    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(52,211,153,0.10);border:1px solid rgba(52,211,153,0.25);color:#34d399;padding:4px 12px;border-radius:12px;font-size:0.78em;margin:8px 0 2px"><span style="display:inline-flex;gap:3px"><span style="color:#34d399">&#9679;</span><span style="color:#34d399">&#9679;</span><span style="color:#34d399">&#9679;</span><span style="color:#404058">&#9679;</span></span> Advanced</div>
+    <p class="subtitle">When rates went negative, the models had to change &mdash; and so did the conventions</p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: Introduction — The Problem That Broke Black's Model
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. The Problem That Broke Black&rsquo;s Model</h2>
+    <div class="panel">
+        <p style="color:#b0b0c8;font-size:0.95em;line-height:1.75;margin-bottom:14px">
+            For decades, interest rate options were priced using Fischer Black&rsquo;s 1976 model &mdash;
+            a variant of Black-Scholes adapted for forwards. The model assumes the forward rate follows
+            a <strong style="color:#e0e0e0">lognormal</strong> process: rates are always positive, and
+            volatility is quoted as a percentage of the rate level.
+        </p>
+        <p style="color:#b0b0c8;font-size:0.95em;line-height:1.75;margin-bottom:14px">
+            Then came 2014. The European Central Bank cut deposit rates below zero. Swiss franc rates
+            followed. Suddenly, a model that assumed <em>rates cannot be negative</em> was being asked
+            to price options on rates that were deeply negative. The lognormal distribution has no support
+            below zero &mdash; log of a negative number is undefined. Screens went blank. Pricing
+            libraries threw errors. The industry&rsquo;s workhorse model was broken.
+        </p>
+        <p style="color:#b0b0c8;font-size:0.95em;line-height:1.75;margin-bottom:14px">
+            The solution was not new mathematics &mdash; it was a model from 1900. Louis Bachelier&rsquo;s
+            original option pricing framework assumed rates follow a <strong style="color:#e0e0e0">normal</strong>
+            (Gaussian) process, which naturally accommodates negative values. The industry rapidly adopted
+            normal volatility, quoted in <strong style="color:#10b981">basis points per year</strong>,
+            alongside the existing lognormal convention.
+        </p>
+        <p style="color:#b0b0c8;font-size:0.95em;line-height:1.75">
+            Today, every rates desk maintains both conventions. Swaption brokers quote normal vol in basis
+            points. Risk systems convert between them. The SABR model bridges the two with a single parameter
+            &beta; that interpolates between normal (&beta;=0) and lognormal (&beta;=1) dynamics. Understanding
+            both conventions &mdash; and how to convert between them &mdash; is essential for anyone working
+            with interest rate derivatives.
+        </p>
+        <div class="insight-box">
+            Today, practitioners routinely quote IR options in both conventions. A swaption broker might say
+            &ldquo;the 10y10y is 60 normal&rdquo; (60 bp/year Bachelier vol) or &ldquo;20% lognormal&rdquo;
+            &mdash; both describing the same option price, just in different units.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: Two Models, Two Vol Conventions
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. Two Models, Two Vol Conventions</h2>
+    <div class="panel">
+        <h3>Black (Lognormal) vs Bachelier (Normal)</h3>
+        <p style="color:#b0b0c8;font-size:0.92em;line-height:1.7;margin-bottom:14px">
+            The two models differ in a single assumption: whether the forward rate&rsquo;s absolute changes
+            or its proportional changes have constant volatility. This choice determines the entire
+            distribution of future rates &mdash; and the unit in which volatility is expressed.
+        </p>
+        <table class="dcf-table">
+            <thead>
+                <tr><th>Attribute</th><th>Black (Lognormal)</th><th>Bachelier (Normal)</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="color:#e0e0e0">Process</td>
+                    <td class="mono">dF = &sigma;<sub>ln</sub> &times; F &times; dW</td>
+                    <td class="mono">dF = &sigma;<sub>n</sub> &times; dW</td>
+                </tr>
+                <tr>
+                    <td style="color:#e0e0e0">Distribution</td>
+                    <td>Lognormal (F &gt; 0 always)</td>
+                    <td>Normal (F can be negative)</td>
+                </tr>
+                <tr>
+                    <td style="color:#e0e0e0">Vol Unit</td>
+                    <td class="mono">% (percentage of rate)</td>
+                    <td class="mono">bp (basis points per year)</td>
+                </tr>
+                <tr>
+                    <td style="color:#e0e0e0">ATM Call Price</td>
+                    <td class="mono">F &times; &sigma;<sub>ln</sub> &times; &radic;(T/2&pi;)</td>
+                    <td class="mono">&sigma;<sub>n</sub> &times; &radic;(T/2&pi;)</td>
+                </tr>
+                <tr>
+                    <td style="color:#e0e0e0">When to Use</td>
+                    <td>Rates clearly positive</td>
+                    <td>Rates near or below zero</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <details>
+            <summary>&#9654; The stochastic process behind each model</summary>
+            <div class="derivation">
+                <p style="margin-bottom:10px"><strong style="color:#e0e0e0">Black (Lognormal) model:</strong>
+                    The forward rate F(t) satisfies dF = &sigma;<sub>ln</sub> F dW, where W is a Brownian motion.
+                    Applying It&ocirc;&rsquo;s lemma to ln(F) gives d(ln F) = &minus;&frac12;&sigma;<sub>ln</sub>&sup2; dt + &sigma;<sub>ln</sub> dW.
+                    Thus ln(F<sub>T</sub>) is normally distributed, meaning F<sub>T</sub> is lognormally distributed
+                    and strictly positive.</p>
+                <div class="formula-block">
+                    <span class="green">Black call price:</span><br>
+                    C = D &times; [F &times; N(d<sub>1</sub>) &minus; K &times; N(d<sub>2</sub>)]<br>
+                    d<sub>1</sub> = [ln(F/K) + &frac12;&sigma;<sub>ln</sub>&sup2;T] / (&sigma;<sub>ln</sub>&radic;T)<br>
+                    d<sub>2</sub> = d<sub>1</sub> &minus; &sigma;<sub>ln</sub>&radic;T
+                </div>
+                <p style="margin-top:12px;margin-bottom:10px"><strong style="color:#e0e0e0">Bachelier (Normal) model:</strong>
+                    The forward rate satisfies dF = &sigma;<sub>n</sub> dW. This is arithmetic Brownian motion &mdash;
+                    F<sub>T</sub> is normally distributed with mean F<sub>0</sub> and variance &sigma;<sub>n</sub>&sup2;T.
+                    The rate can go negative, which is exactly what we need when rates are near zero.</p>
+                <div class="formula-block">
+                    <span class="cyan">Bachelier call price:</span><br>
+                    C = D &times; [(F &minus; K) &times; N(d) + &sigma;<sub>n</sub>&radic;T &times; n(d)]<br>
+                    d = (F &minus; K) / (&sigma;<sub>n</sub>&radic;T)<br>
+                    <span class="muted">where N(&middot;) is the standard normal CDF and n(&middot;) is the PDF</span>
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 3: Approximate Conversion
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. Approximate Conversion</h2>
+    <div class="panel">
+        <h3>The Quick Rule of Thumb</h3>
+        <p style="color:#b0b0c8;font-size:0.92em;line-height:1.7;margin-bottom:14px">
+            At-the-money (K = F), and for small volatilities, the two models produce approximately the same
+            option price when:
+        </p>
+        <div class="formula-block">
+            <span class="green">&sigma;<sub>n</sub> &asymp; &sigma;<sub>ln</sub> &times; F</span>
+            &nbsp;&nbsp;&nbsp;(bp vol &asymp; % vol &times; rate level)
+        </div>
+        <p style="color:#b0b0c8;font-size:0.92em;line-height:1.7;margin-top:14px;margin-bottom:14px">
+            This follows directly from comparing the ATM price approximations: F &times; &sigma;<sub>ln</sub> &times; &radic;(T/2&pi;)
+            &asymp; &sigma;<sub>n</sub> &times; &radic;(T/2&pi;), which gives &sigma;<sub>n</sub> &asymp; &sigma;<sub>ln</sub> &times; F.
+        </p>
+
+        <p style="color:#a0a0b8;font-size:0.9em;margin:16px 0 8px;font-weight:400"><strong style="color:#e0e0e0">Worked Example</strong></p>
+        <div style="background:rgba(255,255,255,0.015);border-radius:8px;padding:14px 18px;margin-bottom:12px">
+            <div class="math-line"><span class="muted">Given:</span> F = <span class="green">3.00%</span>, &sigma;<sub>ln</sub> = <span class="cyan">30%</span></div>
+            <div class="math-line"><span class="muted">Step 1:</span> &sigma;<sub>n</sub> &asymp; 30% &times; 3.00% = <span class="green">0.009</span> (in decimal)</div>
+            <div class="math-line"><span class="muted">Step 2:</span> Convert to bp: 0.009 &times; 10,000 = <span class="green">90 bp/year</span></div>
+            <div class="math-line" style="margin-top:8px"><span class="muted">Rule:</span> <span class="gold">A 30% lognormal vol at a 3% rate level is approximately 90 bp normal vol.</span></div>
+        </div>
+
+        <details>
+            <summary>&#9654; The exact correction term</summary>
+            <div class="derivation">
+                <p>The linear approximation &sigma;<sub>n</sub> &asymp; &sigma;<sub>ln</sub> &times; F works well
+                    at-the-money when vol is moderate. For a more precise conversion, one can expand to second order:</p>
+                <div class="formula-block">
+                    &sigma;<sub>n</sub> &asymp; &sigma;<sub>ln</sub> &times; F &times; [1 &minus; &frac12;&sigma;<sub>ln</sub>&sup2;T/24 + ...]
+                </div>
+                <p style="margin-top:8px">However, the truly exact conversion requires <strong style="color:#e0e0e0">price matching</strong>:
+                    compute the Black price, then invert the Bachelier formula numerically (via bisection or Newton&rsquo;s
+                    method) to find the normal vol that reproduces exactly the same price. This is what the converter
+                    below does.</p>
+                <p style="margin-top:8px">Away from ATM (K &ne; F), the approximation degrades because the two distributions
+                    assign different probabilities to the tails. The exact conversion then depends on both the strike
+                    and maturity.</p>
+            </div>
+        </details>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 4: Interactive — Vol Converter
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>4. Interactive &mdash; Vol Converter</h2>
+    <div class="panel">
+        <h3>Black &harr; Bachelier Volatility Conversion</h3>
+        <p style="color:#b0b0c8;font-size:0.88em;margin-bottom:14px">
+            Enter a forward rate and lognormal vol. The tool computes the approximate and exact normal vol,
+            showing step-by-step working.
+        </p>
+        <div class="form-row">
+            <label>ATM forward rate (%):</label>
+            <input type="number" id="vcFwd" value="3.00" step="0.25" min="-2" max="20" style="width:100px">
+        </div>
+        <div class="form-row">
+            <label>Lognormal vol (%):</label>
+            <input type="number" id="vcLnVol" value="30" step="1" min="1" max="200" style="width:100px">
+        </div>
+        <div class="form-row">
+            <label>Maturity (years):</label>
+            <input type="number" id="vcMat" value="10" step="1" min="1" max="30" style="width:100px">
+        </div>
+        <div id="vcSteps" style="margin-top:14px"></div>
+        <div class="result-box" id="vcResult"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 5: Interactive — Bachelier vs Black Price Comparison
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>5. Interactive &mdash; Bachelier vs Black Price Comparison</h2>
+    <div class="panel">
+        <h3>Option Price as Forward Rate Varies</h3>
+        <p style="color:#b0b0c8;font-size:0.88em;margin-bottom:14px">
+            The Black model breaks down when the forward rate approaches or crosses zero. The Bachelier
+            model remains well-defined everywhere. Watch how the two prices diverge as the rate level changes.
+        </p>
+        <canvas id="priceCanvas" width="700" height="300"></canvas>
+        <div class="grid-legend" style="margin-top:8px">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">Black price</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:#22d3ee"></div><span style="color:#22d3ee">Bachelier price</span></div>
+            <div class="legend-item"><div class="legend-swatch" style="background:rgba(255,255,255,0.15)"></div><span style="color:#808098">F = 0 boundary</span></div>
+        </div>
+        <div class="slider-row">
+            <label>Strike offset (bp):</label>
+            <input type="range" id="sStrike" min="-200" max="200" value="0" step="10">
+            <span class="slider-val" id="vStrike">0 bp</span>
+        </div>
+        <div class="slider-row">
+            <label>Lognormal vol (%):</label>
+            <input type="range" id="sVol" min="5" max="100" value="30" step="1">
+            <span class="slider-val" id="vVol">30%</span>
+        </div>
+        <div class="slider-row">
+            <label>Maturity (years):</label>
+            <input type="range" id="sMat" min="1" max="30" value="10" step="1">
+            <span class="slider-val" id="vMat">10y</span>
+        </div>
+        <div class="insight-box">
+            Notice how the Black (emerald) curve terminates at F = 0 &mdash; it cannot price options when the
+            underlying rate is negative. The Bachelier (cyan) curve extends smoothly into negative territory.
+            This is precisely why the industry switched conventions when EUR and CHF rates went negative.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 6: SABR Framework
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>6. The SABR Framework</h2>
+    <div class="panel">
+        <h3>Stochastic Alpha Beta Rho</h3>
+        <p style="color:#b0b0c8;font-size:0.92em;line-height:1.7;margin-bottom:14px">
+            The SABR model (Hagan et al., 2002) is the industry standard for interpolating and extrapolating
+            the volatility smile in interest rate markets. It describes the joint dynamics of the forward rate
+            F and its stochastic volatility &alpha;:
+        </p>
+        <div class="formula-block">
+            <span class="green">dF = &alpha; F<sup>&beta;</sup> dW<sub>1</sub></span><br>
+            <span class="cyan">d&alpha; = &nu; &alpha; dW<sub>2</sub></span><br>
+            <span class="gold">dW<sub>1</sub> dW<sub>2</sub> = &rho; dt</span>
+        </div>
+        <p style="color:#b0b0c8;font-size:0.92em;line-height:1.7;margin-top:14px;margin-bottom:14px">
+            The four parameters control distinct features of the smile:
+        </p>
+        <table class="dcf-table">
+            <thead>
+                <tr><th>Parameter</th><th>Role</th><th>Typical Range</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="color:#10b981">&alpha; (alpha)</td>
+                    <td>ATM volatility level</td>
+                    <td class="mono">Calibrated</td>
+                </tr>
+                <tr>
+                    <td style="color:#22d3ee">&beta; (beta)</td>
+                    <td>Backbone &mdash; interpolates normal (&beta;=0) and lognormal (&beta;=1)</td>
+                    <td class="mono">0 &ndash; 1</td>
+                </tr>
+                <tr>
+                    <td style="color:#fbbf24">&rho; (rho)</td>
+                    <td>Correlation &mdash; controls smile skew</td>
+                    <td class="mono">&minus;1 &ndash; 1</td>
+                </tr>
+                <tr>
+                    <td style="color:#f472b6">&nu; (nu)</td>
+                    <td>Vol-of-vol &mdash; controls smile curvature</td>
+                    <td class="mono">&gt; 0</td>
+                </tr>
+            </tbody>
+        </table>
+        <p style="color:#b0b0c8;font-size:0.92em;line-height:1.7;margin-top:14px">
+            The &beta; parameter is crucial: at &beta; = 1, SABR reduces to a stochastic-vol version of the
+            Black model. At &beta; = 0, it becomes a stochastic-vol Bachelier model. In practice, &beta; is
+            often fixed (e.g., 0.5 or 0) and the remaining three parameters {&alpha;, &rho;, &nu;} are
+            calibrated to market quotes.
+        </p>
+
+        <details>
+            <summary>&#9654; Full SABR implied vol formula (Hagan et al. 2002)</summary>
+            <div class="derivation">
+                <p style="margin-bottom:10px">For F &ne; K, the SABR implied lognormal volatility approximation is:</p>
+                <div class="formula-block">
+                    <span class="green">&sigma;<sub>B</sub>(K,F)</span> = (<span class="cyan">&alpha;</span> / (FK)<sup>(1&minus;&beta;)/2</sup> [1 + (1&minus;&beta;)&sup2;/24 &times; ln&sup2;(F/K) + (1&minus;&beta;)&#8308;/1920 &times; ln&#8308;(F/K)])<br>
+                    &nbsp;&nbsp;&times; (<span class="gold">z / x(z)</span>)<br>
+                    &nbsp;&nbsp;&times; {1 + [<span class="cyan">(1&minus;&beta;)&sup2;&alpha;&sup2;</span>/(24(FK)<sup>1&minus;&beta;</sup>) + <span class="gold">&rho;&beta;&nu;&alpha;</span>/(4(FK)<sup>(1&minus;&beta;)/2</sup>) + <span class="pink">(2&minus;3&rho;&sup2;)&nu;&sup2;</span>/24] &times; T}
+                </div>
+                <p style="margin-top:10px">where:</p>
+                <div class="formula-block">
+                    z = (&nu;/&alpha;) &times; (FK)<sup>(1&minus;&beta;)/2</sup> &times; ln(F/K)<br>
+                    x(z) = ln[(&radic;(1 &minus; 2&rho;z + z&sup2;) + z &minus; &rho;) / (1 &minus; &rho;)]
+                </div>
+                <p style="margin-top:10px">For ATM (F = K), the formula simplifies to:</p>
+                <div class="formula-block">
+                    &sigma;<sub>ATM</sub> = &alpha;/F<sup>1&minus;&beta;</sup> &times; {1 + [(1&minus;&beta;)&sup2;&alpha;&sup2;/(24 F<sup>2(1&minus;&beta;)</sup>) + &rho;&beta;&nu;&alpha;/(4 F<sup>1&minus;&beta;</sup>) + (2&minus;3&rho;&sup2;)&nu;&sup2;/24] &times; T}
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 7: Interactive — SABR Calibration Tool
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>7. Interactive &mdash; SABR Calibration Tool</h2>
+    <div class="panel">
+        <h3>Fit SABR to Market Quotes</h3>
+        <p style="color:#b0b0c8;font-size:0.88em;margin-bottom:14px">
+            Enter ATM forward, three market vol quotes, and choose &beta;. The tool calibrates {&alpha;, &rho;, &nu;}
+            using gradient descent and plots the fitted smile against the market points.
+        </p>
+        <div class="form-row">
+            <label>ATM forward (%):</label>
+            <input type="number" id="sabrFwd" value="3.00" step="0.25" min="0.25" max="15" style="width:100px">
+        </div>
+        <div class="form-row">
+            <label>Maturity (years):</label>
+            <input type="number" id="sabrMat" value="10" step="1" min="1" max="30" style="width:100px">
+        </div>
+        <div class="form-row">
+            <label>ATM vol (%):</label>
+            <input type="number" id="sabrVolATM" value="20" step="0.5" min="1" max="100" style="width:100px">
+        </div>
+        <div class="form-row">
+            <label>25&Delta; put vol (%):</label>
+            <input type="number" id="sabrVolPut" value="24" step="0.5" min="1" max="100" style="width:100px">
+        </div>
+        <div class="form-row">
+            <label>25&Delta; call vol (%):</label>
+            <input type="number" id="sabrVolCall" value="18" step="0.5" min="1" max="100" style="width:100px">
+        </div>
+        <div class="slider-row">
+            <label>&beta; (backbone):</label>
+            <input type="range" id="sabrBeta" min="0" max="100" value="50" step="1">
+            <span class="slider-val" id="vBeta">0.50</span>
+        </div>
+        <div class="btn-row" style="margin-top:8px">
+            <button class="btn active" id="sabrCalibBtn" onclick="runSABRCalib()">Calibrate</button>
+            <button class="btn" id="sabrToggle" onclick="toggleSABRDisplay()">Toggle: Lognormal Vol</button>
+        </div>
+        <canvas id="sabrCanvas" width="700" height="300"></canvas>
+        <div class="grid-legend" style="margin-top:8px">
+            <div class="legend-item"><div class="legend-swatch" style="background:#10b981"></div><span style="color:#10b981">SABR fit</span></div>
+            <div class="legend-item"><div style="width:10px;height:10px;border-radius:50%;border:2px solid #fbbf24"></div><span style="color:#fbbf24">Market points</span></div>
+        </div>
+        <div class="result-box" id="sabrResult"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 8: Swaption Convention Details
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>8. Swaption Convention Details</h2>
+    <div class="panel">
+        <h3>Market Conventions for Interest Rate Options</h3>
+        <p style="color:#b0b0c8;font-size:0.92em;line-height:1.7;margin-bottom:14px">
+            Swaptions &mdash; options to enter an interest rate swap &mdash; are the most liquid IR option
+            market. Their quoting and settlement conventions carry important subtleties that affect pricing.
+        </p>
+
+        <p style="color:#a0a0b8;font-size:0.9em;margin:16px 0 8px;font-weight:400"><strong style="color:#e0e0e0">Physical vs Cash Settlement</strong></p>
+        <p style="color:#b0b0c8;font-size:0.9em;line-height:1.7;margin-bottom:14px">
+            A <strong style="color:#10b981">physically settled</strong> swaption delivers an actual swap at
+            expiry. The holder enters the underlying swap if it is in-the-money. A <strong style="color:#22d3ee">cash
+            settled</strong> swaption pays the present value of the swap, discounted using a flat yield at the
+            swap rate. The cash settlement formula introduces a convexity adjustment because the annuity is
+            evaluated at a single rate rather than off the full curve.
+        </p>
+
+        <p style="color:#a0a0b8;font-size:0.9em;margin:16px 0 8px;font-weight:400"><strong style="color:#e0e0e0">PVBP (Present Value of a Basis Point)</strong></p>
+        <p style="color:#b0b0c8;font-size:0.9em;line-height:1.7;margin-bottom:14px">
+            The PVBP (or DV01 of the annuity) converts between normal vol in rate space and the option premium
+            in currency terms. For a payer swaption:
+        </p>
+        <div class="formula-block">
+            Premium = <span class="green">PVBP</span> &times; Bachelier(&sigma;<sub>n</sub>, F, K, T)
+        </div>
+
+        <p style="color:#a0a0b8;font-size:0.9em;margin:16px 0 8px;font-weight:400"><strong style="color:#e0e0e0">Coterminal vs Constant Maturity</strong></p>
+        <p style="color:#b0b0c8;font-size:0.9em;line-height:1.7;margin-bottom:14px">
+            <strong style="color:#fbbf24">Coterminal</strong> swaptions share the same end date (e.g., all
+            expire into swaps ending in 2036). <strong style="color:#f472b6">Constant maturity</strong>
+            swaptions have the same underlying swap tenor (e.g., always 10-year swaps, regardless of expiry).
+            The standard swaption grid quotes constant-maturity vols.
+        </p>
+
+        <table class="dcf-table">
+            <thead>
+                <tr><th>Convention</th><th>Description</th><th>Usage</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="color:#e0e0e0">Physical settlement</td>
+                    <td>Delivers actual swap at expiry</td>
+                    <td>Standard in EUR and GBP markets</td>
+                </tr>
+                <tr>
+                    <td style="color:#e0e0e0">Cash settlement</td>
+                    <td>Pays PV using flat-yield annuity</td>
+                    <td>Standard in USD market (pre-2018)</td>
+                </tr>
+                <tr>
+                    <td style="color:#e0e0e0">PVBP annuity</td>
+                    <td>&sum; DF<sub>i</sub> &times; &delta;<sub>i</sub> over swap fixed leg</td>
+                    <td>Scales bp vol to premium</td>
+                </tr>
+                <tr>
+                    <td style="color:#e0e0e0">Coterminal</td>
+                    <td>Same swap end date, varying expiry</td>
+                    <td>Bermudan swaption calibration</td>
+                </tr>
+                <tr>
+                    <td style="color:#e0e0e0">Constant maturity</td>
+                    <td>Same swap tenor, varying expiry</td>
+                    <td>Standard vol grid (1y&times;10y, 5y&times;10y, etc.)</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 9: Cross-Links & Explore Next
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>9. Explore Next</h2>
+    <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 22px;margin:20px 0">
+        <h3 style="color:#808098;font-size:0.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;font-weight:400">Related Topics</h3>
+        <div style="display:flex;flex-wrap:wrap;gap:10px">
+            <a href="mc1_day_counts.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #34d399;transition:background 0.2s">
+                <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px">Day Count &amp; Compounding</div>
+                <div style="color:#606078;font-size:0.78em">MC-1 &mdash; Market Conventions</div>
+            </a>
+            <a href="black_scholes.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #34d399;transition:background 0.2s">
+                <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px">The Black-Scholes Model</div>
+                <div style="color:#606078;font-size:0.78em">Options pricing foundation</div>
+            </a>
+            <a href="yield_curve.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #34d399;transition:background 0.2s">
+                <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px">Yield Curve Construction</div>
+                <div style="color:#606078;font-size:0.78em">Building the discount curve</div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="terms.html" style="color:#606078;text-decoration:none">Terms of Use</a>
+        &nbsp;&middot;&nbsp;
+        <a href="intellectual-property.html" style="color:#606078;text-decoration:none">Intellectual Property</a>
+        &nbsp;&middot;&nbsp;
+        <a href="privacy.html" style="color:#606078;text-decoration:none">Privacy Policy</a>
+    </div>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   HiDPI Canvas Setup
+   ═══════════════════════════════════════════════════════════════ */
+function hiDPI(canvas) {
+    var dpr = window.devicePixelRatio || 1;
+    var w = canvas.width;
+    var h = canvas.height;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return { ctx: ctx, w: w, h: h };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Core Mathematical Functions
+   ═══════════════════════════════════════════════════════════════ */
+function normcdf(x) {
+    if (x < -8) return 0; if (x > 8) return 1;
+    var a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+    var sign = x < 0 ? -1 : 1; x = Math.abs(x) / Math.sqrt(2);
+    var t = 1 / (1 + p * x);
+    var y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+    return 0.5 * (1 + sign * y);
+}
+
+function normpdf(x) {
+    return Math.exp(-0.5 * x * x) / Math.sqrt(2 * Math.PI);
+}
+
+function blackCall(F, K, sigma, T) {
+    if (F <= 0 || K <= 0) return NaN;
+    if (sigma <= 0 || T <= 0) return Math.max(F - K, 0);
+    var sqrtT = Math.sqrt(T);
+    var d1 = (Math.log(F / K) + 0.5 * sigma * sigma * T) / (sigma * sqrtT);
+    var d2 = d1 - sigma * sqrtT;
+    return F * normcdf(d1) - K * normcdf(d2);
+}
+
+function bachelierCall(F, K, sigmaN, T) {
+    if (sigmaN <= 0 || T <= 0) return Math.max(F - K, 0);
+    var sqrtT = Math.sqrt(T);
+    var d = (F - K) / (sigmaN * sqrtT);
+    return (F - K) * normcdf(d) + sigmaN * sqrtT * normpdf(d);
+}
+
+function blackToNormal(F, K, sigmaLN, T) {
+    // Exact conversion via price matching (bisection)
+    if (F <= 0 || K <= 0) return NaN;
+    var target = blackCall(F, K, sigmaLN, T);
+    if (!isFinite(target)) return NaN;
+    var lo = 0.00001, hi = 2.0;
+    for (var i = 0; i < 60; i++) {
+        var mid = (lo + hi) / 2;
+        if (bachelierCall(F, K, mid, T) < target) lo = mid; else hi = mid;
+    }
+    return (lo + hi) / 2;
+}
+
+function sabrImpliedVol(F, K, T, alpha, beta, rho, nu) {
+    // Hagan et al. 2002 approximation
+    if (F <= 0 || K <= 0) return NaN;
+    if (alpha <= 0) return NaN;
+    if (Math.abs(F - K) < 1e-12) {
+        var Fb = Math.pow(F, 1 - beta);
+        var t1 = alpha / Fb;
+        var t2 = ((1 - beta) * (1 - beta) * alpha * alpha) / (24 * Fb * Fb);
+        var t3 = rho * beta * nu * alpha / (4 * Fb);
+        var t4 = (2 - 3 * rho * rho) * nu * nu / 24;
+        return t1 * (1 + (t2 + t3 + t4) * T);
+    }
+    var FK = F * K, FKb = Math.pow(FK, (1 - beta) / 2), logFK = Math.log(F / K);
+    var z = (nu / alpha) * FKb * logFK;
+    var xz = Math.log((Math.sqrt(1 - 2 * rho * z + z * z) + z - rho) / (1 - rho));
+    if (Math.abs(xz) < 1e-12) xz = 1; else xz = z / xz;
+    var prefix = alpha / (FKb * (1 + (1 - beta) * (1 - beta) * logFK * logFK / 24 + Math.pow((1 - beta) * logFK, 4) / 1920));
+    var corr = 1 + (((1 - beta) * (1 - beta) * alpha * alpha) / (24 * FKb * FKb) + rho * beta * nu * alpha / (4 * FKb) + (2 - 3 * rho * rho) * nu * nu / 24) * T;
+    return prefix * xz * corr;
+}
+
+function calibrateSABR(F, T, beta, strikes, vols) {
+    var alpha = vols[0] * Math.pow(F, 1 - beta), rho = 0, nu = 0.3;
+    function err() {
+        var e = 0;
+        for (var i = 0; i < strikes.length; i++) {
+            var m = sabrImpliedVol(F, strikes[i], T, alpha, beta, rho, nu);
+            if (!isFinite(m)) return 1e10;
+            e += (m - vols[i]) * (m - vols[i]);
+        }
+        return e;
+    }
+    var eps = 1e-6, lr = 0.0001;
+    for (var iter = 0; iter < 500; iter++) {
+        var e0 = err();
+        var dA = (function() { alpha += eps; var e = err(); alpha -= eps; return (e - e0) / eps; })();
+        var dR = (function() { rho += eps; var e = err(); rho -= eps; return (e - e0) / eps; })();
+        var dN = (function() { nu += eps; var e = err(); nu -= eps; return (e - e0) / eps; })();
+        alpha -= lr * dA; rho -= lr * dR; nu -= lr * dN;
+        rho = Math.max(-0.99, Math.min(0.99, rho));
+        nu = Math.max(0.01, nu); alpha = Math.max(0.0001, alpha);
+        if (e0 < 1e-12) break;
+    }
+    return { alpha: alpha, rho: rho, nu: nu };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Section 4: Vol Converter
+   ═══════════════════════════════════════════════════════════════ */
+function updateVolConverter() {
+    var F = parseFloat(document.getElementById('vcFwd').value) / 100;
+    var sigmaLN = parseFloat(document.getElementById('vcLnVol').value) / 100;
+    var T = parseFloat(document.getElementById('vcMat').value);
+
+    var stepsDiv = document.getElementById('vcSteps');
+    var resultDiv = document.getElementById('vcResult');
+
+    if (!isFinite(F) || !isFinite(sigmaLN) || !isFinite(T) || F <= 0 || sigmaLN <= 0 || T <= 0) {
+        stepsDiv.innerHTML = '<div class="step"><span class="label">Error:</span> Forward rate must be positive for lognormal conversion.</div>';
+        resultDiv.innerHTML = '';
+        return;
+    }
+
+    // Approximate
+    var sigmaNapprox = sigmaLN * F;
+    var sigmaNapproxBP = sigmaNapprox * 10000;
+
+    // Exact via price matching (ATM: K=F)
+    var K = F;
+    var sigmaNexact = blackToNormal(F, K, sigmaLN, T);
+    var sigmaNexactBP = isFinite(sigmaNexact) ? sigmaNexact * 10000 : NaN;
+
+    var errorBP = isFinite(sigmaNexactBP) ? (sigmaNapproxBP - sigmaNexactBP) : NaN;
+
+    var html = '';
+    html += '<div class="step"><span class="label">Given:</span> F = <span class="val">' + (F * 100).toFixed(2) + '%</span>, &sigma;<sub>ln</sub> = <span class="val">' + (sigmaLN * 100).toFixed(1) + '%</span>, T = <span class="val">' + T + 'y</span></div>';
+    html += '<div class="step"><span class="label">Step 1 (Approx):</span> &sigma;<sub>n</sub> &asymp; &sigma;<sub>ln</sub> &times; F = ' + (sigmaLN * 100).toFixed(1) + '% &times; ' + (F * 100).toFixed(2) + '% = <span class="val">' + (sigmaNapprox * 100).toFixed(4) + '%</span></div>';
+    html += '<div class="step"><span class="label">Step 2:</span> Convert to bp: ' + (sigmaNapprox * 100).toFixed(4) + '% &times; 10,000 = <span class="val">' + sigmaNapproxBP.toFixed(1) + ' bp/year</span></div>';
+    html += '<div class="step"><span class="label">Step 3 (Exact):</span> Compute Black ATM price: C = F &times; &sigma;<sub>ln</sub> &times; &radic;(T/2&pi;) = <span class="val">' + (blackCall(F, K, sigmaLN, T) * 10000).toFixed(2) + ' bp</span></div>';
+    html += '<div class="step"><span class="label">Step 4:</span> Invert Bachelier formula (bisection, 60 iterations) to match price</div>';
+
+    stepsDiv.innerHTML = html;
+
+    var rhtml = '';
+    rhtml += '<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:baseline">';
+    rhtml += '<div><div style="color:#808098;font-size:0.8em">APPROXIMATE</div><div class="result-big">' + sigmaNapproxBP.toFixed(1) + ' bp</div></div>';
+    if (isFinite(sigmaNexactBP)) {
+        rhtml += '<div><div style="color:#808098;font-size:0.8em">EXACT</div><div class="result-big" style="color:#22d3ee">' + sigmaNexactBP.toFixed(2) + ' bp</div></div>';
+        rhtml += '<div><div style="color:#808098;font-size:0.8em">ERROR</div><div style="font-family:\'Courier New\',monospace;font-size:1.2em;color:#fbbf24">' + (isFinite(errorBP) ? errorBP.toFixed(2) + ' bp' : 'N/A') + '</div></div>';
+    }
+    rhtml += '</div>';
+    resultDiv.innerHTML = rhtml;
+}
+
+document.getElementById('vcFwd').addEventListener('input', updateVolConverter);
+document.getElementById('vcLnVol').addEventListener('input', updateVolConverter);
+document.getElementById('vcMat').addEventListener('input', updateVolConverter);
+
+/* ═══════════════════════════════════════════════════════════════
+   Section 5: Bachelier vs Black Price Canvas
+   ═══════════════════════════════════════════════════════════════ */
+var priceSetup = hiDPI(document.getElementById('priceCanvas'));
+var priceCtx = priceSetup.ctx, priceW = priceSetup.w, priceH = priceSetup.h;
+var pad = { left: 70, right: 30, top: 30, bottom: 50 };
+
+function drawPriceChart() {
+    var ctx = priceCtx, W = priceW, H = priceH;
+    var strikeOffBP = parseInt(document.getElementById('sStrike').value);
+    var sigmaLN = parseInt(document.getElementById('sVol').value) / 100;
+    var T = parseInt(document.getElementById('sMat').value);
+
+    document.getElementById('vStrike').textContent = strikeOffBP + ' bp';
+    document.getElementById('vVol').textContent = (sigmaLN * 100).toFixed(0) + '%';
+    document.getElementById('vMat').textContent = T + 'y';
+
+    ctx.clearRect(0, 0, W, H);
+
+    var plotL = pad.left, plotR = W - pad.right, plotT = pad.top, plotB = H - pad.bottom;
+    var plotW = plotR - plotL, plotH = plotB - plotT;
+
+    // Forward rate range: -1% to 10%
+    var fMin = -0.01, fMax = 0.10;
+    var nPts = 300;
+
+    // Collect prices for scaling
+    var blackPrices = [], bachPrices = [], fwds = [];
+    for (var i = 0; i <= nPts; i++) {
+        var f = fMin + (fMax - fMin) * i / nPts;
+        fwds.push(f);
+        var K = f + strikeOffBP / 10000;
+
+        // For Black: need F>0 and K>0
+        var bp = NaN;
+        if (f > 0.0001 && K > 0.0001) {
+            bp = blackCall(f, K, sigmaLN, T);
+        }
+        blackPrices.push(bp);
+
+        // For Bachelier: use sigma_n derived from lognormal at a reference rate
+        var refRate = 0.03;
+        var sigmaN = sigmaLN * refRate;
+        bachPrices.push(bachelierCall(f, K, sigmaN, T));
+    }
+
+    // Find max price for y-axis
+    var maxP = 0;
+    for (var i = 0; i <= nPts; i++) {
+        if (isFinite(blackPrices[i]) && blackPrices[i] > maxP) maxP = blackPrices[i];
+        if (isFinite(bachPrices[i]) && bachPrices[i] > maxP) maxP = bachPrices[i];
+    }
+    maxP = maxP * 1.15;
+    if (maxP < 0.001) maxP = 0.01;
+
+    // Grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    var nGridY = 5;
+    ctx.font = '11px Courier New';
+    ctx.fillStyle = '#606078';
+    ctx.textAlign = 'right';
+    for (var g = 0; g <= nGridY; g++) {
+        var yVal = maxP * g / nGridY;
+        var yPx = plotB - (yVal / maxP) * plotH;
+        ctx.beginPath(); ctx.moveTo(plotL, yPx); ctx.lineTo(plotR, yPx); ctx.stroke();
+        ctx.fillText((yVal * 10000).toFixed(0) + ' bp', plotL - 6, yPx + 4);
+    }
+
+    // X-axis labels
+    ctx.textAlign = 'center';
+    for (var pct = -1; pct <= 10; pct += 1) {
+        var xPx = plotL + ((pct / 100 - fMin) / (fMax - fMin)) * plotW;
+        if (xPx >= plotL && xPx <= plotR) {
+            ctx.beginPath(); ctx.moveTo(xPx, plotT); ctx.lineTo(xPx, plotB); ctx.stroke();
+            ctx.fillText(pct + '%', xPx, plotB + 18);
+        }
+    }
+
+    // Axis labels
+    ctx.fillStyle = '#808098';
+    ctx.font = '11px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillText('Forward Rate', (plotL + plotR) / 2, plotB + 38);
+    ctx.save();
+    ctx.translate(16, (plotT + plotB) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Call Price (bp)', 0, 0);
+    ctx.restore();
+
+    // Vertical dashed line at F=0
+    var x0 = plotL + ((0 - fMin) / (fMax - fMin)) * plotW;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x0, plotT); ctx.lineTo(x0, plotB); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Label F=0
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '10px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillText('F = 0', x0, plotT - 6);
+
+    // Shaded region showing price difference (where both defined)
+    ctx.fillStyle = 'rgba(16,185,129,0.06)';
+    for (var i = 0; i < nPts; i++) {
+        if (isFinite(blackPrices[i]) && isFinite(bachPrices[i])) {
+            var x1 = plotL + (i / nPts) * plotW;
+            var x2 = plotL + ((i + 1) / nPts) * plotW;
+            var y1b = plotB - (blackPrices[i] / maxP) * plotH;
+            var y1n = plotB - (bachPrices[i] / maxP) * plotH;
+            var y2b = plotB - ((isFinite(blackPrices[i + 1]) ? blackPrices[i + 1] : blackPrices[i]) / maxP) * plotH;
+            var y2n = plotB - ((isFinite(bachPrices[i + 1]) ? bachPrices[i + 1] : bachPrices[i]) / maxP) * plotH;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1b); ctx.lineTo(x2, y2b);
+            ctx.lineTo(x2, y2n); ctx.lineTo(x1, y1n);
+            ctx.closePath(); ctx.fill();
+        }
+    }
+
+    // Draw Bachelier curve (cyan)
+    ctx.strokeStyle = '#22d3ee';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    var started = false;
+    for (var i = 0; i <= nPts; i++) {
+        if (isFinite(bachPrices[i]) && bachPrices[i] >= 0) {
+            var xPx = plotL + (i / nPts) * plotW;
+            var yPx = plotB - (bachPrices[i] / maxP) * plotH;
+            yPx = Math.max(plotT, Math.min(plotB, yPx));
+            if (!started) { ctx.moveTo(xPx, yPx); started = true; }
+            else ctx.lineTo(xPx, yPx);
+        }
+    }
+    ctx.stroke();
+
+    // Draw Black curve (emerald)
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    started = false;
+    for (var i = 0; i <= nPts; i++) {
+        if (isFinite(blackPrices[i]) && blackPrices[i] >= 0) {
+            var xPx = plotL + (i / nPts) * plotW;
+            var yPx = plotB - (blackPrices[i] / maxP) * plotH;
+            yPx = Math.max(plotT, Math.min(plotB, yPx));
+            if (!started) { ctx.moveTo(xPx, yPx); started = true; }
+            else ctx.lineTo(xPx, yPx);
+        }
+    }
+    ctx.stroke();
+
+    // Border
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(plotL, plotT, plotW, plotH);
+}
+
+document.getElementById('sStrike').addEventListener('input', drawPriceChart);
+document.getElementById('sVol').addEventListener('input', drawPriceChart);
+document.getElementById('sMat').addEventListener('input', drawPriceChart);
+
+/* ═══════════════════════════════════════════════════════════════
+   Section 7: SABR Calibration
+   ═══════════════════════════════════════════════════════════════ */
+var sabrSetup = hiDPI(document.getElementById('sabrCanvas'));
+var sabrCtx = sabrSetup.ctx, sabrW = sabrSetup.w, sabrH = sabrSetup.h;
+var sabrShowNormal = false;
+var lastSABRResult = null;
+
+function toggleSABRDisplay() {
+    sabrShowNormal = !sabrShowNormal;
+    document.getElementById('sabrToggle').textContent = sabrShowNormal ? 'Toggle: Normal Vol' : 'Toggle: Lognormal Vol';
+    if (lastSABRResult) drawSABRCanvas(lastSABRResult);
+}
+
+document.getElementById('sabrBeta').addEventListener('input', function() {
+    document.getElementById('vBeta').textContent = (this.value / 100).toFixed(2);
+});
+
+function runSABRCalib() {
+    var F = parseFloat(document.getElementById('sabrFwd').value) / 100;
+    var T = parseFloat(document.getElementById('sabrMat').value);
+    var beta = parseInt(document.getElementById('sabrBeta').value) / 100;
+    var volATM = parseFloat(document.getElementById('sabrVolATM').value) / 100;
+    var volPut = parseFloat(document.getElementById('sabrVolPut').value) / 100;
+    var volCall = parseFloat(document.getElementById('sabrVolCall').value) / 100;
+
+    if (!isFinite(F) || F <= 0 || !isFinite(T) || T <= 0) {
+        document.getElementById('sabrResult').innerHTML = '<div style="color:#f87171">Forward rate and maturity must be positive.</div>';
+        return;
+    }
+
+    // Strike offsets for 25-delta (approximate)
+    var atmStrike = F;
+    var putStrike = F * Math.exp(-0.5 * volATM * Math.sqrt(T));
+    var callStrike = F * Math.exp(0.5 * volATM * Math.sqrt(T));
+
+    var strikes = [putStrike, atmStrike, callStrike];
+    var vols = [volPut, volATM, volCall];
+
+    var result = calibrateSABR(F, T, beta, strikes, vols);
+    result.F = F;
+    result.T = T;
+    result.beta = beta;
+    result.strikes = strikes;
+    result.vols = vols;
+    lastSABRResult = result;
+
+    // Compute fit quality
+    var totalErr = 0;
+    for (var i = 0; i < strikes.length; i++) {
+        var fitted = sabrImpliedVol(F, strikes[i], T, result.alpha, beta, result.rho, result.nu);
+        if (isFinite(fitted)) {
+            totalErr += Math.abs(fitted - vols[i]) * 10000;
+        }
+    }
+
+    var html = '';
+    html += '<div style="display:flex;gap:20px;flex-wrap:wrap;align-items:baseline">';
+    html += '<div><div style="color:#808098;font-size:0.8em">&alpha;</div><div style="font-family:\'Courier New\',monospace;font-size:1.2em;color:#10b981">' + result.alpha.toFixed(6) + '</div></div>';
+    html += '<div><div style="color:#808098;font-size:0.8em">&rho;</div><div style="font-family:\'Courier New\',monospace;font-size:1.2em;color:#fbbf24">' + result.rho.toFixed(4) + '</div></div>';
+    html += '<div><div style="color:#808098;font-size:0.8em">&nu;</div><div style="font-family:\'Courier New\',monospace;font-size:1.2em;color:#f472b6">' + result.nu.toFixed(4) + '</div></div>';
+    html += '<div><div style="color:#808098;font-size:0.8em">&beta; (fixed)</div><div style="font-family:\'Courier New\',monospace;font-size:1.2em;color:#22d3ee">' + beta.toFixed(2) + '</div></div>';
+    html += '<div><div style="color:#808098;font-size:0.8em">Fit Error</div><div style="font-family:\'Courier New\',monospace;font-size:1.2em;color:' + (totalErr < 10 ? '#10b981' : '#fbbf24') + '">' + totalErr.toFixed(2) + ' bp</div></div>';
+    html += '</div>';
+    document.getElementById('sabrResult').innerHTML = html;
+
+    drawSABRCanvas(result);
+}
+
+function drawSABRCanvas(result) {
+    var ctx = sabrCtx, W = sabrW, H = sabrH;
+    var F = result.F, T = result.T, beta = result.beta;
+    var alpha = result.alpha, rho = result.rho, nu = result.nu;
+
+    ctx.clearRect(0, 0, W, H);
+
+    var plotL = pad.left, plotR = W - pad.right, plotT = pad.top, plotB = H - pad.bottom;
+    var plotW = plotR - plotL, plotH = plotB - plotT;
+
+    // Strike range: F * 0.5 to F * 1.5
+    var kMin = F * 0.5, kMax = F * 1.5;
+    var nPts = 200;
+
+    // Compute SABR implied vols across strike range
+    var sabrVols = [], strikeArr = [];
+    for (var i = 0; i <= nPts; i++) {
+        var K = kMin + (kMax - kMin) * i / nPts;
+        strikeArr.push(K);
+        var v = sabrImpliedVol(F, K, T, alpha, beta, rho, nu);
+        if (sabrShowNormal && isFinite(v) && K > 0) {
+            // Convert lognormal to normal vol
+            v = blackToNormal(F, K, v, T);
+            if (isFinite(v)) v = v * 10000; else v = NaN; // show in bp
+        } else if (!sabrShowNormal && isFinite(v)) {
+            v = v * 100; // show in %
+        }
+        sabrVols.push(v);
+    }
+
+    // Market points
+    var mktKs = result.strikes, mktVs = result.vols;
+    var mktDisplay = [];
+    for (var i = 0; i < mktKs.length; i++) {
+        if (sabrShowNormal) {
+            var nv = blackToNormal(F, mktKs[i], mktVs[i], T);
+            mktDisplay.push(isFinite(nv) ? nv * 10000 : NaN);
+        } else {
+            mktDisplay.push(mktVs[i] * 100);
+        }
+    }
+
+    // Find y range
+    var yMin = Infinity, yMax = -Infinity;
+    for (var i = 0; i <= nPts; i++) {
+        if (isFinite(sabrVols[i])) {
+            if (sabrVols[i] < yMin) yMin = sabrVols[i];
+            if (sabrVols[i] > yMax) yMax = sabrVols[i];
+        }
+    }
+    for (var i = 0; i < mktDisplay.length; i++) {
+        if (isFinite(mktDisplay[i])) {
+            if (mktDisplay[i] < yMin) yMin = mktDisplay[i];
+            if (mktDisplay[i] > yMax) yMax = mktDisplay[i];
+        }
+    }
+    var yPad = (yMax - yMin) * 0.2;
+    if (yPad < 0.5) yPad = 1;
+    yMin -= yPad; yMax += yPad;
+
+    // Grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1;
+    ctx.font = '11px Courier New';
+    ctx.fillStyle = '#606078';
+
+    var nGridY = 5;
+    ctx.textAlign = 'right';
+    for (var g = 0; g <= nGridY; g++) {
+        var yVal = yMin + (yMax - yMin) * g / nGridY;
+        var yPx = plotB - ((yVal - yMin) / (yMax - yMin)) * plotH;
+        ctx.beginPath(); ctx.moveTo(plotL, yPx); ctx.lineTo(plotR, yPx); ctx.stroke();
+        if (sabrShowNormal) {
+            ctx.fillText(yVal.toFixed(0) + ' bp', plotL - 6, yPx + 4);
+        } else {
+            ctx.fillText(yVal.toFixed(1) + '%', plotL - 6, yPx + 4);
+        }
+    }
+
+    // X-axis
+    ctx.textAlign = 'center';
+    var nGridX = 5;
+    for (var g = 0; g <= nGridX; g++) {
+        var kVal = kMin + (kMax - kMin) * g / nGridX;
+        var xPx = plotL + (g / nGridX) * plotW;
+        ctx.beginPath(); ctx.moveTo(xPx, plotT); ctx.lineTo(xPx, plotB); ctx.stroke();
+        ctx.fillText((kVal * 100).toFixed(1) + '%', xPx, plotB + 18);
+    }
+
+    // Axis labels
+    ctx.fillStyle = '#808098';
+    ctx.font = '11px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillText('Strike', (plotL + plotR) / 2, plotB + 38);
+    ctx.save();
+    ctx.translate(16, (plotT + plotB) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(sabrShowNormal ? 'Normal Vol (bp)' : 'Implied Vol (%)', 0, 0);
+    ctx.restore();
+
+    // SABR curve
+    ctx.strokeStyle = '#10b981';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    var started = false;
+    for (var i = 0; i <= nPts; i++) {
+        if (isFinite(sabrVols[i])) {
+            var xPx = plotL + (i / nPts) * plotW;
+            var yPx = plotB - ((sabrVols[i] - yMin) / (yMax - yMin)) * plotH;
+            yPx = Math.max(plotT, Math.min(plotB, yPx));
+            if (!started) { ctx.moveTo(xPx, yPx); started = true; }
+            else ctx.lineTo(xPx, yPx);
+        }
+    }
+    ctx.stroke();
+
+    // Market points (circles)
+    for (var i = 0; i < mktKs.length; i++) {
+        if (isFinite(mktDisplay[i]) && mktKs[i] >= kMin && mktKs[i] <= kMax) {
+            var xPx = plotL + ((mktKs[i] - kMin) / (kMax - kMin)) * plotW;
+            var yPx = plotB - ((mktDisplay[i] - yMin) / (yMax - yMin)) * plotH;
+            ctx.beginPath();
+            ctx.arc(xPx, yPx, 6, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(251,191,36,0.15)';
+            ctx.fill();
+        }
+    }
+
+    // ATM line
+    var xATM = plotL + ((F - kMin) / (kMax - kMin)) * plotW;
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(xATM, plotT); ctx.lineTo(xATM, plotB); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.font = '10px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillText('ATM', xATM, plotT - 6);
+
+    // Border
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(plotL, plotT, plotW, plotH);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Initialise
+   ═══════════════════════════════════════════════════════════════ */
+updateVolConverter();
+drawPriceChart();
+runSABRCalib();
+</script>
+</body>
+</html>
