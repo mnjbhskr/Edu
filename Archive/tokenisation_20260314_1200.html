@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tokenisation — A Visual Discovery of Mathematics</title>
+    <meta name="description" content="Explore tokenisation interactively. See how text is split into tokens using character, word, and BPE methods. Understand how language models see language.">
+    <link rel="canonical" href="https://mathsedu.org/tokenisation.html">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "LearningResource",
+        "name": "Tokenisation",
+        "url": "https://mathsedu.org/tokenisation.html",
+        "description": "Explore tokenisation interactively. See how text is split into tokens using character, word, and BPE methods. Understand how language models see language.",
+        "educationalLevel": "Beginner",
+        "teaches": "Tokenisation, character-level tokens, word-level tokens, byte pair encoding (BPE), vocabulary size trade-offs",
+        "learningResourceType": "Interactive visualisation",
+        "interactivityType": "active",
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "creator": { "@type": "Person", "name": "Manoj Bhaskar" },
+        "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        "isPartOf": {
+            "@type": "Course",
+            "name": "AI & Intelligence",
+            "url": "https://mathsedu.org/"
+        }
+    }
+    </script>
+
+    <meta property="og:title" content="Tokenisation">
+    <meta property="og:description" content="Explore tokenisation interactively. See how text is split into tokens using character, word, and BPE methods. Understand how language models see language.">
+    <meta property="og:url" content="https://mathsedu.org/tokenisation.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="MathsEdu.org">
+    <meta property="og:locale" content="en_GB">
+
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Tokenisation">
+    <meta name="twitter:description" content="Explore tokenisation interactively. See how text is split into tokens using character, word, and BPE methods. Understand how language models see language.">
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}
+        .back:hover{color:#a78bfa}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:8px}
+        .intro-text{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(167,139,250,0.13);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .btn:disabled{opacity:0.4;cursor:default}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+        .slider-row input[type=range]{flex:1;max-width:300px;accent-color:#a78bfa;cursor:pointer}
+        .slider-val{color:#a78bfa;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .result-box{background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .insight-box{background:rgba(167,139,250,0.04);border-left:3px solid rgba(167,139,250,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .micro-note{color:#808098;font-size:0.85em;font-style:italic;margin:8px 0 4px;line-height:1.6}
+        .token-display{display:flex;flex-wrap:wrap;gap:4px;padding:10px 0;min-height:36px;align-items:center}
+        .token-span{display:inline-block;padding:3px 7px;border-radius:4px;font-family:'Courier New',monospace;font-size:0.88em;line-height:1.4;border:1px solid rgba(255,255,255,0.1)}
+        .token-label{color:#808098;font-size:0.78em;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+        .token-count{color:#a78bfa;font-family:'Courier New',monospace;font-size:0.85em;margin-left:8px}
+        .text-input{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px 16px;color:#e0e0e0;font-family:Georgia,serif;font-size:1em;line-height:1.6;resize:vertical}
+        .text-input:focus{outline:none;border-color:rgba(167,139,250,0.4)}
+        .text-input::placeholder{color:#505068}
+        .bpe-vocab{display:flex;flex-wrap:wrap;gap:4px;max-height:200px;overflow-y:auto;padding:8px 0}
+        .bpe-vocab-item{display:inline-block;padding:2px 8px;border-radius:4px;font-family:'Courier New',monospace;font-size:0.82em;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.15);color:#c0c0d8}
+        .bpe-vocab-item.new{background:rgba(167,139,250,0.18);border-color:rgba(167,139,250,0.4);color:#a78bfa}
+        .merge-table{width:100%;border-collapse:collapse;font-size:0.85em;margin:10px 0}
+        .merge-table th{text-align:left;color:#808098;font-weight:400;text-transform:uppercase;letter-spacing:0.5px;font-size:0.8em;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.06)}
+        .merge-table td{padding:6px 10px;color:#c0c0d8;font-family:'Courier New',monospace;border-bottom:1px solid rgba(255,255,255,0.03)}
+        .merge-table tr.highlight td{background:rgba(167,139,250,0.08);color:#a78bfa}
+        .quirk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:10px 0}
+        .quirk-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:14px 16px}
+        .quirk-card h4{color:#a78bfa;font-size:0.9em;font-weight:400;margin-bottom:8px}
+        .quirk-input{color:#22d3ee;font-family:'Courier New',monospace;font-size:0.85em;margin:4px 0}
+        .quirk-output{color:#fbbf24;font-family:'Courier New',monospace;font-size:0.85em;margin:4px 0}
+        .quirk-explain{color:#808098;font-size:0.82em;margin-top:6px;line-height:1.5}
+        .summary-point{padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.03);color:#b0b0c8;font-size:0.92em;line-height:1.7}
+        .summary-point:last-child{border-bottom:none}
+        .corpus-display{font-family:'Courier New',monospace;font-size:0.9em;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;margin:8px 0;line-height:1.8;color:#c0c0d8;word-break:break-all}
+        .pair-highlight{color:#fbbf24;font-weight:bold}
+        @media(max-width:600px){
+            .container{padding:16px 12px}
+            h1{font-size:1.4em}
+            canvas{width:100%!important;height:auto!important}
+            .slider-row{flex-wrap:wrap}
+            .slider-row label{min-width:100%}
+            .btn-row{flex-wrap:wrap}
+            .quirk-grid{grid-template-columns:1fr}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <h1>Tokenisation</h1>
+    <p class="subtitle">Converting text and sequences into tokens</p>
+    <p class="intro-text">
+        Before a language model can read your words, it must break them into pieces called <em>tokens</em>.
+        A token might be a whole word, a fragment like "un" or "ing", or even a single character.
+        The choice of tokenisation method profoundly affects what the model can learn, how efficiently
+        it processes text, and how it handles languages it has never seen. Let us explore three
+        approaches and see the trade-offs first-hand.
+    </p>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 1: What Are Tokens?
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>1. What Are Tokens?</h2>
+    <div class="panel">
+        <h3>Type anything and see three tokenisation methods side by side</h3>
+        <textarea id="userText" class="text-input" rows="3" placeholder="Type or paste text here — e.g. &quot;The cat sat on the mat.&quot;">Tokenisation is surprisingly tricky!</textarea>
+
+        <div style="margin-top:16px">
+            <div class="token-label">Character-level <span class="token-count" id="charCount"></span></div>
+            <div class="token-display" id="charTokens"></div>
+        </div>
+        <div style="margin-top:10px">
+            <div class="token-label">Word-level <span class="token-count" id="wordCount"></span></div>
+            <div class="token-display" id="wordTokens"></div>
+        </div>
+        <div style="margin-top:10px">
+            <div class="token-label">BPE (subword) <span class="token-count" id="bpeCount"></span></div>
+            <div class="token-display" id="bpeTokens"></div>
+        </div>
+
+        <div class="insight-box" style="margin-top:16px">
+            <strong>Key insight:</strong> Character-level tokenisation produces many tiny tokens (the model must learn spelling from scratch).
+            Word-level creates fewer tokens but cannot handle unseen words. BPE strikes a balance &mdash; common words stay whole,
+            rare words are broken into meaningful subpieces.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 2: BPE Step by Step
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>2. BPE Step by Step</h2>
+    <div class="panel">
+        <h3>Byte Pair Encoding on a small corpus</h3>
+        <p class="micro-note">Starting corpus: "low" (5&times;), "lower" (2&times;), "lowest" (1&times;). Initial vocabulary: individual characters plus end-of-word marker.</p>
+        <canvas id="bpeCanvas" width="700" height="500"></canvas>
+        <div class="btn-row" style="margin-top:12px">
+            <button class="btn" id="btnNextMerge">Next Merge &rarr;</button>
+            <button class="btn" id="btnAutoRun">&#9654; Auto-run</button>
+            <button class="btn" id="btnResetBpe">Reset</button>
+        </div>
+
+        <div style="margin-top:14px">
+            <div class="token-label">Current vocabulary (<span id="vocabSize">0</span> tokens)</div>
+            <div class="bpe-vocab" id="bpeVocab"></div>
+        </div>
+
+        <div style="margin-top:14px">
+            <div class="token-label">Merge history</div>
+            <div style="max-height:200px;overflow-y:auto">
+                <table class="merge-table">
+                    <thead><tr><th>#</th><th>Pair</th><th>Frequency</th><th>New token</th></tr></thead>
+                    <tbody id="mergeHistory"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="insight-box">
+            <strong>How BPE works:</strong> Start with individual characters. Count every adjacent pair in the corpus.
+            Merge the most frequent pair into a single new token. Repeat. Common subwords like "low" emerge naturally
+            from the statistics of the training data.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 3: Tokenisation Quirks
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>3. Tokenisation Quirks</h2>
+    <div class="panel">
+        <h3>Surprising behaviours in real tokenisers</h3>
+        <div class="quirk-grid">
+            <div class="quirk-card">
+                <h4>Numbers</h4>
+                <div class="quirk-input">"123456789"</div>
+                <div class="quirk-output">["123", "456", "789"]</div>
+                <div class="quirk-explain">Large numbers are often split into 3-digit chunks. The model does not "see" the full number &mdash; it sees pieces and must learn arithmetic from fragments.</div>
+            </div>
+            <div class="quirk-card">
+                <h4>Leading Spaces</h4>
+                <div class="quirk-input">" hello" vs "hello"</div>
+                <div class="quirk-output">[" hello"] vs ["hello"]</div>
+                <div class="quirk-explain">Many tokenisers treat the space before a word as part of the token. " hello" and "hello" become different tokens entirely, changing how the model interprets them.</div>
+            </div>
+            <div class="quirk-card">
+                <h4>Non-English Text</h4>
+                <div class="quirk-input">"hello" &rarr; 1 token</div>
+                <div class="quirk-output">"&#12371;&#12435;&#12395;&#12385;&#12399;" &rarr; 5+ tokens</div>
+                <div class="quirk-explain">Tokenisers trained mostly on English use more tokens for other languages. Japanese, Arabic, and Hindi text may need 3&ndash;5&times; more tokens than equivalent English, making processing slower and costlier.</div>
+            </div>
+            <div class="quirk-card">
+                <h4>Code</h4>
+                <div class="quirk-input">"def foo():"</div>
+                <div class="quirk-output">["def", " foo", "()", ":"]</div>
+                <div class="quirk-explain">Programming syntax creates unusual token boundaries. Indentation (spaces/tabs) may consume many tokens. Common patterns like "()" often merge into single tokens through BPE training.</div>
+            </div>
+        </div>
+        <div class="insight-box">
+            These quirks are not bugs &mdash; they are consequences of statistical learning. A tokeniser
+            optimises for the most common patterns in its training data, which means less common patterns
+            (rare languages, large numbers, unusual formatting) pay a cost in token count.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 4: Vocabulary Size Trade-offs
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>4. Vocabulary Size Trade-offs</h2>
+    <div class="panel">
+        <h3>The balancing act between vocabulary size and efficiency</h3>
+        <canvas id="tradeoffCanvas" width="600" height="400"></canvas>
+        <div class="slider-row" style="margin-top:12px">
+            <label>Vocabulary size</label>
+            <input type="range" id="sVocab" min="2" max="5" step="0.01" value="3.7">
+            <span class="slider-val" id="vVocab">5,000</span>
+        </div>
+        <div class="result-box" id="tradeoffResult"></div>
+        <div class="insight-box">
+            <strong>The sweet spot:</strong> A small vocabulary means fewer parameters in the embedding table but
+            longer token sequences (more compute per sentence). A large vocabulary means shorter sequences but a
+            massive embedding table. Modern LLMs typically use 30k&ndash;100k tokens &mdash; a carefully chosen middle ground.
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         Section 5: What Have We Learnt?
+         ═══════════════════════════════════════════════════════════ -->
+    <h2>5. What Have We Learnt?</h2>
+    <div class="panel">
+        <h3>Summary</h3>
+        <div class="summary-point">
+            <strong style="color:#a78bfa">Tokens are the atoms of language models.</strong>
+            Every piece of text &mdash; whether a novel, a tweet, or a line of code &mdash; must first be
+            split into tokens before a model can process it.
+        </div>
+        <div class="summary-point">
+            <strong style="color:#a78bfa">BPE learns a vocabulary from data.</strong>
+            Starting from individual characters, it repeatedly merges the most frequent pair. This produces
+            a vocabulary where common words are single tokens and rare words are broken into reusable subpieces.
+        </div>
+        <div class="summary-point">
+            <strong style="color:#a78bfa">Vocabulary size is a design choice with real consequences.</strong>
+            Smaller vocabularies produce longer sequences; larger vocabularies need more memory for embeddings.
+            The right balance depends on the model&rsquo;s goals and the diversity of its training data.
+        </div>
+        <div class="summary-point">
+            <strong style="color:#a78bfa">Tokenisation shapes what a model can see.</strong>
+            If a number is split across tokens, the model must learn arithmetic from fragments. If a language
+            uses more tokens per sentence, it is effectively "more expensive" for the model to process.
+        </div>
+        <div class="insight-box">
+            <strong>Where next?</strong> Tokenisation is the first step in a pipeline. Once text is tokenised,
+            each token is mapped to a vector via an <em>embedding table</em> (see: Embeddings). The model then
+            predicts the <em>next token</em> in the sequence (see: Next-Token Prediction), which is the
+            fundamental operation behind modern language models.
+        </div>
+    </div>
+</div>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="terms.html" style="color:#606078;text-decoration:none">Terms of Use</a>
+        &nbsp;&middot;&nbsp;
+        <a href="intellectual-property.html" style="color:#606078;text-decoration:none">Intellectual Property</a>
+        &nbsp;&middot;&nbsp;
+        <a href="privacy.html" style="color:#606078;text-decoration:none">Privacy Policy</a>
+    </div>
+</footer>
+
+<script>
+/* ================================================================
+   Utility: HiDPI Canvas Setup
+   ================================================================ */
+function setupHiDPI(canvas, cssW, cssH) {
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    return ctx;
+}
+
+/* Token colours - a palette for colouring token spans */
+var TOKEN_COLOURS = [
+    'rgba(167,139,250,0.25)', 'rgba(34,211,238,0.25)', 'rgba(251,191,36,0.25)',
+    'rgba(244,114,182,0.25)', 'rgba(16,185,129,0.25)', 'rgba(248,113,113,0.25)',
+    'rgba(96,165,250,0.25)', 'rgba(52,211,153,0.25)', 'rgba(251,146,60,0.25)',
+    'rgba(129,140,248,0.25)'
+];
+var TOKEN_BORDERS = [
+    'rgba(167,139,250,0.5)', 'rgba(34,211,238,0.5)', 'rgba(251,191,36,0.5)',
+    'rgba(244,114,182,0.5)', 'rgba(16,185,129,0.5)', 'rgba(248,113,113,0.5)',
+    'rgba(96,165,250,0.5)', 'rgba(52,211,153,0.5)', 'rgba(251,146,60,0.5)',
+    'rgba(129,140,248,0.5)'
+];
+
+/* ================================================================
+   Section 1: What Are Tokens?
+   ================================================================ */
+(function() {
+    /* A simple BPE vocabulary for demonstration.
+       We pre-build a small merge list from common English patterns. */
+    var BPE_MERGES = [
+        ['t','h'], ['th','e'], ['i','n'], ['o','n'], ['a','n'],
+        ['e','r'], ['i','s'], ['r','e'], ['t','i'], ['ti','on'],
+        ['a','t'], ['e','n'], ['o','r'], ['i','t'], ['e','s'],
+        ['a','l'], ['s','t'], ['n','g'], ['in','g'], ['o','u'],
+        ['ou','t'], ['l','y'], ['s','e'], ['a','r'], ['c','e'],
+        ['t','o'], ['r','i'], ['ri','s'], ['s','u'], ['su','r'],
+        ['sur','p'], ['surp','r'], ['surpr','is'], ['surpris','ing'],
+        ['surprising','ly'], ['t','r'], ['tr','i'], ['tri','c'],
+        ['tric','k'], ['trick','y'], ['T','o'], ['To','k'],
+        ['Tok','en'], ['Token','is'], ['Tokenis','at'], ['Tokenisat','ion'],
+        ['h','o'], ['w','h'], ['wh','at'], ['th','at'],
+        ['c','o'], ['co','m'], ['com','p'], ['comp','u'],
+        ['compu','t'], ['w','o'], ['wo','r'], ['wor','k'],
+        ['work','s'], ['H','e'], ['He','l'], ['Hel','l'],
+        ['Hell','o'], ['w','e'], ['we','l'], ['wel','l'],
+        ['d','a'], ['da','t'], ['dat','a']
+    ];
+
+    function tokeniseChar(text) {
+        var tokens = [];
+        for (var i = 0; i < text.length; i++) tokens.push(text[i]);
+        return tokens;
+    }
+
+    function tokeniseWord(text) {
+        /* Split on whitespace and punctuation boundaries */
+        var tokens = [];
+        var re = /[a-zA-Z\u00C0-\u024F]+|[0-9]+|[^\s\w]/g;
+        var m;
+        while ((m = re.exec(text)) !== null) tokens.push(m[0]);
+        return tokens;
+    }
+
+    function tokeniseBPE(text) {
+        /* Start with characters */
+        var tokens = [];
+        for (var i = 0; i < text.length; i++) tokens.push(text[i]);
+
+        /* Apply merges greedily */
+        for (var mi = 0; mi < BPE_MERGES.length; mi++) {
+            var pair = BPE_MERGES[mi];
+            var newTokens = [];
+            var j = 0;
+            while (j < tokens.length) {
+                if (j < tokens.length - 1 && tokens[j] === pair[0] && tokens[j+1] === pair[1]) {
+                    newTokens.push(pair[0] + pair[1]);
+                    j += 2;
+                } else {
+                    newTokens.push(tokens[j]);
+                    j++;
+                }
+            }
+            tokens = newTokens;
+        }
+        return tokens;
+    }
+
+    function renderTokens(containerId, tokens, countId) {
+        var container = document.getElementById(containerId);
+        var html = '';
+        for (var i = 0; i < tokens.length; i++) {
+            var ci = i % TOKEN_COLOURS.length;
+            var display = tokens[i].replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            if (display === ' ') display = '&middot;';
+            else if (display === '\n') display = '&crarr;';
+            else if (display === '\t') display = '&rarr;';
+            html += '<span class="token-span" style="background:' + TOKEN_COLOURS[ci] +
+                    ';border-color:' + TOKEN_BORDERS[ci] + '">' + display + '</span>';
+        }
+        container.innerHTML = html;
+        document.getElementById(countId).textContent = '(' + tokens.length + ' tokens)';
+    }
+
+    function updateTokenisation() {
+        var text = document.getElementById('userText').value;
+        if (!text) {
+            document.getElementById('charTokens').innerHTML = '<span style="color:#505068;font-style:italic">Type something above...</span>';
+            document.getElementById('wordTokens').innerHTML = '';
+            document.getElementById('bpeTokens').innerHTML = '';
+            document.getElementById('charCount').textContent = '';
+            document.getElementById('wordCount').textContent = '';
+            document.getElementById('bpeCount').textContent = '';
+            return;
+        }
+        renderTokens('charTokens', tokeniseChar(text), 'charCount');
+        renderTokens('wordTokens', tokeniseWord(text), 'wordCount');
+        renderTokens('bpeTokens', tokeniseBPE(text), 'bpeCount');
+    }
+
+    document.getElementById('userText').addEventListener('input', updateTokenisation);
+    updateTokenisation();
+})();
+
+
+/* ================================================================
+   Section 2: BPE Step by Step (Canvas)
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('bpeCanvas');
+    var W = 700, H = 500;
+    var ctx = setupHiDPI(cvs, W, H);
+
+    /* Corpus: "low" x5, "lower" x2, "lowest" x1 */
+    var CORPUS_WORDS = [
+        { word: ['l','o','w','</w>'], count: 5 },
+        { word: ['l','o','w','e','r','</w>'], count: 2 },
+        { word: ['l','o','w','e','s','t','</w>'], count: 1 }
+    ];
+
+    var corpus, vocab, merges, mergeStep, autoRunning, autoTimer, animId;
+
+    function resetBPE() {
+        corpus = JSON.parse(JSON.stringify(CORPUS_WORDS));
+        vocab = {};
+        /* Initial vocab: all unique characters */
+        for (var i = 0; i < corpus.length; i++) {
+            for (var j = 0; j < corpus[i].word.length; j++) {
+                vocab[corpus[i].word[j]] = true;
+            }
+        }
+        merges = [];
+        mergeStep = 0;
+        autoRunning = false;
+        if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+        document.getElementById('btnAutoRun').innerHTML = '&#9654; Auto-run';
+        updateVocabDisplay();
+        updateMergeHistory();
+        draw();
+    }
+
+    function countPairs() {
+        var pairs = {};
+        for (var i = 0; i < corpus.length; i++) {
+            var w = corpus[i].word;
+            for (var j = 0; j < w.length - 1; j++) {
+                var key = w[j] + '|||' + w[j+1];
+                if (!pairs[key]) pairs[key] = { a: w[j], b: w[j+1], count: 0 };
+                pairs[key].count += corpus[i].count;
+            }
+        }
+        return pairs;
+    }
+
+    function doMerge() {
+        var pairs = countPairs();
+        var keys = Object.keys(pairs);
+        if (keys.length === 0) return false;
+
+        /* Find most frequent pair */
+        var best = null;
+        for (var i = 0; i < keys.length; i++) {
+            if (!best || pairs[keys[i]].count > best.count) {
+                best = pairs[keys[i]];
+            }
+        }
+
+        /* Merge in all words */
+        var newToken = best.a + best.b;
+        for (var i = 0; i < corpus.length; i++) {
+            var w = corpus[i].word;
+            var newW = [];
+            var j = 0;
+            while (j < w.length) {
+                if (j < w.length - 1 && w[j] === best.a && w[j+1] === best.b) {
+                    newW.push(newToken);
+                    j += 2;
+                } else {
+                    newW.push(w[j]);
+                    j++;
+                }
+            }
+            corpus[i].word = newW;
+        }
+
+        vocab[newToken] = true;
+        mergeStep++;
+        merges.push({ step: mergeStep, a: best.a, b: best.b, merged: newToken, freq: best.count });
+        return true;
+    }
+
+    function updateVocabDisplay() {
+        var container = document.getElementById('bpeVocab');
+        var vocabKeys = Object.keys(vocab).sort(function(a, b) { return a.length - b.length || a.localeCompare(b); });
+        var latestToken = merges.length > 0 ? merges[merges.length - 1].merged : null;
+        var html = '';
+        for (var i = 0; i < vocabKeys.length; i++) {
+            var cls = vocabKeys[i] === latestToken ? ' new' : '';
+            var display = vocabKeys[i].replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            html += '<span class="bpe-vocab-item' + cls + '">' + display + '</span>';
+        }
+        container.innerHTML = html;
+        document.getElementById('vocabSize').textContent = vocabKeys.length;
+    }
+
+    function updateMergeHistory() {
+        var tbody = document.getElementById('mergeHistory');
+        var html = '';
+        for (var i = merges.length - 1; i >= 0; i--) {
+            var m = merges[i];
+            var cls = i === merges.length - 1 ? ' class="highlight"' : '';
+            var da = m.a.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            var db = m.b.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            var dm = m.merged.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            html += '<tr' + cls + '><td>' + m.step + '</td><td>"' + da + '" + "' + db + '"</td><td>' + m.freq + '</td><td>"' + dm + '"</td></tr>';
+        }
+        tbody.innerHTML = html;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var PAD = { left: 30, right: 30, top: 40, bottom: 30 };
+        var pW = W - PAD.left - PAD.right;
+        var pH = H - PAD.top - PAD.bottom;
+
+        /* Title */
+        ctx.fillStyle = '#a78bfa';
+        ctx.font = '13px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('BPE Merge Step: ' + mergeStep, PAD.left, 10);
+
+        /* Draw corpus words */
+        var corpusY = PAD.top + 10;
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Georgia, serif';
+        ctx.fillText('Corpus (word \u2192 current tokenisation \u00d7 frequency)', PAD.left, corpusY);
+        corpusY += 24;
+
+        for (var i = 0; i < corpus.length; i++) {
+            var w = corpus[i].word;
+            var x = PAD.left + 10;
+            var y = corpusY + i * 40;
+
+            /* Frequency */
+            ctx.fillStyle = '#808098';
+            ctx.font = '11px Courier New, monospace';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('\u00d7' + corpus[i].count, PAD.left + 36, y + 14);
+
+            /* Tokens */
+            x = PAD.left + 50;
+            ctx.textAlign = 'left';
+            for (var j = 0; j < w.length; j++) {
+                var tok = w[j];
+                var display = tok.replace(/</g, '\u2039').replace(/>/g, '\u203a');
+                ctx.font = '12px Courier New, monospace';
+                var tw = ctx.measureText(display).width;
+                var boxW = tw + 14;
+                var ci = j % TOKEN_COLOURS.length;
+
+                /* Token box */
+                ctx.fillStyle = TOKEN_COLOURS[ci];
+                ctx.beginPath();
+                ctx.roundRect(x, y, boxW, 28, 4);
+                ctx.fill();
+                ctx.strokeStyle = TOKEN_BORDERS[ci];
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(x, y, boxW, 28, 4);
+                ctx.stroke();
+
+                /* Token text */
+                ctx.fillStyle = '#e0e0e0';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(display, x + 7, y + 14);
+
+                x += boxW + 4;
+            }
+        }
+
+        /* Pair frequencies */
+        var pairs = countPairs();
+        var pairKeys = Object.keys(pairs);
+        pairKeys.sort(function(a, b) { return pairs[b].count - pairs[a].count; });
+
+        var pairY = corpusY + corpus.length * 40 + 20;
+        ctx.fillStyle = '#808098';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Adjacent pair frequencies (most frequent highlighted)', PAD.left, pairY);
+        pairY += 22;
+
+        var maxPairCount = pairKeys.length > 0 ? pairs[pairKeys[0]].count : 1;
+        var barMaxW = pW * 0.5;
+        var showPairs = Math.min(pairKeys.length, 10);
+
+        for (var i = 0; i < showPairs; i++) {
+            var p = pairs[pairKeys[i]];
+            var y = pairY + i * 26;
+            var barW = (p.count / maxPairCount) * barMaxW;
+            var isTop = i === 0;
+
+            /* Bar */
+            ctx.fillStyle = isTop ? 'rgba(167,139,250,0.25)' : 'rgba(255,255,255,0.04)';
+            ctx.beginPath();
+            ctx.roundRect(PAD.left + 140, y + 2, barW, 18, 3);
+            ctx.fill();
+
+            if (isTop) {
+                ctx.strokeStyle = 'rgba(167,139,250,0.5)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(PAD.left + 140, y + 2, barW, 18, 3);
+                ctx.stroke();
+            }
+
+            /* Label */
+            var da = p.a.replace(/</g, '\u2039').replace(/>/g, '\u203a');
+            var db = p.b.replace(/</g, '\u2039').replace(/>/g, '\u203a');
+            ctx.fillStyle = isTop ? '#a78bfa' : '#808098';
+            ctx.font = '11px Courier New, monospace';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('"' + da + '" + "' + db + '"', PAD.left, y + 11);
+
+            /* Count */
+            ctx.fillStyle = isTop ? '#a78bfa' : '#606078';
+            ctx.textAlign = 'left';
+            ctx.fillText(p.count.toString(), PAD.left + 140 + barW + 8, y + 11);
+        }
+
+        if (pairKeys.length === 0) {
+            ctx.fillStyle = '#a78bfa';
+            ctx.font = '13px Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('All merges complete! No more pairs to merge.', W / 2, pairY + 60);
+        }
+
+        /* Merge step info at bottom */
+        if (merges.length > 0) {
+            var last = merges[merges.length - 1];
+            var infoY = H - PAD.bottom - 10;
+            ctx.fillStyle = '#a78bfa';
+            ctx.font = '12px Georgia, serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            var da = last.a.replace(/</g, '\u2039').replace(/>/g, '\u203a');
+            var db = last.b.replace(/</g, '\u2039').replace(/>/g, '\u203a');
+            var dm = last.merged.replace(/</g, '\u2039').replace(/>/g, '\u203a');
+            ctx.fillText('Last merge: "' + da + '" + "' + db + '" \u2192 "' + dm + '" (frequency: ' + last.freq + ')', W / 2, infoY);
+        }
+    }
+
+    function nextMerge() {
+        var result = doMerge();
+        updateVocabDisplay();
+        updateMergeHistory();
+        draw();
+        if (!result) {
+            stopAutoRun();
+        }
+        return result;
+    }
+
+    function stopAutoRun() {
+        autoRunning = false;
+        if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+        document.getElementById('btnAutoRun').innerHTML = '&#9654; Auto-run';
+    }
+
+    function autoStep() {
+        if (!autoRunning) return;
+        var result = nextMerge();
+        if (result && autoRunning) {
+            autoTimer = setTimeout(autoStep, 800);
+        } else {
+            stopAutoRun();
+        }
+    }
+
+    document.getElementById('btnNextMerge').addEventListener('click', function() {
+        stopAutoRun();
+        nextMerge();
+    });
+
+    document.getElementById('btnAutoRun').addEventListener('click', function() {
+        if (autoRunning) {
+            stopAutoRun();
+        } else {
+            autoRunning = true;
+            document.getElementById('btnAutoRun').innerHTML = '&#10074;&#10074; Pause';
+            autoStep();
+        }
+    });
+
+    document.getElementById('btnResetBpe').addEventListener('click', function() {
+        resetBPE();
+    });
+
+    resetBPE();
+})();
+
+
+/* ================================================================
+   Section 4: Vocabulary Size Trade-offs (Canvas)
+   ================================================================ */
+(function() {
+    var cvs = document.getElementById('tradeoffCanvas');
+    var W = 600, H = 400;
+    var ctx = setupHiDPI(cvs, W, H);
+
+    var PAD = { left: 70, right: 60, top: 40, bottom: 60 };
+    var pW = W - PAD.left - PAD.right;
+    var pH = H - PAD.top - PAD.bottom;
+
+    /* Model: tokens per sentence decreases with vocab size (approx power law)
+       Embedding params increases linearly with vocab size */
+    var EXAMPLE_SENTENCE = 'The quick brown fox jumps over the lazy dog';
+
+    function tokensPerSentence(vocabSize) {
+        /* Approximate: at vocab=100 you need ~40 tokens, at vocab=100000 you need ~9 */
+        var charCount = EXAMPLE_SENTENCE.length;
+        /* Rough model: tokens ~ charCount / log2(vocabSize) * some scaling */
+        var logV = Math.log2(vocabSize);
+        var tokens = charCount / (logV * 0.42);
+        return Math.max(Math.round(tokens), 9);
+    }
+
+    function embeddingParams(vocabSize, embDim) {
+        /* Embedding table size = vocab_size * embedding_dim */
+        return vocabSize * embDim;
+    }
+
+    function tx(logV) {
+        /* logV is log10 of vocab size, ranges from 2 to 5 */
+        return PAD.left + (logV - 2) / (5 - 2) * pW;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(0, 0, W, H);
+
+        var sliderVal = parseFloat(document.getElementById('sVocab').value);
+        var vocabSize = Math.round(Math.pow(10, sliderVal));
+        document.getElementById('vVocab').textContent = vocabSize.toLocaleString();
+
+        /* Grid lines */
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 1;
+        for (var i = 2; i <= 5; i++) {
+            var x = tx(i);
+            ctx.beginPath(); ctx.moveTo(x, PAD.top); ctx.lineTo(x, PAD.top + pH); ctx.stroke();
+        }
+        for (var i = 0; i <= 4; i++) {
+            var y = PAD.top + (i / 4) * pH;
+            ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + pW, y); ctx.stroke();
+        }
+
+        /* Axes */
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(PAD.left, PAD.top); ctx.lineTo(PAD.left, PAD.top + pH); ctx.lineTo(PAD.left + pW, PAD.top + pH); ctx.stroke();
+
+        /* X-axis labels */
+        ctx.fillStyle = '#808098';
+        ctx.font = '10px Courier New, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        var xLabels = [
+            { v: 2, t: '100' }, { v: 2.5, t: '316' }, { v: 3, t: '1K' },
+            { v: 3.5, t: '3.2K' }, { v: 4, t: '10K' },
+            { v: 4.5, t: '32K' }, { v: 5, t: '100K' }
+        ];
+        for (var i = 0; i < xLabels.length; i++) {
+            ctx.fillText(xLabels[i].t, tx(xLabels[i].v), PAD.top + pH + 8);
+        }
+        ctx.fillStyle = '#a0a0b8';
+        ctx.font = '11px Georgia, serif';
+        ctx.fillText('Vocabulary Size', PAD.left + pW / 2, PAD.top + pH + 32);
+
+        /* Draw tokens/sentence curve (decreasing) */
+        var maxTokens = tokensPerSentence(100);
+        var minTokens = tokensPerSentence(100000);
+
+        function tyTokens(tokens) {
+            var norm = (tokens - minTokens) / (maxTokens - minTokens);
+            return PAD.top + (1 - norm) * pH;
+        }
+
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        var first = true;
+        for (var logV = 2; logV <= 5; logV += 0.02) {
+            var v = Math.pow(10, logV);
+            var tokens = tokensPerSentence(v);
+            var x = tx(logV);
+            var y = tyTokens(tokens);
+            if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        /* Draw embedding params curve (increasing) */
+        var embDim = 256;
+        var maxParams = embeddingParams(100000, embDim);
+        var minParams = embeddingParams(100, embDim);
+
+        function tyParams(params) {
+            var norm = (params - minParams) / (maxParams - minParams);
+            return PAD.top + (1 - norm) * pH;
+        }
+
+        ctx.strokeStyle = '#f472b6';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        first = true;
+        for (var logV = 2; logV <= 5; logV += 0.02) {
+            var v = Math.pow(10, logV);
+            var params = embeddingParams(v, embDim);
+            var x = tx(logV);
+            var y = tyParams(params);
+            if (first) { ctx.moveTo(x, y); first = false; } else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        /* Current position indicator */
+        var curX = tx(sliderVal);
+        ctx.strokeStyle = 'rgba(167,139,250,0.6)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(curX, PAD.top); ctx.lineTo(curX, PAD.top + pH); ctx.stroke();
+        ctx.setLineDash([]);
+
+        /* Dots at current position */
+        var curTokens = tokensPerSentence(vocabSize);
+        var curParams = embeddingParams(vocabSize, embDim);
+        var dotYTokens = tyTokens(curTokens);
+        var dotYParams = tyParams(curParams);
+
+        ctx.fillStyle = '#22d3ee';
+        ctx.beginPath(); ctx.arc(curX, dotYTokens, 5, 0, Math.PI * 2); ctx.fill();
+
+        ctx.fillStyle = '#f472b6';
+        ctx.beginPath(); ctx.arc(curX, dotYParams, 5, 0, Math.PI * 2); ctx.fill();
+
+        /* Y-axis labels */
+        ctx.save();
+        ctx.fillStyle = '#22d3ee';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.translate(16, PAD.top + pH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('Tokens per sentence', 0, 0);
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = '#f472b6';
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.translate(W - 14, PAD.top + pH / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText('Embedding parameters', 0, 0);
+        ctx.restore();
+
+        /* Left Y-axis tick labels (tokens) */
+        ctx.fillStyle = '#22d3ee';
+        ctx.font = '9px Courier New, monospace';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        for (var t = 10; t <= maxTokens; t += 10) {
+            var y = tyTokens(t);
+            if (y >= PAD.top && y <= PAD.top + pH) {
+                ctx.fillText(t.toString(), PAD.left - 8, y);
+            }
+        }
+
+        /* Right Y-axis tick labels (params) */
+        ctx.fillStyle = '#f472b6';
+        ctx.font = '9px Courier New, monospace';
+        ctx.textAlign = 'left';
+        var paramTicks = [100000, 5000000, 10000000, 15000000, 20000000, 25000000];
+        for (var i = 0; i < paramTicks.length; i++) {
+            var y = tyParams(paramTicks[i]);
+            if (y >= PAD.top && y <= PAD.top + pH) {
+                var label = paramTicks[i] >= 1000000 ? (paramTicks[i] / 1000000).toFixed(0) + 'M' : (paramTicks[i] / 1000).toFixed(0) + 'K';
+                ctx.fillText(label, PAD.left + pW + 8, y);
+            }
+        }
+
+        /* Legend */
+        ctx.font = '11px Georgia, serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+
+        var legX = PAD.left + 10;
+        var legY = PAD.top + 6;
+        ctx.fillStyle = '#22d3ee';
+        ctx.fillRect(legX, legY + 4, 18, 3);
+        ctx.fillText('Tokens / sentence', legX + 24, legY);
+
+        ctx.fillStyle = '#f472b6';
+        ctx.fillRect(legX, legY + 22, 18, 3);
+        ctx.fillText('Embedding params (dim=256)', legX + 24, legY + 18);
+
+        /* Title */
+        ctx.fillStyle = '#a78bfa';
+        ctx.font = '12px Georgia, serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText('Vocabulary Size Trade-offs', PAD.left + pW, 10);
+
+        /* Update result box */
+        updateTradeoffResult(vocabSize, curTokens, curParams);
+    }
+
+    function updateTradeoffResult(vocabSize, tokens, params) {
+        var el = document.getElementById('tradeoffResult');
+        var paramsStr = params >= 1000000 ? (params / 1000000).toFixed(1) + 'M' : (params / 1000).toFixed(0) + 'K';
+        el.innerHTML =
+            '<span style="color:#808098;font-size:0.85em">Example: "' + EXAMPLE_SENTENCE + '"</span><br>' +
+            '<span style="color:#a78bfa">Vocab size:</span> <span style="color:#e0e0e0;font-family:Courier New,monospace">' + vocabSize.toLocaleString() + '</span>' +
+            ' &nbsp;&middot;&nbsp; ' +
+            '<span style="color:#22d3ee">Tokens needed:</span> <span style="color:#e0e0e0;font-family:Courier New,monospace">' + tokens + '</span>' +
+            ' &nbsp;&middot;&nbsp; ' +
+            '<span style="color:#f472b6">Embedding params:</span> <span style="color:#e0e0e0;font-family:Courier New,monospace">' + paramsStr + '</span>';
+    }
+
+    document.getElementById('sVocab').addEventListener('input', draw);
+    draw();
+})();
+</script>
+</body>
+</html>
