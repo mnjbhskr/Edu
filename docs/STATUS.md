@@ -2,86 +2,86 @@
 
 **A Visual Discovery of Mathematics**
 
-*Last updated: 4 March 2026*
+*Last updated: 15 March 2026*
 
 ---
 
 ## Current State
 
-All planned content is **live and deployed** at [mathsedu.org](https://mathsedu.org).
+All content is **live and deployed** at [mathsedu.org](https://mathsedu.org).
 
 | Metric | Value |
 |--------|-------|
-| Total visualisations | 106 |
-| Chapters | 13 |
-| Status | All live |
+| Topic visualisations | 194+ |
+| Chapters | 19 |
+| Narrative journeys | 11 (60 acts) |
+| Total interactive pages | 254+ |
+| Map of Mathematics | 194 nodes, 340 connections |
 | Hosting | GitHub Pages |
 | Custom domain | mathsedu.org |
 | Google Search Console | Verified, sitemap submitted |
-| SEO | Complete (meta descriptions, structured data, OG tags, canonical URLs) |
+| SEO | Complete (meta descriptions, JSON-LD, OG tags, canonical URLs) |
+| Marketing bot | Deployed (Cloudflare Worker, autonomous X/Twitter posting) |
 
 ## Chapter Completion
 
 | Chapter | Topics | Status |
 |---------|--------|--------|
-| 1. Logic & Proof | 3 | Complete |
-| 2. Numbers | 6 | Complete |
+| 1. Logic & Proof | 6 | Complete |
+| 2. Numbers | 7 | Complete |
 | 3. Geometry | 8 | Complete |
-| 4. Algebra | 6 | Complete |
+| 4. Algebra | 7 | Complete |
 | 5. Trigonometry & Waves | 7 | Complete |
-| 6. Calculus | 7 | Complete |
+| 6. Calculus | 9 | Complete |
 | 7. Linear Algebra | 5 | Complete |
 | 8. Probability & Statistics | 6 | Complete |
-| 9. Analysis & Topology | 6 | Complete |
+| 9. Analysis & Topology | 10 | Complete |
 | 10. Beautiful Results | 6 | Complete |
 | 11. Quantitative Finance | 10 | Complete |
 | 12. Physics | 20 | Complete |
-| 13. The Mathematics of Intelligence | 16 | Complete |
+| 13. The Mathematics of Intelligence | 15 | Complete |
+| 14–19. Additional chapters | 78+ | Complete |
+
+Chapters 14–19 include Chemistry & Materials, Biology & Life Sciences, Economics & Social Sciences, Internet & Information, Game Theory, and additional applied topics. See `index.html` for the authoritative page list.
 
 ## Build History
 
-The entire collection was built on 25 February 2026 in two phases:
+**Phase 1** (25 Feb 2026) — Initial launch: 51 visualisations across 10 chapters.
 
-**Phase 1** — Initial launch of 51 visualisations covering all 10 chapters, the physics appendix, custom domain configuration, and footer credits.
+**Phase 2** (25 Feb 2026) — 10 additional visualisations completing foundational expansion.
 
-**Phase 2** — 10 additional visualisations to complete the foundational expansion:
-- Unit Circle
-- Inverse Trigonometric Functions
-- Parametric Curves & Polar Coordinates
-- Modular Arithmetic
-- Fermat's Little Theorem & Primality
-- Coordinate Geometry
-- Geometric Transformations
-- Differential Equations
-- Correlation & Regression
-- Logarithms & Exponentials
+**Phase 3** (1 Mar 2026) — Chapter 11: Quantitative Finance — 10 new visualisations.
 
-**Phase 3** — Chapter 11: Quantitative Finance (1 March 2026) — 10 new visualisations:
-- Compound Interest & Time Value of Money
-- Random Walks & Brownian Motion
-- Monte Carlo Simulation in Finance
-- Bond Pricing & Risk
-- Yield Curve Construction & Bootstrapping
-- Portfolio Theory & the Efficient Frontier
-- The Black-Scholes Model
-- The Greeks
-- Option Payoffs & Strategies
-- Volatility Smiles & Surfaces
+**Phase 4** (1 Mar 2026) — Complete SEO foundation across all pages: meta descriptions, JSON-LD structured data, Open Graph tags, Twitter Cards, canonical URLs, sitemap.xml, robots.txt.
 
-## SEO & Discoverability (1 March 2026)
+**Phase 5** (2 Mar 2026) — Chapter 12: Physics — 6 new visualisations + appendix conversion.
 
-**Phase 4** — Complete SEO foundation across all 73 pages:
+**Phase 6** (2 Mar 2026) — Mathematics of Thermodynamics.
+
+**Phase 7** (2 Mar 2026) — Physics of Light (Snell's Law, dispersion, double-slit, EM wave).
+
+**Phase 8** (2 Mar 2026) — The Electromagnetic Spectrum.
+
+**Phase 9** (2 Mar 2026) — Chapter 13: The Mathematics of Intelligence — 16 new visualisations.
+
+**Phase 10** (4 Mar 2026) — Physics expansion — 9 new visualisations (Newton's Laws through Entropy & Information Theory).
+
+**Phase 11** (4 Mar 2026) — Physics Conceptual Map + SME feedback applied to 8 physics pages.
+
+**Phase 12** (15 Mar 2026) — Gap analysis against Walliman's Map of Mathematics: 12 new topic pages (Set Theory, Gödel's Incompleteness, Theory of Computation, Partition Theory, Quaternions, Optimisation, Numerical Analysis, Complex Analysis, Order Theory, Category Theory, Measure Theory, Control Theory). Map of Mathematics — interactive force-directed graph of all 194 topics with 340 connections. Marketing bot updated and redeployed.
+
+## SEO & Discoverability
 
 | Component | Status |
 |-----------|--------|
-| `sitemap.xml` (98 URLs) | Deployed, submitted to Google Search Console |
+| `sitemap.xml` | Deployed, submitted to Google Search Console |
 | `robots.txt` | Deployed |
 | Google Search Console | Verified (URL prefix method) |
-| Meta descriptions | All 105 pages — unique, 140-160 char descriptions |
-| Schema.org JSON-LD | All 105 pages — `LearningResource` with educationalLevel, teaches, chapter |
-| Open Graph tags | All 105 pages — og:title, og:description, og:url, og:type, og:site_name, og:locale |
-| Twitter Card tags | All 105 pages — twitter:card, twitter:title, twitter:description |
-| Canonical URLs | All 105 pages — `<link rel="canonical">` |
+| Meta descriptions | All pages — unique, 140–160 char |
+| Schema.org JSON-LD | All pages — `LearningResource` with educationalLevel, teaches, chapter |
+| Open Graph tags | All pages — og:title, og:description, og:url, og:type, og:site_name, og:locale |
+| Twitter Card tags | All pages — twitter:card, twitter:title, twitter:description |
+| Canonical URLs | All pages — `<link rel="canonical">` |
 
 **Education directory listings:**
 
@@ -91,92 +91,67 @@ The entire collection was built on 25 February 2026 in two phases:
 | OER Commons (oercommons.org) | Emailed — site submission form had loading issues |
 | STEM Learning (stem.org.uk) | Pending — email pitch to `enquiries@stem.org.uk` |
 
-**Phase 5** — Chapter 12: Physics (2 March 2026) — 6 new visualisations + appendix conversion:
-- Projectile Motion
-- Simple Harmonic Motion
-- Orbital Mechanics & Kepler's Laws
-- Wave Interference
-- Electric Field Lines
-- Special Relativity
-- Atomic Energy Levels (moved from appendix into Chapter 12)
+## Marketing
 
-**Phase 6** — Mathematics of Thermodynamics (2 March 2026) — 1 new visualisation:
-- Mathematics of Thermodynamics (4 interactive sections: Ideal Gas Law & PV Diagrams with molecular simulation, Thermodynamic Processes & Work with dual-path comparison and energy bars, Carnot Cycle with efficiency gauge and heat flow arrows, Maxwell-Boltzmann Speed Distribution with molecular speed simulation)
+| Channel | Status |
+|---------|--------|
+| X/Twitter @mathseduorg | Active — autonomous bot posting Tue/Thu via Cloudflare Worker |
+| LinkedIn | On hold until legal entity set up |
+| Reddit | Manual posts recommended — authentic posts beat bot-driven ones |
+| Hacker News | Reserved for single "Show HN" post |
 
-**Phase 7** — Physics of Light (2 March 2026) — 1 new visualisation:
-- Physics of Light (4 interactive sections: Refraction & Snell's Law with draggable ray and wavefront animation, Dispersion & the Prism with ROYGBIV ray tracing and Cauchy equation, Young's Double-Slit Experiment with phase phasors and photon mode, Light as Electromagnetic Wave with 3D E/B fields and Poynting vector)
+Bot strategy: "Showcase & Feedback" — only discuss existing content, never promise new features, actively seek feedback. This week's focus: The Map of Mathematics.
 
-**Phase 8** — The Electromagnetic Spectrum (2 March 2026) — 1 new visualisation:
-- The Electromagnetic Spectrum (4 interactive sections: Full Spectrum Explorer with log-scale zoomable bar and wave animation, Wavelength & Physical Scale with ruler anchoring bands to objects, Photon Energy E=hf with log-log graph and photon cannon, The Spectrum Around Us with 7 illustrated application scenes)
+## Benchmark Review — Enhancement Programme
 
-**Phase 9** — Chapter 13: The Mathematics of Intelligence (2 March 2026) — 16 new visualisations:
-- The Mathematics of Intelligence — A Map (chapter landing page with interactive concept map)
-- Vectors & Embeddings (word embedding space, vector arithmetic, high-dimensional intuition)
-- Probability & Softmax (logits to probabilities, temperature scaling, cross-entropy loss)
-- The Single Neuron (weighted sum diagram, activation functions, decision boundary)
-- Gradient Descent (already built — loss landscape, learning rate race, SGD)
-- Backpropagation (computational graph with forward/backward animation, vanishing/exploding gradients)
-- Overfitting & Generalisation (polynomial fitting, regularisation techniques)
-- The Attention Mechanism (sentence attention heatmap, QKV matrices, multi-head attention)
-- Positional Encoding (word order matters, sinusoidal encoding heatmap)
-- The Transformer Architecture (full interactive architecture diagram, GPT vs BERT masking)
-- Next-Token Prediction (prediction game with bigram model, entropy, hallucination)
-- Train Your Own Language Model (editable corpus, bigram table, text generation)
-- Scaling Laws (power law plots, Chinchilla scaling)
-- Chain-of-Thought Reasoning (direct vs CoT comparison, reasoning tree)
-- Retrieval-Augmented Generation (vector database, RAG pipeline animation)
-- Agentic AI Systems (observe-think-act loop, tool use & planning tree)
+| Field | Detail |
+|-------|--------|
+| Review date | March 2026 |
+| Source | Independent benchmark against ten research principles in mathematics education |
+| Overall finding | Strongly aligned on 6/10 principles; moderately aligned on 3; one intentional gap (spaced practice) |
+| Full recommendations | `docs/BENCHMARK_RECOMMENDATIONS.md` |
+| Implementation plan | `docs/ENHANCEMENT_PLAN.md` |
+| Page audit prompt | `docs/PAGE_AUDIT_PROMPT.md` |
 
-**Phase 10** — Physics Chapter Expansion (4 March 2026) — 9 new visualisations:
-- Newton's Laws of Motion (F=ma block + v-t graph, action-reaction collision, inclined plane free-body diagrams)
-- Conservation of Momentum (elastic collisions with momentum bars, inelastic with restitution, Tsiolkovsky rocket equation)
-- Conservation of Energy (roller coaster with draggable track, work-energy theorem, pendulum energy exchange)
-- The Wave Equation (travelling waves, PDE curvature colour map, standing wave modes)
-- Magnetic Fields (wire B-field with compass placement, Lorentz cyclotron motion, solenoid cross-section)
-- Maxwell's Equations (four-equation tabs, Faraday induction, birth of light EM wave)
-- Wave-Particle Duality (de Broglie wavelength scale, double-slit particle accumulation, Heisenberg wavepacket)
-- The Schrödinger Equation (particle in a box, quantum tunnelling, quantum harmonic oscillator)
-- Entropy and Information Theory (Boltzmann diffusion, Shannon entropy, Boltzmann-Shannon bridge)
+### Enhancement programme — three tiers
 
-**Phase 11** — Quantum Physics Map + SME Feedback (4 March 2026):
-- Quantum Physics — A Conceptual Map (interactive concept map linking 9 quantum-related pages across 4 levels: Classical Waves → Light & EM → Quantum Mechanics → Quantum World)
-- SME feedback applied to Schrödinger Equation (concept bridge, quantum wells, classical vs quantum tunnelling, correspondence principle, ladder operators)
-- SME feedback applied to Wave-Particle Duality (molecular interferometry, Jönsson 1961 historical milestone, classical expectation note)
-- SME feedback applied to 6 other physics pages (Maxwell's Equations, Entropy & Information, Magnetic Fields, Conservation of Momentum, Conservation of Energy, Wave Equation)
+| Tier | Description | Status | Target |
+|------|-------------|--------|--------|
+| Tier 1 | "Where You'll See This" boxes, hint upgrades, "Explore Next" strips, difficulty badges — all 194+ pages | Planned | Phase 13 |
+| Tier 2 | "Start Here" entry prompts on difficulty 3–4 pages, "Daily Discovery" on index.html, educator guide | Backlog | Phase 14 |
+| Tier 3 | Conceptual questions per page, formal curriculum alignment mapping | Future milestone | TBD |
+
+### Ruled out (misaligned with site philosophy)
+
+- Timed quizzes (contradicts Boaler's research on maths anxiety)
+- Gamification with points/badges (risks extrinsic motivation crowding out curiosity)
+- Login/account systems (contradicts "no friction" principle)
+- Adaptive learning algorithms (requires tracking, contradicts privacy principles)
+
+See `docs/BENCHMARK_RECOMMENDATIONS.md` for full reasoning.
 
 ## Potential Next Steps
 
-The following are ideas for future development, not commitments. They are listed roughly by impact and feasibility.
-
 ### Content Enhancements
-- **Deeper interactivity** — Add more parameter controls, guided explorations, and "what if" scenarios to existing visualisations
-- **Worked examples** — Step-by-step problem solving panels alongside visualisations
-- **Cross-references** — Links between related topics (e.g., complex numbers ↔ Euler's identity ↔ unit circle)
-- **New topics** — Candidates include: graph theory, number theory (RSA), optimization, game theory, fractal geometry, chaos theory
+- **Deeper interactivity** — more parameter controls, guided explorations, "what if" scenarios
+- **Cross-references** — links between related topics (partially addressed by "Explore Next" in Tier 1)
+- **New topics** — additional chapters in Chemistry, Biology, Economics continue to expand
 
 ### User Experience
-- **Search and filter** — Allow users to search topics by name or filter by chapter/difficulty from the index page
-- **Progress dashboard** — Visual summary of topics visited vs. remaining (building on existing localStorage tracking)
-- **Keyboard navigation** — Full keyboard accessibility for all interactive elements
-- **Touch improvements** — Better touch interaction for mobile and tablet devices
-- **Dark/light theme toggle** — Option for users who prefer a light background
+- **Search and filter** — topic search from the index page
+- **Progress dashboard** — visual summary of topics visited (localStorage)
+- **Keyboard navigation** — full keyboard accessibility
+- **Touch improvements** — better touch interaction for mobile
 
 ### Accessibility
-- **Screen reader support** — ARIA labels for all interactive canvas elements
-- **Alt text descriptions** — Text descriptions of what each visualisation shows
-- **Reduced motion mode** — Option to disable animations for users who prefer it
-
-### Discoverability
-- **Social card images** — Generate og:image preview images for richer social sharing cards
-- **STEM Learning listing** — Draft and send pitch email to UK STEM Learning directory
-- **Follow up** — Chase OER Commons and MERLOT listings once submitted
+- **Screen reader support** — ARIA labels for interactive canvas elements
+- **Alt text descriptions** — text descriptions of visualisations
+- **Reduced motion mode** — option to disable animations
 
 ### Infrastructure
-- **Automated testing** — Visual regression tests to catch rendering issues
-- **Performance audit** — Ensure all pages load under 1 second on slow connections
-- **Analytics** — Privacy-respecting usage data to understand which topics are most popular
-- **Print-friendly versions** — Static snapshots of key states for offline study
-- **Multi-language support** — Translations starting with the most-requested languages
+- **Automated testing** — visual regression tests
+- **Performance audit** — all pages under 1 second on slow connections
+- **Multi-language support** — translations starting with most-requested languages
 
 ---
 
