@@ -33,18 +33,35 @@ export const BRAND = {
     },
 
     stats: {
-        liveTopics: 142,
+        liveTopics: 194,
         journeys: 11,
         chapters: 19,
-        journeyActs: 44,
+        journeyActs: 60,
+        totalPages: 254,
+        connections: 340,
     },
 
+    recentAdditions: [
+        "The Map of Mathematics — interactive force-directed graph of all 194 topics with 340 connections",
+        "Set Theory, Gödel's Incompleteness Theorems, Theory of Computation",
+        "Complex Analysis with domain colouring and conformal mapping",
+        "Category Theory, Measure Theory, Order Theory",
+        "Optimisation with Lagrange multipliers and linear programming",
+        "Numerical Analysis — root finding, integration, ODE solvers",
+        "Control Theory with PID controllers and Bode plots",
+        "Quaternions & Hypercomplex Numbers with 3D rotation",
+        "Partition Theory with Young diagrams and Ramanujan's congruences",
+        "Mathematician portraits gallery with 36 Wikipedia images",
+        "12 new pages filling gaps identified from Walliman's Map of Mathematics"
+    ],
+
     differentiators: [
-        "142 interactive visualisations, completely free",
+        "194 interactive visualisations across 19 chapters, completely free",
         "No login, no ads, no tracking",
         "Self-contained HTML — works offline",
-        "From basic logic to quantum physics and AI",
-        "11 narrative journeys that tell mathematical stories",
+        "From basic logic to quantum physics, AI, and category theory",
+        "11 narrative journeys (60 acts) that tell mathematical stories",
+        "The Map of Mathematics — see how all 194 topics connect in hyperspace",
         "Built with love, licensed CC BY-NC-SA 4.0"
     ],
 
@@ -114,29 +131,46 @@ export const CONTENT_PILLARS = [
 ];
 
 export const CAMPAIGNS = {
-    launch: {
-        name: "The Journeys Launch",
-        duration: "2 weeks",
-        goal: "Announce 11 narrative journeys, drive 10K visits",
-        phases: [
-            { day: "1-3", action: "Teaser posts — 'Something new is coming to mathsedu.org'" },
-            { day: "4", action: "Launch post with screen recordings of 3 journeys" },
-            { day: "5-7", action: "Individual journey spotlights (Prime, Infinite Hotel, Calculus)" },
-            { day: "8-10", action: "Behind-the-scenes: how the journeys were built" },
-            { day: "11-14", action: "Educator outreach + user testimonial collection" }
+    ongoing: {
+        name: "Showcase & Feedback",
+        goal: "Share what already exists and invite feedback from learners and educators",
+        approach: "Highlight one existing visualisation or journey per post. Ask genuine questions. Listen.",
+        principles: [
+            "Never announce features that don't exist yet",
+            "Never promise upcoming campaigns or launches",
+            "Focus entirely on the 194 topics and 11 journeys already live",
+            "Invite feedback: 'What would you like to explore next?', 'Did this help?'",
+            "Celebrate what's already built rather than teasing what's next"
+        ]
+    },
+    thisWeek: {
+        name: "The Map of Mathematics",
+        focus: "Showcase the interactive Map of Mathematics — mathsedu.org/mathematics_map.html",
+        duration: "Week of 2026-03-16",
+        angles: [
+            "The map itself: 194 topics, 340 connections, force-directed graph you can explore",
+            "Pick a surprising connection on the map and tell the story behind it",
+            "Zoom into a cluster (e.g. Calculus neighbourhood) and show how topics link",
+            "The map as a study guide: 'Where should I start?' — follow the connections",
+            "How everything connects: from basic logic all the way to quantum physics and AI",
+            "Ask: 'What connection surprises you most?' or 'What's missing from the map?'"
+        ],
+        url: "https://www.mathsedu.org/mathematics_map.html",
+        keyFacts: [
+            "194 nodes — one for every interactive visualisation on the site",
+            "340 connections — prerequisite, uses, and bridge links between topics",
+            "19 chapter colours — each cluster is a different colour",
+            "Force-directed layout — topics naturally group by how they relate",
+            "Click any node to visit the interactive page",
+            "Zoom in to see labels, zoom out to see the big picture",
+            "Works on mobile — pinch to zoom, tap to explore"
         ]
     },
     weekly: {
         name: "Mathematical Monday",
         frequency: "Every Monday",
         goal: "Consistent engagement, build following",
-        format: "A surprising maths fact + link to relevant visualisation"
-    },
-    seasonal: {
-        piDay: { date: "March 14", topic: "Pi Through the Ages visualisation" },
-        primeDay: { date: "First prime date each month", topic: "Prime journey promotion" },
-        backToSchool: { date: "September", topic: "Educator-focused campaign" },
-        nobelSeason: { date: "October", topic: "Physics/economics chapter highlights" }
+        format: "A surprising maths fact + link to relevant visualisation + ask for feedback"
     }
 };
 
@@ -172,7 +206,7 @@ export const PLATFORM_GUIDELINES = {
     hackernews: {
         frequency: "Once per major launch",
         style: "Show HN format. Lead with technical merit.",
-        title: "Show HN: 140 interactive math visualisations — pure HTML/JS, no frameworks",
+        title: "Show HN: 194 interactive math visualisations — pure HTML/JS, no frameworks, plus an interactive Map of Mathematics",
         cta: "None — HN hates marketing. Let the site speak."
     }
 };
@@ -194,9 +228,14 @@ WORDS TO AVOID: ${BRAND.voice.dontSay.join(", ")}
 THE SITE: ${BRAND.url}
 - ${BRAND.stats.liveTopics} interactive visualisations across ${BRAND.stats.chapters} chapters
 - ${BRAND.stats.journeys} narrative journeys (${BRAND.stats.journeyActs} acts total)
+- ${BRAND.stats.totalPages} total interactive pages
+- The Map of Mathematics — a force-directed graph showing ${BRAND.stats.connections} connections between all topics
 - Completely free, no login, no ads, no tracking
 - Self-contained HTML/JS — works offline
 - CC BY-NC-SA 4.0 license
+
+RECENT ADDITIONS (use these for fresh content):
+${BRAND.recentAdditions.map(r => '- ' + r).join("\\n")}
 
 CONTENT PILLARS:
 ${CONTENT_PILLARS.map(p => `- ${p.name} (${Math.round(p.share*100)}%): ${p.description}`).join("\n")}
@@ -207,11 +246,22 @@ ${BRAND.differentiators.map(d => `- ${d}`).join("\n")}
 TARGET AUDIENCES:
 ${Object.values(BRAND.audiences).map(a => `- ${a.name}: Found on ${a.where.join(", ")}. Hook: ${a.hook}`).join("\n")}
 
-When generating content:
+THIS WEEK'S FOCUS (week of 2026-03-16): The Map of Mathematics
+- This week, centre ALL content around the Map of Mathematics: ${BRAND.url}/mathematics_map.html
+- 194 nodes (one per visualisation), 340 connections, 19 chapter colours
+- Force-directed graph — topics naturally cluster by how they relate
+- Angles: the map itself, surprising connections, clusters, study guide, ask for feedback
+- Each post should showcase a different angle — don't repeat the same message
+- Always invite feedback: "What connection surprises you?", "What's missing?"
+
+IMPORTANT RULES:
 1. Always be authentic — never use clickbait or misleading claims
-2. Vary content across the 4 pillars according to their share percentages
-3. Adapt tone and format to each platform's culture
-4. Include a clear but non-pushy call to action
-5. Reference specific visualisations or journeys by name
-6. Never promise things the site doesn't deliver`;
+2. NEVER promise new features, upcoming campaigns, or future launches
+3. ONLY talk about what already exists on the site right now
+4. Actively seek feedback: ask what people think, what they'd like to see, what helped them
+5. Vary content across the 4 pillars according to their share percentages
+6. Adapt tone and format to each platform's culture
+7. Include a clear but non-pushy call to action
+8. Reference specific visualisations or journeys by name
+9. Never promise things the site doesn't deliver`;
 }

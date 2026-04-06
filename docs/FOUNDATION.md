@@ -2,13 +2,17 @@
 
 **A Visual Discovery of Mathematics**
 
-*Version 1.0 — February 2026*
+*Version 2.0 — March 2026*
+
+*Version 2.0: Updated following independent benchmark analysis against research best practices in mathematics education. New sections added: Benchmark Review Learnings, Evolved Page Standards.*
 
 ---
 
 ## Mission
 
-To make mathematics visible, interactive, and accessible to every curious mind.
+To make mathematics visible, interactive, and accessible to every curious mind — starting from the mathematics itself.
+
+Most applied mathematics education begins with a real-world problem and pulls in mathematics to solve it. This project takes the opposite path: we start with the mathematical idea — its structure, its beauty, its internal logic — and then reveal where it appears in the natural world. This distinction matters pedagogically. It lets the mathematics speak for itself before showing its usefulness, building the kind of deep relational understanding that Skemp (1976) identified as the foundation for genuine mathematical fluency.
 
 Too often, mathematics is taught as a collection of rules to memorise and procedures to follow. Students learn to compute without ever seeing why the mathematics works, what it means, or where its beauty lies. This project exists to change that.
 
@@ -48,6 +52,24 @@ Visualisations are tools for building intuition, but they do not replace rigour.
 ### 6. Freely Accessible
 Licensed under Creative Commons BY-NC-SA 4.0. Anyone can use, share, and adapt this work for non-commercial purposes with attribution.
 
+## Benchmark Review Learnings
+
+In March 2026, the site was independently benchmarked against ten convergent principles drawn from the academic literature on mathematics education (Dehaene, Boaler, Skemp, Freeman et al., NCTM *Principles to Actions*, National Academies *Adding It Up*) and compared to exemplary digital resources (3Blue1Brown, Desmos, GeoGebra, Khan Academy, NRICH, PhET). Full findings are in `Research/benchmark_analysis.md` and `docs/BENCHMARK_RECOMMENDATIONS.md`.
+
+### What the review affirmed
+
+- **Visual-first design is neurologically validated.** Dehaene (1999) demonstrated that mathematical thinking recruits visual-spatial processing areas even for purely numerical tasks. Boaler's work on visual brain pathways directly supports our founding approach. This is the site's core strength.
+- **No timed elements, no login, no friction** — fully aligned with research on maths anxiety (Boaler, 2015) and intrinsic motivation (Freeman et al., 2014). The site has zero performance metrics, zero time pressure. This must never change.
+- **Narrative journeys are a genuine differentiator.** No comparable resource offers multi-act mathematical storytelling. The journey format aligns with constructionist learning (Papert, 1980) and the RME principle that mathematics is a human activity.
+- **The site's philosophy — mathematics first, then its appearances in the world** — is a meaningful and rare differentiator worth making explicit. Most digital resources start from applications; we start from the mathematics itself.
+
+### What the review challenged or identified as gaps
+
+- **Multiple representations (Principle 4):** Strong on graphical, weaker on systematically connecting algebraic, numerical, verbal, and graphical forms simultaneously. Going forward, key pages should show the same concept through multiple lenses where the mathematics warrants it.
+- **Real-world context on pure mathematics pages:** The site's strongest pages (Monte Carlo, Brownian Motion, Fourier Transform) are inherently contextual. Pure mathematics pages (group theory, measure theory, category theory) need explicit "Where You'll See This" bridges to applications.
+- **Educator pathway:** There is currently no teacher guide, no curriculum mapping, no "use this in your classroom" prompts. Educators are the secondary audience most likely to drive sustained organic traffic.
+- **Spaced practice and interleaving (Principle 7):** The most significant gap relative to the research evidence. This is a conscious design choice — the site is a visual discovery resource, not a practice platform — but we will partially address it through "Daily Discovery" and "Explore Next" features that encourage organic re-engagement.
+
 ## Architecture
 
 ### Technology
@@ -78,10 +100,36 @@ The site follows a unified **Design System v2.0** documented in `docs/mathsedu_d
 - Journey acts must always provide back-navigation (see `docs/TECHNICAL_BLUEPRINT.md` §7.2)
 - Difficulty indicators (1–4 filled dots) on every card
 
+### Standard Page Elements — Required from Version 2.0
+
+Four elements are now required on every topic page, introduced following the benchmark review:
+
+**Element 1 — "Where You'll See This" box**
+Required on all pure mathematics pages (Chapters 1–10). Optional on inherently applied pages (Chapters 11–13) where the context is already obvious.
+
+- Style: `.panel` with left border `3px solid #22D3EE` (cyan)
+- Heading: "Where You'll See This"
+- Content: 3–5 sentences. Must be concrete and specific — not "used in science" but "used in GPS satellite timing correction, where modular arithmetic keeps atomic clocks synchronised to within nanoseconds."
+- Position: After main interactive sections, before "Explore Next"
+
+**Element 2 — Progressive hint in "Try This" challenges**
+Every "Try This" prompt must include at least one hint, collapsed by default, revealed on click. This scaffolds productive struggle (Vygotsky's ZPD) without giving the answer immediately.
+
+**Element 3 — "Explore Next" footer strip**
+Required on every page. Two or three related topic links placed before the standard footer. Each link shows topic name and chapter name. At least one link should be from the same chapter and one from an adjacent chapter. This partially addresses the spaced-revisiting gap by encouraging organic navigation across topics.
+
+**Element 4 — Difficulty badge in page header**
+The difficulty rating (1–4 dots) must appear visibly in the page header, not only on the index card. Use filled ● for achieved difficulty, empty ○ for remainder, rendered in the chapter accent colour.
+
 ### Structure
 All topic files sit at the repository root — a flat structure that maps directly to URLs on the live site. Project documentation lives in `docs/`. This simplicity is intentional: no routing layer, no build step, no server. A student with a browser is all that is needed.
 
+### Research
+The `Research/` folder contains pedagogy papers, reference material, and attribution records that inform the site's educational approach. This includes best practices in mathematics education (Boaler, Skemp, Bruner, Hattie, NCTM), source material for visualisations, and exemplary resources from other projects. All content on the site should be grounded in evidence-based pedagogy, and any third-party ideas or materials must be properly attributed. See `docs/TECHNICAL_BLUEPRINT.md` §3.3 for guidelines.
+
 ## Complete Catalogue
+
+> **Note:** This catalogue reflects the original 194 topics across 19 chapters as at March 2026. The site has since expanded with additional chapters (Chemistry, Biology, Economics, Internet, Game Theory, etc.). The authoritative source for the current page count is `index.html`. This catalogue will be updated periodically to reflect the full scope.
 
 ### Chapter 1 — Logic & Proof
 *The grammar of mathematics*

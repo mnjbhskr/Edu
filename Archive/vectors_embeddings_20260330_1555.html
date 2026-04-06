@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vectors & Embeddings | mathsedu.org</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&family=Inter:wght@300;400;500;600&display=swap');
+:root {
+  --bg:#050814;--bg2:#0a0f1e;--bg3:#0f1628;
+  --vio:#8b5cf6;--vio-d:rgba(139,92,246,0.12);
+  --cyan:#22d3ee;--cyan-d:rgba(34,211,238,0.1);
+  --amber:#f59e0b;--emerald:#10b981;--coral:#f43f5e;--silver:#e2e8f0;
+  --text:#94a3b8;--text2:#cbd5e1;--muted:#334155;
+  --border:rgba(139,92,246,0.15);--radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;}
+canvas#bgc{position:fixed;inset:0;z-index:0;opacity:.4;}
+.page{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:0 24px 80px;}
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0 16px;border-bottom:1px solid var(--border);margin-bottom:48px;}
+.nav-logo{font-family:'Lora',serif;font-size:1.1em;color:var(--muted);}
+.nav-logo span{color:var(--vio);font-style:italic;}
+.nav-ch{font-size:.72em;text-transform:uppercase;letter-spacing:2px;color:var(--vio);}
+.hero{margin-bottom:56px;}
+.ch-tag{display:inline-block;font-size:.68em;text-transform:uppercase;letter-spacing:3px;color:var(--vio);border:1px solid rgba(139,92,246,.3);border-radius:20px;padding:4px 14px;margin-bottom:18px;}
+h1{font-family:'Lora',serif;font-size:clamp(2.2em,5vw,3.2em);font-weight:400;color:var(--silver);line-height:1.2;margin-bottom:16px;}
+h1 em{color:var(--vio);font-style:italic;}
+.hero-sub{font-family:'Lora',serif;font-size:1.15em;color:#4a6080;line-height:1.9;max-width:680px;}
+h2{font-family:'Lora',serif;font-size:1.55em;font-weight:400;color:var(--silver);margin:48px 0 18px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+h3{font-family:'Lora',serif;font-size:1.1em;font-weight:600;color:var(--text2);margin:28px 0 10px;}
+p{line-height:1.85;color:var(--text);margin-bottom:16px;font-size:.97em;}
+p strong{color:var(--text2);}
+p em{color:var(--vio);font-style:italic;}
+.callout{border-left:3px solid var(--vio);background:var(--vio-d);border-radius:0 var(--radius) var(--radius) 0;padding:16px 20px;margin:24px 0;}
+.callout.amber{border-left-color:var(--amber);background:rgba(245,158,11,.08);}
+.callout.emerald{border-left-color:var(--emerald);background:rgba(16,185,129,.08);}
+.callout-lbl{font-size:.66em;text-transform:uppercase;letter-spacing:2px;color:var(--vio);margin-bottom:6px;}
+.callout.amber .callout-lbl{color:var(--amber);}
+.callout.emerald .callout-lbl{color:var(--emerald);}
+.callout p{margin:0;font-family:'Lora',serif;font-size:.96em;color:#2a4060;line-height:1.75;}
+.callout p strong{color:var(--silver);}
+.math-block{font-family:'JetBrains Mono',monospace;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin:16px 0;font-size:.88em;color:var(--cyan);line-height:1.8;white-space:pre;}
+.ibox{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin:32px 0;}
+.ibox-lbl{font-size:.68em;text-transform:uppercase;letter-spacing:2px;color:var(--vio);margin-bottom:14px;}
+canvas.vis{display:block;border-radius:8px;background:var(--bg3);width:100%;}
+.ctrl{display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap;}
+.ctrl label{font-size:.8em;color:var(--muted);}
+input[type=range]{flex:1;min-width:100px;accent-color:var(--vio);}
+button{border:none;border-radius:8px;padding:8px 18px;font-family:'Inter',sans-serif;font-size:.82em;font-weight:500;cursor:pointer;transition:all .2s;}
+.bp{background:linear-gradient(135deg,var(--vio),#6d28d9);color:#fff;}
+.bp:hover{transform:translateY(-1px);}
+.bs{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:20px 0;}
+@media(max-width:600px){.two-col{grid-template-columns:1fr;}}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+.stat-n{font-family:'JetBrains Mono',monospace;font-size:1.8em;font-weight:600;color:var(--vio);}
+.stat-l{font-size:.72em;color:var(--muted);margin-top:4px;}
+.stat-d{font-size:.82em;color:var(--text);margin-top:8px;line-height:1.6;}
+.word-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:14px 0;}
+.wchip{background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;cursor:pointer;transition:all .2s;text-align:center;}
+.wchip:hover{border-color:rgba(139,92,246,.5);}
+.wchip.sel{border-color:var(--vio);background:var(--vio-d);}
+.wlbl{font-size:.82em;font-weight:600;color:var(--silver);}
+.wvec{font-family:'JetBrains Mono',monospace;font-size:.62em;color:var(--muted);margin-top:3px;}
+.sim-display{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.sim-row{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(139,92,246,.1);}
+.sim-row:last-child{border-bottom:none;}
+.sim-word{font-family:'JetBrains Mono',monospace;font-size:.8em;color:var(--text2);min-width:100px;}
+.sim-bar-w{flex:1;height:6px;background:rgba(139,92,246,.1);border-radius:3px;}
+.sim-bar{height:100%;border-radius:3px;background:var(--vio);transition:width .4s;}
+.sim-score{font-family:'JetBrains Mono',monospace;font-size:.78em;color:var(--cyan);min-width:44px;text-align:right;}
+.conn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin:20px 0;}
+.conn-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-decoration:none;transition:all .2s;display:block;}
+.conn-card:hover{border-color:rgba(139,92,246,.4);transform:translateY(-2px);}
+.cc-tag{font-size:.6em;text-transform:uppercase;letter-spacing:2px;color:var(--vio);margin-bottom:5px;}
+.cc-title{font-size:.88em;font-weight:600;color:var(--silver);margin-bottom:3px;}
+.cc-desc{font-size:.74em;color:var(--muted);line-height:1.5;}
+.learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin:24px 0;}
+.learn-box .learn-title{font-size:.72em;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;font-weight:600;}
+.learn-box .learn-title.try{color:var(--cyan);}
+.learn-box .learn-title.notice{color:var(--amber);}
+.learn-box .learn-title.why{color:var(--emerald);}
+.learn-box ul{margin:0;padding-left:18px;font-size:.88em;line-height:1.8;color:var(--text2);}
+.learn-box ul li{margin-bottom:4px;}
+.vbadge{font-family:'JetBrains Mono',monospace;font-size:.8em;color:var(--cyan);background:var(--bg3);padding:3px 9px;border-radius:6px;min-width:56px;text-align:center;}
+.analogy-demo{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:14px 0;font-family:'JetBrains Mono',monospace;font-size:.92em;}
+.analogy-word{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--silver);text-align:center;}
+.analogy-word .albl{font-size:.65em;color:var(--muted);margin-top:2px;}
+.analogy-op{color:var(--vio);font-size:1.4em;font-weight:700;}
+.analogy-result{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:8px 14px;color:var(--amber);text-align:center;}
+</style>
+<link rel="canonical" href="https://mathsedu.org/journeys/vectors_embeddings.html">
+  <meta name="description" content="Learn about Vectors Embeddings in Mathematics Education">
+  </head>
+<body>
+<a href="../index.html" style="position:fixed;top:12px;left:16px;z-index:100;color:#808098;font-size:0.85em;text-decoration:none;font-family:Georgia,serif">← Back to Index</a>
+<canvas id="bgc"></canvas>
+<div class="page">
+<nav>
+  <div class="nav-logo"><a href="../index.html" style="color:inherit;text-decoration:none">mathsedu<span>.org</span></a></div>
+  <div class="nav-ch">Chapter 11 · Mathematics of Intelligence</div>
+</nav>
+<div class="hero">
+  <div class="ch-tag">Ch. 11 · Foundations · Page 1 of 15</div>
+  <h1>Vectors &amp; <em>Embeddings</em></h1>
+  <p class="hero-sub">How mathematics turns meaning into geometry — and why "King - Man + Woman = Queen" is not magic, but linear algebra.</p>
+</div>
+
+<h2>The Geometry of Meaning</h2>
+<p>A vector is an arrow in space — a magnitude and a direction. But in the mathematics of modern AI, vectors carry something far more surprising: <strong>they carry meaning.</strong></p>
+<p>The central insight: if you train a neural network to predict surrounding words in a large corpus of text, it will — as a side effect — learn to represent every word as a point in a high-dimensional space where <em>geometry reflects semantics</em>. Words with similar meanings cluster together. Analogies become vector arithmetic.</p>
+
+<div class="callout">
+  <div class="callout-lbl">The Word2Vec Discovery · Mikolov et al., 2013</div>
+  <p>Training a shallow neural network on 100 billion words of Google News text, researchers found that the resulting vectors obeyed remarkable geometric relationships. <strong>vec("King") - vec("Man") + vec("Woman") ~ vec("Queen").</strong> The geometry of analogy had emerged spontaneously from the task of prediction.</p>
+</div>
+
+<h3>King - Man + Woman = Queen: A Demonstration</h3>
+<p>This is not magic — it is vector arithmetic. Each word occupies a point in space. The vector from "Man" to "King" encodes the concept of <em>royalty</em>. Apply that same vector starting from "Woman," and you land near "Queen."</p>
+
+<div class="analogy-demo">
+  <div class="analogy-word">King<div class="albl">royalty + male</div></div>
+  <div class="analogy-op">-</div>
+  <div class="analogy-word">Man<div class="albl">male</div></div>
+  <div class="analogy-op">+</div>
+  <div class="analogy-word">Woman<div class="albl">female</div></div>
+  <div class="analogy-op">=</div>
+  <div class="analogy-result">Queen<div class="albl">royalty + female</div></div>
+</div>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — King-Man+Woman Analogy Explorer</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">Select an analogy to compute. The canvas shows the vector arithmetic: subtract one concept, add another, and see where you land. Drag words to explore.</p>
+  <canvas id="evc" class="vis" height="340"></canvas>
+  <div class="ctrl">
+    <button class="bp" onclick="runAnalogy()">Show King-Man+Woman</button>
+    <button class="bp" style="background:linear-gradient(135deg,var(--amber),#d97706);color:#000;" onclick="runAnalogy2()">Paris-France+Germany</button>
+    <button class="bs" onclick="resetWords()">Reset</button>
+    <span id="analogyTxt" style="font-family:'JetBrains Mono',monospace;font-size:.78em;color:var(--amber);display:none;"></span>
+  </div>
+</div>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — King - Man + Woman = Queen (Vector Arrows)</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">This canvas shows the vector arithmetic as arrows. The red arrow subtracts "Man" from "King" (removing the male component). The green arrow adds "Woman" (adding the female component). The result lands near "Queen."</p>
+  <canvas id="arrowCanvas" class="vis" height="320"></canvas>
+  <div class="ctrl">
+    <button class="bp" onclick="drawArrowVis()">Redraw</button>
+  </div>
+</div>
+
+<div class="learn-box">
+  <div class="learn-title try">Try This</div>
+  <ul>
+    <li>Drag "King" and "Man" closer together, then run the analogy. Notice the result point shifts.</li>
+    <li>Try the Paris-France+Germany analogy — it should land near Berlin.</li>
+    <li>Move words from different clusters next to each other and observe how the analogy breaks.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title notice">What To Notice</div>
+  <ul>
+    <li>The analogy result is computed purely from vector subtraction and addition — no "understanding" is needed.</li>
+    <li>The "Man-to-King" vector is approximately the same as the "Woman-to-Queen" vector. This parallelism is the hallmark of a well-structured embedding space.</li>
+    <li>When clusters are well-separated, analogies within a cluster work better.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title why">Why It Matters</div>
+  <ul>
+    <li>Analogy arithmetic shows that embeddings encode <strong>relationships</strong>, not just categories.</li>
+    <li>This is why AI can reason about novel combinations: the geometry generalises beyond training examples.</li>
+    <li>Every modern language model begins by converting tokens to vectors in this kind of space.</li>
+  </ul>
+</div>
+
+<h3>Why Geometry Encodes Meaning</h3>
+<p>Suppose you describe every word by listing its properties: royalty-ness, gender, geography, living-ness, and so on. Two words with similar profiles will have vectors pointing in similar directions. The angle between them — <em>cosine similarity</em> — measures how alike they are.</p>
+<p>Word embeddings discover this description space automatically. The network finds the dimensions useful for prediction. After training, dimension 173 might correspond to "royalty," dimension 512 to "gender." Nobody specified this. It emerges from patterns in language.</p>
+
+<div class="math-block">cosine_similarity(a, b) = (a . b) / (||a|| . ||b||)
+
+Range: -1 (opposite meaning) to +1 (identical meaning)
+Value: 0 means orthogonal — unrelated
+
+vec("Paris") - vec("France") + vec("Germany")  ~  vec("Berlin")
+vec("walked") - vec("walk")   ~  vec("ran") - vec("run")</div>
+
+<h2>Word Clustering in Vector Space</h2>
+<p>Words with related meanings naturally cluster together in embedding space. Animals group near animals, cities near cities, emotions near emotions. This clustering emerges entirely from the statistics of language — no labels or categories are provided.</p>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — Word Clustering Visualiser</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">Watch how words cluster by meaning. Animals (cat, dog, lion, tiger) form a tight group. Royalty words (king, queen, man, woman) cluster separately. Drag words to test -- release and they spring back to their semantic positions.</p>
+  <canvas id="clusterCanvas" class="vis" height="380"></canvas>
+  <div class="ctrl">
+    <button class="bp" onclick="animateClustering()">Animate Clustering</button>
+    <button class="bs" onclick="resetClusters()">Reset</button>
+    <span id="clusterInfo" style="font-family:'JetBrains Mono',monospace;font-size:.78em;color:var(--muted);"></span>
+  </div>
+</div>
+
+<div class="learn-box">
+  <div class="learn-title try">Try This</div>
+  <ul>
+    <li>Press "Animate Clustering" to watch words drift from random positions into semantic groups.</li>
+    <li>Drag "lion" next to "king" -- when you release, it springs back toward the animal cluster.</li>
+    <li>Notice which words end up closest to each other within each cluster.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title notice">What To Notice</div>
+  <ul>
+    <li>The animal cluster has sub-structure: domestic pets (cat, dog) are closer to each other than to wild animals (lion, tiger).</li>
+    <li>The royalty cluster shows king/queen near man/woman -- they share the "person" concept but differ in the "royalty" dimension.</li>
+    <li>Clusters are separated by empty space -- this reflects the near-orthogonality of unrelated concepts.</li>
+  </ul>
+</div>
+
+<h2>Cosine Similarity</h2>
+<p>The fundamental measure of relatedness in embedding space is <strong>cosine similarity</strong>: the cosine of the angle between two vectors. When two vectors point in the same direction, cos(0) = 1 — maximum similarity. When perpendicular, cos(90) = 0 — unrelated. When opposite, cos(180) = -1.</p>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — Cosine Similarity Visual</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">Adjust the angle between two vectors using the slider. Watch how cosine similarity changes with the angle.</p>
+  <canvas id="cosCanvas" class="vis" height="280"></canvas>
+  <div class="ctrl">
+    <label>Angle between vectors</label>
+    <input type="range" id="angleSlider" min="0" max="180" value="30" oninput="drawCosVis()">
+    <span class="vbadge" id="angleVal">30 deg</span>
+    <span class="vbadge" id="cosVal" style="color:var(--amber);">cos = 0.866</span>
+    <button class="bs" onclick="document.getElementById('angleSlider').value=30;drawCosVis();">Reset</button>
+  </div>
+</div>
+
+<div class="learn-box">
+  <div class="learn-title try">Try This</div>
+  <ul>
+    <li>Set the angle to 0 degrees — the vectors overlap and similarity is exactly 1.</li>
+    <li>Move to 90 degrees — the vectors are perpendicular and similarity drops to 0.</li>
+    <li>Go past 90 toward 180 — similarity becomes negative, meaning the concepts are opposed.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title notice">What To Notice</div>
+  <ul>
+    <li>Similarity drops quickly at first (0 to 60 degrees), then more slowly — cosine is nonlinear.</li>
+    <li>Most word pairs in real embeddings have cosine similarity near 0 (nearly orthogonal). Only truly related words have high similarity.</li>
+  </ul>
+</div>
+<div class="learn-box">
+  <div class="learn-title why">Why It Matters</div>
+  <ul>
+    <li>Cosine similarity is how search engines find "similar" documents, how recommendation systems find "similar" users, and how transformers compute attention weights.</li>
+    <li>It measures direction, not magnitude — a long vector and a short vector pointing the same way have similarity 1.</li>
+  </ul>
+</div>
+
+<h2>High-Dimensional Spaces</h2>
+<p>Real embedding models use 768, 1024, or 4096 dimensions. Higher dimensions allow more information to be packed into the geometry. But our brains cannot visualise 768-dimensional space — we use 2D and 3D projections (PCA, t-SNE) to inspect what the model has learned.</p>
+
+<div class="callout amber">
+  <div class="callout-lbl">Counterintuitive fact about high dimensions</div>
+  <p>In high-dimensional spaces, almost all pairs of random vectors are nearly <strong>orthogonal</strong> (cosine similarity ~ 0). This is useful: a 768-dimensional embedding can store ~768 independent concepts without interference. The curse of dimensionality becomes a blessing when representing a rich world.</p>
+</div>
+
+<div class="two-col">
+  <div class="stat-card">
+    <div class="stat-n" style="color:var(--cyan);">300</div>
+    <div class="stat-l">Dimensions in Word2Vec (2013)</div>
+    <div class="stat-d">The original embeddings that demonstrated semantic geometry. Trained on 100B words. Analogy accuracy: ~64%.</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-n" style="color:var(--vio);">4,096</div>
+    <div class="stat-l">Embedding dimensions in GPT-4 class models</div>
+    <div class="stat-d">Each token (roughly a word-piece) is a 4,096-dimensional vector. The model's entire world lives in this space.</div>
+  </div>
+</div>
+
+<div class="ibox">
+  <div class="ibox-lbl">Interactive — Semantic Similarity Explorer</div>
+  <p style="font-size:.83em;color:var(--muted);margin-bottom:12px;">Select a word. See its cosine similarity to all others, computed from simplified 8-dimensional embeddings capturing rough semantic structure.</p>
+  <div class="word-grid" id="wordGrid"></div>
+  <div class="sim-display" id="simDisp" style="margin-top:12px;">
+    <div style="color:var(--muted);font-size:.82em;">Select a word above to see similarity scores</div>
+  </div>
+  <div class="ctrl">
+    <button class="bs" onclick="selSim=null;buildGrid();document.getElementById('simDisp').innerHTML='<div style=\'color:var(--muted);font-size:.82em;\'>Select a word above to see similarity scores</div>';">Reset</button>
+  </div>
+</div>
+
+<h2>From Words to Everything</h2>
+<p>The embedding idea extends beyond words. Any discrete object — a product, a user, a protein sequence, a musical chord — can be embedded by training a model to predict something about it. The geometry that emerges reflects the structure of the domain.</p>
+<p><strong>Text embeddings</strong> encode sentences as single vectors, enabling semantic search: "find documents similar in meaning, not just keyword." This is how RAG systems find relevant context.</p>
+<p><strong>Multimodal embeddings</strong> (CLIP, 2021) jointly embed images and text into the same space, so a photo of a dog and the text "dog" end up near each other — enabling DALL-E style image generation from text descriptions.</p>
+
+<div class="callout emerald">
+  <div class="callout-lbl">Why this matters for intelligence</div>
+  <p>The embedding layer is where <strong>raw data becomes thought</strong>. Before a transformer can reason, it converts input tokens into vectors. The quality of these vectors determines the ceiling of everything the model can do. Embeddings are not preprocessing — they are the model's first act of understanding.</p>
+</div>
+
+<div class="math-block">Embedding lookup: E in R^(V x d)
+  V = vocabulary size (e.g. 50,257 tokens in GPT-2)
+  d = embedding dimension (e.g. 768)
+
+For token index i:   embed(i) = E[i, :]    -- the i-th row
+
+Analogy arithmetic:
+  a is to b  as  c is to  ?
+  answer = argmax_w  cosine( embed(w),  embed(b) - embed(a) + embed(c) )
+
+Learning: E is updated by gradient descent — initially random,
+updated millions of times until geometry reflects semantics.</div>
+
+<h2>Connected Mathematics</h2>
+<div class="conn-grid">
+  <a href="linear_algebra.html" class="conn-card">
+    <div class="cc-tag">Ch. 7 · Linear Algebra</div>
+    <div class="cc-title">Vectors & Linear Maps</div>
+    <div class="cc-desc">Dot products, norms, and the geometry of high-dimensional spaces.</div>
+  </a>
+  <a href="svd.html" class="conn-card">
+    <div class="cc-tag">Ch. 7 · Linear Algebra</div>
+    <div class="cc-title">Singular Value Decomposition</div>
+    <div class="cc-desc">How PCA reduces embedding dimensions. The mathematics of compression.</div>
+  </a>
+  <a href="gradient_descent.html" class="conn-card">
+    <div class="cc-tag">Ch. 11 · AI · Page 3</div>
+    <div class="cc-title">Gradient Descent</div>
+    <div class="cc-desc">How embedding matrices are learned — the optimisation loop.</div>
+  </a>
+  <a href="attention_mechanism.html" class="conn-card">
+    <div class="cc-tag">Ch. 11 · AI · Page 5</div>
+    <div class="cc-title">Attention Mechanism</div>
+    <div class="cc-desc">How transformers use embeddings: query-key dot products in embedding space.</div>
+  </a>
+  <a href="fourier_transform.html" class="conn-card">
+    <div class="cc-tag">Ch. 5 · Waves</div>
+    <div class="cc-title">Fourier Transform</div>
+    <div class="cc-desc">Another basis-change: signals decomposed into frequency components.</div>
+  </a>
+  <a href="rag.html" class="conn-card">
+    <div class="cc-tag">Ch. 11 · AI · Page 13</div>
+    <div class="cc-title">Retrieval-Augmented Generation</div>
+    <div class="cc-desc">Embeddings in production: semantic search, vector databases.</div>
+  </a>
+</div>
+</div>
+
+<script>
+// BACKGROUND
+const bgc=document.getElementById('bgc'),bx=bgc.getContext('2d');
+bgc.width=innerWidth;bgc.height=innerHeight;
+const pts=Array.from({length:55},()=>({x:Math.random()*bgc.width,y:Math.random()*bgc.height,vx:(Math.random()-.5)*.25,vy:(Math.random()-.5)*.25}));
+function animBg(){
+  bx.clearRect(0,0,bgc.width,bgc.height);
+  pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=bgc.width;if(p.x>bgc.width)p.x=0;if(p.y<0)p.y=bgc.height;if(p.y>bgc.height)p.y=0;
+    bx.beginPath();bx.arc(p.x,p.y,1.2,0,Math.PI*2);bx.fillStyle='rgba(139,92,246,.6)';bx.fill();});
+  pts.forEach((a,i)=>pts.slice(i+1).forEach(b=>{const d=Math.hypot(a.x-b.x,a.y-b.y);
+    if(d<90){bx.beginPath();bx.moveTo(a.x,a.y);bx.lineTo(b.x,b.y);bx.strokeStyle=`rgba(139,92,246,${.12*(1-d/90)})`;bx.lineWidth=.5;bx.stroke();}}));
+  requestAnimationFrame(animBg);}
+animBg();
+window.addEventListener('resize',()=>{bgc.width=innerWidth;bgc.height=innerHeight;});
+
+// EMBEDDING CANVAS
+const evc=document.getElementById('evc'),evx=evc.getContext('2d');
+let evW,evH;
+const WORDS=[
+  {l:'King', x:.18,y:.22,c:'#8b5cf6'},{l:'Queen',x:.22,y:.44,c:'#8b5cf6'},
+  {l:'Man',  x:.34,y:.18,c:'#22d3ee'},{l:'Woman',x:.38,y:.42,c:'#22d3ee'},
+  {l:'Paris',x:.68,y:.26,c:'#f59e0b'},{l:'France',x:.72,y:.46,c:'#f59e0b'},
+  {l:'Berlin',x:.80,y:.20,c:'#f59e0b'},{l:'Germany',x:.83,y:.40,c:'#f59e0b'},
+  {l:'Dog', x:.54,y:.72,c:'#10b981'},{l:'Cat',x:.62,y:.76,c:'#10b981'},
+];
+const WORDS_INIT=WORDS.map(w=>({x:w.x,y:w.y}));
+let drag=null,dOff={x:0,y:0},selW=null,showAn=false,anPt=null,anType=null;
+
+function gp(w){return{x:w.x*evW,y:w.y*evH};}
+function arrow(ax,x1,y1,x2,y2,col,lbl){
+  ax.beginPath();ax.moveTo(x1,y1);ax.lineTo(x2,y2);ax.strokeStyle=col;ax.lineWidth=2.5;ax.stroke();
+  const a=Math.atan2(y2-y1,x2-x1);
+  ax.beginPath();ax.moveTo(x2,y2);ax.lineTo(x2-11*Math.cos(a-.4),y2-11*Math.sin(a-.4));
+  ax.lineTo(x2-11*Math.cos(a+.4),y2-11*Math.sin(a+.4));ax.fillStyle=col;ax.fill();
+  if(lbl){ax.fillStyle=col;ax.font='11px Inter';ax.fillText(lbl,(x1+x2)/2+5,(y1+y2)/2-5);}
+}
+function drawEv(){
+  evW=evc.offsetWidth||800;evc.width=evW;evH=evc.offsetHeight||340;evc.height=evH;
+  evx.fillStyle='#0a0f1e';evx.fillRect(0,0,evW,evH);
+  // cluster lines
+  [[0,1,2,3],[4,5,6,7],[8,9]].forEach(cl=>{
+    for(let i=0;i<cl.length;i++)for(let j=i+1;j<cl.length;j++){
+      const a=gp(WORDS[cl[i]]),b=gp(WORDS[cl[j]]);
+      evx.beginPath();evx.moveTo(a.x,a.y);evx.lineTo(b.x,b.y);
+      evx.strokeStyle='rgba(139,92,246,.15)';evx.lineWidth=1;evx.stroke();}});
+  // analogy
+  if(showAn&&anPt){
+    if(anType==='king'){
+      const k=gp(WORDS[0]),m=gp(WORDS[2]),w=gp(WORDS[3]);
+      arrow(evx,k.x,k.y,m.x,m.y,'rgba(244,63,94,.7)','-Man');
+      arrow(evx,m.x,m.y,anPt.x,anPt.y,'rgba(16,185,129,.7)','+Woman');
+      evx.beginPath();evx.arc(anPt.x,anPt.y,9,0,Math.PI*2);evx.fillStyle='rgba(245,158,11,.9)';evx.fill();
+      evx.fillStyle='#f59e0b';evx.font='bold 12px Inter';evx.fillText('~ Queen',anPt.x+12,anPt.y+4);
+    } else {
+      const p=gp(WORDS[4]),f=gp(WORDS[5]),g2=gp(WORDS[7]);
+      arrow(evx,p.x,p.y,f.x,f.y,'rgba(244,63,94,.7)','-France');
+      arrow(evx,f.x,f.y,anPt.x,anPt.y,'rgba(16,185,129,.7)','+Germany');
+      evx.beginPath();evx.arc(anPt.x,anPt.y,9,0,Math.PI*2);evx.fillStyle='rgba(245,158,11,.9)';evx.fill();
+      evx.fillStyle='#f59e0b';evx.font='bold 12px Inter';evx.fillText('~ Berlin',anPt.x+12,anPt.y+4);
+    }
+  }
+  WORDS.forEach((w,i)=>{
+    const {x,y}=gp(w),iS=selW===i;
+    evx.beginPath();evx.arc(x,y,iS?10:7,0,Math.PI*2);evx.fillStyle=w.c;evx.fill();
+    if(iS){evx.strokeStyle='#fff';evx.lineWidth=2;evx.stroke();}
+    evx.fillStyle='rgba(255,255,255,.85)';evx.font=(iS?'bold ':'')+' 12px Inter';
+    evx.fillText(w.l,x+12,y+4);
+  });
+}
+function resetWords(){
+  WORDS_INIT.forEach((w,i)=>{WORDS[i].x=w.x;WORDS[i].y=w.y;});
+  showAn=false;anPt=null;selW=null;anType=null;
+  document.getElementById('analogyTxt').style.display='none';drawEv();
+}
+function runAnalogy(){
+  showAn=true;anType='king';
+  const k=gp(WORDS[0]),m=gp(WORDS[2]),w=gp(WORDS[3]);
+  anPt={x:k.x-m.x+w.x,y:k.y-m.y+w.y};
+  const t=document.getElementById('analogyTxt');t.style.display='inline';
+  t.textContent='King-Man+Woman = ('+Math.round(anPt.x)+','+Math.round(anPt.y)+') ~ Queen position';
+  drawEv();
+}
+function runAnalogy2(){
+  showAn=true;anType='paris';
+  const p=gp(WORDS[4]),f=gp(WORDS[5]),g2=gp(WORDS[7]);
+  anPt={x:p.x-f.x+g2.x,y:p.y-f.y+g2.y};
+  const t=document.getElementById('analogyTxt');t.style.display='inline';
+  t.textContent='Paris-France+Germany = ('+Math.round(anPt.x)+','+Math.round(anPt.y)+') ~ Berlin position';
+  drawEv();
+}
+evc.addEventListener('mousedown',e=>{
+  const r=evc.getBoundingClientRect();
+  const mx=(e.clientX-r.left)*(evW/r.width),my=(e.clientY-r.top)*(evH/r.height);
+  WORDS.forEach((w,i)=>{const {x,y}=gp(w);if(Math.hypot(mx-x,my-y)<14){drag=i;dOff={x:mx-x,y:my-y};selW=i;}});
+  drawEv();
+});
+evc.addEventListener('mousemove',e=>{
+  if(drag===null)return;
+  const r=evc.getBoundingClientRect();
+  const mx=(e.clientX-r.left)*(evW/r.width),my=(e.clientY-r.top)*(evH/r.height);
+  WORDS[drag].x=Math.max(.03,Math.min(.97,(mx-dOff.x)/evW));
+  WORDS[drag].y=Math.max(.03,Math.min(.97,(my-dOff.y)/evH));
+  if(showAn){
+    if(anType==='king'){const k=gp(WORDS[0]),m=gp(WORDS[2]),w=gp(WORDS[3]);anPt={x:k.x-m.x+w.x,y:k.y-m.y+w.y};}
+    else{const p=gp(WORDS[4]),f=gp(WORDS[5]),g2=gp(WORDS[7]);anPt={x:p.x-f.x+g2.x,y:p.y-f.y+g2.y};}
+  }
+  drawEv();
+});
+evc.addEventListener('mouseup',()=>drag=null);
+// Touch support
+evc.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];const r=evc.getBoundingClientRect();const mx=(t.clientX-r.left)*(evW/r.width),my=(t.clientY-r.top)*(evH/r.height);WORDS.forEach((w,i)=>{const p=gp(w);if(Math.hypot(mx-p.x,my-p.y)<20){drag=i;dOff={x:mx-p.x,y:my-p.y};selW=i;}});drawEv();},{passive:false});
+evc.addEventListener('touchmove',e=>{e.preventDefault();if(drag===null)return;const t=e.touches[0];const r=evc.getBoundingClientRect();const mx=(t.clientX-r.left)*(evW/r.width),my=(t.clientY-r.top)*(evH/r.height);WORDS[drag].x=Math.max(.03,Math.min(.97,(mx-dOff.x)/evW));WORDS[drag].y=Math.max(.03,Math.min(.97,(my-dOff.y)/evH));if(showAn){if(anType==='king'){const k=gp(WORDS[0]),m=gp(WORDS[2]),w=gp(WORDS[3]);anPt={x:k.x-m.x+w.x,y:k.y-m.y+w.y};}else{const p=gp(WORDS[4]),f=gp(WORDS[5]),g2=gp(WORDS[7]);anPt={x:p.x-f.x+g2.x,y:p.y-f.y+g2.y};}}drawEv();},{passive:false});
+evc.addEventListener('touchend',()=>drag=null);
+window.addEventListener('resize',drawEv);
+drawEv();
+
+// WORD CLUSTERING CANVAS
+const clc=document.getElementById('clusterCanvas'),clx=clc.getContext('2d');
+let clW,clH;
+const CLUSTER_WORDS=[
+  // Animals
+  {l:'cat',   tx:.22,ty:.28, c:'#10b981', group:'animal'},
+  {l:'dog',   tx:.28,ty:.22, c:'#10b981', group:'animal'},
+  {l:'lion',  tx:.18,ty:.18, c:'#10b981', group:'animal'},
+  {l:'tiger', tx:.14,ty:.26, c:'#10b981', group:'animal'},
+  // Royalty
+  {l:'king',  tx:.72,ty:.18, c:'#8b5cf6', group:'royalty'},
+  {l:'queen', tx:.76,ty:.28, c:'#8b5cf6', group:'royalty'},
+  {l:'man',   tx:.82,ty:.16, c:'#8b5cf6', group:'royalty'},
+  {l:'woman', tx:.85,ty:.26, c:'#8b5cf6', group:'royalty'},
+  // Cities
+  {l:'London',tx:.50,ty:.72, c:'#f59e0b', group:'city'},
+  {l:'Paris', tx:.44,ty:.78, c:'#f59e0b', group:'city'},
+  {l:'Tokyo', tx:.54,ty:.80, c:'#f59e0b', group:'city'},
+  // Emotions
+  {l:'happy', tx:.22,ty:.72, c:'#f43f5e', group:'emotion'},
+  {l:'sad',   tx:.26,ty:.78, c:'#f43f5e', group:'emotion'},
+  {l:'angry', tx:.18,ty:.80, c:'#f43f5e', group:'emotion'},
+];
+let clusterAnimating=false,clusterFrame=0;
+// Init at random positions
+CLUSTER_WORDS.forEach(w=>{w.x=Math.random()*.8+.1;w.y=Math.random()*.8+.1;});
+let clDrag=null;
+
+function drawClusters(){
+  clW=clc.offsetWidth||700;clc.width=clW;clH=clc.offsetHeight||380;clc.height=clH;
+  clx.fillStyle='#0a0f1e';clx.fillRect(0,0,clW,clH);
+  // Draw cluster boundaries (ellipses)
+  const groups={};
+  CLUSTER_WORDS.forEach(w=>{if(!groups[w.group])groups[w.group]={words:[],c:w.c};groups[w.group].words.push(w);});
+  Object.values(groups).forEach(g=>{
+    const cx=g.words.reduce((s,w)=>s+w.x,0)/g.words.length*clW;
+    const cy=g.words.reduce((s,w)=>s+w.y,0)/g.words.length*clH;
+    let maxR=0;g.words.forEach(w=>{const d=Math.hypot(w.x*clW-cx,w.y*clH-cy);if(d>maxR)maxR=d;});
+    clx.beginPath();clx.arc(cx,cy,maxR+30,0,Math.PI*2);
+    clx.strokeStyle=g.c+'33';clx.lineWidth=1;clx.setLineDash([4,4]);clx.stroke();clx.setLineDash([]);
+    // lines between cluster members
+    for(let i=0;i<g.words.length;i++)for(let j=i+1;j<g.words.length;j++){
+      clx.beginPath();clx.moveTo(g.words[i].x*clW,g.words[i].y*clH);clx.lineTo(g.words[j].x*clW,g.words[j].y*clH);
+      clx.strokeStyle=g.c+'30';clx.lineWidth=1;clx.stroke();
+    }
+  });
+  // Words
+  CLUSTER_WORDS.forEach((w,i)=>{
+    const px=w.x*clW,py=w.y*clH;
+    clx.beginPath();clx.arc(px,py,i===clDrag?10:7,0,Math.PI*2);clx.fillStyle=w.c;clx.fill();
+    clx.fillStyle='rgba(255,255,255,.85)';clx.font='12px Inter';clx.textAlign='left';clx.fillText(w.l,px+12,py+4);
+  });
+  // Legend
+  clx.font='11px Inter';clx.textAlign='left';
+  [{l:'Animals',c:'#10b981',y:20},{l:'Royalty',c:'#8b5cf6',y:36},{l:'Cities',c:'#f59e0b',y:52},{l:'Emotions',c:'#f43f5e',y:68}].forEach(g=>{
+    clx.fillStyle=g.c;clx.beginPath();clx.arc(14,g.y,4,0,Math.PI*2);clx.fill();
+    clx.fillStyle='rgba(255,255,255,.5)';clx.fillText(g.l,24,g.y+4);
+  });
+}
+function animateClustering(){
+  // Reset to random
+  CLUSTER_WORDS.forEach(w=>{w.x=Math.random()*.8+.1;w.y=Math.random()*.8+.1;});
+  clusterAnimating=true;clusterFrame=0;
+  document.getElementById('clusterInfo').textContent='Clustering...';
+  function step(){
+    if(clusterFrame>120){clusterAnimating=false;document.getElementById('clusterInfo').textContent='Clustering complete';drawClusters();return;}
+    const t=Math.min(1,clusterFrame/100);
+    CLUSTER_WORDS.forEach(w=>{
+      w.x+=(w.tx-w.x)*0.04;w.y+=(w.ty-w.y)*0.04;
+    });
+    clusterFrame++;drawClusters();requestAnimationFrame(step);
+  }
+  step();
+}
+function resetClusters(){
+  clusterAnimating=false;
+  CLUSTER_WORDS.forEach(w=>{w.x=Math.random()*.8+.1;w.y=Math.random()*.8+.1;});
+  document.getElementById('clusterInfo').textContent='';drawClusters();
+}
+clc.addEventListener('mousedown',e=>{const r=clc.getBoundingClientRect();const mx=(e.clientX-r.left)*(clW/r.width),my=(e.clientY-r.top)*(clH/r.height);CLUSTER_WORDS.forEach((w,i)=>{if(Math.hypot(mx-w.x*clW,my-w.y*clH)<14)clDrag=i;});});
+clc.addEventListener('mousemove',e=>{if(clDrag===null)return;const r=clc.getBoundingClientRect();const mx=(e.clientX-r.left)*(clW/r.width),my=(e.clientY-r.top)*(clH/r.height);CLUSTER_WORDS[clDrag].x=Math.max(.03,Math.min(.97,mx/clW));CLUSTER_WORDS[clDrag].y=Math.max(.03,Math.min(.97,my/clH));drawClusters();});
+clc.addEventListener('mouseup',()=>{if(clDrag!==null){const w=CLUSTER_WORDS[clDrag];let fr=0;const sx=w.x,sy=w.y;function snap(){if(fr>30){clDrag=null;return;}w.x+=(w.tx-w.x)*0.12;w.y+=(w.ty-w.y)*0.12;fr++;drawClusters();requestAnimationFrame(snap);}snap();}});
+// Touch support for clustering canvas
+clc.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];const r=clc.getBoundingClientRect();const mx=(t.clientX-r.left)*(clW/r.width),my=(t.clientY-r.top)*(clH/r.height);CLUSTER_WORDS.forEach((w,i)=>{if(Math.hypot(mx-w.x*clW,my-w.y*clH)<20)clDrag=i;});},{passive:false});
+clc.addEventListener('touchmove',e=>{e.preventDefault();if(clDrag===null)return;const t=e.touches[0];const r=clc.getBoundingClientRect();const mx=(t.clientX-r.left)*(clW/r.width),my=(t.clientY-r.top)*(clH/r.height);CLUSTER_WORDS[clDrag].x=Math.max(.03,Math.min(.97,mx/clW));CLUSTER_WORDS[clDrag].y=Math.max(.03,Math.min(.97,my/clH));drawClusters();},{passive:false});
+clc.addEventListener('touchend',()=>{if(clDrag!==null){const w=CLUSTER_WORDS[clDrag];let fr=0;function snap(){if(fr>30){clDrag=null;return;}w.x+=(w.tx-w.x)*0.12;w.y+=(w.ty-w.y)*0.12;fr++;drawClusters();requestAnimationFrame(snap);}snap();}});
+window.addEventListener('resize',drawClusters);
+drawClusters();
+
+// COSINE SIMILARITY VISUAL
+const cosc=document.getElementById('cosCanvas'),cosx=cosc.getContext('2d');
+function drawCosVis(){
+  const W=cosc.offsetWidth||700;cosc.width=W;const H=cosc.offsetHeight||280;cosc.height=H;
+  cosx.fillStyle='#0a0f1e';cosx.fillRect(0,0,W,H);
+  const angle=parseInt(document.getElementById('angleSlider').value);
+  const rad=angle*Math.PI/180;
+  const cosVal=Math.cos(rad);
+  document.getElementById('angleVal').textContent=angle+' deg';
+  document.getElementById('cosVal').textContent='cos = '+cosVal.toFixed(3);
+  // Draw from center-left
+  const ox=W*0.15,oy=H*0.65;
+  const vLen=Math.min(W*0.6,H*0.8);
+  // Vector A (fixed, horizontal)
+  const ax=ox+vLen,ay=oy;
+  // Vector B (rotated by angle)
+  const bx=ox+vLen*Math.cos(-rad),by=oy+vLen*Math.sin(-rad);
+  // Arc for angle
+  const arcR=50;
+  cosx.beginPath();cosx.arc(ox,oy,arcR,0,-rad,true);
+  cosx.strokeStyle='rgba(245,158,11,.5)';cosx.lineWidth=1.5;cosx.stroke();
+  cosx.fillStyle='rgba(245,158,11,.7)';cosx.font='12px JetBrains Mono';
+  const labelAngle=-rad/2;
+  cosx.fillText(angle+'deg',ox+arcR*1.1*Math.cos(labelAngle),oy+arcR*1.1*Math.sin(labelAngle)+4);
+  // Vector A
+  cosx.beginPath();cosx.moveTo(ox,oy);cosx.lineTo(ax,ay);cosx.strokeStyle='#8b5cf6';cosx.lineWidth=3;cosx.stroke();
+  const aAngle=Math.atan2(ay-oy,ax-ox);
+  cosx.beginPath();cosx.moveTo(ax,ay);cosx.lineTo(ax-12*Math.cos(aAngle-.35),ay-12*Math.sin(aAngle-.35));cosx.lineTo(ax-12*Math.cos(aAngle+.35),ay-12*Math.sin(aAngle+.35));cosx.fillStyle='#8b5cf6';cosx.fill();
+  cosx.fillStyle='#8b5cf6';cosx.font='bold 13px Inter';cosx.fillText('Vector A',ax-30,ay+22);
+  // Vector B
+  cosx.beginPath();cosx.moveTo(ox,oy);cosx.lineTo(bx,by);cosx.strokeStyle='#22d3ee';cosx.lineWidth=3;cosx.stroke();
+  const bAngle=Math.atan2(by-oy,bx-ox);
+  cosx.beginPath();cosx.moveTo(bx,by);cosx.lineTo(bx-12*Math.cos(bAngle-.35),by-12*Math.sin(bAngle-.35));cosx.lineTo(bx-12*Math.cos(bAngle+.35),by-12*Math.sin(bAngle+.35));cosx.fillStyle='#22d3ee';cosx.fill();
+  cosx.fillStyle='#22d3ee';cosx.font='bold 13px Inter';cosx.fillText('Vector B',bx-30,by-10);
+  // Similarity display
+  const barX=W*0.7,barY=H*0.15,barW=W*0.25,barH=16;
+  cosx.fillStyle='rgba(139,92,246,.15)';cosx.fillRect(barX,barY,barW,barH);
+  const fillW=Math.max(0,(cosVal+1)/2)*barW;
+  const simCol=cosVal>0.5?'#10b981':cosVal>0?'#f59e0b':'#f43f5e';
+  cosx.fillStyle=simCol;cosx.fillRect(barX,barY,fillW,barH);
+  cosx.fillStyle='rgba(255,255,255,.6)';cosx.font='11px Inter';
+  cosx.textAlign='left';cosx.fillText('Similarity',barX,barY-6);
+  cosx.font='bold 18px JetBrains Mono';cosx.fillStyle=simCol;
+  cosx.fillText(cosVal.toFixed(3),barX,barY+barH+22);
+  cosx.font='11px Inter';cosx.fillStyle='rgba(255,255,255,.4)';
+  cosx.fillText('-1',barX-14,barY+barH/2+4);cosx.fillText('+1',barX+barW+4,barY+barH/2+4);
+  // Interpretation
+  let interp='';
+  if(angle<10)interp='Nearly identical meaning';
+  else if(angle<45)interp='Very similar';
+  else if(angle<80)interp='Somewhat related';
+  else if(angle<100)interp='Unrelated (orthogonal)';
+  else if(angle<150)interp='Somewhat opposed';
+  else interp='Opposite meaning';
+  cosx.fillStyle='rgba(255,255,255,.5)';cosx.font='12px Inter';cosx.fillText(interp,barX,barY+barH+44);
+  cosx.textAlign='left';
+  // Origin
+  cosx.beginPath();cosx.arc(ox,oy,4,0,Math.PI*2);cosx.fillStyle='#fff';cosx.fill();
+}
+drawCosVis();
+window.addEventListener('resize',drawCosVis);
+
+// SIMILARITY EXPLORER
+const WE={
+  'King':   [.9,.1,.0,.0,.7,.6,.5,.6],'Queen':  [.9,.9,.0,.0,.7,.5,.5,.7],
+  'Man':    [.1,.1,.0,.0,.3,.5,.4,.5],'Woman':  [.1,.9,.0,.0,.3,.4,.4,.5],
+  'Prince': [.8,.1,.0,.0,.5,.4,.2,.6],'Paris':  [.0,.0,.9,.0,.6,.7,.9,.7],
+  'London': [.0,.0,.9,.0,.6,.8,.9,.6],'Dog':    [.0,.0,.0,.9,.2,.4,.3,.8],
+  'Cat':    [.0,.0,.0,.8,.3,.2,.3,.7],'Science':[.0,.0,.0,.0,.9,.3,.5,.6],
+};
+const WN=Object.keys(WE);
+function cs(a,b){const d=a.reduce((s,v,i)=>s+v*b[i],0);return d/(Math.sqrt(a.reduce((s,v)=>s+v*v,0))*Math.sqrt(b.reduce((s,v)=>s+v*v,0)));}
+let selSim=null;
+function buildGrid(){
+  const g=document.getElementById('wordGrid');g.innerHTML='';
+  WN.forEach(w=>{const d=document.createElement('div');d.className='wchip'+(w===selSim?' sel':'');
+    d.innerHTML='<div class="wlbl">'+w+'</div><div class="wvec">['+WE[w].slice(0,3).map(v=>v.toFixed(1)).join(', ')+'...]</div>';
+    d.onclick=()=>{selSim=w;buildGrid();updateSim();};g.appendChild(d);});}
+function updateSim(){
+  if(!selSim)return;
+  const ref=WE[selSim];
+  const sims=WN.filter(w=>w!==selSim).map(w=>({w,s:cs(ref,WE[w])})).sort((a,b)=>b.s-a.s);
+  document.getElementById('simDisp').innerHTML=
+    '<div style="color:var(--vio);margin-bottom:10px;font-size:.78em;">Similarity to: <strong style="color:var(--silver)">'+selSim+'</strong></div>'+
+    sims.map(({w,s})=>'<div class="sim-row"><span class="sim-word">'+w+'</span><div class="sim-bar-w"><div class="sim-bar" style="width:'+Math.max(0,s)*100+'%"></div></div><span class="sim-score">'+s.toFixed(3)+'</span></div>').join('');
+}
+buildGrid();
+
+// ARROW VISUALISATION: King - Man + Woman = Queen
+const arrc=document.getElementById('arrowCanvas'),arrx=arrc.getContext('2d');
+function drawArrowVis(){
+  const W=arrc.offsetWidth||700;arrc.width=W;const H=arrc.offsetHeight||320;arrc.height=H;
+  arrx.fillStyle='#0a0f1e';arrx.fillRect(0,0,W,H);
+  // Positions
+  const king={x:W*0.15,y:H*0.3,label:'King',col:'#8b5cf6'};
+  const man={x:W*0.35,y:H*0.2,label:'Man',col:'#22d3ee'};
+  const woman={x:W*0.35,y:H*0.7,label:'Woman',col:'#22d3ee'};
+  const queen={x:W*0.15,y:H*0.6,label:'Queen',col:'#f59e0b'};
+  // Result point (King - Man + Woman)
+  const result={x:king.x-man.x+woman.x,y:king.y-man.y+woman.y};
+  // Helper: draw arrow
+  function drawArr(x1,y1,x2,y2,col,lbl,dash){
+    arrx.beginPath();arrx.moveTo(x1,y1);arrx.lineTo(x2,y2);
+    arrx.strokeStyle=col;arrx.lineWidth=2.5;
+    if(dash)arrx.setLineDash(dash);
+    arrx.stroke();arrx.setLineDash([]);
+    const angle=Math.atan2(y2-y1,x2-x1);
+    arrx.beginPath();arrx.moveTo(x2,y2);
+    arrx.lineTo(x2-12*Math.cos(angle-.35),y2-12*Math.sin(angle-.35));
+    arrx.lineTo(x2-12*Math.cos(angle+.35),y2-12*Math.sin(angle+.35));
+    arrx.fillStyle=col;arrx.fill();
+    if(lbl){
+      const mx=(x1+x2)/2,my=(y1+y2)/2;
+      arrx.fillStyle=col;arrx.font='bold 12px Inter';arrx.textAlign='center';
+      arrx.fillText(lbl,mx+15,my-8);
+    }
+  }
+  // King -> Man (subtract: red)
+  drawArr(king.x,king.y,man.x,man.y,'rgba(244,63,94,.8)','-Man');
+  // Man -> Result (add Woman: green)
+  drawArr(man.x,man.y,result.x,result.y,'rgba(16,185,129,.8)','+Woman');
+  // Dashed: King -> Queen (the "royalty" direction)
+  drawArr(king.x,king.y,queen.x,queen.y,'rgba(139,92,246,.3)','royalty',[5,5]);
+  // Dashed: Man -> Woman (the "gender" direction)
+  drawArr(man.x,man.y,woman.x,woman.y,'rgba(34,211,238,.3)','gender',[5,5]);
+  // Draw word dots
+  [king,man,woman,queen].forEach(w=>{
+    arrx.beginPath();arrx.arc(w.x,w.y,8,0,Math.PI*2);arrx.fillStyle=w.col;arrx.fill();
+    arrx.fillStyle='rgba(255,255,255,.85)';arrx.font='bold 13px Inter';arrx.textAlign='left';
+    arrx.fillText(w.label,w.x+14,w.y+5);
+  });
+  // Result dot
+  arrx.beginPath();arrx.arc(result.x,result.y,7,0,Math.PI*2);arrx.fillStyle='rgba(245,158,11,.8)';arrx.fill();
+  arrx.beginPath();arrx.arc(result.x,result.y,14,0,Math.PI*2);arrx.strokeStyle='rgba(245,158,11,.4)';arrx.lineWidth=1.5;arrx.stroke();
+  arrx.fillStyle='rgba(245,158,11,.7)';arrx.font='11px JetBrains Mono';arrx.textAlign='left';
+  arrx.fillText('Result ~ Queen',result.x+18,result.y+4);
+  // Equation label
+  arrx.fillStyle='rgba(255,255,255,.35)';arrx.font='13px JetBrains Mono';arrx.textAlign='center';
+  arrx.fillText('vec(King) - vec(Man) + vec(Woman) ~ vec(Queen)',W/2,H-14);
+  // Parallelogram hint
+  arrx.beginPath();arrx.moveTo(king.x,king.y);arrx.lineTo(man.x,man.y);arrx.lineTo(woman.x,woman.y);arrx.lineTo(queen.x,queen.y);arrx.closePath();
+  arrx.strokeStyle='rgba(251,191,36,.12)';arrx.lineWidth=1;arrx.setLineDash([3,5]);arrx.stroke();arrx.setLineDash([]);
+}
+drawArrowVis();
+window.addEventListener('resize',drawArrowVis);
+</script>
+<div style="text-align:center;padding:30px 20px 40px;">
+  <a href="../index.html" style="color:#808098;text-decoration:none;font-size:0.9em;font-family:Georgia,serif">&larr; Back to Index</a>
+</div>
+</body>
+</html>
