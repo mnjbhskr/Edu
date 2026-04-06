@@ -283,6 +283,48 @@
         </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     Section 4: Acoustic Scattering
+     ═══════════════════════════════════════════════════════════ -->
+<h2>4. Acoustic Scattering &mdash; Waves Through Obstacles</h2>
+<div class="panel">
+    <h3>2D wave equation with scattering obstacles</h3>
+    <canvas id="canvasScatter" width="600" height="400"></canvas>
+
+    <div class="slider-row" style="margin-top:12px">
+        <label>Frequency:</label>
+        <input type="range" id="sScatterFreq" min="1" max="20" step="1" value="8">
+        <span class="slider-val" id="vScatterFreq">8</span>
+    </div>
+    <div class="slider-row">
+        <label>Wave speed:</label>
+        <input type="range" id="sScatterSpeed" min="0.5" max="2.0" step="0.1" value="1.0">
+        <span class="slider-val" id="vScatterSpeed">1.0</span>
+    </div>
+
+    <div class="btn-row" style="margin-top:14px">
+        <button class="btn active" id="btnPointSrc" onclick="setScatterMode('point')">Point Source</button>
+        <button class="btn" id="btnPlaneWave" onclick="setScatterMode('plane')">Plane Wave</button>
+        <button class="btn" onclick="resetScatter()">Reset</button>
+        <button class="btn" onclick="clearObstacles()">Clear Obstacles</button>
+    </div>
+
+    <p class="micro-note">Click on the canvas to place circular obstacles. Waves diffract and scatter around them.</p>
+
+    <div class="result-box">
+        <div id="resultsScatter" class="math-line"></div>
+    </div>
+
+    <div class="insight-box">
+        Acoustic scattering &mdash; how sound waves bend, reflect and diffract around solid objects &mdash; is central to sonar, ultrasound imaging and architectural acoustics. PolymathicAI&rsquo;s <em>The Well</em> dataset provides high-resolution numerical solutions of the 2D wave equation with varied obstacle geometries, enabling machine-learning models to learn the physics of wave&ndash;obstacle interaction directly from data.
+    </div>
+
+    <div style="margin-top:14px;padding:10px 14px;border-left:2px solid rgba(20,184,166,0.3);font-size:0.78em;color:#606078;line-height:1.6">
+        Inspired by <a href="https://github.com/PolymathicAI/the_well" style="color:#14b8a6;text-decoration:none">The Well</a> dataset (PolymathicAI, NeurIPS 2024).
+        <a href="references_the_well.html" style="color:#14b8a6;text-decoration:none">Full references &rarr;</a>
+    </div>
+</div>
+
 <!-- Explore Next -->
 <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 22px;margin:0 0 20px">
     <h3 style="color:#808098;font-size:0.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;font-weight:400;">Explore Next</h3>
@@ -781,12 +823,250 @@ sLen3.addEventListener('input',   function(){ vLen3.textContent  = Math.round(sL
 sSpeed3.addEventListener('input', function(){ vSpeed3.textContent = Math.round(sSpeed3.value); });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Section 4: Acoustic Scattering — 2D Wave Equation with Obstacles
+// ─────────────────────────────────────────────────────────────────────────────
+(function() {
+    var NX = 200, NY = 200;
+    var sc = document.getElementById('canvasScatter');
+    var sctx = sc.getContext('2d');
+    var scW = sc.width, scH = sc.height;
+
+    var sFreq  = document.getElementById('sScatterFreq');
+    var sSpeed = document.getElementById('sScatterSpeed');
+    var vFreq  = document.getElementById('vScatterFreq');
+    var vSpeed = document.getElementById('vScatterSpeed');
+    var resultsS = document.getElementById('resultsScatter');
+
+    // Grid arrays
+    var size = NX * NY;
+    var u_curr = new Float64Array(size);
+    var u_prev = new Float64Array(size);
+    var u_next = new Float64Array(size);
+    var obstacle = new Uint8Array(size);
+
+    var dx = 1.0;
+    var dt = 0.4;
+    var sourceMode = 'point'; // 'point' or 'plane'
+    var timeStep = 0;
+    var SPONGE = 15;
+
+    // Precompute sponge damping factors
+    var damping = new Float64Array(size);
+    (function initDamping() {
+        for (var i = 0; i < NX; i++) {
+            for (var j = 0; j < NY; j++) {
+                var d = Math.min(i, NX - 1 - i, j, NY - 1 - j);
+                if (d < SPONGE) {
+                    damping[i * NY + j] = Math.exp(-0.08 * (SPONGE - d));
+                } else {
+                    damping[i * NY + j] = 1.0;
+                }
+            }
+        }
+    })();
+
+    // ImageData for rendering
+    var imgData = sctx.createImageData(NX, NY);
+    var imgBuf = imgData.data;
+
+    // Source mode toggle
+    window.setScatterMode = function(mode) {
+        sourceMode = mode;
+        var btnP = document.getElementById('btnPointSrc');
+        var btnW = document.getElementById('btnPlaneWave');
+        if (mode === 'point') {
+            btnP.classList.add('active');
+            btnW.classList.remove('active');
+        } else {
+            btnW.classList.add('active');
+            btnP.classList.remove('active');
+        }
+    };
+
+    window.resetScatter = function() {
+        u_curr.fill(0);
+        u_prev.fill(0);
+        u_next.fill(0);
+        timeStep = 0;
+    };
+
+    window.clearObstacles = function() {
+        obstacle.fill(0);
+        window.resetScatter();
+    };
+
+    // Click handler — add circular obstacle
+    sc.addEventListener('click', function(e) {
+        var rect = sc.getBoundingClientRect();
+        var mx = (e.clientX - rect.left) / rect.width * NX;
+        var my = (e.clientY - rect.top) / rect.height * NY;
+        var gx = Math.round(mx);
+        var gy = Math.round(my);
+        var radius = 8 + Math.floor(Math.random() * 5); // 8-12
+        for (var di = -radius; di <= radius; di++) {
+            for (var dj = -radius; dj <= radius; dj++) {
+                if (di * di + dj * dj <= radius * radius) {
+                    var ni = gx + di;
+                    var nj = gy + dj;
+                    if (ni >= 0 && ni < NX && nj >= 0 && nj < NY) {
+                        obstacle[ni * NY + nj] = 1;
+                    }
+                }
+            }
+        }
+    });
+
+    function stepWave() {
+        var c = parseFloat(sSpeed.value);
+        var freq = parseFloat(sFreq.value);
+        var courant = (c * dt / dx);
+        var c2 = courant * courant;
+
+        // Source forcing
+        var omega = 2 * Math.PI * freq * 0.01;
+        var srcVal = Math.sin(omega * timeStep);
+
+        if (sourceMode === 'point') {
+            var si = 20;
+            var sj = Math.floor(NY / 2);
+            var idx = si * NY + sj;
+            if (obstacle[idx] === 0) {
+                u_curr[idx] = srcVal;
+            }
+        } else {
+            // Plane wave along left edge
+            var si = 5;
+            for (var j = 0; j < NY; j++) {
+                var idx = si * NY + j;
+                if (obstacle[idx] === 0) {
+                    u_curr[idx] = srcVal;
+                }
+            }
+        }
+
+        // Finite difference update
+        for (var i = 1; i < NX - 1; i++) {
+            for (var j = 1; j < NY - 1; j++) {
+                var idx = i * NY + j;
+                if (obstacle[idx] === 1) {
+                    u_next[idx] = 0;
+                    continue;
+                }
+                var lap = u_curr[(i+1)*NY+j] + u_curr[(i-1)*NY+j] +
+                          u_curr[i*NY+(j+1)] + u_curr[i*NY+(j-1)] -
+                          4 * u_curr[idx];
+                u_next[idx] = (2 * u_curr[idx] - u_prev[idx] + c2 * lap) * damping[idx];
+            }
+        }
+
+        // Boundary: edges forced to zero
+        for (var i = 0; i < NX; i++) {
+            u_next[i * NY] = 0;
+            u_next[i * NY + (NY - 1)] = 0;
+        }
+        for (var j = 0; j < NY; j++) {
+            u_next[j] = 0;
+            u_next[(NX - 1) * NY + j] = 0;
+        }
+
+        // Swap buffers
+        var tmp = u_prev;
+        u_prev = u_curr;
+        u_curr = u_next;
+        u_next = tmp;
+        timeStep++;
+    }
+
+    function renderScatter() {
+        var maxAmp = 0.5;
+
+        for (var i = 0; i < NX; i++) {
+            for (var j = 0; j < NY; j++) {
+                var idx = i * NY + j;
+                var pIdx = (j * NX + i) * 4; // ImageData is row-major (y,x)
+                var r, g, b;
+
+                if (obstacle[idx] === 1) {
+                    r = 60; g = 60; b = 80;
+                } else {
+                    var val = u_curr[idx];
+                    var norm = Math.max(-1, Math.min(1, val / maxAmp));
+                    if (norm > 0) {
+                        // Positive → red-orange
+                        r = Math.round(10 + norm * 210);
+                        g = Math.round(10 + norm * 70);
+                        b = Math.round(26 + norm * 14);
+                    } else {
+                        // Negative → blue
+                        var a = -norm;
+                        r = Math.round(10 + a * 30);
+                        g = Math.round(10 + a * 70);
+                        b = Math.round(26 + a * 174);
+                    }
+                }
+
+                imgBuf[pIdx]     = r;
+                imgBuf[pIdx + 1] = g;
+                imgBuf[pIdx + 2] = b;
+                imgBuf[pIdx + 3] = 255;
+            }
+        }
+
+        // Draw scaled to canvas
+        sctx.putImageData(imgData, 0, 0);
+
+        // Scale up from NX×NY to canvas size
+        sctx.imageSmoothingEnabled = false;
+        var tempCanvas = document.createElement('canvas');
+        tempCanvas.width = NX;
+        tempCanvas.height = NY;
+        tempCanvas.getContext('2d').putImageData(imgData, 0, 0);
+        sctx.clearRect(0, 0, scW, scH);
+        sctx.drawImage(tempCanvas, 0, 0, scW, scH);
+
+        // Update display
+        var freq = parseFloat(sFreq.value);
+        var c = parseFloat(sSpeed.value);
+        var wavelength = (c / (freq * 0.01)).toFixed(1);
+        vFreq.textContent = Math.round(freq);
+        vSpeed.textContent = parseFloat(sSpeed.value).toFixed(1);
+        resultsS.innerHTML =
+            'Frequency = ' + Math.round(freq) + ' &nbsp;&nbsp; ' +
+            'Wave speed c = ' + parseFloat(sSpeed.value).toFixed(1) + ' &nbsp;&nbsp; ' +
+            '&lambda; = c/f = ' + wavelength + ' cells' +
+            '<br>Grid: ' + NX + '&times;' + NY + ' &nbsp;&nbsp; ' +
+            'Source: ' + (sourceMode === 'point' ? 'Point' : 'Plane wave') + ' &nbsp;&nbsp; ' +
+            'Obstacles: ' + countObstacles();
+    }
+
+    function countObstacles() {
+        var n = 0;
+        for (var i = 0; i < size; i++) { if (obstacle[i]) n++; }
+        return n + ' cells';
+    }
+
+    // Exposed draw function for main animation loop
+    window.drawScatterSection = function() {
+        // Run multiple steps per frame for speed
+        for (var s = 0; s < 4; s++) {
+            stepWave();
+        }
+        renderScatter();
+    };
+
+    // Slider live updates
+    sFreq.addEventListener('input', function() { vFreq.textContent = Math.round(sFreq.value); });
+    sSpeed.addEventListener('input', function() { vSpeed.textContent = parseFloat(sSpeed.value).toFixed(1); });
+})();
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Animation loop
 // ─────────────────────────────────────────────────────────────────────────────
 function animate() {
     drawTravelWave();
     drawPdeSection();
     drawModesSection();
+    drawScatterSection();
     requestAnimationFrame(animate);
 }
 

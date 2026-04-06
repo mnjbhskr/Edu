@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#060a0f">
+<title>Physics of Everything — Act III: Turbulence and Magnetism</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+:root {
+  --bg:#060a0f; --bg2:#0a1420; --bg3:#0e1a28;
+  --teal:#14b8a6; --teal-dim:rgba(20,184,166,0.12);
+  --cyan:#06b6d4; --cyan-dim:rgba(6,182,212,0.1);
+  --amber:#fbbf24; --amber-dim:rgba(251,191,36,0.1);
+  --cream:#f0fdfa; --text:#7dd3c0; --muted:#1a3a30;
+  --border:rgba(20,184,166,0.16); --radius:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse at 30% 25%,rgba(20,184,166,0.08) 0%,transparent 55%),
+             radial-gradient(ellipse at 75% 70%,rgba(6,182,212,0.05) 0%,transparent 45%),var(--bg);}
+#app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;}
+.app-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 12px;
+  border-bottom:1px solid var(--border);background:rgba(6,10,15,0.93);
+  backdrop-filter:blur(16px);position:sticky;top:0;z-index:10;}
+.header-logo{font-family:'Lora',serif;font-size:1.05em;font-style:italic;}
+.header-logo a{color:var(--muted);text-decoration:none;}
+.header-logo span{color:var(--teal);font-style:normal;}
+.progress-dots{display:flex;gap:6px;}
+.dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.06);transition:all .4s;}
+.dot.done{background:var(--teal);}
+.dot.active{background:var(--teal);box-shadow:0 0 10px var(--teal);animation:pulse 2s ease infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 6px var(--teal)}50%{box-shadow:0 0 20px var(--teal)}}
+.screen{display:none;flex-direction:column;flex:1;padding:24px 20px 100px;animation:fadeUp .5s ease both;}
+.screen.active{display:flex;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.narrator{background:var(--bg2);border:1px solid var(--border);border-left:3px solid var(--teal);
+  border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;position:relative;}
+.narrator::before{content:'✦';position:absolute;top:-10px;left:16px;background:var(--bg2);
+  padding:0 6px;color:var(--teal);font-size:.78em;}
+.narrator p{font-family:'Lora',serif;font-size:1.1em;line-height:1.85;color:var(--text);}
+.narrator p em{color:var(--cyan);font-style:italic;}
+.narrator p strong{color:var(--cream);}
+.act-title{text-align:center;margin-bottom:22px;}
+.act-label{font-size:.68em;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
+.act-name{font-family:'Lora',serif;font-size:clamp(1.6em,6vw,2.2em);font-weight:400;color:var(--cream);}
+.act-name em{color:var(--teal);font-style:italic;}
+.act-sub{font-family:'Lora',serif;font-size:.95em;color:var(--muted);margin-top:10px;line-height:1.7;font-style:italic;}
+.cta-btn{width:100%;max-width:400px;margin:0 auto;display:block;
+  background:linear-gradient(135deg,var(--teal),#0d9488);
+  border:none;border-radius:50px;padding:15px 30px;
+  font-family:'DM Sans',sans-serif;font-size:1em;font-weight:600;
+  color:#fff;cursor:pointer;transition:all .25s;touch-action:manipulation;
+  box-shadow:0 4px 24px rgba(20,184,166,.35);}
+.cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(20,184,166,.5);}
+.cta-btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted);box-shadow:none;}
+.insight{background:var(--bg2);border:1px solid rgba(20,184,166,.15);border-left:3px solid var(--teal);
+  border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+.insight .lbl{font-size:.68em;text-transform:uppercase;letter-spacing:2px;color:var(--teal);margin-bottom:6px;}
+.insight p{font-family:'Lora',serif;font-size:1em;line-height:1.72;color:var(--text);}
+.insight p em{color:var(--cyan);font-style:normal;font-weight:600;}
+.insight.cyan{border-left-color:var(--cyan);border-color:rgba(6,182,212,.15);} .insight.cyan .lbl{color:var(--cyan);}
+.learn-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:16px;}
+.learn-box .learn-title{font-size:.72em;text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:6px;}
+.learn-box.try-this{border-left:3px solid var(--cyan);} .learn-box.try-this .learn-title{color:var(--cyan);}
+.learn-box.notice{border-left:3px solid var(--amber);} .learn-box.notice .learn-title{color:var(--amber);}
+.learn-box.why{border-left:3px solid var(--teal);} .learn-box.why .learn-title{color:var(--teal);}
+.learn-box p{font-family:'Lora',serif;font-size:.92em;line-height:1.7;color:var(--text);}
+.learn-box p em{color:var(--cyan);font-style:normal;font-weight:600;}
+.cv-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:4px;margin-bottom:12px;overflow:hidden;}
+canvas{display:block;width:100%;}
+.sim-btn{background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;
+  padding:8px 16px;font-family:'DM Sans',sans-serif;font-size:.82em;font-weight:600;
+  color:var(--teal);cursor:pointer;transition:all .2s;margin-bottom:12px;}
+.sim-btn:hover{border-color:var(--teal);background:var(--teal-dim);}
+.link-row{margin-bottom:16px;}
+.link-row a{color:var(--cyan);font-family:'Lora',serif;font-size:.95em;text-decoration:none;border-bottom:1px solid rgba(6,182,212,.3);}
+.link-row a:hover{border-bottom-color:var(--cyan);}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:50;}
+.bottom-pad{height:20px;}
+</style>
+<link rel="canonical" href="https://mathsedu.org/journeys/physics_sim_act3.html">
+<meta name="description" content="Act III of Physics of Everything: Turbulence and Magnetism — plasma, frozen-in fields, reconnection, and MHD turbulence.">
+</head>
+<body>
+<a href="physics_sim_act2.html" style="position:fixed;top:12px;left:16px;z-index:100;color:var(--muted);font-size:0.85em;text-decoration:none;font-family:Georgia,serif">&larr; Back to Act II</a>
+<canvas id="confetti"></canvas>
+<div id="bg"></div>
+<div id="app">
+  <div class="app-header">
+    <div class="header-logo"><a href="../index.html">maths<span>edu</span>.org</a></div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div style="font-size:.62em;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Act III of IV</div>
+      <div class="progress-dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S0: TITLE -->
+  <section class="screen active" id="s0">
+    <div class="act-title">
+      <div class="act-label">Act III of IV</div>
+      <div class="act-name">Turbulence and <em>Magnetism</em></div>
+      <div class="act-sub">When magnetic fields thread through plasma, physics gets truly extraordinary</div>
+    </div>
+    <button class="cta-btn" onclick="go(1)">Begin</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- S1: WHAT IS PLASMA? -->
+  <section class="screen" id="s1">
+    <div class="narrator">
+      <p>More than 99% of the visible universe is plasma &mdash; matter so hot that electrons are stripped from atoms. Unlike ordinary fluids, plasma conducts electricity and responds to magnetic fields.</p>
+    </div>
+    <div class="cv-wrap"><canvas id="plasmaCanvas" height="200"></canvas></div>
+    <button class="sim-btn" id="fieldBtn" onclick="toggleField()">Add Magnetic Field</button>
+    <button class="cta-btn" onclick="go(2)">Next &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- S2: FROZEN-IN FIELD LINES -->
+  <section class="screen" id="s2">
+    <div class="narrator">
+      <p>In a highly conducting plasma, magnetic field lines behave as if they are <em>frozen</em> into the fluid. Where the plasma goes, the field follows. Where the field bends, the plasma must respond.</p>
+    </div>
+    <div class="cv-wrap"><canvas id="frozenCanvas" height="250"></canvas></div>
+    <div class="insight">
+      <div class="lbl">Insight</div>
+      <p>This &lsquo;frozen-in&rsquo; theorem was discovered by Hannes Alfv&eacute;n in 1942 &mdash; work that would earn him the Nobel Prize.</p>
+    </div>
+    <button class="cta-btn" onclick="go(3)">Next &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- S3: MAGNETIC RECONNECTION -->
+  <section class="screen" id="s3">
+    <div class="narrator">
+      <p>But field lines cannot stretch forever. When opposing field lines are forced together, they <em>reconnect</em> &mdash; releasing enormous energy in an instant. This is the physics behind solar flares.</p>
+    </div>
+    <div class="cv-wrap"><canvas id="reconCanvas" height="250"></canvas></div>
+    <button class="sim-btn" id="reconBtn" onclick="reconnect()">Reconnect!</button>
+    <div class="learn-box notice">
+      <div class="learn-title">Notice</div>
+      <p>This single process powers solar flares that can release the energy of billions of nuclear bombs in minutes.</p>
+    </div>
+    <button class="cta-btn" onclick="go(4)">Next &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- S4: MHD TURBULENCE -->
+  <section class="screen" id="s4">
+    <div class="narrator">
+      <p>When magnetic fields and turbulent plasma interact across vast scales &mdash; in the solar wind, in accretion discs, in galaxy clusters &mdash; we enter the realm of <em>magnetohydrodynamic turbulence</em>.</p>
+    </div>
+    <div class="cv-wrap"><canvas id="mhdCanvas" height="250"></canvas></div>
+    <div class="insight cyan">
+      <div class="lbl">Insight</div>
+      <p>The Well dataset includes MHD simulations at resolutions of 64&sup3; and 256&sup3; &mdash; capturing the full complexity of this turbulent dance between fluid and field.</p>
+    </div>
+    <button class="cta-btn" onclick="go(5)">Next &rarr;</button>
+    <div class="bottom-pad"></div>
+  </section>
+
+  <!-- S5: COMPLETION -->
+  <section class="screen" id="s5">
+    <div class="narrator">
+      <p>From frozen field lines to explosive reconnection to the turbulent dance of plasma and magnetism &mdash; these are the forces that shape stars, drive space weather, and may one day give us fusion energy. One more act remains: the most violent events in the cosmos&hellip;</p>
+    </div>
+    <div class="link-row"><a href="../mhd_turbulence.html">Explore the full MHD Turbulence page &rarr;</a></div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button class="cta-btn" onclick="celebrate()">Continue to Act IV &rarr;</button>
+      <button class="cta-btn ghost" onclick="window.location.href='../index.html'">&larr; Back to Index</button>
+    </div>
+    <div class="bottom-pad"></div>
+  </section>
+</div>
+
+<script>
+const KEY='vdj_physics_sim_act3';
+let cur=0, dots=document.querySelectorAll('.dot');
+
+function go(n){
+  document.getElementById('s'+cur).classList.remove('active');
+  cur=n;
+  document.getElementById('s'+n).classList.add('active');
+  updateDots();
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(n===1) initPlasma();
+  if(n===2) initFrozen();
+  if(n===3) initRecon();
+  if(n===4) initMHD();
+}
+
+function updateDots(){
+  dots.forEach((d,i)=>{
+    d.className='dot';
+    if(i<cur) d.classList.add('done');
+    if(i===cur) d.classList.add('active');
+  });
+}
+
+/* ── S1: PLASMA PARTICLES ── */
+let plasmaAf, plasmaField=false, particles=[];
+function initPlasma(){
+  const cv=document.getElementById('plasmaCanvas');
+  const W=cv.parentElement.clientWidth-8; cv.width=W; cv.height=200;
+  const ctx=cv.getContext('2d');
+  particles=[];
+  for(let i=0;i<40;i++) particles.push({
+    x:Math.random()*W, y:Math.random()*200,
+    vx:(Math.random()-0.5)*1.2, vy:(Math.random()-0.5)*1.2,
+    angle:Math.random()*Math.PI*2, speed:0.5+Math.random()*0.8
+  });
+  plasmaField=false;
+  document.getElementById('fieldBtn').textContent='Add Magnetic Field';
+  if(plasmaAf) cancelAnimationFrame(plasmaAf);
+  function draw(){
+    ctx.fillStyle='rgba(10,20,32,0.92)'; ctx.fillRect(0,0,W,200);
+    if(plasmaField){
+      ctx.strokeStyle='rgba(20,184,166,0.12)'; ctx.lineWidth=1;
+      for(let lx=30;lx<W;lx+=40){ctx.beginPath();ctx.moveTo(lx,0);ctx.lineTo(lx,200);ctx.stroke();}
+    }
+    particles.forEach(p=>{
+      if(plasmaField){
+        const cx=Math.round(p.x/40)*40;
+        const dx=cx-p.x;
+        p.angle+=0.06;
+        p.x+=dx*0.02+Math.cos(p.angle)*p.speed*0.6;
+        p.y+=p.speed*0.5;
+      } else {
+        p.x+=p.vx; p.y+=p.vy;
+        p.vx+=(Math.random()-0.5)*0.15;
+        p.vy+=(Math.random()-0.5)*0.15;
+        p.vx*=0.98; p.vy*=0.98;
+      }
+      if(p.x<0)p.x+=W; if(p.x>W)p.x-=W;
+      if(p.y<0)p.y+=200; if(p.y>200)p.y-=200;
+      ctx.fillStyle=plasmaField?'rgba(20,184,166,0.9)':'rgba(255,255,255,0.8)';
+      ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2); ctx.fill();
+    });
+    plasmaAf=requestAnimationFrame(draw);
+  }
+  draw();
+}
+function toggleField(){
+  plasmaField=!plasmaField;
+  document.getElementById('fieldBtn').textContent=plasmaField?'Remove Magnetic Field':'Add Magnetic Field';
+}
+
+/* ── S2: FROZEN-IN FIELD LINES ── */
+let frozenAf, frozenT=0;
+function initFrozen(){
+  const cv=document.getElementById('frozenCanvas');
+  const W=cv.parentElement.clientWidth-8; cv.width=W; cv.height=250;
+  const ctx=cv.getContext('2d');
+  frozenT=0;
+  if(frozenAf) cancelAnimationFrame(frozenAf);
+  function draw(){
+    frozenT+=0.012;
+    ctx.fillStyle='rgba(10,20,32,0.95)'; ctx.fillRect(0,0,W,250);
+    const cx=W/2, cy=125, strength=40;
+    ctx.strokeStyle='rgba(20,184,166,0.5)'; ctx.lineWidth=1.5;
+    for(let i=0;i<20;i++){
+      const baseX=W*0.08+i*(W*0.84/19);
+      ctx.beginPath();
+      for(let sy=0;sy<=250;sy+=3){
+        const dx=baseX-cx, dy=sy-cy;
+        const dist=Math.sqrt(dx*dx+dy*dy)+1;
+        const angle=Math.atan2(dy,dx);
+        const warp=strength*Math.sin(frozenT*2)/(dist*0.3+20);
+        const px=baseX+Math.sin(angle+frozenT)*warp;
+        sy===0?ctx.moveTo(px,sy):ctx.lineTo(px,sy);
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle='rgba(6,182,212,0.15)';
+    ctx.beginPath(); ctx.arc(cx,cy,20+5*Math.sin(frozenT*3),0,Math.PI*2); ctx.fill();
+    frozenAf=requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+/* ── S3: MAGNETIC RECONNECTION ── */
+let reconAf, reconState=0, reconT=0, flashAlpha=0;
+function initRecon(){
+  const cv=document.getElementById('reconCanvas');
+  const W=cv.parentElement.clientWidth-8; cv.width=W; cv.height=250;
+  const ctx=cv.getContext('2d');
+  reconState=0; reconT=0; flashAlpha=0;
+  document.getElementById('reconBtn').disabled=false;
+  if(reconAf) cancelAnimationFrame(reconAf);
+  function draw(){
+    reconT+=0.015;
+    ctx.fillStyle='rgba(10,20,32,0.95)'; ctx.fillRect(0,0,W,250);
+    const cx=W/2, cy=125;
+    const squeeze=reconState===1?Math.min(reconT*2,1):0;
+    const snap=reconState===2?Math.min((reconT-0.5)*3,1):0;
+    ctx.lineWidth=2;
+    for(let i=0;i<6;i++){
+      const off=(i-2.5)*18;
+      ctx.strokeStyle=`rgba(20,184,166,${0.4+i*0.08})`;
+      ctx.beginPath();
+      if(snap<1){
+        const pinch=squeeze*30;
+        for(let t=0;t<=1;t+=0.02){
+          const x=W*0.1+t*W*0.35;
+          const baseY=cy+off;
+          const dx=x-(cx-pinch); const distFactor=1/(1+dx*dx*0.0003);
+          const y=baseY-distFactor*pinch*2*(off>0?1:-1);
+          t===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+        }
+        ctx.stroke();
+        ctx.beginPath();
+        for(let t=0;t<=1;t+=0.02){
+          const x=W*0.55+t*W*0.35;
+          const baseY=cy-off;
+          const dx=x-(cx+pinch); const distFactor=1/(1+dx*dx*0.0003);
+          const y=baseY+distFactor*pinch*2*(off>0?1:-1);
+          t===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+        }
+        ctx.stroke();
+      } else {
+        for(let t=0;t<=1;t+=0.02){
+          const x=W*0.15+t*W*0.7;
+          const y=cy+off+(Math.abs(off)>0?1:-1)*20*Math.sin(t*Math.PI)*snap*(off>0?-1:1);
+          t===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+        }
+        ctx.stroke();
+      }
+    }
+    if(flashAlpha>0){
+      const grad=ctx.createRadialGradient(cx,cy,0,cx,cy,60+40*(1-flashAlpha));
+      grad.addColorStop(0,`rgba(251,191,36,${flashAlpha})`);
+      grad.addColorStop(0.5,`rgba(20,184,166,${flashAlpha*0.5})`);
+      grad.addColorStop(1,'rgba(20,184,166,0)');
+      ctx.fillStyle=grad;
+      ctx.beginPath(); ctx.arc(cx,cy,60+40*(1-flashAlpha),0,Math.PI*2); ctx.fill();
+      flashAlpha-=0.015;
+    }
+    reconAf=requestAnimationFrame(draw);
+  }
+  draw();
+}
+function reconnect(){
+  reconState=1; reconT=0;
+  document.getElementById('reconBtn').disabled=true;
+  setTimeout(()=>{reconState=2;flashAlpha=1;},800);
+  setTimeout(()=>{document.getElementById('reconBtn').disabled=false;reconState=0;reconT=0;},3000);
+}
+
+/* ── S4: MHD TURBULENCE ── */
+let mhdAf, mhdParts=[], mhdT=0;
+function initMHD(){
+  const cv=document.getElementById('mhdCanvas');
+  const W=cv.parentElement.clientWidth-8; cv.width=W; cv.height=250;
+  const ctx=cv.getContext('2d');
+  mhdParts=[]; mhdT=0;
+  for(let i=0;i<80;i++) mhdParts.push({
+    x:Math.random()*W, y:Math.random()*250,
+    vx:(Math.random()-0.5)*1.5, vy:(Math.random()-0.5)*1.5
+  });
+  if(mhdAf) cancelAnimationFrame(mhdAf);
+  function draw(){
+    mhdT+=0.008;
+    ctx.fillStyle='rgba(10,20,32,0.88)'; ctx.fillRect(0,0,W,250);
+    ctx.strokeStyle='rgba(20,184,166,0.2)'; ctx.lineWidth=1.5;
+    for(let i=0;i<5;i++){
+      const by=50+i*40;
+      ctx.beginPath();
+      for(let x=0;x<W;x+=4){
+        const wobble=12*Math.sin(x*0.015+mhdT*3+i)*Math.cos(mhdT*2+i*0.7);
+        x===0?ctx.moveTo(x,by+wobble):ctx.lineTo(x,by+wobble);
+      }
+      ctx.stroke();
+    }
+    mhdParts.forEach(p=>{
+      p.vx+=(Math.random()-0.5)*0.3; p.vy+=(Math.random()-0.5)*0.3;
+      p.vx*=0.96; p.vy*=0.96;
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x+=W; if(p.x>W)p.x-=W;
+      if(p.y<0)p.y+=250; if(p.y>250)p.y-=250;
+      const spd=Math.sqrt(p.vx*p.vx+p.vy*p.vy);
+      const t=Math.min(spd/2,1);
+      const r=Math.round(30*(1-t)+20*t);
+      const g=Math.round(80*(1-t)+184*t);
+      const b=Math.round(200*(1-t)+166*t);
+      ctx.fillStyle=`rgba(${r},${g},${b},0.8)`;
+      ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2); ctx.fill();
+    });
+    mhdAf=requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+/* ── CONFETTI ── */
+function celebrate(){
+  localStorage.setItem(KEY,'done');
+  launchConfetti();
+  setTimeout(()=>window.location.href='physics_sim_act4.html',1200);
+}
+const cc=document.getElementById('confetti'),cxc=cc.getContext('2d');
+let cParts=[],cAf=null;
+function launchConfetti(){
+  cc.width=innerWidth;cc.height=innerHeight;cParts=[];
+  for(let i=0;i<90;i++) cParts.push({
+    x:Math.random()*cc.width,y:-20,
+    vx:(Math.random()-0.5)*5,vy:2+Math.random()*4,
+    c:['#14b8a6','#06b6d4','#fbbf24','#7dd3c0','#f0fdfa'][Math.floor(Math.random()*5)],
+    s:5+Math.random()*7,r:Math.random()*Math.PI*2,vr:(Math.random()-0.5)*0.2,l:1
+  });
+  if(cAf) cancelAnimationFrame(cAf);
+  animC();
+}
+function animC(){
+  cxc.clearRect(0,0,cc.width,cc.height);
+  cParts=cParts.filter(p=>p.l>0.01);
+  cParts.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.1;p.r+=p.vr;p.l-=0.012;
+    cxc.save();cxc.globalAlpha=p.l;cxc.translate(p.x,p.y);cxc.rotate(p.r);
+    cxc.fillStyle=p.c;cxc.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);cxc.restore();
+  });
+  if(cParts.length>0) cAf=requestAnimationFrame(animC); else cAf=null;
+}
+</script>
+</body>
+</html>

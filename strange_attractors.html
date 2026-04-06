@@ -266,6 +266,54 @@
         </ul>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SECTION 5: REACTION-DIFFUSION                              -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <h2>Section 5 &mdash; Reaction&ndash;Diffusion: When Chaos Creates Order</h2>
+
+    <div class="panel">
+        <p style="color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:14px">
+            Strange attractors reveal chaos in ODEs &mdash; deterministic systems producing unpredictable trajectories. But partial differential equations can do something even more surprising: generate beautiful, ordered patterns from uniform randomness. The Gray&ndash;Scott model shows chemistry spontaneously organising into spots, stripes, and waves.
+        </p>
+
+        <canvas id="canvasGS" width="400" height="400" style="margin:0 auto 14px;cursor:crosshair"></canvas>
+
+        <h3>Presets</h3>
+        <div class="btn-row" id="gsPresets">
+            <button class="btn active" data-f="0.028" data-k="0.062">Mitosis</button>
+            <button class="btn" data-f="0.06" data-k="0.062">Coral</button>
+            <button class="btn" data-f="0.03" data-k="0.06">Solitons</button>
+            <button class="btn" data-f="0.058" data-k="0.065">Worms</button>
+        </div>
+
+        <div class="slider-row">
+            <label>Feed rate F</label>
+            <input type="range" id="gsFeed" min="0.01" max="0.08" step="0.001" value="0.028">
+            <span class="slider-val" id="gsFeedVal">0.028</span>
+        </div>
+        <div class="slider-row">
+            <label>Kill rate k</label>
+            <input type="range" id="gsKill" min="0.04" max="0.07" step="0.001" value="0.062">
+            <span class="slider-val" id="gsKillVal">0.062</span>
+        </div>
+
+        <div class="btn-row">
+            <button class="btn" id="gsReset">Reset</button>
+        </div>
+
+        <div class="micro-note">Click on the canvas to seed new perturbations.</div>
+    </div>
+
+    <div class="insight-box">
+        <strong style="color:#e0e0e0;font-weight:400">From Chaos to Order &mdash; Turing Patterns.</strong>
+        In 1952, Alan Turing published <em>&ldquo;The Chemical Basis of Morphogenesis&rdquo;</em>, showing that two reacting chemicals diffusing at different rates can spontaneously break symmetry and form stable patterns &mdash; spots, stripes, and labyrinths. The Gray&ndash;Scott model is a minimal reaction&ndash;diffusion system that reproduces this phenomenon. These same equations appear in the <a href="https://github.com/PolymathicAI/the_well" style="color:#ef4444;text-decoration:none">The Well</a> dataset (PolymathicAI, NeurIPS 2024), a large-scale collection of PDE simulations designed to train foundation models for physical systems.
+    </div>
+
+    <div style="margin-top:14px;padding:10px 14px;border-left:2px solid rgba(239,68,68,0.3);font-size:0.78em;color:#606078;line-height:1.6">
+        Inspired by <a href="https://github.com/PolymathicAI/the_well" style="color:#ef4444;text-decoration:none">The Well</a> dataset (PolymathicAI, NeurIPS 2024).
+        <a href="references_the_well.html" style="color:#ef4444;text-decoration:none">Full references &rarr;</a>
+    </div>
+
 </div>
 
 <footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
@@ -868,6 +916,183 @@ function project3D(point, cx, cy, scale, rotX, rotY, perspective) {
         requestAnimationFrame(drawPhase);
     }
     drawPhase();
+})();
+
+
+// ═══════════════════════════════════════════════════════════════
+// SECTION 5: GRAY-SCOTT REACTION-DIFFUSION
+// ═══════════════════════════════════════════════════════════════
+(function() {
+    const canvas = document.getElementById('canvasGS');
+    const ctx = canvas.getContext('2d');
+
+    const N = 200;
+    const Du = 0.16, Dv = 0.08, dt = 1.0;
+    let F = 0.028, k = 0.062;
+
+    // Double-buffered grids
+    let u = new Float64Array(N * N);
+    let v = new Float64Array(N * N);
+    let uNext = new Float64Array(N * N);
+    let vNext = new Float64Array(N * N);
+
+    const feedSlider = document.getElementById('gsFeed');
+    const killSlider = document.getElementById('gsKill');
+    const feedVal = document.getElementById('gsFeedVal');
+    const killVal = document.getElementById('gsKillVal');
+
+    function seedPatch(cx, cy) {
+        const half = 7;
+        for (let dy = -half; dy <= half; dy++) {
+            for (let dx = -half; dx <= half; dx++) {
+                const x = ((cx + dx) % N + N) % N;
+                const y = ((cy + dy) % N + N) % N;
+                const idx = y * N + x;
+                u[idx] = 0.5 + (Math.random() - 0.5) * 0.02;
+                v[idx] = 0.25 + (Math.random() - 0.5) * 0.02;
+            }
+        }
+    }
+
+    function initGrid() {
+        u.fill(1.0);
+        v.fill(0.0);
+        // Seed several random patches
+        const numSeeds = 4 + Math.floor(Math.random() * 4);
+        for (let s = 0; s < numSeeds; s++) {
+            seedPatch(
+                30 + Math.floor(Math.random() * (N - 60)),
+                30 + Math.floor(Math.random() * (N - 60))
+            );
+        }
+    }
+
+    function step() {
+        for (let y = 0; y < N; y++) {
+            const yN = ((y - 1) + N) % N;
+            const yS = (y + 1) % N;
+            for (let x = 0; x < N; x++) {
+                const xW = ((x - 1) + N) % N;
+                const xE = (x + 1) % N;
+                const idx = y * N + x;
+
+                const uC = u[idx], vC = v[idx];
+
+                // 5-point stencil Laplacian
+                const lapU = u[yN * N + x] + u[yS * N + x] + u[y * N + xW] + u[y * N + xE] - 4 * uC;
+                const lapV = v[yN * N + x] + v[yS * N + x] + v[y * N + xW] + v[y * N + xE] - 4 * vC;
+
+                const uvv = uC * vC * vC;
+                uNext[idx] = uC + dt * (Du * lapU - uvv + F * (1.0 - uC));
+                vNext[idx] = vC + dt * (Dv * lapV + uvv - (F + k) * vC);
+            }
+        }
+        // Swap buffers
+        const tmpU = u; u = uNext; uNext = tmpU;
+        const tmpV = v; v = vNext; vNext = tmpV;
+    }
+
+    // Colourmap: v value -> RGBA
+    // v=0 -> (10,10,26), v=0.1 -> (80,15,15), v=0.25 -> (239,68,68), v=0.5 -> (255,180,100)
+    function colourmap(val) {
+        const t = Math.max(0, Math.min(val, 0.5));
+        let r, g, b;
+        if (t < 0.1) {
+            const s = t / 0.1;
+            r = 10 + (80 - 10) * s;
+            g = 10 + (15 - 10) * s;
+            b = 26 + (15 - 26) * s;
+        } else if (t < 0.25) {
+            const s = (t - 0.1) / 0.15;
+            r = 80 + (239 - 80) * s;
+            g = 15 + (68 - 15) * s;
+            b = 15 + (68 - 15) * s;
+        } else {
+            const s = (t - 0.25) / 0.25;
+            r = 239 + (255 - 239) * s;
+            g = 68 + (180 - 68) * s;
+            b = 68 + (100 - 68) * s;
+        }
+        return [r | 0, g | 0, b | 0];
+    }
+
+    // Offscreen canvas for the NxN simulation grid
+    const offscreen = document.createElement('canvas');
+    offscreen.width = N;
+    offscreen.height = N;
+    const offCtx = offscreen.getContext('2d');
+    const imgData = offCtx.createImageData(N, N);
+
+    function render() {
+        const data = imgData.data;
+        for (let i = 0; i < N * N; i++) {
+            const [r, g, b] = colourmap(v[i]);
+            const p = i * 4;
+            data[p]     = r;
+            data[p + 1] = g;
+            data[p + 2] = b;
+            data[p + 3] = 255;
+        }
+        offCtx.putImageData(imgData, 0, 0);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(offscreen, 0, 0, canvas.width, canvas.height);
+    }
+
+    function animate() {
+        for (let i = 0; i < 10; i++) step();
+        render();
+        requestAnimationFrame(animate);
+    }
+
+    // Slider handlers
+    feedSlider.oninput = function() {
+        F = +this.value;
+        feedVal.textContent = F.toFixed(3);
+    };
+    killSlider.oninput = function() {
+        k = +this.value;
+        killVal.textContent = k.toFixed(3);
+    };
+
+    // Preset buttons
+    const presetRow = document.getElementById('gsPresets');
+    presetRow.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn');
+        if (!btn) return;
+        presetRow.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        F = parseFloat(btn.dataset.f);
+        k = parseFloat(btn.dataset.k);
+        feedSlider.value = F; feedVal.textContent = F.toFixed(3);
+        killSlider.value = k; killVal.textContent = k.toFixed(3);
+        initGrid();
+    });
+
+    // Reset button
+    document.getElementById('gsReset').onclick = initGrid;
+
+    // Click to seed
+    canvas.addEventListener('click', function(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = N / rect.width;
+        const scaleY = N / rect.height;
+        const cx = Math.floor((e.clientX - rect.left) * scaleX);
+        const cy = Math.floor((e.clientY - rect.top) * scaleY);
+        seedPatch(cx, cy);
+    });
+
+    // HiDPI setup — scale canvas backing store for sharp rendering
+    (function setupHiDPI() {
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 400, cssH = 400;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        canvas.width = cssW;
+        canvas.height = cssH;
+    })();
+
+    initGrid();
+    animate();
 })();
 </script><script src="js/mathematician-cards.js" defer></script>
 </body>

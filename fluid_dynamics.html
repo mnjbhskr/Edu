@@ -192,8 +192,39 @@
             </div>
         </div>
 
-        <!-- Section 5: Summary -->
-        <h2>5. What Have We Learnt?</h2>
+        <!-- Section 5: Rayleigh-Bénard Convection -->
+        <h2>5. Rayleigh&ndash;B&eacute;nard Convection</h2>
+        <div class="panel">
+            <h3>Thermal Convection Cell</h3>
+            <canvas id="canvasRB"></canvas>
+            <div class="slider-row">
+                <label>Rayleigh number Ra</label>
+                <input type="range" id="sliderRa" min="1000" max="50000" value="10000" step="100">
+                <span class="slider-val" id="valRa">10000</span>
+            </div>
+            <div class="slider-row">
+                <label>Prandtl number Pr</label>
+                <input type="range" id="sliderPr" min="0.1" max="7.0" value="1.0" step="0.1">
+                <span class="slider-val" id="valPr">1.0</span>
+            </div>
+            <div class="btn-row">
+                <button class="btn" id="btnResetRB">Reset</button>
+                <button class="btn" id="btnArrowsRB">Show Arrows</button>
+            </div>
+            <div class="result-box">
+                <div id="rbStatus">Ra = <span class="result-big" id="rbRaDisplay">10000</span> &nbsp;&mdash;&nbsp; <span id="rbConvStatus">Convecting</span></div>
+            </div>
+            <div class="insight-box">
+                Rayleigh&ndash;B&eacute;nard convection arises when a fluid layer is heated from below. Below a critical Rayleigh number (Ra &asymp; 1708), heat transfers by conduction alone. Above it, buoyancy overcomes viscous damping and organised convection rolls emerge &mdash; the same physics that drives weather cells, ocean circulation, and stellar interiors. This simulation solves the 2D Boussinesq equations using a vorticity&ndash;streamfunction formulation, inspired by the <strong>PolymathicAI &ldquo;The Well&rdquo;</strong> dataset of high-fidelity PDE solutions presented at NeurIPS 2024.
+            </div>
+            <div style="margin-top:14px;padding:10px 14px;border-left:2px solid rgba(20,184,166,0.3);font-size:0.78em;color:#606078;line-height:1.6">
+                Inspired by <a href="https://github.com/PolymathicAI/the_well" style="color:#14b8a6;text-decoration:none">The Well</a> dataset (PolymathicAI, NeurIPS 2024).
+                <a href="references_the_well.html" style="color:#14b8a6;text-decoration:none">Full references &rarr;</a>
+            </div>
+        </div>
+
+        <!-- Section 6: Summary -->
+        <h2>6. What Have We Learnt?</h2>
         <div class="explain">
             <div class="explain-name">Key Equations</div>
             <div class="formula-block">
@@ -202,7 +233,8 @@
                 <strong>Reynolds number:</strong> Re = &rho;vL / &mu;<br>
                 <strong>Lift:</strong> L = &#189;&rho;v&sup2;S C<sub>L</sub><br>
                 <strong>Drag:</strong> D = &#189;&rho;v&sup2;S C<sub>D</sub><br>
-                <strong>Vortex velocity:</strong> v = &Gamma; / (2&pi;r)
+                <strong>Vortex velocity:</strong> v = &Gamma; / (2&pi;r)<br>
+                <strong>Rayleigh number:</strong> Ra = g&alpha;&Delta;T L&sup3; / (&nu;&kappa;)
             </div>
         </div>
         <div class="explain" style="margin-top:16px">
@@ -1174,6 +1206,260 @@
         }
         animateVortex();
     })();
+    /* ============================================================
+       SECTION 5: Rayleigh–Bénard Convection
+       ============================================================ */
+    (function() {
+        var canvas = document.getElementById('canvasRB');
+        var setup = setupHiDPI(canvas, 700, 400);
+        var ctx = setup.ctx, W = setup.w, H = setup.h;
+
+        var sliderRa = document.getElementById('sliderRa');
+        var sliderPr = document.getElementById('sliderPr');
+        var valRa = document.getElementById('valRa');
+        var valPr = document.getElementById('valPr');
+        var btnReset = document.getElementById('btnResetRB');
+        var btnArrows = document.getElementById('btnArrowsRB');
+        var rbRaDisplay = document.getElementById('rbRaDisplay');
+        var rbConvStatus = document.getElementById('rbConvStatus');
+
+        var NX = 100, NY = 50;
+        var dx = 1.0 / NY, dy = 1.0 / NY;
+        var dt = 0.0001;
+
+        var T, omega, psi, u, v;
+        var showArrows = false;
+
+        function allocField() {
+            return new Float64Array(NX * NY);
+        }
+
+        function idx(i, j) {
+            return j * NX + i;
+        }
+
+        function initFields() {
+            T = allocField();
+            omega = allocField();
+            psi = allocField();
+            u = allocField();
+            v = allocField();
+            // Initial temperature: linear gradient + small perturbation
+            for (var j = 0; j < NY; j++) {
+                for (var i = 0; i < NX; i++) {
+                    var Tval = 1.0 - j / (NY - 1);
+                    // Small random perturbation to break symmetry
+                    Tval += (Math.random() - 0.5) * 0.02;
+                    T[idx(i, j)] = Math.max(0, Math.min(1, Tval));
+                }
+            }
+            // Enforce BCs
+            for (var i = 0; i < NX; i++) {
+                T[idx(i, NY - 1)] = 0.0; // top cold
+                T[idx(i, 0)] = 1.0;       // bottom hot
+            }
+        }
+
+        initFields();
+
+        sliderRa.oninput = function() { valRa.textContent = this.value; };
+        sliderPr.oninput = function() { valPr.textContent = parseFloat(this.value).toFixed(1); };
+        btnReset.onclick = function() { initFields(); };
+        btnArrows.onclick = function() {
+            showArrows = !showArrows;
+            btnArrows.classList.toggle('active', showArrows);
+            btnArrows.textContent = showArrows ? 'Hide Arrows' : 'Show Arrows';
+        };
+
+        function computeVelocity() {
+            for (var j = 1; j < NY - 1; j++) {
+                for (var i = 1; i < NX - 1; i++) {
+                    var id = idx(i, j);
+                    u[id] = (psi[idx(i, j - 1)] - psi[idx(i, j + 1)]) / (2.0 * dy);
+                    v[id] = -(psi[idx(i + 1, j)] - psi[idx(i - 1, j)]) / (2.0 * dx);
+                }
+            }
+        }
+
+        function step() {
+            var Ra = parseFloat(sliderRa.value);
+            var Pr = parseFloat(sliderPr.value);
+            var kappa = 1.0;
+            var invDx2 = 1.0 / (dx * dx);
+            var invDy2 = 1.0 / (dy * dy);
+            var inv2dx = 1.0 / (2.0 * dx);
+            var inv2dy = 1.0 / (2.0 * dy);
+
+            // 1. Compute velocity from psi
+            computeVelocity();
+
+            // 2. Advect-diffuse temperature
+            var Tnew = allocField();
+            for (var j = 1; j < NY - 1; j++) {
+                for (var i = 1; i < NX - 1; i++) {
+                    var id = idx(i, j);
+                    var dTdx = (T[idx(i + 1, j)] - T[idx(i - 1, j)]) * inv2dx;
+                    var dTdy = (T[idx(i, j + 1)] - T[idx(i, j - 1)]) * inv2dy;
+                    var lapT = (T[idx(i + 1, j)] + T[idx(i - 1, j)] - 2.0 * T[id]) * invDx2
+                             + (T[idx(i, j + 1)] + T[idx(i, j - 1)] - 2.0 * T[id]) * invDy2;
+                    Tnew[id] = T[id] + dt * (-u[id] * dTdx - v[id] * dTdy + kappa * lapT);
+                }
+            }
+            // Temperature BCs
+            for (var i = 0; i < NX; i++) {
+                Tnew[idx(i, 0)] = 1.0;       // bottom hot
+                Tnew[idx(i, NY - 1)] = 0.0;  // top cold
+            }
+            // No-flux sides
+            for (var j = 0; j < NY; j++) {
+                Tnew[idx(0, j)] = Tnew[idx(1, j)];
+                Tnew[idx(NX - 1, j)] = Tnew[idx(NX - 2, j)];
+            }
+            T = Tnew;
+
+            // 3. Update vorticity
+            var omegaNew = allocField();
+            for (var j = 1; j < NY - 1; j++) {
+                for (var i = 1; i < NX - 1; i++) {
+                    var id = idx(i, j);
+                    var domegadx = (omega[idx(i + 1, j)] - omega[idx(i - 1, j)]) * inv2dx;
+                    var domegady = (omega[idx(i, j + 1)] - omega[idx(i, j - 1)]) * inv2dy;
+                    var lapOmega = (omega[idx(i + 1, j)] + omega[idx(i - 1, j)] - 2.0 * omega[id]) * invDx2
+                                 + (omega[idx(i, j + 1)] + omega[idx(i, j - 1)] - 2.0 * omega[id]) * invDy2;
+                    var dTdxLocal = (T[idx(i + 1, j)] - T[idx(i - 1, j)]) * inv2dx;
+                    omegaNew[id] = omega[id] + dt * (-u[id] * domegadx - v[id] * domegady + Pr * lapOmega + Ra * Pr * dTdxLocal);
+                }
+            }
+            // Vorticity BCs (no-slip walls from psi)
+            for (var i = 0; i < NX; i++) {
+                omegaNew[idx(i, 0)] = -2.0 * psi[idx(i, 1)] * invDy2;
+                omegaNew[idx(i, NY - 1)] = -2.0 * psi[idx(i, NY - 2)] * invDy2;
+            }
+            for (var j = 0; j < NY; j++) {
+                omegaNew[idx(0, j)] = -2.0 * psi[idx(1, j)] * invDx2;
+                omegaNew[idx(NX - 1, j)] = -2.0 * psi[idx(NX - 2, j)] * invDx2;
+            }
+            omega = omegaNew;
+
+            // 4. Solve Poisson: lap(psi) = -omega via Jacobi
+            var factor = 1.0 / (2.0 * (invDx2 + invDy2));
+            for (var iter = 0; iter < 30; iter++) {
+                var psiNew = allocField();
+                for (var j = 1; j < NY - 1; j++) {
+                    for (var i = 1; i < NX - 1; i++) {
+                        var id = idx(i, j);
+                        psiNew[id] = factor * (
+                            (psi[idx(i + 1, j)] + psi[idx(i - 1, j)]) * invDx2
+                          + (psi[idx(i, j + 1)] + psi[idx(i, j - 1)]) * invDy2
+                          + omega[id]
+                        );
+                    }
+                }
+                // psi=0 on all boundaries (already zero in new array)
+                psi = psiNew;
+            }
+        }
+
+        // Colour mapping: blue (cold) -> white (mid) -> red (hot)
+        function tempToRGB(t) {
+            t = Math.max(0, Math.min(1, t));
+            var r, g, b;
+            if (t < 0.5) {
+                var s = t / 0.5;
+                r = Math.round(s * 255);
+                g = Math.round(s * 255);
+                b = Math.round(100 + s * 155);
+            } else {
+                var s = (t - 0.5) / 0.5;
+                r = Math.round(255);
+                g = Math.round(255 * (1 - s));
+                b = Math.round(255 * (1 - s));
+            }
+            return [r, g, b];
+        }
+
+        // Off-screen canvas for heatmap at grid resolution
+        var offCanvas = document.createElement('canvas');
+        offCanvas.width = NX;
+        offCanvas.height = NY;
+        var offCtx = offCanvas.getContext('2d');
+
+        function render() {
+            // Render temperature to off-screen canvas at grid resolution
+            var imgData = offCtx.createImageData(NX, NY);
+            var data = imgData.data;
+            for (var j = 0; j < NY; j++) {
+                for (var i = 0; i < NX; i++) {
+                    var rgb = tempToRGB(T[idx(i, j)]);
+                    var off = (j * NX + i) * 4;
+                    data[off] = rgb[0];
+                    data[off + 1] = rgb[1];
+                    data[off + 2] = rgb[2];
+                    data[off + 3] = 255;
+                }
+            }
+            offCtx.putImageData(imgData, 0, 0);
+            // Scale to fill canvas (respects HiDPI via ctx.scale set by setupHiDPI)
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(offCanvas, 0, 0, W, H);
+
+            // Overlay velocity arrows
+            if (showArrows) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = 1;
+                var spacing = 8;
+                var arrowScale = 1500.0;
+                for (var gj = 2; gj < NY - 2; gj += spacing) {
+                    for (var gi = 2; gi < NX - 2; gi += spacing) {
+                        var id = idx(gi, gj);
+                        var uu = u[id], vv = v[id];
+                        var px0 = (gi / (NX - 1)) * W;
+                        var py0 = (gj / (NY - 1)) * H;
+                        var px1 = px0 + uu * arrowScale;
+                        var py1 = py0 + vv * arrowScale;
+                        ctx.beginPath();
+                        ctx.moveTo(px0, py0);
+                        ctx.lineTo(px1, py1);
+                        ctx.stroke();
+                        // Small arrowhead
+                        var ang = Math.atan2(py1 - py0, px1 - px0);
+                        var hl = 4;
+                        ctx.beginPath();
+                        ctx.moveTo(px1, py1);
+                        ctx.lineTo(px1 - hl * Math.cos(ang - 0.4), py1 - hl * Math.sin(ang - 0.4));
+                        ctx.moveTo(px1, py1);
+                        ctx.lineTo(px1 - hl * Math.cos(ang + 0.4), py1 - hl * Math.sin(ang + 0.4));
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function updateStatus() {
+            var Ra = parseFloat(sliderRa.value);
+            rbRaDisplay.textContent = Math.round(Ra);
+            if (Ra < 1708) {
+                rbConvStatus.textContent = 'Sub-critical (conduction only)';
+                rbConvStatus.style.color = '#808098';
+            } else {
+                rbConvStatus.textContent = 'Convecting';
+                rbConvStatus.style.color = '#14b8a6';
+            }
+        }
+
+        var animIdRB = null;
+        function animateRB() {
+            var substeps = 4;
+            for (var s = 0; s < substeps; s++) {
+                step();
+            }
+            render();
+            updateStatus();
+            animIdRB = requestAnimationFrame(animateRB);
+        }
+        animateRB();
+    })();
+
     </script>
 </body>
 </html>
