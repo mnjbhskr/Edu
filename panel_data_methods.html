@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Panel Data: Fixed Effects &amp; Random Effects – Interactive Econometrics</title>
+<meta name="description" content="Visualise panel data, the within transformation, and the Hausman test for fixed vs random effects.">
+<meta property="og:title" content="Panel Data Methods – Interactive Econometrics">
+<meta property="og:description" content="Interactive panel data, fixed effects, demeaning animation and Hausman test.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Panel Data: Fixed Effects & Random Effects","description":"Interactive panel data visualiser, within transformation and Hausman test.","creator":{"@type":"Person","name":"Manoj Bhaskar"},"license":"https://creativecommons.org/licenses/by-nc-sa/4.0/"}</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+.container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+.back{color:#606078;text-decoration:none;font-size:0.85em}
+.back:hover{color:#0ea5e9}
+h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+.subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+.panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+.panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+.btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+.btn.active{background:rgba(14,165,233,0.13);border-color:rgba(14,165,233,0.4);color:#0ea5e9}
+.slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+.slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+input[type=range]{flex:1;max-width:300px;accent-color:#0ea5e9;cursor:pointer}
+.slider-val{color:#0ea5e9;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+.result-box{background:rgba(14,165,233,0.06);border:1px solid rgba(14,165,233,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+.insight-box{background:rgba(14,165,233,0.04);border-left:3px solid rgba(14,165,233,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+.formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2;color:#c0c0d8}
+.difficulty{display:inline-flex;gap:4px;margin-left:12px;vertical-align:middle}
+.difficulty .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.difficulty .dot.filled{background:#0ea5e9}
+.difficulty .dot.empty{background:rgba(255,255,255,0.15)}
+.explore-next{margin-top:32px;padding:18px 22px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px}
+.explore-next h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.explore-next a{color:#0ea5e9;text-decoration:none;margin-right:18px;font-size:0.95em}
+.explore-next a:hover{text-decoration:underline}
+footer{text-align:center;padding:32px 0 18px;color:#505068;font-size:0.78em}
+footer a{color:#505068;margin:0 8px}
+footer a:hover{color:#0ea5e9}
+@media(max-width:600px){.container{padding:14px 8px 32px}h1{font-size:1.3em}canvas{max-width:100%}.slider-row{flex-direction:column;align-items:flex-start;gap:6px}input[type=range]{max-width:100%}}
+</style>
+</head>
+<body>
+<div class="container">
+<a href="topic-econometrics.html" class="back">← Econometrics</a>
+<h1>Panel Data: Fixed &amp; Random Effects <span class="difficulty"><span class="dot filled"></span><span class="dot filled"></span><span class="dot empty"></span></span></h1>
+<p class="subtitle">Exploiting within-unit variation to control for unobserved heterogeneity</p>
+
+<h2>1 · Panel Visualiser</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">Each colour represents a unit (e.g. firm). Toggle between pooled OLS (one line) and fixed effects (parallel lines with unit-specific intercepts).</p>
+<div class="panel">
+<div class="btn-row">
+<button class="btn active" id="btnPooled">Pooled OLS</button>
+<button class="btn" id="btnFE">Fixed Effects</button>
+</div>
+<canvas id="cvPanel" width="700" height="420"></canvas>
+<div class="result-box" id="resPanel">—</div>
+</div>
+<div class="insight-box">Pooled OLS ignores unobserved unit-level heterogeneity (e.g. firm quality). If these fixed effects correlate with the regressor, pooled OLS is biased. Fixed effects controls for all time-invariant unobservables by exploiting <strong>within-unit</strong> variation only.</div>
+
+<h2>2 · Within Transformation</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">Press "Demean" to animate the within transformation: subtracting unit means from each observation. The demeaned data gives the FE estimate.</p>
+<div class="panel">
+<div class="btn-row">
+<button class="btn" id="btnDemean">Demean (Animate)</button>
+<button class="btn" id="btnReset">Reset</button>
+</div>
+<canvas id="cvWithin" width="700" height="380"></canvas>
+<div class="result-box" id="resWithin">Press Demean to see the within transformation in action.</div>
+</div>
+<div class="formula-block">Within transformation: ÿᵢₜ = yᵢₜ − ȳᵢ, ẍᵢₜ = xᵢₜ − x̄ᵢ<br>FE estimator: β̂_FE = Σᵢ Σₜ ẍᵢₜ ÿᵢₜ / Σᵢ Σₜ ẍᵢₜ²</div>
+
+<h2>3 · Hausman Test</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">Toggle whether the unobserved effect (αᵢ) correlates with X. When it does, RE is inconsistent and the Hausman test should reject.</p>
+<div class="panel">
+<div class="slider-row"><label>Corr(αᵢ, X)</label><input type="range" id="slCorrAlpha" min="0" max="0.9" step="0.05" value="0"><span class="slider-val" id="vCorrAlpha">0.00</span></div>
+<div class="btn-row"><button class="btn" id="btnHausman">Run 500 Replications</button></div>
+<canvas id="cvHaus" width="700" height="300"></canvas>
+<div class="result-box" id="resHaus">Set correlation and press Run.</div>
+</div>
+<div class="insight-box">The Hausman test compares FE and RE estimates. Under H₀ (no correlation between αᵢ and X), both are consistent but RE is more efficient. Under the alternative, only FE is consistent.</div>
+
+<div class="explore-next">
+<h3>Explore Next</h3>
+<a href="instrumental_variables.html">Instrumental Variables →</a>
+</div>
+</div>
+<footer><a href="terms.html">Terms</a><a href="intellectual-property.html">IP</a><a href="privacy.html">Privacy</a><br>© 2025 mathsedu.org</footer>
+
+<script>
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function setupHiDPI(c,w,h){var d=window.devicePixelRatio||1;c.width=w*d;c.height=h*d;c.style.width=w+'px';c.style.height=h+'px';var x=c.getContext('2d');x.scale(d,d);return x}
+function rnormWith(r){var u=0,v=0;while(u===0)u=r();while(v===0)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function olsS(xs,ys){var n=xs.length,sx=0,sy=0,sxy=0,sxx=0;for(var i=0;i<n;i++){sx+=xs[i];sy+=ys[i];sxy+=xs[i]*ys[i];sxx+=xs[i]*xs[i]}var mx=sx/n,my=sy/n;var b1=(sxy-n*mx*my)/(sxx-n*mx*mx);if(!isFinite(b1))b1=0;return{b0:my-b1*mx,b1:b1}}
+
+var unitColors=['#0ea5e9','#f87171','#fbbf24','#22d3ee','#a78bfa','#34d399'];
+var nUnits=6,T=10,trueB1=0.8;
+
+/* Generate panel data */
+function genPanel(rng,corrAlpha){
+    var data=[];
+    for(var i=0;i<nUnits;i++){
+        var alpha_i=(i-nUnits/2)*2; // unit fixed effect
+        for(var t=0;t<T;t++){
+            var x=2+rnormWith(rng)*1.5+corrAlpha*alpha_i*0.3;
+            var y=alpha_i+trueB1*x+rnormWith(rng)*0.8;
+            data.push({unit:i,t:t,x:x,y:y,alpha:alpha_i});
+        }
+    }
+    return data;
+}
+
+var mainRng=mulberry32(9876);
+var panelData=genPanel(mainRng,0.5);
+
+/* Section 1 */
+(function(){
+var cv=document.getElementById('cvPanel');
+var W=700,H=420,ctx=setupHiDPI(cv,W,H);
+var showFE=false;
+
+function draw(){
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    var xMin=-2,xMax=8,yMin=-12,yMax=12;
+    var pL=60,pR=W-20,pT=20,pB=H-40;
+    function fx(v){return pL+(v-xMin)/(xMax-xMin)*(pR-pL)}
+    function fy(v){return pB-(v-yMin)/(yMax-yMin)*(pB-pT)}
+    // grid
+    ctx.strokeStyle='rgba(255,255,255,0.04)';
+    for(var gx=-2;gx<=8;gx+=2){ctx.beginPath();ctx.moveTo(fx(gx),pT);ctx.lineTo(fx(gx),pB);ctx.stroke();ctx.fillStyle='#606078';ctx.font='11px Georgia';ctx.fillText(gx,fx(gx)-4,pB+14)}
+    // points by unit
+    for(var i=0;i<panelData.length;i++){
+        var d=panelData[i];
+        ctx.beginPath();ctx.arc(fx(d.x),fy(d.y),4,0,Math.PI*2);
+        ctx.fillStyle=unitColors[d.unit%unitColors.length];ctx.fill();
+    }
+    if(!showFE){
+        // pooled OLS
+        var xs=panelData.map(function(d){return d.x}),ys=panelData.map(function(d){return d.y});
+        var f=olsS(xs,ys);
+        ctx.strokeStyle='#fff';ctx.lineWidth=2.5;
+        ctx.beginPath();ctx.moveTo(fx(xMin),fy(f.b0+f.b1*xMin));ctx.lineTo(fx(xMax),fy(f.b0+f.b1*xMax));ctx.stroke();
+        document.getElementById('resPanel').innerHTML='Pooled OLS: Ŷ = '+f.b0.toFixed(2)+' + <strong>'+f.b1.toFixed(3)+'</strong>·X (true β₁ = '+trueB1+')';
+    } else {
+        // FE: within estimator
+        var unitMeans={};
+        for(var i=0;i<nUnits;i++){
+            var ux=[],uy=[];
+            for(var j=0;j<panelData.length;j++)if(panelData[j].unit===i){ux.push(panelData[j].x);uy.push(panelData[j].y)}
+            var mx=0,my=0;for(var k=0;k<ux.length;k++){mx+=ux[k];my+=uy[k]}
+            unitMeans[i]={mx:mx/ux.length,my:my/uy.length};
+        }
+        // within slope
+        var num=0,den=0;
+        for(var i=0;i<panelData.length;i++){
+            var d=panelData[i],m=unitMeans[d.unit];
+            num+=(d.x-m.mx)*(d.y-m.my);den+=(d.x-m.mx)*(d.x-m.mx);
+        }
+        var bFE=den>0?num/den:0;
+        // draw unit lines
+        for(var i=0;i<nUnits;i++){
+            var m=unitMeans[i];
+            var b0i=m.my-bFE*m.mx;
+            ctx.strokeStyle=unitColors[i%unitColors.length];ctx.lineWidth=1.5;ctx.globalAlpha=0.6;
+            ctx.beginPath();ctx.moveTo(fx(xMin),fy(b0i+bFE*xMin));ctx.lineTo(fx(xMax),fy(b0i+bFE*xMax));ctx.stroke();
+        }
+        ctx.globalAlpha=1;
+        document.getElementById('resPanel').innerHTML='Fixed Effects: β̂_FE = <strong style="color:#0ea5e9">'+bFE.toFixed(3)+'</strong> (true β₁ = '+trueB1+') — parallel lines with unit-specific intercepts';
+    }
+    // legend
+    for(var i=0;i<nUnits;i++){
+        ctx.fillStyle=unitColors[i];ctx.font='11px Georgia';ctx.fillText('Unit '+(i+1),pR-70,pT+12+i*14);
+    }
+}
+
+document.getElementById('btnPooled').addEventListener('click',function(){showFE=false;this.classList.add('active');document.getElementById('btnFE').classList.remove('active');draw()});
+document.getElementById('btnFE').addEventListener('click',function(){showFE=true;this.classList.add('active');document.getElementById('btnPooled').classList.remove('active');draw()});
+draw();
+})();
+
+/* Section 2: Within transformation animation */
+(function(){
+var cv=document.getElementById('cvWithin');
+var W=700,H=380,ctx=setupHiDPI(cv,W,H);
+var animProgress=0; // 0=raw, 1=demeaned
+var animating=false;
+
+// compute unit means
+var unitMeans={};
+for(var i=0;i<nUnits;i++){
+    var ux=[],uy=[];
+    for(var j=0;j<panelData.length;j++)if(panelData[j].unit===i){ux.push(panelData[j].x);uy.push(panelData[j].y)}
+    var mx=0,my=0;for(var k=0;k<ux.length;k++){mx+=ux[k];my+=uy[k]}
+    unitMeans[i]={mx:mx/ux.length,my:my/uy.length};
+}
+
+function draw(){
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    var xMin=-5,xMax=6,yMin=-6,yMax=6;
+    if(animProgress<0.5){xMin=-3;xMax=9;yMin=-13;yMax=13}
+    var pL=60,pR=W-20,pT=20,pB=H-40;
+    function fx(v){return pL+(v-xMin)/(xMax-xMin)*(pR-pL)}
+    function fy(v){return pB-(v-yMin)/(yMax-yMin)*(pB-pT)}
+    // zero lines when demeaned
+    if(animProgress>0.3){
+        ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(fx(0),pT);ctx.lineTo(fx(0),pB);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(pL,fy(0));ctx.lineTo(pR,fy(0));ctx.stroke();
+    }
+    // points
+    for(var i=0;i<panelData.length;i++){
+        var d=panelData[i],m=unitMeans[d.unit];
+        var px=d.x*(1-animProgress)+(d.x-m.mx)*animProgress;
+        var py=d.y*(1-animProgress)+(d.y-m.my)*animProgress;
+        ctx.beginPath();ctx.arc(fx(px),fy(py),4,0,Math.PI*2);
+        ctx.fillStyle=unitColors[d.unit%unitColors.length];ctx.fill();
+    }
+    // fit line on demeaned data
+    if(animProgress>0.5){
+        var dxs=[],dys=[];
+        for(var i=0;i<panelData.length;i++){
+            var d=panelData[i],m=unitMeans[d.unit];
+            dxs.push(d.x-m.mx);dys.push(d.y-m.my);
+        }
+        var f=olsS(dxs,dys);
+        ctx.strokeStyle='rgba(255,255,255,0.7)';ctx.lineWidth=2;ctx.globalAlpha=animProgress;
+        ctx.beginPath();ctx.moveTo(fx(xMin),fy(f.b0+f.b1*xMin));ctx.lineTo(fx(xMax),fy(f.b0+f.b1*xMax));ctx.stroke();
+        ctx.globalAlpha=1;
+        if(animProgress>0.9)document.getElementById('resWithin').innerHTML='Within estimator β̂_FE = <strong style="color:#0ea5e9">'+f.b1.toFixed(3)+'</strong> (true β₁ = '+trueB1+') — all unit means collapsed to the origin';
+    }
+    ctx.fillStyle='#808098';ctx.font='11px Georgia';
+    ctx.fillText(animProgress<0.5?'Raw data':'Demeaned data (within transformation)',pL,H-8);
+}
+
+function animate(){
+    if(!animating)return;
+    animProgress+=0.015;
+    if(animProgress>=1){animProgress=1;animating=false}
+    draw();
+    if(animating)requestAnimationFrame(animate);
+}
+
+document.getElementById('btnDemean').addEventListener('click',function(){
+    if(animating)return;animating=true;animProgress=0;animate();
+});
+document.getElementById('btnReset').addEventListener('click',function(){
+    animating=false;animProgress=0;draw();
+    document.getElementById('resWithin').innerHTML='Press Demean to see the within transformation in action.';
+});
+draw();
+})();
+
+/* Section 3: Hausman test */
+(function(){
+var cv=document.getElementById('cvHaus');
+var W=700,H=300,ctx=setupHiDPI(cv,W,H);
+document.getElementById('slCorrAlpha').addEventListener('input',function(){document.getElementById('vCorrAlpha').textContent=parseFloat(this.value).toFixed(2)});
+
+document.getElementById('btnHausman').addEventListener('click',function(){
+    var corrA=parseFloat(document.getElementById('slCorrAlpha').value);
+    var nU=6,nT=10,nRep=500;
+    var feEst=[],reEst=[],hausStats=[];
+    var mcRng=mulberry32(4321);
+
+    for(var rep=0;rep<nRep;rep++){
+        var data=[];
+        for(var i=0;i<nU;i++){
+            var alpha_i=rnormWith(mcRng)*2;
+            for(var t=0;t<nT;t++){
+                var x=2+rnormWith(mcRng)*1.5+corrA*alpha_i;
+                var y=alpha_i+trueB1*x+rnormWith(mcRng)*0.8;
+                data.push({unit:i,x:x,y:y});
+            }
+        }
+        // FE
+        var uMeans={};
+        for(var i=0;i<nU;i++){
+            var sx=0,sy=0,cnt=0;
+            for(var j=0;j<data.length;j++)if(data[j].unit===i){sx+=data[j].x;sy+=data[j].y;cnt++}
+            uMeans[i]={mx:sx/cnt,my:sy/cnt};
+        }
+        var num=0,den=0;
+        for(var j=0;j<data.length;j++){var d=data[j],m=uMeans[d.unit];num+=(d.x-m.mx)*(d.y-m.my);den+=(d.x-m.mx)*(d.x-m.mx)}
+        var bFE=den>0?num/den:0;
+        feEst.push(bFE);
+        // RE (simplified: pooled OLS as approximation for this demo)
+        var allX=data.map(function(d){return d.x}),allY=data.map(function(d){return d.y});
+        var fPool=olsS(allX,allY);
+        reEst.push(fPool.b1);
+        // Hausman stat (simplified)
+        var diff=bFE-fPool.b1;
+        // Var(bFE-bRE) approx
+        var varFE=0;for(var j=0;j<data.length;j++){var d=data[j],m=uMeans[d.unit];var r=d.y-m.my-bFE*(d.x-m.mx);varFE+=r*r}
+        varFE=varFE/((nU*nT-nU-1)*den);if(!isFinite(varFE))varFE=0.01;
+        var haus=diff*diff/Math.max(varFE,1e-10);
+        if(isFinite(haus))hausStats.push(haus);
+    }
+    // draw histogram of Hausman stats
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    var capH=Math.min(40,Math.max.apply(null,hausStats));
+    var nBins=50,bw=capH/nBins;
+    var bins=new Array(nBins).fill(0);
+    for(var i=0;i<hausStats.length;i++){var b=Math.floor(hausStats[i]/bw);if(b>=nBins)b=nBins-1;if(b<0)b=0;bins[b]++}
+    var maxB=0;for(var i=0;i<nBins;i++)if(bins[i]>maxB)maxB=bins[i];
+    var pL=60,pR=W-20,pT=20,pB=H-35,barW=(pR-pL)/nBins;
+    for(var i=0;i<nBins;i++){var bh=bins[i]/maxB*(pB-pT);ctx.fillStyle='rgba(14,165,233,0.45)';ctx.fillRect(pL+i*barW,pB-bh,barW-1,bh)}
+    // chi2(1) critical at 5% = 3.84
+    var crit=3.84;
+    var cx=pL+(crit/capH)*(pR-pL);
+    ctx.strokeStyle='#f87171';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(cx,pT);ctx.lineTo(cx,pB);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#f87171';ctx.font='11px Georgia';ctx.fillText('χ²(1)=3.84',cx+4,pT+14);
+    var reject=0;for(var i=0;i<hausStats.length;i++)if(hausStats[i]>crit)reject++;
+    var meanFE=0,meanRE=0;for(var i=0;i<feEst.length;i++){meanFE+=feEst[i];meanRE+=reEst[i]}meanFE/=feEst.length;meanRE/=reEst.length;
+    document.getElementById('resHaus').innerHTML='Corr(αᵢ,X) = '+corrA.toFixed(2)+' | Hausman rejection rate: <strong style="color:#0ea5e9">'+(100*reject/nRep).toFixed(1)+'%</strong> | Mean FE: '+meanFE.toFixed(3)+' | Mean RE/Pooled: '+meanRE.toFixed(3)+' | True: '+trueB1;
+});
+})();
+</script>
+</body>
+</html>

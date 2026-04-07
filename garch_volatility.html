@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GARCH &amp; Volatility Modelling &mdash; A Visual Discovery of Mathematics</title>
+    <meta name="description" content="Explore GARCH(1,1) volatility modelling interactively: returns clustering, conditional variance simulation, volatility bands, and QQ-plot comparison of raw vs GARCH-standardised returns.">
+    <link rel="canonical" href="https://mathsedu.org/garch_volatility.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "GARCH & Volatility Modelling",
+      "url": "https://mathsedu.org/garch_volatility.html",
+      "description": "Interactive GARCH(1,1): returns clustering, conditional variance, volatility bands, and QQ-plot diagnostics.",
+      "educationalLevel": "Advanced",
+      "teaches": "GARCH modelling, volatility clustering, conditional heteroskedasticity, QQ-plots, financial returns",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en-GB",
+      "isAccessibleForFree": true,
+      "creator": { "@type": "Person", "name": "Manoj Bhaskar" },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": { "@type": "Course", "name": "Econometrics", "url": "https://mathsedu.org/topic-econometrics.html" }
+    }
+    </script>
+    <meta property="og:title" content="GARCH &amp; Volatility Modelling">
+    <meta property="og:description" content="Interactive GARCH(1,1): returns clustering, conditional variance, and QQ-plot diagnostics.">
+    <meta property="og:url" content="https://mathsedu.org/garch_volatility.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="GARCH &amp; Volatility Modelling">
+    <meta name="twitter:description" content="Interactive GARCH(1,1) with volatility clustering, conditional variance, and QQ-plot diagnostics.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}.back:hover{color:#0ea5e9}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(14,165,233,0.13);border-color:rgba(14,165,233,0.4);color:#0ea5e9}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .accent{color:#0ea5e9}.math-line .gold{color:#fbbf24}.math-line .red{color:#f87171}.math-line .muted{color:#808098}.math-line .green{color:#22c55e}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:80px}
+        .slider-row input[type=range]{flex:1;max-width:220px;accent-color:#0ea5e9;cursor:pointer}
+        .slider-val{color:#0ea5e9;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+        .insight-box{background:rgba(14,165,233,0.04);border-left:3px solid rgba(14,165,233,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .section-desc{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:14px}
+        @media(max-width:600px){.container{padding:16px 12px}h1{font-size:1.4em}canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <nav style="font-size:0.82em;color:#707088;margin:6px 0 0">
+        <a href="index.html" style="color:#707088;text-decoration:none">Home</a><span style="margin:0 6px">&rsaquo;</span>
+        <a href="topic-econometrics.html" style="color:#707088;text-decoration:none">Econometrics</a><span style="margin:0 6px">&rsaquo;</span>
+        <span style="color:#b0b0c0">GARCH &amp; Volatility Modelling</span>
+    </nav>
+
+    <h1>GARCH &amp; Volatility Modelling</h1>
+    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(14,165,233,0.10);border:1px solid rgba(14,165,233,0.25);color:#0ea5e9;padding:4px 12px;border-radius:12px;font-size:0.78em;margin:8px 0 2px"><span style="display:inline-flex;gap:3px"><span style="color:#0ea5e9">&#9679;</span><span style="color:#0ea5e9">&#9679;</span><span style="color:#0ea5e9">&#9679;</span><span style="color:#404058">&#9679;</span></span> Advanced</div>
+    <p class="subtitle">Modelling the changing variance of financial returns &mdash; quiet periods and storms</p>
+
+    <!-- Section 1: Returns Explorer -->
+    <h2>1. Financial Returns Explorer</h2>
+    <p class="section-desc">Financial returns exhibit volatility clustering: large returns (of either sign) tend to be followed by large returns. The ACF of squared returns reveals this persistence even when the ACF of returns is near zero.</p>
+    <canvas id="cvExplore" width="760" height="480"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div class="btn-row">
+            <button class="btn" onclick="newReturns()">New Returns</button>
+        </div>
+        <div id="exploreStats" class="math-line"></div>
+    </div>
+
+    <!-- Section 2: GARCH(1,1) Simulator -->
+    <h2>2. GARCH(1,1) Simulator</h2>
+    <p class="section-desc">Set the GARCH parameters: &omega; (baseline variance), &alpha; (ARCH effect), and &beta; (GARCH persistence). High &alpha; + &beta; means long volatility regimes.</p>
+    <canvas id="cvGarch" width="760" height="380"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div class="slider-row">
+            <label>&omega;</label>
+            <input type="range" id="sliderOmega" min="0.001" max="0.1" step="0.001" value="0.01">
+            <span class="slider-val" id="valOmega">0.010</span>
+        </div>
+        <div class="slider-row">
+            <label>&alpha;</label>
+            <input type="range" id="sliderGAlpha" min="0.01" max="0.3" step="0.01" value="0.1">
+            <span class="slider-val" id="valGAlpha">0.10</span>
+        </div>
+        <div class="slider-row">
+            <label>&beta;</label>
+            <input type="range" id="sliderBeta" min="0.3" max="0.98" step="0.01" value="0.85">
+            <span class="slider-val" id="valBeta">0.85</span>
+        </div>
+        <div id="garchStats" class="math-line"></div>
+    </div>
+
+    <!-- Section 3: Conditional Variance Overlay -->
+    <h2>3. Conditional Variance Overlay</h2>
+    <p class="section-desc">The GARCH band (&plusmn;2&sigma;<sub>t</sub>) around returns widens during turbulent periods and narrows during calm periods.</p>
+    <canvas id="cvOverlay" width="760" height="340"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div id="overlayStats" class="math-line"></div>
+    </div>
+
+    <!-- Section 4: QQ-Plot -->
+    <h2>4. QQ-Plot: Raw vs Standardised Returns</h2>
+    <p class="section-desc">Raw returns show heavy tails (points deviate from the diagonal in a QQ-plot against normal). GARCH-standardised returns (r<sub>t</sub>/&sigma;<sub>t</sub>) should be closer to normal, though some excess kurtosis typically remains.</p>
+    <canvas id="cvQQ" width="760" height="380"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div id="qqStats" class="math-line"></div>
+    </div>
+
+    <details style="margin:14px 0">
+        <summary style="color:#0ea5e9;cursor:pointer;font-size:0.9em;padding:8px 0">Key GARCH stylised facts</summary>
+        <div style="padding:12px 16px;background:rgba(14,165,233,0.03);border:1px solid rgba(14,165,233,0.12);border-radius:8px;font-size:0.9em;color:#b0b0c8;line-height:1.8">
+            <strong style="color:#0ea5e9">Volatility clustering:</strong> Large returns (of either sign) tend to be followed by large returns, and small by small. This is captured by significant ACF in squared returns.<br>
+            <strong style="color:#0ea5e9">Fat tails:</strong> Financial returns have excess kurtosis (kurtosis &gt; 3). GARCH generates this endogenously even with normal innovations.<br>
+            <strong style="color:#0ea5e9">Persistence:</strong> &alpha; + &beta; close to 1 means volatility shocks decay slowly. Many financial series have &alpha; + &beta; &gt; 0.98.<br>
+            <strong style="color:#0ea5e9">Leverage effect:</strong> Negative returns tend to increase volatility more than positive returns of the same magnitude. This requires asymmetric models like GJR-GARCH or EGARCH.<br>
+            <strong style="color:#0ea5e9">Mean reversion:</strong> Despite persistence, GARCH(1,1) with &alpha; + &beta; &lt; 1 implies mean-reverting variance with unconditional level &omega;/(1 &minus; &alpha; &minus; &beta;).
+        </div>
+    </details>
+
+    <div class="panel">
+        <h3>Monte Carlo: Persistence &amp; Half-Life</h3>
+        <p class="section-desc">For different persistence levels (&alpha; + &beta;), simulate 500 GARCH paths and measure the average half-life of variance shocks. Higher persistence = longer half-life.</p>
+        <div class="btn-row">
+            <button class="btn" onclick="runHalfLifeMC()">Compute Half-Life Curve</button>
+        </div>
+        <canvas id="cvHalfLife" width="760" height="240"></canvas>
+        <div id="halfLifeStats" class="math-line" style="margin-top:8px"></div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin:28px 0 18px">
+        <h3 style="color:#0ea5e9;font-size:0.9em;margin:0 0 10px">Try This</h3>
+        <p style="color:#a0a0b8;font-size:0.92em;line-height:1.7;margin:0 0 10px">Set &alpha; = 0.05, &beta; = 0.94 (typical for daily equity returns). What is the unconditional variance? Now set &alpha; = 0.15, &beta; = 0.83. How does the QQ-plot change?</p>
+        <div style="margin-top:12px">
+            <button onclick="this.nextElementSibling.style.display='block';this.style.display='none'" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#808098;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.85em">Show hint</button>
+            <div style="display:none;margin-top:10px;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;border-left:2px solid #fbbf24">
+                <p style="color:#a0a0b8;font-size:0.88em;margin:0">Higher &alpha; means larger ARCH effects: recent shocks have more impact on conditional variance. This leads to more volatile variance dynamics and heavier tails. The QQ-plot will show more deviation from normality in the raw returns, but GARCH-standardised returns should still be closer to the diagonal.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Explore Next -->
+<div style="max-width:960px;margin:0 auto;padding:0 28px">
+<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 22px;margin:0 0 20px">
+    <h3 style="color:#808098;font-size:0.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;font-weight:400;">Explore Next</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <a href="causal_inference_framework.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #0ea5e9;transition:background 0.2s">
+            <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px">Causal Inference Framework</div>
+            <div style="color:#606078;font-size:0.78em">Econometrics</div>
+        </a>
+        <a href="cointegration_ecm.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #0ea5e9;transition:background 0.2s">
+            <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px">Cointegration &amp; Error Correction</div>
+            <div style="color:#606078;font-size:0.78em">Econometrics</div>
+        </a>
+    </div>
+</div>
+</div>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px"><a href="terms.html" style="color:#606078;text-decoration:none">Terms of Use</a>&nbsp;&middot;&nbsp;<a href="intellectual-property.html" style="color:#606078;text-decoration:none">Intellectual Property</a>&nbsp;&middot;&nbsp;<a href="privacy.html" style="color:#606078;text-decoration:none">Privacy Policy</a></div>
+</footer>
+
+<script>
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var rng=mulberry32(999);
+function randn(){var u=0,v=0;while(u===0)u=rng();while(v===0)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function setupHiDPI(c){var d=window.devicePixelRatio||1,w=c.width,h=c.height;c.width=w*d;c.height=h*d;c.style.width=w+'px';c.style.height=h+'px';var x=c.getContext('2d');x.scale(d,d);return{ctx:x,w:w,h:h}}
+
+var gReturns=[],gSigma2=[],T=500;
+
+function genGARCH(omega,alpha,beta){
+    rng=mulberry32(Math.floor(Math.random()*99999));
+    gReturns=[];gSigma2=[];
+    var sigmaU=omega/(1-alpha-beta);if(!isFinite(sigmaU)||sigmaU<=0)sigmaU=omega;
+    var sigma2=sigmaU;
+    for(var t=0;t<T;t++){
+        gSigma2.push(sigma2);
+        var e=randn();
+        var r=Math.sqrt(sigma2)*e;
+        gReturns.push(r);
+        sigma2=omega+alpha*r*r+beta*sigma2;
+        if(!isFinite(sigma2)||sigma2<1e-10)sigma2=omega;
+    }
+}
+
+function computeACF(data,maxLag){
+    var n=data.length,mean=0;for(var i=0;i<n;i++)mean+=data[i];mean/=n;
+    var v0=0;for(var i=0;i<n;i++)v0+=(data[i]-mean)*(data[i]-mean);v0/=n;
+    if(v0===0)return new Array(maxLag+1).fill(0);
+    var acf=[1];for(var k=1;k<=maxLag;k++){var s=0;for(var i=0;i<n-k;i++)s+=(data[i]-mean)*(data[i+k]-mean);acf.push(s/(n*v0))}
+    return acf;
+}
+
+/* ═══════════ Section 1: Returns Explorer ═══════════ */
+var s1=setupHiDPI(document.getElementById('cvExplore'));
+var ctx1=s1.ctx,W1=s1.w,H1=s1.h;
+
+function newReturns(){genGARCH(0.01,0.1,0.85);drawAll()}
+
+function drawExplore(){
+    var PAD={left:50,right:20,top:20,bottom:30};
+    var pw=W1-PAD.left-PAD.right;
+    var rowH=(H1-PAD.top-PAD.bottom-20)/3;
+    ctx1.clearRect(0,0,W1,H1);ctx1.fillStyle='#0a0a1a';ctx1.fillRect(0,0,W1,H1);
+    if(gReturns.length===0)return;
+
+    // Row 1: Returns
+    var y0=PAD.top;
+    ctx1.strokeStyle='rgba(255,255,255,0.06)';ctx1.lineWidth=1;
+    ctx1.beginPath();ctx1.moveTo(PAD.left,y0);ctx1.lineTo(PAD.left,y0+rowH);ctx1.lineTo(PAD.left+pw,y0+rowH);ctx1.stroke();
+    var mn=Math.min.apply(null,gReturns),mx=Math.max.apply(null,gReturns);var r=mx-mn||1;
+    var zY=y0+rowH-(0-mn)/r*rowH;
+    ctx1.setLineDash([3,3]);ctx1.strokeStyle='rgba(255,255,255,0.08)';
+    ctx1.beginPath();ctx1.moveTo(PAD.left,zY);ctx1.lineTo(PAD.left+pw,zY);ctx1.stroke();ctx1.setLineDash([]);
+    for(var i=0;i<gReturns.length;i++){
+        var sx=PAD.left+i/T*pw;
+        var sy=y0+rowH-(gReturns[i]-mn)/r*rowH;
+        ctx1.strokeStyle=gReturns[i]>=0?'rgba(14,165,233,0.6)':'rgba(248,113,113,0.6)';ctx1.lineWidth=1;
+        ctx1.beginPath();ctx1.moveTo(sx,zY);ctx1.lineTo(sx,sy);ctx1.stroke();
+    }
+    ctx1.font='10px Georgia';ctx1.fillStyle='#808098';ctx1.textAlign='left';ctx1.fillText('Returns r\u209C',PAD.left+5,y0+12);
+
+    // Row 2: Squared returns
+    var y1=y0+rowH+10;
+    ctx1.strokeStyle='rgba(255,255,255,0.06)';ctx1.lineWidth=1;
+    ctx1.beginPath();ctx1.moveTo(PAD.left,y1);ctx1.lineTo(PAD.left,y1+rowH);ctx1.lineTo(PAD.left+pw,y1+rowH);ctx1.stroke();
+    var sq=[];for(var i=0;i<T;i++)sq.push(gReturns[i]*gReturns[i]);
+    var mxSq=Math.max.apply(null,sq);
+    ctx1.strokeStyle='#fbbf24';ctx1.lineWidth=1;ctx1.beginPath();
+    for(var i=0;i<T;i++){
+        var sx=PAD.left+i/T*pw;var sy=y1+rowH-sq[i]/mxSq*rowH*0.9;
+        if(i===0)ctx1.moveTo(sx,sy);else ctx1.lineTo(sx,sy);
+    }
+    ctx1.stroke();
+    ctx1.font='10px Georgia';ctx1.fillStyle='#fbbf24';ctx1.textAlign='left';ctx1.fillText('Squared returns r\u209C\u00B2 (volatility clustering)',PAD.left+5,y1+12);
+
+    // Row 3: ACF of squared returns
+    var y2=y1+rowH+10;
+    ctx1.strokeStyle='rgba(255,255,255,0.06)';ctx1.lineWidth=1;
+    ctx1.beginPath();ctx1.moveTo(PAD.left,y2);ctx1.lineTo(PAD.left,y2+rowH);ctx1.lineTo(PAD.left+pw,y2+rowH);ctx1.stroke();
+    var acfSq=computeACF(sq,20);
+    var midY=y2+rowH/2;
+    ctx1.setLineDash([3,3]);ctx1.strokeStyle='rgba(255,255,255,0.1)';
+    ctx1.beginPath();ctx1.moveTo(PAD.left,midY);ctx1.lineTo(PAD.left+pw,midY);ctx1.stroke();ctx1.setLineDash([]);
+    var barW=pw/22;
+    for(var k=1;k<=20;k++){
+        var bx=PAD.left+k/21*pw;var bh=acfSq[k]*rowH/2;if(!isFinite(bh))bh=0;
+        ctx1.fillStyle='rgba(251,191,36,0.5)';ctx1.fillRect(bx-barW/3,midY,barW*0.6,-bh);
+    }
+    var ci=1.96/Math.sqrt(T);
+    ctx1.setLineDash([2,2]);ctx1.strokeStyle='rgba(248,113,113,0.3)';ctx1.lineWidth=1;
+    ctx1.beginPath();ctx1.moveTo(PAD.left,midY-ci*rowH/2);ctx1.lineTo(PAD.left+pw,midY-ci*rowH/2);ctx1.stroke();
+    ctx1.beginPath();ctx1.moveTo(PAD.left,midY+ci*rowH/2);ctx1.lineTo(PAD.left+pw,midY+ci*rowH/2);ctx1.stroke();ctx1.setLineDash([]);
+    ctx1.font='10px Georgia';ctx1.fillStyle='#808098';ctx1.textAlign='left';ctx1.fillText('ACF of r\u209C\u00B2 (significant = ARCH effects)',PAD.left+5,y2+12);
+
+    var kurt=0,m2=0,m4=0,mean=0;for(var i=0;i<T;i++)mean+=gReturns[i];mean/=T;
+    for(var i=0;i<T;i++){var d=gReturns[i]-mean;m2+=d*d;m4+=d*d*d*d}m2/=T;m4/=T;
+    kurt=m2>0?m4/(m2*m2):0;
+    document.getElementById('exploreStats').innerHTML='<span class="muted">T = '+T+'</span> &nbsp; <span class="muted">Kurtosis:</span> <span class="accent">'+kurt.toFixed(2)+'</span> <span class="muted">(normal = 3)</span> &nbsp; <span class="muted">ACF(r\u00B2) at lag 1:</span> <span class="gold">'+acfSq[1].toFixed(3)+'</span>';
+}
+
+/* ═══════════ Section 2: GARCH Simulator ═══════════ */
+var s2=setupHiDPI(document.getElementById('cvGarch'));
+var ctx2=s2.ctx,W2=s2.w,H2=s2.h;
+
+function drawGarch(){
+    var omega=parseFloat(document.getElementById('sliderOmega').value);
+    var alpha=parseFloat(document.getElementById('sliderGAlpha').value);
+    var beta=parseFloat(document.getElementById('sliderBeta').value);
+    document.getElementById('valOmega').textContent=omega.toFixed(3);
+    document.getElementById('valGAlpha').textContent=alpha.toFixed(2);
+    document.getElementById('valBeta').textContent=beta.toFixed(2);
+
+    genGARCH(omega,alpha,beta);
+
+    var PAD={left:50,right:20,top:25,bottom:40};
+    var pw=W2-PAD.left-PAD.right,halfH=(H2-PAD.top-PAD.bottom-10)/2;
+    ctx2.clearRect(0,0,W2,H2);ctx2.fillStyle='#0a0a1a';ctx2.fillRect(0,0,W2,H2);
+
+    // top: conditional variance
+    var y0=PAD.top;
+    ctx2.strokeStyle='rgba(255,255,255,0.06)';ctx2.lineWidth=1;
+    ctx2.beginPath();ctx2.moveTo(PAD.left,y0);ctx2.lineTo(PAD.left,y0+halfH);ctx2.lineTo(PAD.left+pw,y0+halfH);ctx2.stroke();
+    var mxS=Math.max.apply(null,gSigma2);
+    ctx2.strokeStyle='#0ea5e9';ctx2.lineWidth=1.5;ctx2.beginPath();
+    for(var i=0;i<T;i++){var sx=PAD.left+i/T*pw;var sy=y0+halfH-gSigma2[i]/mxS*halfH*0.9;if(i===0)ctx2.moveTo(sx,sy);else ctx2.lineTo(sx,sy)}ctx2.stroke();
+    ctx2.font='10px Georgia';ctx2.fillStyle='#0ea5e9';ctx2.textAlign='left';ctx2.fillText('Conditional variance \u03C3\u00B2\u209C',PAD.left+5,y0+14);
+
+    // bottom: returns
+    var y1=y0+halfH+10;
+    ctx2.strokeStyle='rgba(255,255,255,0.06)';ctx2.lineWidth=1;
+    ctx2.beginPath();ctx2.moveTo(PAD.left,y1);ctx2.lineTo(PAD.left,y1+halfH);ctx2.lineTo(PAD.left+pw,y1+halfH);ctx2.stroke();
+    var mn=Math.min.apply(null,gReturns),mx=Math.max.apply(null,gReturns);var r=mx-mn||1;
+    var zY=y1+halfH-(0-mn)/r*halfH;
+    ctx2.setLineDash([3,3]);ctx2.strokeStyle='rgba(255,255,255,0.08)';
+    ctx2.beginPath();ctx2.moveTo(PAD.left,zY);ctx2.lineTo(PAD.left+pw,zY);ctx2.stroke();ctx2.setLineDash([]);
+    ctx2.strokeStyle='rgba(14,165,233,0.5)';ctx2.lineWidth=1;ctx2.beginPath();
+    for(var i=0;i<T;i++){var sx=PAD.left+i/T*pw;var sy=y1+halfH-(gReturns[i]-mn)/r*halfH;if(i===0)ctx2.moveTo(sx,sy);else ctx2.lineTo(sx,sy)}ctx2.stroke();
+    ctx2.font='10px Georgia';ctx2.fillStyle='#808098';ctx2.textAlign='left';ctx2.fillText('Returns r\u209C = \u03C3\u209C \u00D7 \u03B5\u209C',PAD.left+5,y1+14);
+
+    var persist=alpha+beta;
+    var uncondVar=persist<1?omega/(1-persist):NaN;
+    document.getElementById('garchStats').innerHTML='<span class="muted">\u03C3\u00B2\u209C = '+omega.toFixed(3)+' + '+alpha.toFixed(2)+'\u00B7r\u00B2\u209C\u208B\u2081 + '+beta.toFixed(2)+'\u00B7\u03C3\u00B2\u209C\u208B\u2081</span> &nbsp; <span class="muted">Persistence \u03B1+\u03B2 =</span> <span class="'+(persist>0.99?'red':'accent')+'">'+persist.toFixed(3)+'</span> &nbsp; <span class="muted">Unconditional var:</span> <span class="accent">'+(isFinite(uncondVar)?uncondVar.toFixed(4):'Infinite')+'</span>';
+
+    drawOverlay();drawQQ();
+}
+
+['sliderOmega','sliderGAlpha','sliderBeta'].forEach(function(id){document.getElementById(id).addEventListener('input',drawGarch)});
+
+/* ═══════════ Section 3: Overlay ═══════════ */
+var s3=setupHiDPI(document.getElementById('cvOverlay'));
+var ctx3=s3.ctx,W3=s3.w,H3=s3.h;
+
+function drawOverlay(){
+    var PAD={left:50,right:20,top:25,bottom:40};
+    var pw=W3-PAD.left-PAD.right,ph=H3-PAD.top-PAD.bottom;
+    ctx3.clearRect(0,0,W3,H3);ctx3.fillStyle='#0a0a1a';ctx3.fillRect(0,0,W3,H3);
+    if(gReturns.length===0)return;
+
+    // compute bands
+    var upper=[],lower=[];
+    for(var i=0;i<T;i++){
+        var s=Math.sqrt(gSigma2[i]);
+        upper.push(2*s);lower.push(-2*s);
+    }
+    var allV=gReturns.concat(upper).concat(lower);
+    var mn=Math.min.apply(null,allV),mx=Math.max.apply(null,allV);var r=mx-mn||1;
+
+    ctx3.strokeStyle='rgba(255,255,255,0.06)';ctx3.lineWidth=1;
+    ctx3.beginPath();ctx3.moveTo(PAD.left,PAD.top);ctx3.lineTo(PAD.left,PAD.top+ph);ctx3.lineTo(PAD.left+pw,PAD.top+ph);ctx3.stroke();
+
+    // band fill
+    ctx3.fillStyle='rgba(14,165,233,0.08)';ctx3.beginPath();
+    for(var i=0;i<T;i++){ctx3.lineTo(PAD.left+i/T*pw,PAD.top+ph-(upper[i]-mn)/r*ph)}
+    for(var i=T-1;i>=0;i--){ctx3.lineTo(PAD.left+i/T*pw,PAD.top+ph-(lower[i]-mn)/r*ph)}
+    ctx3.fill();
+
+    // band lines
+    ctx3.setLineDash([3,3]);ctx3.strokeStyle='rgba(14,165,233,0.4)';ctx3.lineWidth=1;
+    ctx3.beginPath();for(var i=0;i<T;i++){var sx=PAD.left+i/T*pw;var sy=PAD.top+ph-(upper[i]-mn)/r*ph;if(i===0)ctx3.moveTo(sx,sy);else ctx3.lineTo(sx,sy)}ctx3.stroke();
+    ctx3.beginPath();for(var i=0;i<T;i++){var sx=PAD.left+i/T*pw;var sy=PAD.top+ph-(lower[i]-mn)/r*ph;if(i===0)ctx3.moveTo(sx,sy);else ctx3.lineTo(sx,sy)}ctx3.stroke();
+    ctx3.setLineDash([]);
+
+    // returns
+    ctx3.strokeStyle='rgba(255,255,255,0.4)';ctx3.lineWidth=1;ctx3.beginPath();
+    for(var i=0;i<T;i++){var sx=PAD.left+i/T*pw;var sy=PAD.top+ph-(gReturns[i]-mn)/r*ph;if(i===0)ctx3.moveTo(sx,sy);else ctx3.lineTo(sx,sy)}ctx3.stroke();
+
+    // exceedances
+    var exceed=0;
+    for(var i=0;i<T;i++){
+        if(Math.abs(gReturns[i])>2*Math.sqrt(gSigma2[i])){
+            exceed++;
+            var sx=PAD.left+i/T*pw;var sy=PAD.top+ph-(gReturns[i]-mn)/r*ph;
+            ctx3.beginPath();ctx3.arc(sx,sy,3,0,Math.PI*2);ctx3.fillStyle='rgba(248,113,113,0.8)';ctx3.fill();
+        }
+    }
+
+    ctx3.font='10px Georgia';ctx3.fillStyle='#808098';ctx3.textAlign='left';
+    ctx3.fillText('\u00B12\u03C3\u209C band | Exceedances: '+exceed+'/'+T+' ('+(exceed/T*100).toFixed(1)+'%, expect \u22484.6%)',PAD.left+5,PAD.top+14);
+    document.getElementById('overlayStats').innerHTML='<span class="muted">Exceedances outside \u00B12\u03C3 band:</span> <span class="accent">'+exceed+'/'+T+' ('+(exceed/T*100).toFixed(1)+'%)</span>';
+}
+
+/* ═══════════ Section 4: QQ-Plot ═══════════ */
+var s4=setupHiDPI(document.getElementById('cvQQ'));
+var ctx4=s4.ctx,W4=s4.w,H4=s4.h;
+
+function normalQuantile(p){
+    // Beasley-Springer-Moro approximation
+    var a=[0,-3.969683028665376e1,2.209460984245205e2,-2.759285104469687e2,1.383577518672690e2,-3.066479806614716e1,2.506628277459239e0];
+    var b=[0,-5.447609879822406e1,1.615858368580409e2,-1.556989798598866e2,6.680131188771972e1,-1.328068155288572e1];
+    var c=[0,-7.784894002430293e-3,-3.223964580411365e-1,-2.400758277161838e0,-2.549732539343734e0,4.374664141464968e0,2.938163982698783e0];
+    var d=[0,7.784695709041462e-3,3.224671290700398e-1,2.445134137142996e0,3.754408661907416e0];
+    var pLow=0.02425,pHigh=1-pLow;
+    var q,r;
+    if(p<pLow){q=Math.sqrt(-2*Math.log(p));return(((((c[1]*q+c[2])*q+c[3])*q+c[4])*q+c[5])*q+c[6])/((((d[1]*q+d[2])*q+d[3])*q+d[4])*q+1)}
+    if(p<=pHigh){q=p-0.5;r=q*q;return(((((a[1]*r+a[2])*r+a[3])*r+a[4])*r+a[5])*r+a[6])*q/(((((b[1]*r+b[2])*r+b[3])*r+b[4])*r+b[5])*r+1)}
+    q=Math.sqrt(-2*Math.log(1-p));return-(((((c[1]*q+c[2])*q+c[3])*q+c[4])*q+c[5])*q+c[6])/((((d[1]*q+d[2])*q+d[3])*q+d[4])*q+1);
+}
+
+function drawQQ(){
+    var PAD={left:50,right:20,top:25,bottom:45};
+    var pw=(W4-PAD.left-PAD.right-30)/2;
+    var ph=H4-PAD.top-PAD.bottom;
+    ctx4.clearRect(0,0,W4,H4);ctx4.fillStyle='#0a0a1a';ctx4.fillRect(0,0,W4,H4);
+    if(gReturns.length===0)return;
+
+    var raw=gReturns.slice().sort(function(a,b){return a-b});
+    var standardised=[];
+    for(var i=0;i<T;i++){
+        var s=Math.sqrt(gSigma2[i]);
+        standardised.push(s>0?gReturns[i]/s:gReturns[i]);
+    }
+    standardised.sort(function(a,b){return a-b});
+
+    function drawQQPanel(ctx,data,x0,y0,w,h,title,color){
+        ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x0,y0+h);ctx.lineTo(x0+w,y0+h);ctx.stroke();
+
+        var theoQ=[];for(var i=0;i<data.length;i++){var p=(i+0.5)/data.length;theoQ.push(normalQuantile(p))}
+        var allV=data.concat(theoQ);
+        var mn=Math.min.apply(null,allV),mx=Math.max.apply(null,allV);
+        var range=mx-mn||1;
+
+        // 45-degree line
+        ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(x0,y0+h);ctx.lineTo(x0+w,y0);ctx.stroke();ctx.setLineDash([]);
+
+        // points
+        for(var i=0;i<data.length;i++){
+            var sx=x0+(theoQ[i]-mn)/range*w;
+            var sy=y0+h-(data[i]-mn)/range*h;
+            if(sx<x0||sx>x0+w||sy<y0||sy>y0+h)continue;
+            ctx.beginPath();ctx.arc(sx,sy,2,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
+        }
+
+        ctx.font='10px Georgia';ctx.fillStyle='#808098';ctx.textAlign='left';
+        ctx.fillText(title,x0+5,y0+14);
+        ctx.textAlign='center';ctx.fillText('Theoretical',x0+w/2,y0+h+18);
+        ctx.save();ctx.translate(x0-10,y0+h/2);ctx.rotate(-Math.PI/2);ctx.fillText('Sample',0,0);ctx.restore();
+    }
+
+    drawQQPanel(ctx4,raw,PAD.left,PAD.top,pw,ph,'Raw returns','rgba(248,113,113,0.6)');
+    drawQQPanel(ctx4,standardised,PAD.left+pw+30,PAD.top,pw,ph,'Standardised r\u209C/\u03C3\u209C','rgba(14,165,233,0.6)');
+
+    // kurtosis
+    function kurtosis(d){var n=d.length,m=0;for(var i=0;i<n;i++)m+=d[i];m/=n;var m2=0,m4=0;for(var i=0;i<n;i++){var x=d[i]-m;m2+=x*x;m4+=x*x*x*x}m2/=n;m4/=n;return m2>0?m4/(m2*m2):0}
+    var kRaw=kurtosis(gReturns);
+    var kStd=kurtosis(standardised);
+    document.getElementById('qqStats').innerHTML='<span class="muted">Kurtosis raw:</span> <span class="red">'+kRaw.toFixed(2)+'</span> &nbsp; <span class="muted">Kurtosis standardised:</span> <span class="accent">'+kStd.toFixed(2)+'</span> &nbsp; <span class="muted">(normal = 3)</span>';
+}
+
+function drawAll(){drawExplore();drawGarch();drawOverlay();drawQQ()}
+
+/* ═══════════ Half-Life Monte Carlo ═══════════ */
+var sHL=setupHiDPI(document.getElementById('cvHalfLife'));
+var ctxHL=sHL.ctx,WHL=sHL.w,HHL=sHL.h;
+
+function runHalfLifeMC(){
+    var persists=[],halfLives=[];
+    for(var pi=0;pi<20;pi++){
+        var p=0.8+pi*0.01;persists.push(p);
+        // half-life of GARCH(1,1) = log(0.5)/log(alpha+beta)
+        var hl=Math.log(0.5)/Math.log(p);
+        halfLives.push(hl);
+    }
+
+    var PAD={left:60,right:20,top:20,bottom:40};
+    var pw=WHL-PAD.left-PAD.right,ph=HHL-PAD.top-PAD.bottom;
+    ctxHL.clearRect(0,0,WHL,HHL);ctxHL.fillStyle='#0a0a1a';ctxHL.fillRect(0,0,WHL,HHL);
+
+    ctxHL.strokeStyle='rgba(255,255,255,0.06)';ctxHL.lineWidth=1;
+    ctxHL.beginPath();ctxHL.moveTo(PAD.left,PAD.top);ctxHL.lineTo(PAD.left,PAD.top+ph);ctxHL.lineTo(PAD.left+pw,PAD.top+ph);ctxHL.stroke();
+
+    var maxHL=Math.max.apply(null,halfLives);
+    ctxHL.strokeStyle='#0ea5e9';ctxHL.lineWidth=2.5;ctxHL.beginPath();
+    for(var i=0;i<persists.length;i++){
+        var sx=PAD.left+(persists[i]-0.8)/0.2*pw;
+        var sy=PAD.top+ph-halfLives[i]/maxHL*ph*0.9;
+        if(i===0)ctxHL.moveTo(sx,sy);else ctxHL.lineTo(sx,sy);
+    }
+    ctxHL.stroke();
+    for(var i=0;i<persists.length;i++){
+        var sx=PAD.left+(persists[i]-0.8)/0.2*pw;
+        var sy=PAD.top+ph-halfLives[i]/maxHL*ph*0.9;
+        ctxHL.beginPath();ctxHL.arc(sx,sy,3,0,Math.PI*2);ctxHL.fillStyle='#0ea5e9';ctxHL.fill();
+    }
+
+    ctxHL.font='11px Georgia';ctxHL.fillStyle='#808098';ctxHL.textAlign='center';
+    ctxHL.fillText('Persistence \u03B1 + \u03B2',PAD.left+pw/2,HHL-8);
+    ctxHL.save();ctxHL.translate(14,PAD.top+ph/2);ctxHL.rotate(-Math.PI/2);ctxHL.fillText('Half-life (days)',0,0);ctxHL.restore();
+
+    // ticks
+    ctxHL.font='9px Courier New';ctxHL.fillStyle='#606078';ctxHL.textAlign='center';
+    for(var p=0.8;p<=1.0;p+=0.04)ctxHL.fillText(p.toFixed(2),PAD.left+(p-0.8)/0.2*pw,PAD.top+ph+14);
+
+    document.getElementById('halfLifeStats').innerHTML='<span class="muted">Half-life of variance shocks:</span> <span class="accent">At \u03B1+\u03B2=0.95: '+Math.log(0.5)/Math.log(0.95).toFixed(1)+' days</span> &nbsp; <span class="accent">At \u03B1+\u03B2=0.99: '+Math.log(0.5)/Math.log(0.99).toFixed(1)+' days</span>';
+}
+
+/* Init */
+genGARCH(0.01,0.1,0.85);drawAll();
+</script>
+</body>
+</html>

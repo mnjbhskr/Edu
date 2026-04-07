@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Multicollinearity, Specification &amp; Model Selection – Interactive Econometrics</title>
+<meta name="description" content="Explore how multicollinearity inflates variance, omitted variable bias, and AIC/BIC model selection.">
+<meta property="og:title" content="Multicollinearity & Model Selection – Interactive Econometrics">
+<meta property="og:description" content="Interactive VIF explorer, omitted variable bias simulator and information criteria.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Multicollinearity, Specification & Model Selection","description":"Interactive exploration of VIF, OVB and AIC/BIC.","creator":{"@type":"Person","name":"Manoj Bhaskar"},"license":"https://creativecommons.org/licenses/by-nc-sa/4.0/"}</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+.container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+.back{color:#606078;text-decoration:none;font-size:0.85em}
+.back:hover{color:#0ea5e9}
+h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+.subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+.panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+.panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+.btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+.btn.active{background:rgba(14,165,233,0.13);border-color:rgba(14,165,233,0.4);color:#0ea5e9}
+.slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+.slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+input[type=range]{flex:1;max-width:300px;accent-color:#0ea5e9;cursor:pointer}
+.slider-val{color:#0ea5e9;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+.result-box{background:rgba(14,165,233,0.06);border:1px solid rgba(14,165,233,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+.insight-box{background:rgba(14,165,233,0.04);border-left:3px solid rgba(14,165,233,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+.formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2;color:#c0c0d8}
+.difficulty{display:inline-flex;gap:4px;margin-left:12px;vertical-align:middle}
+.difficulty .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.difficulty .dot.filled{background:#0ea5e9}
+.difficulty .dot.empty{background:rgba(255,255,255,0.15)}
+.explore-next{margin-top:32px;padding:18px 22px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px}
+.explore-next h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.explore-next a{color:#0ea5e9;text-decoration:none;margin-right:18px;font-size:0.95em}
+.explore-next a:hover{text-decoration:underline}
+footer{text-align:center;padding:32px 0 18px;color:#505068;font-size:0.78em}
+footer a{color:#505068;margin:0 8px}
+footer a:hover{color:#0ea5e9}
+@media(max-width:600px){.container{padding:14px 8px 32px}h1{font-size:1.3em}canvas{max-width:100%}.slider-row{flex-direction:column;align-items:flex-start;gap:6px}input[type=range]{max-width:100%}}
+</style>
+</head>
+<body>
+<div class="container">
+<a href="topic-econometrics.html" class="back">← Econometrics</a>
+<h1>Multicollinearity &amp; Specification <span class="difficulty"><span class="dot filled"></span><span class="dot filled"></span><span class="dot empty"></span></span></h1>
+<p class="subtitle">Correlated regressors, omitted variables and model selection</p>
+
+<h2>1 · VIF Explorer</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">Increase the correlation between X₁ and X₂. Watch how the sampling distribution of β̂₁ widens dramatically. VIF = 1/(1−r²).</p>
+<div class="panel">
+<div class="slider-row"><label>Corr(X₁, X₂)</label><input type="range" id="slCorr" min="0" max="0.99" step="0.01" value="0.3"><span class="slider-val" id="vCorr">0.30</span></div>
+<div class="btn-row"><button class="btn" id="btnVIF">Run 1000 Replications</button></div>
+<canvas id="cvVIF" width="700" height="320"></canvas>
+<div class="result-box" id="resVIF">Set correlation and press Run.</div>
+</div>
+<div class="formula-block">VIF₁ = 1 / (1 − R²₁) where R²₁ is from regressing X₁ on X₂.<br>Var(β̂₁) = σ² / [SST₁ · (1 − R²₁)] — high correlation inflates variance.</div>
+
+<h2>2 · Omitted Variable Bias Simulator</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">True model: Y = β₀ + β₁X₁ + γ₂X₂ + u. Omitting X₂ biases β̂₁ by γ₂ × δ (the auxiliary slope of X₂ on X₁).</p>
+<div class="panel">
+<div class="slider-row"><label>γ₂ (coeff on X₂)</label><input type="range" id="slGamma" min="-3" max="3" step="0.1" value="1.5"><span class="slider-val" id="vGamma">1.5</span></div>
+<div class="slider-row"><label>Corr(X₁,X₂)</label><input type="range" id="slCorrOVB" min="-0.9" max="0.9" step="0.05" value="0.5"><span class="slider-val" id="vCorrOVB">0.50</span></div>
+<div class="btn-row"><button class="btn" id="btnOVB">Run 1000 Replications</button></div>
+<canvas id="cvOVB" width="700" height="320"></canvas>
+<div class="result-box" id="resOVB">Set parameters and press Run.</div>
+</div>
+<div class="insight-box">OVB = γ₂ × δ, where δ is the coefficient from regressing the omitted variable (X₂) on the included variable (X₁). The direction of bias depends on the signs of both γ₂ and δ.</div>
+
+<h2>3 · AIC / BIC Model Selection</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">True model is quadratic (Y = β₀ + β₁X + β₂X²). Add polynomial terms and see which model AIC/BIC prefer.</p>
+<div class="panel">
+<canvas id="cvIC" width="700" height="300"></canvas>
+<div class="result-box" id="resIC">Information criteria for polynomial models.</div>
+</div>
+
+<div class="explore-next">
+<h3>Explore Next</h3>
+<a href="omitted_variable_bias.html">Omitted Variable Bias &amp; Endogeneity →</a>
+<a href="heteroskedasticity_robust.html">Heteroskedasticity &amp; Robust Inference →</a>
+</div>
+</div>
+<footer><a href="terms.html">Terms</a><a href="intellectual-property.html">IP</a><a href="privacy.html">Privacy</a><br>© 2025 mathsedu.org</footer>
+
+<script>
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function setupHiDPI(c,w,h){var d=window.devicePixelRatio||1;c.width=w*d;c.height=h*d;c.style.width=w+'px';c.style.height=h+'px';var x=c.getContext('2d');x.scale(d,d);return x}
+function rnormWith(r){var u=0,v=0;while(u===0)u=r();while(v===0)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+
+function drawHist(ctx,W,H,est,trueVal,label,col){
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    var min=Infinity,max=-Infinity,sum=0;
+    for(var i=0;i<est.length;i++){if(est[i]<min)min=est[i];if(est[i]>max)max=est[i];sum+=est[i]}
+    var mean=sum/est.length;
+    var nBins=50,bw=(max-min)/nBins;if(bw===0)bw=1;
+    var bins=new Array(nBins).fill(0);
+    for(var i=0;i<est.length;i++){var b=Math.floor((est[i]-min)/bw);if(b>=nBins)b=nBins-1;if(b<0)b=0;bins[b]++}
+    var maxB=0;for(var i=0;i<nBins;i++)if(bins[i]>maxB)maxB=bins[i];
+    var pL=60,pR=W-20,pT=20,pB=H-35,barW=(pR-pL)/nBins;
+    for(var i=0;i<nBins;i++){var bh=bins[i]/maxB*(pB-pT);ctx.fillStyle=col||'rgba(14,165,233,0.45)';ctx.fillRect(pL+i*barW,pB-bh,barW-1,bh)}
+    var tx=pL+(trueVal-min)/(max-min)*(pR-pL);
+    ctx.strokeStyle='#f87171';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(tx,pT);ctx.lineTo(tx,pB);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#f87171';ctx.font='12px Georgia';ctx.fillText('True='+trueVal.toFixed(2),tx+5,pT+14);
+    var mx=pL+(mean-min)/(max-min)*(pR-pL);
+    ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(mx,pT);ctx.lineTo(mx,pB);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#fbbf24';ctx.font='12px Georgia';ctx.fillText('Mean='+mean.toFixed(3),mx+5,pT+30);
+    return{mean:mean,variance:est.reduce(function(s,v){return s+(v-mean)*(v-mean)},0)/est.length};
+}
+
+/* Section 1: VIF */
+(function(){
+var cv=document.getElementById('cvVIF');
+var W=700,H=320,ctx=setupHiDPI(cv,W,H);
+document.getElementById('slCorr').addEventListener('input',function(){document.getElementById('vCorr').textContent=parseFloat(this.value).toFixed(2)});
+
+document.getElementById('btnVIF').addEventListener('click',function(){
+    var rho=parseFloat(document.getElementById('slCorr').value);
+    var trueB1=1.5,n=50;
+    var estimates=[];
+    var mcRng=mulberry32(1111);
+    for(var rep=0;rep<1000;rep++){
+        var xs1=[],xs2=[],ys=[];
+        for(var i=0;i<n;i++){
+            var z1=rnormWith(mcRng),z2=rnormWith(mcRng);
+            var x1=z1;
+            var x2=rho*z1+Math.sqrt(1-rho*rho)*z2;
+            var y=2+trueB1*x1+0.8*x2+rnormWith(mcRng)*2;
+            xs1.push(x1);xs2.push(x2);ys.push(y);
+        }
+        // multiple regression using demeaned approach
+        var mx1=0,mx2=0,my=0;for(var i=0;i<n;i++){mx1+=xs1[i];mx2+=xs2[i];my+=ys[i]}mx1/=n;mx2/=n;my/=n;
+        var s11=0,s22=0,s12=0,s1y=0,s2y=0;
+        for(var i=0;i<n;i++){var d1=xs1[i]-mx1,d2=xs2[i]-mx2,dy=ys[i]-my;s11+=d1*d1;s22+=d2*d2;s12+=d1*d2;s1y+=d1*dy;s2y+=d2*dy}
+        var det=s11*s22-s12*s12;if(Math.abs(det)<1e-10)continue;
+        var b1=(s22*s1y-s12*s2y)/det;
+        if(isFinite(b1))estimates.push(b1);
+    }
+    var stats=drawHist(ctx,W,H,estimates,trueB1,'β̂₁');
+    var vif=1/(1-rho*rho);
+    document.getElementById('resVIF').innerHTML='Corr = '+rho.toFixed(2)+' | <strong style="color:#0ea5e9">VIF = '+vif.toFixed(2)+'</strong> | Mean β̂₁: '+stats.mean.toFixed(3)+' | Variance: '+stats.variance.toFixed(4);
+});
+})();
+
+/* Section 2: OVB */
+(function(){
+var cv=document.getElementById('cvOVB');
+var W=700,H=320,ctx=setupHiDPI(cv,W,H);
+['slGamma','slCorrOVB'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',function(){
+        var v=parseFloat(this.value).toFixed(id==='slGamma'?1:2);
+        document.getElementById('v'+id.replace('sl','')).textContent=v;
+    });
+});
+
+document.getElementById('btnOVB').addEventListener('click',function(){
+    var gamma2=parseFloat(document.getElementById('slGamma').value);
+    var rho=parseFloat(document.getElementById('slCorrOVB').value);
+    var trueB1=1.5,n=50;
+    var shortEst=[],longEst=[];
+    var mcRng=mulberry32(2222);
+    for(var rep=0;rep<1000;rep++){
+        var xs1=[],xs2=[],ys=[];
+        for(var i=0;i<n;i++){
+            var z1=rnormWith(mcRng),z2=rnormWith(mcRng);
+            var x1=z1;
+            var x2=rho*z1+Math.sqrt(Math.max(0,1-rho*rho))*z2;
+            var y=2+trueB1*x1+gamma2*x2+rnormWith(mcRng)*2;
+            xs1.push(x1);xs2.push(x2);ys.push(y);
+        }
+        // short regression (omit X2)
+        var sx=0,sy=0,sxy=0,sxx=0;
+        for(var i=0;i<n;i++){sx+=xs1[i];sy+=ys[i];sxy+=xs1[i]*ys[i];sxx+=xs1[i]*xs1[i]}
+        var mx=sx/n,my=sy/n;
+        var b1s=(sxy-n*mx*my)/(sxx-n*mx*mx);
+        if(isFinite(b1s))shortEst.push(b1s);
+    }
+    var stats=drawHist(ctx,W,H,shortEst,trueB1,'β̂₁ (short)');
+    // theoretical bias: gamma2 * delta where delta = cov(x1,x2)/var(x1) = rho * sd(x2)/sd(x1) = rho (since both standardised)
+    var delta=rho;
+    var thBias=gamma2*delta;
+    document.getElementById('resOVB').innerHTML='OVB formula: γ₂×δ = '+gamma2.toFixed(1)+'×'+delta.toFixed(2)+' = <strong style="color:#fbbf24">'+thBias.toFixed(2)+'</strong> | Observed bias: <strong style="color:#0ea5e9">'+(stats.mean-trueB1).toFixed(3)+'</strong>';
+});
+})();
+
+/* Section 3: AIC/BIC */
+(function(){
+var cv=document.getElementById('cvIC');
+var W=700,H=300,ctx=setupHiDPI(cv,W,H);
+var rng=mulberry32(4444);
+var n=80,xs=[],ys=[];
+for(var i=0;i<n;i++){var x=rng()*6;var y=1+2*x-0.3*x*x+rnormWith(rng)*2;xs.push(x);ys.push(y)}
+
+// Fit polynomials of degree 1 through 8
+var aicVals=[],bicVals=[];
+for(var deg=1;deg<=8;deg++){
+    // build X matrix columns: x, x^2, ..., x^deg
+    var cols=[];for(var d=1;d<=deg;d++){var c=[];for(var i=0;i<n;i++)c.push(Math.pow(xs[i],d));cols.push(c)}
+    // Gram-Schmidt OLS
+    var my=0;for(var i=0;i<n;i++)my+=ys[i];my/=n;
+    var yDem=ys.map(function(v){return v-my});
+    // demean cols
+    var dCols=cols.map(function(c){var m=0;for(var i=0;i<n;i++)m+=c[i];m/=n;return c.map(function(v){return v-m})});
+    var Q=[];
+    for(var ci=0;ci<dCols.length;ci++){
+        var v=dCols[ci].slice();
+        for(var q=0;q<Q.length;q++){var dot=0;for(var i=0;i<n;i++)dot+=v[i]*Q[q][i];for(var i=0;i<n;i++)v[i]-=dot*Q[q][i]}
+        var norm=0;for(var i=0;i<n;i++)norm+=v[i]*v[i];norm=Math.sqrt(norm);
+        if(norm>1e-10){for(var i=0;i<n;i++)v[i]/=norm;Q.push(v)}
+    }
+    var sst=0;for(var i=0;i<n;i++)sst+=yDem[i]*yDem[i];
+    var ssr=sst;
+    for(var q=0;q<Q.length;q++){var dot=0;for(var i=0;i<n;i++)dot+=yDem[i]*Q[q][i];ssr-=dot*dot}
+    if(ssr<0)ssr=0.01;
+    var k=deg+1; // including intercept
+    var aic=n*Math.log(ssr/n)+2*k;
+    var bic=n*Math.log(ssr/n)+k*Math.log(n);
+    aicVals.push(aic);bicVals.push(bic);
+}
+
+// draw
+ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+var pL=80,pR=W-30,pT=25,pB=H-40;
+var allV=aicVals.concat(bicVals);
+var minV=Infinity,maxV=-Infinity;for(var i=0;i<allV.length;i++){if(allV[i]<minV)minV=allV[i];if(allV[i]>maxV)maxV=allV[i]}
+var padV=(maxV-minV)*0.1;minV-=padV;maxV+=padV;
+function fx(v){return pL+(v-1)/(8-1)*(pR-pL)}
+function fy(v){return pB-(v-minV)/(maxV-minV)*(pB-pT)}
+// grid
+for(var g=1;g<=8;g++){var gx=fx(g);ctx.strokeStyle='rgba(255,255,255,0.05)';ctx.beginPath();ctx.moveTo(gx,pT);ctx.lineTo(gx,pB);ctx.stroke();ctx.fillStyle='#606078';ctx.font='11px Georgia';ctx.fillText('deg '+g,gx-12,pB+16)}
+// AIC
+ctx.strokeStyle='#0ea5e9';ctx.lineWidth=2;ctx.beginPath();
+for(var i=0;i<8;i++){var x=fx(i+1),y=fy(aicVals[i]);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}
+ctx.stroke();for(var i=0;i<8;i++){ctx.beginPath();ctx.arc(fx(i+1),fy(aicVals[i]),4,0,Math.PI*2);ctx.fillStyle='#0ea5e9';ctx.fill()}
+// BIC
+ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.beginPath();
+for(var i=0;i<8;i++){var x=fx(i+1),y=fy(bicVals[i]);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y)}
+ctx.stroke();for(var i=0;i<8;i++){ctx.beginPath();ctx.arc(fx(i+1),fy(bicVals[i]),4,0,Math.PI*2);ctx.fillStyle='#fbbf24';ctx.fill()}
+ctx.fillStyle='#0ea5e9';ctx.font='12px Georgia';ctx.fillText('● AIC',pR-100,pT+14);
+ctx.fillStyle='#fbbf24';ctx.fillText('● BIC',pR-100,pT+30);
+// find minima
+var minAIC=0,minBIC=0;
+for(var i=1;i<8;i++){if(aicVals[i]<aicVals[minAIC])minAIC=i;if(bicVals[i]<bicVals[minBIC])minBIC=i}
+// highlight
+ctx.beginPath();ctx.arc(fx(minAIC+1),fy(aicVals[minAIC]),8,0,Math.PI*2);ctx.strokeStyle='#0ea5e9';ctx.lineWidth=2;ctx.stroke();
+ctx.beginPath();ctx.arc(fx(minBIC+1),fy(bicVals[minBIC]),8,0,Math.PI*2);ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.stroke();
+document.getElementById('resIC').innerHTML='AIC selects degree <strong style="color:#0ea5e9">'+(minAIC+1)+'</strong> | BIC selects degree <strong style="color:#fbbf24">'+(minBIC+1)+'</strong> (true DGP is quadratic, degree 2). BIC penalises complexity more heavily.';
+})();
+</script>
+</body>
+</html>

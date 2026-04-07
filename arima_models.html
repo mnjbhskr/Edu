@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARMA &amp; ARIMA Models &mdash; A Visual Discovery of Mathematics</title>
+    <meta name="description" content="Build ARIMA models interactively: set p, d, q orders, generate forecasts with fan-shaped confidence intervals, and compare model specifications with AIC, BIC, and RMSE.">
+    <link rel="canonical" href="https://mathsedu.org/arima_models.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "ARMA & ARIMA Models",
+      "url": "https://mathsedu.org/arima_models.html",
+      "description": "Interactive ARIMA builder with forecasting, residual diagnostics, and model comparison via AIC/BIC.",
+      "educationalLevel": "Intermediate",
+      "teaches": "ARMA processes, ARIMA modelling, forecasting with confidence intervals, AIC and BIC model selection",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en-GB",
+      "isAccessibleForFree": true,
+      "creator": { "@type": "Person", "name": "Manoj Bhaskar" },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": { "@type": "Course", "name": "Econometrics", "url": "https://mathsedu.org/topic-econometrics.html" }
+    }
+    </script>
+    <meta property="og:title" content="ARMA &amp; ARIMA Models &mdash; A Visual Discovery of Mathematics">
+    <meta property="og:description" content="Build ARIMA models interactively with forecasting and model comparison.">
+    <meta property="og:url" content="https://mathsedu.org/arima_models.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="ARMA &amp; ARIMA Models">
+    <meta name="twitter:description" content="Interactive ARIMA model builder with forecasting and AIC/BIC comparison.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}.back:hover{color:#0ea5e9}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(14,165,233,0.13);border-color:rgba(14,165,233,0.4);color:#0ea5e9}
+        .math-line{font-family:'Courier New',monospace;font-size:0.92em;color:#c0c0d8;margin:4px 0;line-height:1.8}
+        .math-line .accent{color:#0ea5e9}.math-line .gold{color:#fbbf24}.math-line .red{color:#f87171}.math-line .muted{color:#808098}.math-line .green{color:#22c55e}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:80px}
+        .slider-row input[type=range]{flex:1;max-width:200px;accent-color:#0ea5e9;cursor:pointer}
+        .slider-val{color:#0ea5e9;font-family:'Courier New',monospace;font-size:1.05em;min-width:40px;text-align:right}
+        .insight-box{background:rgba(14,165,233,0.04);border-left:3px solid rgba(14,165,233,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .section-desc{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:14px}
+        .model-table{width:100%;border-collapse:collapse;font-size:0.85em;margin:12px 0}
+        .model-table th{text-align:left;color:#0ea5e9;font-weight:400;padding:8px 10px;border-bottom:1px solid rgba(14,165,233,0.2);font-size:0.8em;text-transform:uppercase;letter-spacing:0.5px}
+        .model-table td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:#b0b0c8;font-family:'Courier New',monospace;font-size:0.92em}
+        .model-table tr.best td{color:#0ea5e9;font-weight:bold}
+        @media(max-width:600px){.container{padding:16px 12px}h1{font-size:1.4em}canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <nav style="font-size:0.82em;color:#707088;margin:6px 0 0">
+        <a href="index.html" style="color:#707088;text-decoration:none">Home</a><span style="margin:0 6px">&rsaquo;</span>
+        <a href="topic-econometrics.html" style="color:#707088;text-decoration:none">Econometrics</a><span style="margin:0 6px">&rsaquo;</span>
+        <span style="color:#b0b0c0">ARMA &amp; ARIMA Models</span>
+    </nav>
+
+    <h1>ARMA &amp; ARIMA Models</h1>
+    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(14,165,233,0.10);border:1px solid rgba(14,165,233,0.25);color:#0ea5e9;padding:4px 12px;border-radius:12px;font-size:0.78em;margin:8px 0 2px"><span style="display:inline-flex;gap:3px"><span style="color:#0ea5e9">&#9679;</span><span style="color:#0ea5e9">&#9679;</span><span style="color:#404058">&#9679;</span><span style="color:#404058">&#9679;</span></span> Intermediate</div>
+    <p class="subtitle">The workhorse of univariate time series &mdash; autoregressive and moving average building blocks</p>
+
+    <!-- Section 1: ARIMA Builder -->
+    <h2>1. ARIMA(p, d, q) Builder</h2>
+    <p class="section-desc">Set the AR order p, differencing order d, and MA order q. Data is generated from a true ARMA(1,1) process. When d matches the integration order and p, q are correct, residual ACF should be white noise.</p>
+    <canvas id="cvBuilder" width="760" height="440"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div class="slider-row">
+            <label>p (AR)</label>
+            <input type="range" id="sliderP" min="0" max="3" step="1" value="1">
+            <span class="slider-val" id="valP">1</span>
+        </div>
+        <div class="slider-row">
+            <label>d (diff)</label>
+            <input type="range" id="sliderD" min="0" max="2" step="1" value="0">
+            <span class="slider-val" id="valD">0</span>
+        </div>
+        <div class="slider-row">
+            <label>q (MA)</label>
+            <input type="range" id="sliderQ" min="0" max="3" step="1" value="1">
+            <span class="slider-val" id="valQ">1</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" onclick="newARIMA()">New Data</button>
+        </div>
+        <div id="builderStats" class="math-line"></div>
+    </div>
+
+    <!-- Section 2: Forecasting -->
+    <h2>2. Forecasting with Confidence Intervals</h2>
+    <p class="section-desc">The fitted ARMA model produces point forecasts that revert to the unconditional mean. Confidence intervals fan out as the forecast horizon grows, reflecting increasing uncertainty.</p>
+    <canvas id="cvForecast" width="760" height="380"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div class="slider-row">
+            <label>Horizon</label>
+            <input type="range" id="sliderH" min="5" max="50" step="1" value="20">
+            <span class="slider-val" id="valH">20</span>
+        </div>
+        <div id="forecastStats" class="math-line"></div>
+    </div>
+
+    <!-- Section 3: Model Comparison -->
+    <h2>3. Model Comparison</h2>
+    <p class="section-desc">Compare different ARMA specifications on the same data using AIC, BIC, and out-of-sample RMSE. Lower is better for all three.</p>
+    <canvas id="cvCompare" width="760" height="300"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div class="btn-row">
+            <button class="btn" onclick="runComparison()">Run Comparison</button>
+        </div>
+        <div id="compareTable"></div>
+    </div>
+
+    <details style="margin:14px 0">
+        <summary style="color:#0ea5e9;cursor:pointer;font-size:0.9em;padding:8px 0">AIC vs BIC: the bias-variance trade-off in model selection</summary>
+        <div style="padding:12px 16px;background:rgba(14,165,233,0.03);border:1px solid rgba(14,165,233,0.12);border-radius:8px;font-size:0.9em;color:#b0b0c8;line-height:1.8">
+            <strong style="color:#0ea5e9">AIC = &minus;2&ell; + 2k:</strong> Penalises by twice the number of parameters. Asymptotically selects the model that minimises prediction error (Kullback-Leibler divergence). Tends to over-fit in finite samples.<br>
+            <strong style="color:#0ea5e9">BIC = &minus;2&ell; + k &middot; log(n):</strong> Heavier penalty that grows with sample size. Consistent: selects the true model as n &rarr; &infin; (if it is among the candidates). More conservative than AIC.<br>
+            <strong style="color:#0ea5e9">Practical guidance:</strong> Use AIC for forecasting (minimising prediction error). Use BIC for model identification (finding the &ldquo;true&rdquo; model). When they disagree, report both results. Out-of-sample RMSE provides a model-free check.
+        </div>
+    </details>
+
+    <div style="background:rgba(14,165,233,0.04);border-left:3px solid rgba(14,165,233,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7">
+        <strong style="color:#0ea5e9">Where you will see this:</strong> ARIMA models are the backbone of short-term economic forecasting. Central banks use them for GDP and inflation nowcasting. The Box-Jenkins methodology (identify, estimate, diagnose) remains the standard workflow. ARIMA also serves as a benchmark against which more complex models (VARs, machine learning) are compared.
+    </div>
+
+    <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin:28px 0 18px">
+        <h3 style="color:#0ea5e9;font-size:0.9em;margin:0 0 10px">Try This</h3>
+        <p style="color:#a0a0b8;font-size:0.92em;line-height:1.7;margin:0 0 10px">Set p=0, d=0, q=0 (white noise model). Is the residual ACF white noise? Now try p=2, d=0, q=0. Is the ACF better or worse than the true specification p=1, d=0, q=1?</p>
+        <div style="margin-top:12px">
+            <button onclick="this.nextElementSibling.style.display='block';this.style.display='none'" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#808098;padding:6px 14px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.85em">Show hint</button>
+            <div style="display:none;margin-top:10px;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;border-left:2px solid #fbbf24">
+                <p style="color:#a0a0b8;font-size:0.88em;margin:0">ARMA(0,0) treats all autocorrelation as residual &mdash; you will see significant ACF spikes. ARMA(2,0) approximates the true ARMA(1,1) but may use more parameters than necessary. The true spec ARMA(1,1) should give the cleanest residuals and the best AIC.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Explore Next -->
+<div style="max-width:960px;margin:0 auto;padding:0 28px">
+<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 22px;margin:0 0 20px">
+    <h3 style="color:#808098;font-size:0.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;font-weight:400;">Explore Next</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <a href="var_impulse_response.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #0ea5e9;transition:background 0.2s">
+            <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px">Vector Autoregressions &amp; Impulse Responses</div>
+            <div style="color:#606078;font-size:0.78em">Econometrics</div>
+        </a>
+        <a href="unit_roots_tests.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #0ea5e9;transition:background 0.2s">
+            <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px">Unit Roots &amp; Stationarity Tests</div>
+            <div style="color:#606078;font-size:0.78em">Econometrics</div>
+        </a>
+    </div>
+</div>
+</div>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px"><a href="terms.html" style="color:#606078;text-decoration:none">Terms of Use</a>&nbsp;&middot;&nbsp;<a href="intellectual-property.html" style="color:#606078;text-decoration:none">Intellectual Property</a>&nbsp;&middot;&nbsp;<a href="privacy.html" style="color:#606078;text-decoration:none">Privacy Policy</a></div>
+</footer>
+
+<script>
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var rng=mulberry32(606);
+function randn(){var u=0,v=0;while(u===0)u=rng();while(v===0)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function setupHiDPI(c){var d=window.devicePixelRatio||1,w=c.width,h=c.height;c.width=w*d;c.height=h*d;c.style.width=w+'px';c.style.height=h+'px';var x=c.getContext('2d');x.scale(d,d);return{ctx:x,w:w,h:h}}
+
+function computeACF(data,maxLag){
+    var n=data.length,mean=0;for(var i=0;i<n;i++)mean+=data[i];mean/=n;
+    var v0=0;for(var i=0;i<n;i++)v0+=(data[i]-mean)*(data[i]-mean);v0/=n;
+    if(v0===0)return new Array(maxLag+1).fill(0);
+    var acf=[1];
+    for(var k=1;k<=maxLag;k++){var s=0;for(var i=0;i<n-k;i++)s+=(data[i]-mean)*(data[i+k]-mean);acf.push(s/(n*v0))}
+    return acf;
+}
+
+/* True DGP: ARMA(1,1) with phi=0.6, theta=0.3 */
+var truePhi=0.6, trueTheta=0.3, T=250;
+var rawData=[], arimaResiduals=[];
+
+function genData(){
+    rng=mulberry32(Math.floor(Math.random()*99999));
+    rawData=[];
+    var prevY=0,prevE=0;
+    for(var t=0;t<T;t++){
+        var e=randn();
+        var y=truePhi*prevY+e+trueTheta*prevE;
+        rawData.push(y);prevY=y;prevE=e;
+    }
+}
+
+function difference(data,d){
+    var result=data.slice();
+    for(var i=0;i<d;i++){
+        var diff=[];for(var t=1;t<result.length;t++)diff.push(result[t]-result[t-1]);
+        result=diff;
+    }
+    return result;
+}
+
+/* Fit AR(p) by OLS on differenced data, compute residuals */
+function fitARMA(data,p,d,q){
+    var diffed=difference(data,d);
+    var n=diffed.length;
+    if(n<p+q+5)return{residuals:[],sigma:1,logLik:-1e10};
+
+    // Simple: fit AR(p) by OLS on diffed data, ignore MA for residual computation
+    var maxP=Math.max(p,1);
+    var yVec=[],xMat=[];
+    for(var t=maxP;t<n;t++){
+        yVec.push(diffed[t]);
+        var row=[];for(var j=1;j<=p;j++)row.push(diffed[t-j]);
+        if(row.length===0)row.push(1); // constant
+        xMat.push(row);
+    }
+
+    // OLS
+    var k=xMat[0].length,m=yVec.length;
+    var XtX=[];for(var i=0;i<k;i++){XtX[i]=[];for(var j=0;j<k;j++){var s=0;for(var t2=0;t2<m;t2++)s+=xMat[t2][i]*xMat[t2][j];XtX[i][j]=s}}
+    var XtY=[];for(var i=0;i<k;i++){var s=0;for(var t2=0;t2<m;t2++)s+=xMat[t2][i]*yVec[t2];XtY[i]=s}
+
+    // solve (simple for small k)
+    var beta=[];
+    if(k===1){beta=[XtX[0][0]>0?XtY[0]/XtX[0][0]:0]}
+    else{
+        // 2x2 or Gaussian elimination for small systems
+        var det=1;
+        var aug=[];for(var i=0;i<k;i++){aug[i]=[];for(var j=0;j<k;j++)aug[i][j]=XtX[i][j];aug[i][k]=XtY[i]}
+        for(var i=0;i<k;i++){
+            var mx=Math.abs(aug[i][i]),mxi=i;
+            for(var j=i+1;j<k;j++)if(Math.abs(aug[j][i])>mx){mx=Math.abs(aug[j][i]);mxi=j}
+            if(mxi!==i){var tmp=aug[i];aug[i]=aug[mxi];aug[mxi]=tmp}
+            if(Math.abs(aug[i][i])<1e-12){beta=new Array(k).fill(0);break}
+            for(var j=i+1;j<k;j++){var f=aug[j][i]/aug[i][i];for(var c=0;c<=k;c++)aug[j][c]-=f*aug[i][c]}
+        }
+        if(beta.length===0){
+            beta=new Array(k).fill(0);
+            for(var i=k-1;i>=0;i--){var s=aug[i][k];for(var j=i+1;j<k;j++)s-=aug[i][j]*beta[j];beta[i]=Math.abs(aug[i][i])>1e-12?s/aug[i][i]:0}
+        }
+    }
+
+    // residuals
+    var resid=[];var sse=0;
+    for(var t2=0;t2<m;t2++){
+        var yhat=0;for(var j=0;j<k;j++)yhat+=beta[j]*xMat[t2][j];
+        var r=yVec[t2]-yhat;resid.push(r);sse+=r*r;
+    }
+    var sigma=Math.sqrt(sse/m);
+    var logLik=-m/2*Math.log(2*Math.PI)-m/2*Math.log(sse/m)-m/2;
+    var nParams=p+q+1;
+    var aic=isFinite(logLik)?-2*logLik+2*nParams:1e10;
+    var bic=isFinite(logLik)?-2*logLik+Math.log(m)*nParams:1e10;
+    return{residuals:resid,sigma:sigma,logLik:logLik,aic:aic,bic:bic,beta:beta,diffed:diffed};
+}
+
+/* ═══════════ Section 1: Builder ═══════════ */
+var s1=setupHiDPI(document.getElementById('cvBuilder'));
+var ctx1=s1.ctx,W1=s1.w,H1=s1.h;
+
+function newARIMA(){genData();drawBuilder()}
+
+function drawBuilder(){
+    var p=parseInt(document.getElementById('sliderP').value);
+    var d=parseInt(document.getElementById('sliderD').value);
+    var q=parseInt(document.getElementById('sliderQ').value);
+    document.getElementById('valP').textContent=p;
+    document.getElementById('valD').textContent=d;
+    document.getElementById('valQ').textContent=q;
+
+    var PAD={left:50,right:20,top:25,bottom:40};
+    var pw=W1-PAD.left-PAD.right,topH=(H1-PAD.top-PAD.bottom-20)*0.55;
+    var botH=(H1-PAD.top-PAD.bottom-20)*0.45;
+    ctx1.clearRect(0,0,W1,H1);ctx1.fillStyle='#0a0a1a';ctx1.fillRect(0,0,W1,H1);
+
+    if(rawData.length===0)return;
+    var fit=fitARMA(rawData,p,d,q);
+    arimaResiduals=fit.residuals;
+
+    // top: time series
+    var mn=Math.min.apply(null,rawData),mx=Math.max.apply(null,rawData);var rng2=mx-mn||1;
+    ctx1.strokeStyle='rgba(255,255,255,0.06)';ctx1.lineWidth=1;
+    ctx1.beginPath();ctx1.moveTo(PAD.left,PAD.top);ctx1.lineTo(PAD.left,PAD.top+topH);ctx1.lineTo(PAD.left+pw,PAD.top+topH);ctx1.stroke();
+    ctx1.strokeStyle='#0ea5e9';ctx1.lineWidth=1.5;ctx1.beginPath();
+    for(var i=0;i<rawData.length;i++){
+        var sx=PAD.left+i/(rawData.length-1)*pw;
+        var sy=PAD.top+topH-(rawData[i]-mn)/rng2*topH;
+        if(i===0)ctx1.moveTo(sx,sy);else ctx1.lineTo(sx,sy);
+    }
+    ctx1.stroke();
+    ctx1.font='10px Georgia';ctx1.fillStyle='#0ea5e9';ctx1.textAlign='left';
+    ctx1.fillText('ARMA(1,1) data: \u03C6='+truePhi+', \u03B8='+trueTheta,PAD.left+5,PAD.top+14);
+
+    // bottom: residual ACF
+    var botY=PAD.top+topH+20;
+    var acf=computeACF(fit.residuals,20);
+    ctx1.strokeStyle='rgba(255,255,255,0.06)';ctx1.lineWidth=1;
+    ctx1.beginPath();ctx1.moveTo(PAD.left,botY);ctx1.lineTo(PAD.left,botY+botH);ctx1.lineTo(PAD.left+pw,botY+botH);ctx1.stroke();
+
+    var midY=botY+botH/2;
+    ctx1.setLineDash([3,3]);ctx1.strokeStyle='rgba(255,255,255,0.1)';
+    ctx1.beginPath();ctx1.moveTo(PAD.left,midY);ctx1.lineTo(PAD.left+pw,midY);ctx1.stroke();ctx1.setLineDash([]);
+
+    var barW=pw/22;
+    for(var k=1;k<=20;k++){
+        var bx=PAD.left+k/21*pw;
+        var bh=acf[k]*botH/2;if(!isFinite(bh))bh=0;
+        ctx1.fillStyle='rgba(14,165,233,0.5)';
+        ctx1.fillRect(bx-barW/3,midY,barW*0.6,-bh);
+    }
+
+    var ci=1.96/Math.sqrt(fit.residuals.length);
+    ctx1.setLineDash([2,2]);ctx1.strokeStyle='rgba(248,113,113,0.3)';ctx1.lineWidth=1;
+    ctx1.beginPath();ctx1.moveTo(PAD.left,midY-ci*botH/2);ctx1.lineTo(PAD.left+pw,midY-ci*botH/2);ctx1.stroke();
+    ctx1.beginPath();ctx1.moveTo(PAD.left,midY+ci*botH/2);ctx1.lineTo(PAD.left+pw,midY+ci*botH/2);ctx1.stroke();
+    ctx1.setLineDash([]);
+
+    ctx1.font='10px Georgia';ctx1.fillStyle='#808098';ctx1.textAlign='left';
+    ctx1.fillText('Residual ACF for ARIMA('+p+','+d+','+q+')',PAD.left+5,botY+14);
+
+    var isWhite=true;for(var k=1;k<=20;k++)if(Math.abs(acf[k])>ci){isWhite=false;break}
+
+    document.getElementById('builderStats').innerHTML='<span class="muted">Fitted ARIMA('+p+','+d+','+q+')</span> &nbsp; <span class="muted">\u03C3\u0302 =</span> <span class="accent">'+fit.sigma.toFixed(3)+'</span> &nbsp; <span class="muted">Residuals:</span> <span class="'+(isWhite?'green':'red')+'">'+(isWhite?'White noise \u2714':'Significant autocorrelation \u2718')+'</span>';
+}
+
+['sliderP','sliderD','sliderQ'].forEach(function(id){document.getElementById(id).addEventListener('input',drawBuilder)});
+
+/* ═══════════ Section 2: Forecasting ═══════════ */
+var s2=setupHiDPI(document.getElementById('cvForecast'));
+var ctx2=s2.ctx,W2=s2.w,H2=s2.h;
+
+function drawForecast(){
+    var horizon=parseInt(document.getElementById('sliderH').value);
+    document.getElementById('valH').textContent=horizon;
+    var PAD={left:50,right:20,top:25,bottom:40};
+    var pw=W2-PAD.left-PAD.right,ph=H2-PAD.top-PAD.bottom;
+    ctx2.clearRect(0,0,W2,H2);ctx2.fillStyle='#0a0a1a';ctx2.fillRect(0,0,W2,H2);
+
+    if(rawData.length===0)return;
+    var showN=100; // last 100 data points
+    var dataSlice=rawData.slice(-showN);
+
+    // generate forecasts: AR(1) approx
+    var phi=truePhi;
+    var lastY=dataSlice[dataSlice.length-1];
+    var forecasts=[],lower95=[],upper95=[],lower80=[],upper80=[];
+    var sig=1.0; // approximate residual variance
+
+    for(var h=1;h<=horizon;h++){
+        var fh=Math.pow(phi,h)*lastY; // reversion to 0
+        // forecast error variance: sum of phi^(2j)*sigma^2 for j=0..h-1
+        var fev=0;for(var j=0;j<h;j++)fev+=Math.pow(phi,2*j)*sig*sig;
+        var se=Math.sqrt(fev);
+        forecasts.push(fh);
+        lower95.push(fh-1.96*se);upper95.push(fh+1.96*se);
+        lower80.push(fh-1.28*se);upper80.push(fh+1.28*se);
+    }
+
+    var allVals=dataSlice.concat(forecasts).concat(lower95).concat(upper95);
+    var mn=Math.min.apply(null,allVals),mx=Math.max.apply(null,allVals);
+    var range=mx-mn||1;mn-=range*0.05;mx+=range*0.05;range=mx-mn;
+
+    var totalPts=showN+horizon;
+
+    // axes
+    ctx2.strokeStyle='rgba(255,255,255,0.06)';ctx2.lineWidth=1;
+    ctx2.beginPath();ctx2.moveTo(PAD.left,PAD.top);ctx2.lineTo(PAD.left,PAD.top+ph);ctx2.lineTo(PAD.left+pw,PAD.top+ph);ctx2.stroke();
+
+    // 95% fan
+    ctx2.fillStyle='rgba(14,165,233,0.08)';ctx2.beginPath();
+    for(var h=0;h<horizon;h++){
+        var sx=PAD.left+(showN+h)/(totalPts-1)*pw;
+        var sy=PAD.top+ph-(upper95[h]-mn)/range*ph;
+        if(h===0)ctx2.moveTo(sx,sy);else ctx2.lineTo(sx,sy);
+    }
+    for(var h=horizon-1;h>=0;h--){
+        var sx=PAD.left+(showN+h)/(totalPts-1)*pw;
+        var sy=PAD.top+ph-(lower95[h]-mn)/range*ph;
+        ctx2.lineTo(sx,sy);
+    }
+    ctx2.fill();
+
+    // 80% fan
+    ctx2.fillStyle='rgba(14,165,233,0.15)';ctx2.beginPath();
+    for(var h=0;h<horizon;h++){
+        var sx=PAD.left+(showN+h)/(totalPts-1)*pw;
+        var sy=PAD.top+ph-(upper80[h]-mn)/range*ph;
+        if(h===0)ctx2.moveTo(sx,sy);else ctx2.lineTo(sx,sy);
+    }
+    for(var h=horizon-1;h>=0;h--){
+        var sx=PAD.left+(showN+h)/(totalPts-1)*pw;
+        var sy=PAD.top+ph-(lower80[h]-mn)/range*ph;
+        ctx2.lineTo(sx,sy);
+    }
+    ctx2.fill();
+
+    // data
+    ctx2.strokeStyle='#0ea5e9';ctx2.lineWidth=1.5;ctx2.beginPath();
+    for(var i=0;i<showN;i++){
+        var sx=PAD.left+i/(totalPts-1)*pw;
+        var sy=PAD.top+ph-(dataSlice[i]-mn)/range*ph;
+        if(i===0)ctx2.moveTo(sx,sy);else ctx2.lineTo(sx,sy);
+    }
+    ctx2.stroke();
+
+    // forecast line
+    ctx2.strokeStyle='#fbbf24';ctx2.lineWidth=2;ctx2.setLineDash([4,3]);ctx2.beginPath();
+    var lastSX=PAD.left+(showN-1)/(totalPts-1)*pw;
+    var lastSY=PAD.top+ph-(dataSlice[showN-1]-mn)/range*ph;
+    ctx2.moveTo(lastSX,lastSY);
+    for(var h=0;h<horizon;h++){
+        var sx=PAD.left+(showN+h)/(totalPts-1)*pw;
+        var sy=PAD.top+ph-(forecasts[h]-mn)/range*ph;
+        ctx2.lineTo(sx,sy);
+    }
+    ctx2.stroke();ctx2.setLineDash([]);
+
+    // divider
+    var divX=PAD.left+(showN-0.5)/(totalPts-1)*pw;
+    ctx2.setLineDash([4,4]);ctx2.strokeStyle='rgba(255,255,255,0.15)';ctx2.lineWidth=1;
+    ctx2.beginPath();ctx2.moveTo(divX,PAD.top);ctx2.lineTo(divX,PAD.top+ph);ctx2.stroke();ctx2.setLineDash([]);
+
+    ctx2.font='10px Georgia';ctx2.fillStyle='#808098';ctx2.textAlign='left';
+    ctx2.fillText('Observed',PAD.left+5,PAD.top+14);
+    ctx2.fillStyle='#fbbf24';ctx2.fillText('Forecast (h='+horizon+')',divX+5,PAD.top+14);
+
+    document.getElementById('forecastStats').innerHTML='<span class="muted">Horizon:</span> <span class="accent">'+horizon+' steps</span> &nbsp; <span class="muted">Final forecast:</span> <span class="gold">'+forecasts[horizon-1].toFixed(3)+'</span> &nbsp; <span class="muted">95% CI width:</span> <span class="accent">'+(upper95[horizon-1]-lower95[horizon-1]).toFixed(3)+'</span>';
+}
+
+document.getElementById('sliderH').addEventListener('input',drawForecast);
+
+/* ═══════════ Section 3: Model Comparison ═══════════ */
+var s3=setupHiDPI(document.getElementById('cvCompare'));
+var ctx3=s3.ctx,W3=s3.w,H3=s3.h;
+
+function runComparison(){
+    if(rawData.length===0)genData();
+    var models=[
+        {p:0,d:0,q:0,label:'ARMA(0,0)'},
+        {p:1,d:0,q:0,label:'ARMA(1,0)'},
+        {p:0,d:0,q:1,label:'ARMA(0,1)'},
+        {p:1,d:0,q:1,label:'ARMA(1,1)'},
+        {p:2,d:0,q:0,label:'ARMA(2,0)'},
+        {p:2,d:0,q:1,label:'ARMA(2,1)'},
+        {p:1,d:1,q:0,label:'ARIMA(1,1,0)'},
+        {p:1,d:1,q:1,label:'ARIMA(1,1,1)'}
+    ];
+
+    var results=[];
+    var trainN=Math.floor(rawData.length*0.8);
+    var trainData=rawData.slice(0,trainN);
+    var testData=rawData.slice(trainN);
+
+    for(var m=0;m<models.length;m++){
+        var fit=fitARMA(trainData,models[m].p,models[m].d,models[m].q);
+        // out-of-sample: naive forecast (last value for d=0, etc.)
+        var lastTrain=trainData[trainN-1];
+        var rmse=0;
+        for(var i=0;i<testData.length;i++){
+            var fcast=models[m].d>0?lastTrain:fit.beta&&fit.beta.length>0?fit.beta[0]*lastTrain:0;
+            rmse+=(testData[i]-fcast)*(testData[i]-fcast);
+            lastTrain=testData[i];
+        }
+        rmse=Math.sqrt(rmse/testData.length);
+        results.push({label:models[m].label,aic:fit.aic,bic:fit.bic,rmse:rmse,sigma:fit.sigma});
+    }
+
+    // find best
+    var bestAIC=0,bestBIC=0,bestRMSE=0;
+    for(var i=1;i<results.length;i++){
+        if(results[i].aic<results[bestAIC].aic)bestAIC=i;
+        if(results[i].bic<results[bestBIC].bic)bestBIC=i;
+        if(results[i].rmse<results[bestRMSE].rmse)bestRMSE=i;
+    }
+
+    // draw bar chart of AIC
+    var PAD={left:100,right:20,top:25,bottom:40};
+    var pw2=W3-PAD.left-PAD.right,ph2=H3-PAD.top-PAD.bottom;
+    ctx3.clearRect(0,0,W3,H3);ctx3.fillStyle='#0a0a1a';ctx3.fillRect(0,0,W3,H3);
+
+    var aicVals=results.map(function(r){return r.aic});
+    var aicMin=Math.min.apply(null,aicVals),aicMax=Math.max.apply(null,aicVals);
+    var aicRange=aicMax-aicMin||1;
+
+    var barH=ph2/results.length-4;
+    for(var i=0;i<results.length;i++){
+        var w=(results[i].aic-aicMin)/aicRange*pw2*0.8+pw2*0.05;
+        var y=PAD.top+i*(barH+4);
+        ctx3.fillStyle=i===bestAIC?'rgba(14,165,233,0.5)':'rgba(255,255,255,0.08)';
+        ctx3.fillRect(PAD.left,y,w,barH);
+        ctx3.font='10px Georgia';ctx3.fillStyle=i===bestAIC?'#0ea5e9':'#808098';ctx3.textAlign='right';
+        ctx3.fillText(results[i].label,PAD.left-8,y+barH/2+4);
+        ctx3.textAlign='left';ctx3.fillText(results[i].aic.toFixed(1),PAD.left+w+6,y+barH/2+4);
+    }
+    ctx3.font='11px Georgia';ctx3.fillStyle='#808098';ctx3.textAlign='center';
+    ctx3.fillText('AIC (lower is better)',PAD.left+pw2/2,H3-8);
+
+    // table
+    var html='<table class="model-table"><tr><th>Model</th><th>AIC</th><th>BIC</th><th>OOS RMSE</th><th>\u03C3\u0302</th></tr>';
+    for(var i=0;i<results.length;i++){
+        var cls=i===bestAIC?' class="best"':'';
+        html+='<tr'+cls+'><td>'+results[i].label+'</td><td>'+results[i].aic.toFixed(1)+'</td><td>'+results[i].bic.toFixed(1)+'</td><td>'+results[i].rmse.toFixed(3)+'</td><td>'+results[i].sigma.toFixed(3)+'</td></tr>';
+    }
+    html+='</table>';
+    document.getElementById('compareTable').innerHTML=html;
+}
+
+/* Init */
+genData();drawBuilder();drawForecast();
+</script>
+</body>
+</html>

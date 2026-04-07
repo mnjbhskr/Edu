@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Heteroskedasticity &amp; Robust Inference – Interactive Econometrics</title>
+<meta name="description" content="Visualise heteroskedasticity, compare robust and conventional standard errors, and explore the Breusch-Pagan test.">
+<meta property="og:title" content="Heteroskedasticity & Robust Inference – Interactive Econometrics">
+<meta property="og:description" content="Fan-shaped residuals, robust standard errors and the Breusch-Pagan test interactively.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Heteroskedasticity & Robust Inference","description":"Interactive exploration of heteroskedasticity, robust SEs and Breusch-Pagan.","creator":{"@type":"Person","name":"Manoj Bhaskar"},"license":"https://creativecommons.org/licenses/by-nc-sa/4.0/"}</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+.container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+.back{color:#606078;text-decoration:none;font-size:0.85em}
+.back:hover{color:#0ea5e9}
+h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+.subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+.panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+.panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+.btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+.btn.active{background:rgba(14,165,233,0.13);border-color:rgba(14,165,233,0.4);color:#0ea5e9}
+.slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+.slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+input[type=range]{flex:1;max-width:300px;accent-color:#0ea5e9;cursor:pointer}
+.slider-val{color:#0ea5e9;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+.result-box{background:rgba(14,165,233,0.06);border:1px solid rgba(14,165,233,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+.insight-box{background:rgba(14,165,233,0.04);border-left:3px solid rgba(14,165,233,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+.formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2;color:#c0c0d8}
+.difficulty{display:inline-flex;gap:4px;margin-left:12px;vertical-align:middle}
+.difficulty .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.difficulty .dot.filled{background:#0ea5e9}
+.difficulty .dot.empty{background:rgba(255,255,255,0.15)}
+.explore-next{margin-top:32px;padding:18px 22px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px}
+.explore-next h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.explore-next a{color:#0ea5e9;text-decoration:none;margin-right:18px;font-size:0.95em}
+.explore-next a:hover{text-decoration:underline}
+footer{text-align:center;padding:32px 0 18px;color:#505068;font-size:0.78em}
+footer a{color:#505068;margin:0 8px}
+footer a:hover{color:#0ea5e9}
+@media(max-width:600px){.container{padding:14px 8px 32px}h1{font-size:1.3em}canvas{max-width:100%}.slider-row{flex-direction:column;align-items:flex-start;gap:6px}input[type=range]{max-width:100%}}
+</style>
+</head>
+<body>
+<div class="container">
+<a href="topic-econometrics.html" class="back">← Econometrics</a>
+<h1>Heteroskedasticity &amp; Robust Inference <span class="difficulty"><span class="dot filled"></span><span class="dot filled"></span><span class="dot empty"></span></span></h1>
+<p class="subtitle">When variance is not constant — and why robust standard errors save the day</p>
+
+<h2>1 · Fan-Shaped Residuals</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">Data generated with variance increasing in X. Toggle between conventional and robust standard errors to see how confidence intervals change.</p>
+<div class="panel">
+<div class="slider-row"><label>Heteroskedasticity</label><input type="range" id="slHet" min="0" max="3" step="0.1" value="1.5"><span class="slider-val" id="vHet">1.5</span></div>
+<div class="btn-row">
+<button class="btn active" id="btnConv">Conventional SEs</button>
+<button class="btn" id="btnRob">Robust (HC1) SEs</button>
+</div>
+<canvas id="cvFan" width="700" height="400"></canvas>
+<div class="result-box" id="resFan">Adjust heteroskedasticity level above.</div>
+</div>
+<div class="insight-box">Under heteroskedasticity, OLS is still <strong>unbiased</strong> but conventional standard errors are <strong>wrong</strong>. Robust (Huber-White) standard errors correct this without changing the point estimates.</div>
+
+<h2>2 · Monte Carlo: Rejection Rates</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">Under the null (β₁ = true value), the nominal 5% test should reject 5% of the time. With heteroskedasticity, conventional SEs get it wrong.</p>
+<div class="panel">
+<div class="btn-row"><button class="btn" id="btnMChet">Run 1000 Replications</button></div>
+<canvas id="cvMChet" width="700" height="300"></canvas>
+<div class="result-box" id="resMChet">Press the button to run the simulation.</div>
+</div>
+
+<h2>3 · Breusch-Pagan Test</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">Regress squared residuals on the regressors. A significant F-statistic indicates heteroskedasticity.</p>
+<div class="panel">
+<div class="btn-row"><button class="btn" id="btnBP">Run Breusch-Pagan Test</button></div>
+<canvas id="cvBP" width="700" height="300"></canvas>
+<div class="result-box" id="resBP">Press the button to run the auxiliary regression.</div>
+</div>
+<div class="formula-block">Breusch-Pagan: Regress û² on X. Test statistic = n · R² ~ χ²(k) under H₀: homoskedasticity.</div>
+
+<div class="explore-next">
+<h3>Explore Next</h3>
+<a href="multicollinearity_specification.html">Multicollinearity &amp; Specification →</a>
+<a href="ols_assumptions.html">OLS Assumptions →</a>
+</div>
+</div>
+<footer><a href="terms.html">Terms</a><a href="intellectual-property.html">IP</a><a href="privacy.html">Privacy</a><br>© 2025 mathsedu.org</footer>
+
+<script>
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function setupHiDPI(c,w,h){var d=window.devicePixelRatio||1;c.width=w*d;c.height=h*d;c.style.width=w+'px';c.style.height=h+'px';var x=c.getContext('2d');x.scale(d,d);return x}
+function rnormWith(r){var u=0,v=0;while(u===0)u=r();while(v===0)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function olsSimple(xs,ys){var n=xs.length,sx=0,sy=0,sxy=0,sxx=0;for(var i=0;i<n;i++){sx+=xs[i];sy+=ys[i];sxy+=xs[i]*ys[i];sxx+=xs[i]*xs[i]}var mx=sx/n,my=sy/n;var b1=(sxy-n*mx*my)/(sxx-n*mx*mx);if(!isFinite(b1))b1=0;return{b0:my-b1*mx,b1:b1,mx:mx,sxx:sxx-n*mx*mx}}
+
+/* Section 1 */
+(function(){
+var cv=document.getElementById('cvFan');
+var W=700,H=400,ctx=setupHiDPI(cv,W,H);
+var seType='conv';
+
+function genAndDraw(){
+    var hetLevel=parseFloat(document.getElementById('slHet').value);
+    document.getElementById('vHet').textContent=hetLevel.toFixed(1);
+    var rng=mulberry32(2468);
+    var n=80,xs=[],ys=[],trueB0=3,trueB1=1.5;
+    for(var i=0;i<n;i++){
+        var x=0.5+rng()*8;
+        var sigma=1+hetLevel*x*0.4;
+        var y=trueB0+trueB1*x+rnormWith(rng)*sigma;
+        xs.push(x);ys.push(y);
+    }
+    var fit=olsSimple(xs,ys);
+    // compute residuals
+    var resids=[];for(var i=0;i<n;i++)resids.push(ys[i]-(fit.b0+fit.b1*xs[i]));
+    // conventional SE
+    var ssr=0;for(var i=0;i<n;i++)ssr+=resids[i]*resids[i];
+    var s2=ssr/(n-2);
+    var seConv=Math.sqrt(s2/fit.sxx);
+    // robust HC1 SE
+    var sumWt=0;for(var i=0;i<n;i++){var xi=xs[i]-fit.mx;sumWt+=xi*xi*resids[i]*resids[i]}
+    var seRob=Math.sqrt(n/(n-2)*sumWt/(fit.sxx*fit.sxx));
+    if(!isFinite(seRob))seRob=seConv;
+    var se=seType==='conv'?seConv:seRob;
+    // draw
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    var xMin=0,xMax=9,yMin=-5,yMax=25;
+    var pL=60,pR=W-20,pT=20,pB=H-40;
+    function fx(v){return pL+(v-xMin)/(xMax-xMin)*(pR-pL)}
+    function fy(v){return pB-(v-yMin)/(yMax-yMin)*(pB-pT)}
+    // grid
+    ctx.strokeStyle='rgba(255,255,255,0.05)';
+    for(var gx=0;gx<=9;gx+=2){ctx.beginPath();ctx.moveTo(fx(gx),pT);ctx.lineTo(fx(gx),pB);ctx.stroke()}
+    // points
+    for(var i=0;i<n;i++){ctx.beginPath();ctx.arc(fx(xs[i]),fy(ys[i]),3.5,0,Math.PI*2);ctx.fillStyle='#0ea5e9';ctx.fill()}
+    // regression line
+    ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(fx(0),fy(fit.b0));ctx.lineTo(fx(9),fy(fit.b0+fit.b1*9));ctx.stroke();
+    // CI bands (b0 + b1*x ± 1.96*se*sqrt(1 + (x-mx)^2/sxx_dem) simplified to point CI)
+    ctx.strokeStyle=seType==='conv'?'rgba(248,113,113,0.4)':'rgba(14,165,233,0.4)';
+    ctx.lineWidth=1;ctx.setLineDash([5,4]);
+    var tc=1.96;
+    ctx.beginPath();ctx.moveTo(fx(0),fy(fit.b0-tc*se*0));
+    for(var px=pL;px<=pR;px+=2){var x=(px-pL)/(pR-pL)*(xMax-xMin)+xMin;var yh=fit.b0+fit.b1*x;var band=tc*Math.sqrt(s2*(1/n+(x-fit.mx)*(x-fit.mx)/fit.sxx));if(seType==='rob')band*=seRob/seConv;ctx.lineTo(px,fy(yh+band))}
+    ctx.stroke();ctx.beginPath();
+    for(var px=pL;px<=pR;px+=2){var x=(px-pL)/(pR-pL)*(xMax-xMin)+xMin;var yh=fit.b0+fit.b1*x;var band=tc*Math.sqrt(s2*(1/n+(x-fit.mx)*(x-fit.mx)/fit.sxx));if(seType==='rob')band*=seRob/seConv;ctx.lineTo(px,fy(yh-band))}
+    ctx.stroke();ctx.setLineDash([]);
+    // residual subplot (bottom strip)
+    document.getElementById('resFan').innerHTML='β̂₁ = '+fit.b1.toFixed(3)+' | Conventional SE: <strong style="color:#f87171">'+seConv.toFixed(4)+'</strong> | Robust SE: <strong style="color:#0ea5e9">'+seRob.toFixed(4)+'</strong> | Using: '+(seType==='conv'?'Conventional':'Robust');
+}
+
+document.getElementById('slHet').addEventListener('input',genAndDraw);
+document.getElementById('btnConv').addEventListener('click',function(){seType='conv';this.classList.add('active');document.getElementById('btnRob').classList.remove('active');genAndDraw()});
+document.getElementById('btnRob').addEventListener('click',function(){seType='rob';this.classList.add('active');document.getElementById('btnConv').classList.remove('active');genAndDraw()});
+genAndDraw();
+})();
+
+/* Section 2: Monte Carlo rejection rates */
+(function(){
+var cv=document.getElementById('cvMChet');
+var W=700,H=300,ctx=setupHiDPI(cv,W,H);
+
+document.getElementById('btnMChet').addEventListener('click',function(){
+    var trueB1=1.5,n=50,nRep=1000;
+    var rejectConv=0,rejectRob=0;
+    var tConvAll=[],tRobAll=[];
+    var mcRng=mulberry32(7777);
+
+    for(var rep=0;rep<nRep;rep++){
+        var xs=[],ys=[];
+        for(var i=0;i<n;i++){var x=0.5+mcRng()*8;var sigma=1+1.5*x*0.4;ys.push(3+trueB1*x+rnormWith(mcRng)*sigma);xs.push(x)}
+        var f=olsSimple(xs,ys);
+        var resids=[];for(var i=0;i<n;i++)resids.push(ys[i]-(f.b0+f.b1*xs[i]));
+        var ssr=0;for(var i=0;i<n;i++)ssr+=resids[i]*resids[i];
+        var s2=ssr/(n-2);
+        var seC=Math.sqrt(s2/f.sxx);
+        var sumWt=0;for(var i=0;i<n;i++){var xi=xs[i]-f.mx;sumWt+=xi*xi*resids[i]*resids[i]}
+        var seR=Math.sqrt(n/(n-2)*sumWt/(f.sxx*f.sxx));
+        if(!isFinite(seR))seR=seC;
+        var tC=(f.b1-trueB1)/seC;
+        var tR=(f.b1-trueB1)/seR;
+        tConvAll.push(tC);tRobAll.push(tR);
+        if(Math.abs(tC)>1.96)rejectConv++;
+        if(Math.abs(tR)>1.96)rejectRob++;
+    }
+    // Draw histograms of t-stats
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    var all=tConvAll.concat(tRobAll);
+    var min=-5,max=5;
+    var nBins=60,bw=(max-min)/nBins;
+    function makeBins(arr){var b=new Array(nBins).fill(0);for(var i=0;i<arr.length;i++){var bi=Math.floor((arr[i]-min)/bw);if(bi>=nBins)bi=nBins-1;if(bi<0)bi=0;b[bi]++}return b}
+    var bC=makeBins(tConvAll),bR=makeBins(tRobAll);
+    var maxB=0;for(var i=0;i<nBins;i++){if(bC[i]>maxB)maxB=bC[i];if(bR[i]>maxB)maxB=bR[i]}
+    var pL=60,pR=W-20,pT=20,pB=H-35,barW=(pR-pL)/nBins;
+    for(var i=0;i<nBins;i++){
+        var hC=bC[i]/maxB*(pB-pT);ctx.fillStyle='rgba(248,113,113,0.35)';ctx.fillRect(pL+i*barW,pB-hC,barW/2,hC);
+        var hR=bR[i]/maxB*(pB-pT);ctx.fillStyle='rgba(14,165,233,0.4)';ctx.fillRect(pL+i*barW+barW/2,pB-hR,barW/2,hR);
+    }
+    // critical value lines
+    var cL=pL+(-1.96-min)/(max-min)*(pR-pL),cR=pL+(1.96-min)/(max-min)*(pR-pL);
+    ctx.strokeStyle='rgba(255,255,255,0.3)';ctx.lineWidth=1;ctx.setLineDash([4,3]);
+    ctx.beginPath();ctx.moveTo(cL,pT);ctx.lineTo(cL,pB);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cR,pT);ctx.lineTo(cR,pB);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#f87171';ctx.font='12px Georgia';ctx.fillText('● Conventional t-stats',pR-180,pT+14);
+    ctx.fillStyle='#0ea5e9';ctx.fillText('● Robust t-stats',pR-180,pT+30);
+    document.getElementById('resMChet').innerHTML='Rejection rate (nominal 5%): Conventional <strong style="color:#f87171">'+(100*rejectConv/nRep).toFixed(1)+'%</strong> | Robust <strong style="color:#0ea5e9">'+(100*rejectRob/nRep).toFixed(1)+'%</strong>';
+});
+})();
+
+/* Section 3: Breusch-Pagan */
+(function(){
+var cv=document.getElementById('cvBP');
+var W=700,H=300,ctx=setupHiDPI(cv,W,H);
+
+document.getElementById('btnBP').addEventListener('click',function(){
+    var rng=mulberry32(3333);
+    var n=100,xs=[],ys=[];
+    for(var i=0;i<n;i++){var x=0.5+rng()*8;var sigma=1+1.5*x*0.4;ys.push(3+1.5*x+rnormWith(rng)*sigma);xs.push(x)}
+    var f=olsSimple(xs,ys);
+    var resids2=[];for(var i=0;i<n;i++){var r=ys[i]-(f.b0+f.b1*xs[i]);resids2.push(r*r)}
+    // auxiliary regression: resid^2 on X
+    var fAux=olsSimple(xs,resids2);
+    // R² of auxiliary
+    var my=0;for(var i=0;i<n;i++)my+=resids2[i];my/=n;
+    var sst=0,ssr=0;for(var i=0;i<n;i++){sst+=(resids2[i]-my)*(resids2[i]-my);var yhat=fAux.b0+fAux.b1*xs[i];ssr+=(resids2[i]-yhat)*(resids2[i]-yhat)}
+    var r2=1-ssr/sst;
+    var bp=n*r2; // BP test stat ~ chi2(1)
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    var pL=60,pR=W-20,pT=20,pB=H-35;
+    // scatter of residuals^2 vs X
+    var maxR2=0;for(var i=0;i<n;i++)if(resids2[i]>maxR2)maxR2=resids2[i];
+    maxR2*=1.1;
+    function fx(v){return pL+(v-0)/(9-0)*(pR-pL)}
+    function fy(v){return pB-(v/maxR2)*(pB-pT)}
+    for(var i=0;i<n;i++){ctx.beginPath();ctx.arc(fx(xs[i]),fy(resids2[i]),3,0,Math.PI*2);ctx.fillStyle='rgba(14,165,233,0.5)';ctx.fill()}
+    // fitted line
+    ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(fx(0),fy(fAux.b0));ctx.lineTo(fx(9),fy(fAux.b0+fAux.b1*9));ctx.stroke();
+    ctx.fillStyle='#606078';ctx.font='11px Georgia';ctx.fillText('X',W/2,H-6);
+    ctx.save();ctx.translate(14,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('Squared Residuals (û²)',0,0);ctx.restore();
+    var pVal=Math.exp(-bp/2); // rough chi2(1) approximation
+    document.getElementById('resBP').innerHTML='Breusch-Pagan statistic: <strong style="color:#0ea5e9">'+bp.toFixed(2)+'</strong> | χ²(1) critical (5%): 3.84 | '+(bp>3.84?'<strong style="color:#f87171">Reject H₀ — heteroskedasticity detected</strong>':'Fail to reject — no strong evidence');
+});
+})();
+</script>
+</body>
+</html>

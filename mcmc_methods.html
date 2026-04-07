@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bayesian Computation: MCMC in Practice &mdash; A Visual Discovery of Mathematics</title>
+    <meta name="description" content="Interactive MCMC: watch Metropolis-Hastings explore a target distribution, see the Gibbs sampler trace a bivariate normal, and diagnose convergence with R-hat and trace plots.">
+    <link rel="canonical" href="https://mathsedu.org/mcmc_methods.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Bayesian Computation: MCMC in Practice",
+      "url": "https://mathsedu.org/mcmc_methods.html",
+      "description": "Interactive Metropolis-Hastings, Gibbs sampler, and convergence diagnostics.",
+      "educationalLevel": "Expert",
+      "teaches": "Metropolis-Hastings algorithm, Gibbs sampling, Gelman-Rubin R-hat, trace plots, effective sample size",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en-GB",
+      "isAccessibleForFree": true,
+      "creator": { "@type": "Person", "name": "Manoj Bhaskar" },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": { "@type": "Course", "name": "Econometrics", "url": "https://mathsedu.org/topic-econometrics.html" }
+    }
+    </script>
+    <meta property="og:title" content="Bayesian Computation: MCMC in Practice">
+    <meta property="og:description" content="Interactive MCMC with Metropolis-Hastings, Gibbs sampler, and convergence diagnostics.">
+    <meta property="og:url" content="https://mathsedu.org/mcmc_methods.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="MCMC in Practice">
+    <meta name="twitter:description" content="Interactive MCMC with Metropolis-Hastings, Gibbs sampler, and convergence diagnostics.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}.back:hover{color:#0ea5e9}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(14,165,233,0.13);border-color:rgba(14,165,233,0.4);color:#0ea5e9}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:160px}
+        .slider-row input[type=range]{flex:1;max-width:280px;accent-color:#0ea5e9;cursor:pointer}
+        .slider-val{color:#0ea5e9;font-family:'Courier New',monospace;font-size:1.05em;min-width:70px;text-align:right}
+        .result-box{background:rgba(14,165,233,0.06);border:1px solid rgba(14,165,233,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .insight-box{background:rgba(14,165,233,0.04);border-left:3px solid rgba(14,165,233,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .section-desc{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:14px}
+        @media(max-width:600px){.container{padding:16px 12px}h1{font-size:1.4em}canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <nav style="font-size:0.82em;color:#707088;margin:6px 0 0">
+        <a href="index.html" style="color:#707088;text-decoration:none">Home</a>
+        <span style="margin:0 6px">&rsaquo;</span>
+        <a href="topic-econometrics.html" style="color:#707088;text-decoration:none">Econometrics</a>
+        <span style="margin:0 6px">&rsaquo;</span>
+        <span style="color:#b0b0c0">MCMC in Practice</span>
+    </nav>
+
+    <h1>Bayesian Computation: MCMC in Practice</h1>
+    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(14,165,233,0.10);border:1px solid rgba(14,165,233,0.25);color:#0ea5e9;padding:4px 12px;border-radius:12px;font-size:0.78em;margin:8px 0 2px"><span style="display:inline-flex;gap:3px"><span style="color:#0ea5e9">&#9679;</span><span style="color:#0ea5e9">&#9679;</span><span style="color:#0ea5e9">&#9679;</span><span style="color:#0ea5e9">&#9679;</span></span> Expert</div>
+    <p class="subtitle">Sampling from distributions we cannot compute analytically</p>
+
+    <!-- ═══════════ SECTION 1: Metropolis-Hastings ═══════════ -->
+    <h2>1. Metropolis-Hastings</h2>
+    <p class="section-desc">The chain starts at the current position, proposes a move, and accepts or rejects based on the density ratio. Adjust the proposal variance: too small and the chain mixes slowly; too large and most proposals are rejected.</p>
+
+    <canvas id="mhCanvas" width="700" height="420"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Controls</h3>
+        <div class="slider-row">
+            <label>Proposal SD:</label>
+            <input type="range" id="sliderPropSD" min="1" max="80" step="1" value="15">
+            <span class="slider-val" id="valPropSD">1.5</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnMH1" onclick="mhStep()">Step Once</button>
+            <button class="btn" id="btnMH100" onclick="mhMany(100)">100 Steps</button>
+            <button class="btn" id="btnMH1000" onclick="mhMany(1000)">1000 Steps</button>
+            <button class="btn" id="btnMHAnimate" onclick="animateMH()">Animate</button>
+            <button class="btn" id="btnMHReset" onclick="resetMH()">Reset</button>
+        </div>
+        <div id="mhStats" class="result-box" style="font-size:0.9em"></div>
+    </div>
+
+    <!-- ═══════════ SECTION 2: Gibbs Sampler ═══════════ -->
+    <h2>2. Gibbs Sampler</h2>
+    <p class="section-desc">For a bivariate normal, we alternate drawing from the full conditionals. The characteristic staircase pattern fills in the joint distribution.</p>
+
+    <canvas id="gibbsCanvas" width="700" height="420"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div class="slider-row">
+            <label>Correlation &rho;:</label>
+            <input type="range" id="sliderRho" min="-95" max="95" step="5" value="70">
+            <span class="slider-val" id="valRho">0.70</span>
+        </div>
+        <div class="btn-row">
+            <button class="btn" id="btnGibbs100" onclick="gibbsRun(100)">100 Steps</button>
+            <button class="btn" id="btnGibbs1000" onclick="gibbsRun(1000)">1000 Steps</button>
+            <button class="btn" id="btnGibbsAnimate" onclick="animateGibbs()">Animate</button>
+            <button class="btn" id="btnGibbsReset" onclick="resetGibbs()">Reset</button>
+        </div>
+        <div id="gibbsStats" class="result-box" style="font-size:0.9em"></div>
+    </div>
+
+    <div class="insight-box"><strong>Gibbs sampling</strong> is a special case of Metropolis-Hastings where proposals are always accepted because each draw comes from the exact full conditional distribution.</div>
+
+    <!-- ═══════════ SECTION 3: Convergence Diagnostics ═══════════ -->
+    <h2>3. Convergence Diagnostics</h2>
+    <p class="section-desc">Multiple chains from dispersed starting points. The Gelman-Rubin R&#770; statistic measures whether between-chain variance exceeds within-chain variance. Values near 1.0 indicate convergence.</p>
+
+    <canvas id="convCanvas" width="700" height="400"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div class="btn-row">
+            <button class="btn" id="btnRunConv" onclick="runConvergence()">Run 4 Chains (500 each)</button>
+            <button class="btn" id="btnAnimConv" onclick="animateConvergence()">Animate</button>
+        </div>
+        <div id="convStats" class="result-box" style="font-size:0.88em"></div>
+    </div>
+</div>
+
+<!-- Explore Next -->
+<div style="max-width:960px;margin:0 auto;padding:0 28px;">
+<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 22px;margin:0 0 20px">
+    <h3 style="color:#808098;font-size:0.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;font-weight:400;">Explore Next</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <a href="ml_meets_econometrics.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #0ea5e9;transition:background 0.2s;">
+            <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px;">ML Meets Econometrics</div>
+            <div style="color:#606078;font-size:0.78em;">Econometrics</div>
+        </a>
+        <a href="bayesian_econometrics.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #0ea5e9;transition:background 0.2s;">
+            <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px;">Bayesian Econometrics</div>
+            <div style="color:#606078;font-size:0.78em;">Econometrics</div>
+        </a>
+    </div>
+</div></div>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="terms.html" style="color:#606078;text-decoration:none">Terms of Use</a>&nbsp;&middot;&nbsp;
+        <a href="intellectual-property.html" style="color:#606078;text-decoration:none">Intellectual Property</a>&nbsp;&middot;&nbsp;
+        <a href="privacy.html" style="color:#606078;text-decoration:none">Privacy Policy</a>
+    </div>
+</footer>
+
+<script>
+/* ═══ PRNG ═══ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+var rng=mulberry32(42);
+function rngNorm(){var u=0,v=0;while(u===0)u=rng();while(v===0)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function setupHiDPI(c){var d=window.devicePixelRatio||1,w=c.width,h=c.height;c.width=w*d;c.height=h*d;c.style.width=w+'px';c.style.height=h+'px';var x=c.getContext('2d');x.scale(d,d);x._cssW=w;x._cssH=h;return x;}
+
+/* ═══ Target: mixture of two normals ═══ */
+function targetPDF(x){
+    var p1=0.4*Math.exp(-0.5*((x-2)/1.2)*((x-2)/1.2))/(1.2*Math.sqrt(2*Math.PI));
+    var p2=0.6*Math.exp(-0.5*((x-7)/1.5)*((x-7)/1.5))/(1.5*Math.sqrt(2*Math.PI));
+    return p1+p2;
+}
+
+/* ═══════════ SECTION 1: Metropolis-Hastings ═══════════ */
+var mhC=document.getElementById('mhCanvas');
+var ctx1=setupHiDPI(mhC);
+var W1=ctx1._cssW,H1=ctx1._cssH;
+
+var mhChain=[5],mhAccepted=0,mhTotal=0,mhAnimTimer=null;
+
+function mhStep(){
+    var propSD=parseInt(document.getElementById('sliderPropSD').value)/10;
+    document.getElementById('valPropSD').textContent=propSD.toFixed(1);
+    var current=mhChain[mhChain.length-1];
+    var proposal=current+rngNorm()*propSD;
+    var alpha=targetPDF(proposal)/targetPDF(current);
+    mhTotal++;
+    if(rng()<Math.min(1,alpha)){
+        mhChain.push(proposal);mhAccepted++;
+    } else {
+        mhChain.push(current);
+    }
+    drawMH();
+}
+
+function mhMany(n){for(var i=0;i<n;i++)mhStep();}
+
+function animateMH(){
+    if(mhAnimTimer)cancelAnimationFrame(mhAnimTimer);
+    var count=0;
+    function step(){mhStep();count++;if(count<500)mhAnimTimer=requestAnimationFrame(step);}
+    mhAnimTimer=requestAnimationFrame(step);
+}
+
+function resetMH(){
+    if(mhAnimTimer)cancelAnimationFrame(mhAnimTimer);
+    mhChain=[5];mhAccepted=0;mhTotal=0;rng=mulberry32(42);drawMH();
+}
+
+function drawMH(){
+    var ctx=ctx1,W=W1,H=H1;
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d0d22';ctx.fillRect(0,0,W,H);
+
+    var m={l:50,r:30,t:30,b:50};
+    var pW=W-m.l-m.r,pH=H-m.t-m.b;
+    var topH=pH*0.4,botH=pH*0.5,gap=pH*0.1;
+
+    // Top: trace plot (last 200 steps)
+    var showN=Math.min(mhChain.length,200);
+    var start=mhChain.length-showN;
+    var lo=-2,hi=14;
+
+    function xMapTop(i){return m.l+((i-start)/showN)*pW;}
+    function yMapTop(v){return m.t+topH-((v-lo)/(hi-lo))*topH;}
+
+    ctx.strokeStyle='rgba(14,165,233,0.6)';ctx.lineWidth=1;
+    ctx.beginPath();
+    for(var i=start;i<mhChain.length;i++){
+        var x=xMapTop(i),y=yMapTop(mhChain[i]);
+        if(i===start)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle='#808098';ctx.font='10px Georgia';ctx.textAlign='left';
+    ctx.fillText('Trace Plot (last '+showN+' steps)',m.l,m.t+12);
+
+    // Target density overlay
+    ctx.strokeStyle='rgba(251,191,36,0.3)';ctx.lineWidth=1;
+    var maxTarget=0;
+    for(var v=lo;v<=hi;v+=0.1){var d=targetPDF(v);if(d>maxTarget)maxTarget=d;}
+    for(var v=lo;v<=hi;v+=0.1){
+        var y=yMapTop(v);
+        var d=targetPDF(v)/maxTarget*pW*0.08;
+        ctx.fillStyle='rgba(251,191,36,0.05)';
+        ctx.fillRect(m.l+pW-d,y,d,1);
+    }
+
+    // Bottom: histogram
+    var botTop=m.t+topH+gap;
+    var nBins=50,bins=new Array(nBins).fill(0);
+    var burnin=Math.min(100,Math.floor(mhChain.length*0.2));
+    for(var i=burnin;i<mhChain.length;i++){
+        var b=Math.floor((mhChain[i]-lo)/(hi-lo)*nBins);
+        if(b>=0 && b<nBins)bins[b]++;
+    }
+    var maxBin=Math.max.apply(null,bins);if(maxBin===0)maxBin=1;
+
+    var barW=pW/nBins;
+    for(var i=0;i<nBins;i++){
+        var bh=(bins[i]/maxBin)*botH*0.85;
+        ctx.fillStyle='rgba(14,165,233,0.4)';
+        ctx.fillRect(m.l+i*barW,botTop+botH-bh,barW-1,bh);
+    }
+
+    // Target overlay on histogram
+    ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
+    ctx.beginPath();
+    var maxTScaled=0;
+    for(var v=lo;v<=hi;v+=0.1){var d=targetPDF(v);if(d>maxTScaled)maxTScaled=d;}
+    for(var v=lo;v<=hi;v+=0.1){
+        var x=m.l+((v-lo)/(hi-lo))*pW;
+        var y=botTop+botH-(targetPDF(v)/maxTScaled)*botH*0.85;
+        if(v===lo)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle='#808098';ctx.font='10px Georgia';ctx.textAlign='left';
+    ctx.fillText('Histogram (post burn-in) vs Target',m.l,botTop-5);
+    ctx.fillStyle='#fbbf24';ctx.fillText('Target density',m.l+pW-120,botTop-5);
+
+    var rate=mhTotal>0?mhAccepted/mhTotal:0;
+    var shtml='<span style="color:#808098">Chain length: </span><span style="color:#0ea5e9;font-family:monospace">'+mhChain.length+'</span>';
+    shtml+=' &nbsp; <span style="color:#808098">Acceptance rate: </span><span style="color:'+(rate>0.15&&rate<0.5?'#4ade80':'#f87171')+';font-family:monospace">'+(rate*100).toFixed(1)+'%</span>';
+    shtml+=(rate<0.15?' <span style="color:#f87171;font-size:0.85em">(too low &mdash; reduce proposal SD)</span>':'');
+    shtml+=(rate>0.5?' <span style="color:#f87171;font-size:0.85em">(too high &mdash; increase proposal SD)</span>':'');
+    document.getElementById('mhStats').innerHTML=shtml;
+}
+
+document.getElementById('sliderPropSD').addEventListener('input',function(){
+    document.getElementById('valPropSD').textContent=(parseInt(this.value)/10).toFixed(1);
+});
+drawMH();
+
+/* ═══════════ SECTION 2: Gibbs Sampler ═══════════ */
+var gibbsC=document.getElementById('gibbsCanvas');
+var ctx2=setupHiDPI(gibbsC);
+var W2=ctx2._cssW,H2=ctx2._cssH;
+
+var gibbsSamples=[],gibbsAnimTimer=null;
+
+function gibbsRun(n){
+    var rho=parseInt(document.getElementById('sliderRho').value)/100;
+    document.getElementById('valRho').textContent=rho.toFixed(2);
+
+    var x=gibbsSamples.length?gibbsSamples[gibbsSamples.length-1][0]:0;
+    var y=gibbsSamples.length?gibbsSamples[gibbsSamples.length-1][1]:0;
+
+    for(var i=0;i<n;i++){
+        // Full conditional: x|y ~ N(rho*y, 1-rho^2)
+        x=rho*y+Math.sqrt(1-rho*rho)*rngNorm();
+        gibbsSamples.push([x,y]);
+        // Full conditional: y|x ~ N(rho*x, 1-rho^2)
+        y=rho*x+Math.sqrt(1-rho*rho)*rngNorm();
+        gibbsSamples.push([x,y]);
+    }
+    drawGibbs();
+}
+
+function animateGibbs(){
+    if(gibbsAnimTimer)cancelAnimationFrame(gibbsAnimTimer);
+    var count=0;
+    function step(){gibbsRun(1);count++;if(count<200)gibbsAnimTimer=requestAnimationFrame(step);}
+    gibbsAnimTimer=requestAnimationFrame(step);
+}
+
+function resetGibbs(){
+    if(gibbsAnimTimer)cancelAnimationFrame(gibbsAnimTimer);
+    gibbsSamples=[];rng=mulberry32(42);drawGibbs();
+}
+
+function drawGibbs(){
+    var ctx=ctx2,W=W2,H=H2;
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d0d22';ctx.fillRect(0,0,W,H);
+
+    var m={l:50,r:30,t:30,b:50};
+    var pW=W-m.l-m.r,pH=H-m.t-m.b;
+    var lo=-4,hi=4;
+
+    function xMap(v){return m.l+((v-lo)/(hi-lo))*pW;}
+    function yMap(v){return m.t+pH-((v-lo)/(hi-lo))*pH;}
+
+    // Grid
+    ctx.strokeStyle='#1a1a2e';ctx.lineWidth=0.5;
+    for(var v=-3;v<=3;v++){
+        ctx.beginPath();ctx.moveTo(xMap(v),m.t);ctx.lineTo(xMap(v),m.t+pH);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(m.l,yMap(v));ctx.lineTo(m.l+pW,yMap(v));ctx.stroke();
+    }
+
+    // Target ellipse (approx)
+    var rho=parseInt(document.getElementById('sliderRho').value)/100;
+    ctx.strokeStyle='rgba(251,191,36,0.2)';ctx.lineWidth=1.5;
+    for(var k=1;k<=3;k++){
+        ctx.beginPath();
+        for(var t=0;t<=2*Math.PI;t+=0.05){
+            var ex=k*Math.cos(t);
+            var ey=k*(rho*Math.cos(t)+Math.sqrt(1-rho*rho)*Math.sin(t));
+            var px=xMap(ex),py=yMap(ey);
+            if(t===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);
+        }
+        ctx.closePath();ctx.stroke();
+    }
+
+    // Staircase path (last 100 steps)
+    var showN=Math.min(gibbsSamples.length,200);
+    var start=Math.max(0,gibbsSamples.length-showN);
+
+    if(showN>1){
+        ctx.strokeStyle='rgba(14,165,233,0.3)';ctx.lineWidth=0.8;
+        ctx.beginPath();
+        ctx.moveTo(xMap(gibbsSamples[start][0]),yMap(gibbsSamples[start][1]));
+        for(var i=start+1;i<gibbsSamples.length;i++){
+            ctx.lineTo(xMap(gibbsSamples[i][0]),yMap(gibbsSamples[i][1]));
+        }
+        ctx.stroke();
+    }
+
+    // All points
+    for(var i=0;i<gibbsSamples.length;i++){
+        var alpha=i<100?0.15:0.3;
+        ctx.fillStyle='rgba(14,165,233,'+alpha+')';
+        ctx.beginPath();ctx.arc(xMap(gibbsSamples[i][0]),yMap(gibbsSamples[i][1]),1.5,0,Math.PI*2);ctx.fill();
+    }
+
+    // Current point
+    if(gibbsSamples.length){
+        var last=gibbsSamples[gibbsSamples.length-1];
+        ctx.fillStyle='#0ea5e9';ctx.beginPath();ctx.arc(xMap(last[0]),yMap(last[1]),5,0,Math.PI*2);ctx.fill();
+    }
+
+    // Axes
+    ctx.fillStyle='#808098';ctx.font='11px Georgia';ctx.textAlign='center';
+    for(var v=-3;v<=3;v++){ctx.fillText(v,xMap(v),m.t+pH+18);}
+    ctx.fillText('X',m.l+pW/2,m.t+pH+40);
+    ctx.save();ctx.translate(15,m.t+pH/2);ctx.rotate(-Math.PI/2);ctx.fillText('Y',0,0);ctx.restore();
+
+    ctx.fillStyle='#0ea5e9';ctx.font='11px Georgia';ctx.textAlign='left';
+    ctx.fillText('Gibbs: '+gibbsSamples.length+' samples, \u03C1='+rho.toFixed(2),m.l+10,m.t+15);
+
+    var shtml='<span style="color:#808098">Samples: </span><span style="color:#0ea5e9;font-family:monospace">'+gibbsSamples.length+'</span>';
+    if(gibbsSamples.length>10){
+        var mx=0,my=0;for(var i=0;i<gibbsSamples.length;i++){mx+=gibbsSamples[i][0];my+=gibbsSamples[i][1];}
+        mx/=gibbsSamples.length;my/=gibbsSamples.length;
+        shtml+=' &nbsp; <span style="color:#808098">Mean: (</span><span style="color:#0ea5e9;font-family:monospace">'+mx.toFixed(3)+', '+my.toFixed(3)+'</span><span style="color:#808098">)</span>';
+    }
+    document.getElementById('gibbsStats').innerHTML=shtml;
+}
+
+document.getElementById('sliderRho').addEventListener('input',function(){
+    document.getElementById('valRho').textContent=(parseInt(this.value)/100).toFixed(2);
+});
+drawGibbs();
+
+/* ═══════════ SECTION 3: Convergence Diagnostics ═══════════ */
+var convC=document.getElementById('convCanvas');
+var ctx3=setupHiDPI(convC);
+var W3=ctx3._cssW,H3=ctx3._cssH;
+
+var convChains=[],convAnimTimer=null,convStep=0;
+
+function runConvergenceFull(){
+    var nChains=4,nIter=500;
+    var starts=[-8,12,-5,15];
+    convChains=[];
+
+    for(var c=0;c<nChains;c++){
+        var chain=[];
+        var current=starts[c];
+        var rr=mulberry32(100+c*77);
+        function rn(){var u=0,v=0;while(u===0)u=rr();while(v===0)v=rr();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+        for(var i=0;i<nIter;i++){
+            var proposal=current+rn()*1.5;
+            var alpha=targetPDF(proposal)/targetPDF(current);
+            if(!isFinite(alpha))alpha=0;
+            if(rr()<Math.min(1,alpha))current=proposal;
+            chain.push(current);
+        }
+        convChains.push(chain);
+    }
+}
+
+function runConvergence(){
+    runConvergenceFull();
+    convStep=convChains[0].length;
+    drawConvergence();
+}
+
+function animateConvergence(){
+    runConvergenceFull();
+    convStep=1;
+    if(convAnimTimer)cancelAnimationFrame(convAnimTimer);
+    function step(){
+        convStep+=3;
+        drawConvergence();
+        if(convStep<convChains[0].length)convAnimTimer=requestAnimationFrame(step);
+    }
+    convAnimTimer=requestAnimationFrame(step);
+}
+
+function drawConvergence(){
+    var ctx=ctx3,W=W3,H=H3;
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d0d22';ctx.fillRect(0,0,W,H);
+
+    if(!convChains.length){
+        ctx.fillStyle='#505068';ctx.font='14px Georgia';ctx.textAlign='center';
+        ctx.fillText('Press "Run 4 Chains" to start',W/2,H/2);
+        return;
+    }
+
+    var m={l:50,r:160,t:30,b:50};
+    var pW=W-m.l-m.r,pH=H-m.t-m.b;
+    var showN=Math.min(convStep,convChains[0].length);
+
+    var colours=['#0ea5e9','#f87171','#4ade80','#fbbf24'];
+    var lo=-10,hi=18;
+
+    function xMap(i){return m.l+(i/convChains[0].length)*pW;}
+    function yMap(v){return m.t+pH-((v-lo)/(hi-lo))*pH;}
+
+    // Trace plots
+    for(var c=0;c<convChains.length;c++){
+        ctx.strokeStyle=colours[c];ctx.lineWidth=1;ctx.globalAlpha=0.7;
+        ctx.beginPath();
+        for(var i=0;i<showN;i++){
+            var x=xMap(i),y=yMap(convChains[c][i]);
+            if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+        }
+        ctx.stroke();
+        ctx.globalAlpha=1;
+    }
+
+    // Compute R-hat
+    var nC=convChains.length;
+    var chainMeans=[],chainVars=[];
+    var grandMean=0;
+    for(var c=0;c<nC;c++){
+        var cm=0;for(var i=0;i<showN;i++)cm+=convChains[c][i];cm/=showN;
+        chainMeans.push(cm);grandMean+=cm;
+        var cv=0;for(var i=0;i<showN;i++)cv+=(convChains[c][i]-cm)*(convChains[c][i]-cm);
+        chainVars.push(cv/(showN-1));
+    }
+    grandMean/=nC;
+
+    var B=0;for(var c=0;c<nC;c++)B+=(chainMeans[c]-grandMean)*(chainMeans[c]-grandMean);
+    B=B*showN/(nC-1);
+    var W_est=0;for(var c=0;c<nC;c++)W_est+=chainVars[c];
+    W_est/=nC;
+
+    var varPlus=((showN-1)/showN)*W_est+(1/showN)*B;
+    var rHat=W_est>0?Math.sqrt(varPlus/W_est):1;
+
+    // R-hat panel
+    var rx=W-150,ry=m.t+10;
+    ctx.fillStyle='rgba(255,255,255,0.03)';ctx.fillRect(rx,ry,140,pH-20);
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.strokeRect(rx,ry,140,pH-20);
+
+    ctx.fillStyle='#808098';ctx.font='10px Georgia';ctx.textAlign='left';
+    ctx.fillText('DIAGNOSTICS',rx+10,ry+16);
+
+    ctx.fillStyle=(rHat<1.1)?'#4ade80':'#f87171';ctx.font='14px monospace';
+    ctx.fillText('R\u0302 = '+rHat.toFixed(3),rx+10,ry+40);
+    ctx.fillStyle='#808098';ctx.font='10px Georgia';
+    ctx.fillText(rHat<1.1?'Converged':'Not converged',rx+10,ry+58);
+    ctx.fillText('Step: '+showN+'/'+convChains[0].length,rx+10,ry+78);
+
+    for(var c=0;c<nC;c++){
+        ctx.fillStyle=colours[c];ctx.font='10px Georgia';
+        ctx.fillText('Chain '+(c+1)+': \u03BC\u0302='+chainMeans[c].toFixed(2),rx+10,ry+100+c*18);
+    }
+
+    // ESS estimate (simple)
+    var ess=showN*nC;
+    // Rough ACF-based correction
+    if(showN>20){
+        var acf1=0,tot=0;
+        for(var c=0;c<nC;c++){
+            var cm=chainMeans[c];
+            for(var i=1;i<showN;i++){
+                acf1+=(convChains[c][i]-cm)*(convChains[c][i-1]-cm);
+                tot+=(convChains[c][i]-cm)*(convChains[c][i]-cm);
+            }
+        }
+        var rho1=tot>0?acf1/tot:0;
+        var tau=1+2*Math.abs(rho1);
+        ess=Math.round(showN*nC/tau);
+    }
+    ctx.fillText('ESS \u2248 '+ess,rx+10,ry+100+nC*18+10);
+
+    // Axes
+    ctx.fillStyle='#808098';ctx.font='11px Georgia';ctx.textAlign='center';
+    ctx.fillText('Iteration',m.l+pW/2,m.t+pH+20);
+
+    var shtml='<span style="color:#808098">R&#770; = </span><span style="color:'+(rHat<1.1?'#4ade80':'#f87171')+';font-family:monospace">'+rHat.toFixed(4)+'</span>';
+    shtml+=' &nbsp; <span style="color:#808098">ESS &asymp; </span><span style="color:#0ea5e9;font-family:monospace">'+ess+'</span>';
+    shtml+=' &nbsp; <span style="color:#808098">Step '+showN+'/'+convChains[0].length+'</span>';
+    if(rHat>=1.1)shtml+='<br><span style="color:#f87171;font-size:0.85em">Chains have not converged yet &mdash; run longer or adjust proposal.</span>';
+    document.getElementById('convStats').innerHTML=shtml;
+}
+drawConvergence();
+</script>
+</body>
+</html>

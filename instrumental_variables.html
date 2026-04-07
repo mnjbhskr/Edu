@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Instrumental Variables &amp; Two-Stage Least Squares – Interactive Econometrics</title>
+<meta name="description" content="Walk through 2SLS step by step, explore weak instruments, and compare OLS vs IV via Monte Carlo.">
+<meta property="og:title" content="Instrumental Variables & 2SLS – Interactive Econometrics">
+<meta property="og:description" content="Interactive two-stage least squares, weak instruments and Monte Carlo comparison.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Instrumental Variables & Two-Stage Least Squares","description":"Interactive exploration of IV estimation, weak instruments and 2SLS.","creator":{"@type":"Person","name":"Manoj Bhaskar"},"license":"https://creativecommons.org/licenses/by-nc-sa/4.0/"}</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+.container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+.back{color:#606078;text-decoration:none;font-size:0.85em}
+.back:hover{color:#0ea5e9}
+h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+.subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+.panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+.panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+.btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+.btn.active{background:rgba(14,165,233,0.13);border-color:rgba(14,165,233,0.4);color:#0ea5e9}
+.slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+.slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+input[type=range]{flex:1;max-width:300px;accent-color:#0ea5e9;cursor:pointer}
+.slider-val{color:#0ea5e9;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+.result-box{background:rgba(14,165,233,0.06);border:1px solid rgba(14,165,233,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+.insight-box{background:rgba(14,165,233,0.04);border-left:3px solid rgba(14,165,233,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+.formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2;color:#c0c0d8}
+.difficulty{display:inline-flex;gap:4px;margin-left:12px;vertical-align:middle}
+.difficulty .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.difficulty .dot.filled{background:#0ea5e9}
+.difficulty .dot.empty{background:rgba(255,255,255,0.15)}
+.two-canvas{display:flex;gap:12px;flex-wrap:wrap}
+.two-canvas canvas{flex:1;min-width:300px}
+.explore-next{margin-top:32px;padding:18px 22px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px}
+.explore-next h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.explore-next a{color:#0ea5e9;text-decoration:none;margin-right:18px;font-size:0.95em}
+.explore-next a:hover{text-decoration:underline}
+footer{text-align:center;padding:32px 0 18px;color:#505068;font-size:0.78em}
+footer a{color:#505068;margin:0 8px}
+footer a:hover{color:#0ea5e9}
+@media(max-width:600px){.container{padding:14px 8px 32px}h1{font-size:1.3em}canvas{max-width:100%}.slider-row{flex-direction:column;align-items:flex-start;gap:6px}input[type=range]{max-width:100%}.two-canvas{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="container">
+<a href="topic-econometrics.html" class="back">← Econometrics</a>
+<h1>Instrumental Variables &amp; 2SLS <span class="difficulty"><span class="dot filled"></span><span class="dot filled"></span><span class="dot filled"></span></span></h1>
+<p class="subtitle">When OLS fails, instruments provide identification — if they are strong enough</p>
+
+<h2>1 · Two-Stage Walkthrough</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">Stage 1: Regress endogenous X on instrument Z. Stage 2: Regress Y on fitted X̂. Compare OLS (biased) to IV (consistent).</p>
+<div class="panel">
+<div class="two-canvas">
+<canvas id="cvS1" width="340" height="300"></canvas>
+<canvas id="cvS2" width="340" height="300"></canvas>
+</div>
+<div class="result-box" id="res2SLS">—</div>
+<div class="btn-row"><button class="btn" id="btnNew2SLS">New Sample</button></div>
+</div>
+<div class="formula-block">Stage 1: X = π₀ + π₁Z + v &nbsp;→&nbsp; X̂ = π̂₀ + π̂₁Z<br>Stage 2: Y = β₀ + β₁X̂ + error &nbsp;→&nbsp; β̂₁_IV is consistent for β₁</div>
+
+<h2>2 · Weak Instruments</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">Adjust the instrument strength (π₁). As π₁ → 0, the first-stage F drops and IV becomes unreliable. Rule of thumb: F &gt; 10.</p>
+<div class="panel">
+<div class="slider-row"><label>Instrument strength π₁</label><input type="range" id="slPi" min="0" max="2" step="0.05" value="1"><span class="slider-val" id="vPi">1.00</span></div>
+<div class="btn-row"><button class="btn" id="btnWeak">Run 1000 Replications</button></div>
+<canvas id="cvWeak" width="700" height="320"></canvas>
+<div class="result-box" id="resWeak">Set instrument strength and press Run.</div>
+</div>
+<div class="insight-box">A weak instrument (F &lt; 10) makes IV estimates wildly imprecise and can be more biased than OLS. Always check the first-stage F-statistic before relying on IV.</div>
+
+<h2>3 · Monte Carlo: OLS vs IV (Strong) vs IV (Weak)</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">Three histograms showing the sampling distributions side by side.</p>
+<div class="panel">
+<div class="btn-row"><button class="btn" id="btnMC3">Run Comparison</button></div>
+<canvas id="cvMC3" width="700" height="350"></canvas>
+<div class="result-box" id="resMC3">Press the button to compare all three estimators.</div>
+</div>
+
+<div class="explore-next">
+<h3>Explore Next</h3>
+<a href="panel_data_methods.html">Panel Data Methods →</a>
+<a href="omitted_variable_bias.html">Omitted Variable Bias →</a>
+</div>
+</div>
+<footer><a href="terms.html">Terms</a><a href="intellectual-property.html">IP</a><a href="privacy.html">Privacy</a><br>© 2025 mathsedu.org</footer>
+
+<script>
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function setupHiDPI(c,w,h){var d=window.devicePixelRatio||1;c.width=w*d;c.height=h*d;c.style.width=w+'px';c.style.height=h+'px';var x=c.getContext('2d');x.scale(d,d);return x}
+function rnormWith(r){var u=0,v=0;while(u===0)u=r();while(v===0)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function olsS(xs,ys){var n=xs.length,sx=0,sy=0,sxy=0,sxx=0;for(var i=0;i<n;i++){sx+=xs[i];sy+=ys[i];sxy+=xs[i]*ys[i];sxx+=xs[i]*xs[i]}var mx=sx/n,my=sy/n;var b1=(sxy-n*mx*my)/(sxx-n*mx*mx);if(!isFinite(b1))b1=0;return{b0:my-b1*mx,b1:b1}}
+
+function genIVdata(rng,n,pi1){
+    var zs=[],xs=[],ys=[];
+    var trueB1=1.0;
+    for(var i=0;i<n;i++){
+        var z=rnormWith(rng)*2;
+        var u=rnormWith(rng)*1.5; // unobservable
+        var x=1+pi1*z+0.8*u+rnormWith(rng)*0.5; // endogenous: corr with u
+        var y=2+trueB1*x+u; // u in both → endogeneity
+        zs.push(z);xs.push(x);ys.push(y);
+    }
+    return{zs:zs,xs:xs,ys:ys,trueB1:trueB1};
+}
+
+function iv2SLS(zs,xs,ys){
+    var s1=olsS(zs,xs); // stage 1
+    var xhat=zs.map(function(z){return s1.b0+s1.b1*z});
+    var s2=olsS(xhat,ys); // stage 2
+    // first stage F
+    var n=zs.length;
+    var ssr=0,sst=0,mx=0;for(var i=0;i<n;i++)mx+=xs[i];mx/=n;
+    for(var i=0;i<n;i++){var r=xs[i]-(s1.b0+s1.b1*zs[i]);ssr+=r*r;sst+=(xs[i]-mx)*(xs[i]-mx)}
+    var r2=1-ssr/sst;var fStat=r2*(n-2)/((1-r2)||1e-10);
+    return{b1IV:s2.b1,fStat:fStat,s1:s1,xhat:xhat};
+}
+
+/* Section 1 */
+(function(){
+var cvS1=document.getElementById('cvS1'),cvS2=document.getElementById('cvS2');
+var W1=340,H1=300;
+var ctx1=setupHiDPI(cvS1,W1,H1),ctx2=setupHiDPI(cvS2,W1,H1);
+var seed=1234;
+
+function drawTwoStage(){
+    var rng=mulberry32(seed);
+    var d=genIVdata(rng,80,1.0);
+    var olsFit=olsS(d.xs,d.ys);
+    var ivRes=iv2SLS(d.zs,d.xs,d.ys);
+    // Stage 1
+    ctx1.clearRect(0,0,W1,H1);ctx1.fillStyle='#0a0a1a';ctx1.fillRect(0,0,W1,H1);
+    var minZ=-5,maxZ=5,minX=-2,maxX=8;
+    var pL=50,pR=W1-15,pT=25,pB=H1-35;
+    function fx1(v){return pL+(v-minZ)/(maxZ-minZ)*(pR-pL)}
+    function fy1(v){return pB-(v-minX)/(maxX-minX)*(pB-pT)}
+    for(var i=0;i<d.zs.length;i++){ctx1.beginPath();ctx1.arc(fx1(d.zs[i]),fy1(d.xs[i]),3,0,Math.PI*2);ctx1.fillStyle='rgba(14,165,233,0.5)';ctx1.fill()}
+    ctx1.strokeStyle='#fbbf24';ctx1.lineWidth=2;ctx1.beginPath();ctx1.moveTo(fx1(-5),fy1(ivRes.s1.b0+ivRes.s1.b1*(-5)));ctx1.lineTo(fx1(5),fy1(ivRes.s1.b0+ivRes.s1.b1*5));ctx1.stroke();
+    ctx1.fillStyle='#fff';ctx1.font='13px Georgia';ctx1.fillText('Stage 1: X on Z',pL,18);
+    ctx1.fillStyle='#606078';ctx1.font='11px Georgia';ctx1.fillText('Z (instrument)',W1/2-25,H1-8);
+
+    // Stage 2
+    ctx2.clearRect(0,0,W1,H1);ctx2.fillStyle='#0a0a1a';ctx2.fillRect(0,0,W1,H1);
+    var minXh=-1,maxXh=6,minY=-2,maxY=12;
+    function fx2(v){return pL+(v-minXh)/(maxXh-minXh)*(pR-pL)}
+    function fy2(v){return pB-(v-minY)/(maxY-minY)*(pB-pT)}
+    for(var i=0;i<d.ys.length;i++){ctx2.beginPath();ctx2.arc(fx2(ivRes.xhat[i]),fy2(d.ys[i]),3,0,Math.PI*2);ctx2.fillStyle='rgba(34,211,238,0.5)';ctx2.fill()}
+    ctx2.strokeStyle='#22d3ee';ctx2.lineWidth=2;
+    ctx2.beginPath();ctx2.moveTo(fx2(minXh),fy2(ivRes.b1IV*minXh+(olsS(ivRes.xhat,d.ys).b0)));ctx2.lineTo(fx2(maxXh),fy2(ivRes.b1IV*maxXh+(olsS(ivRes.xhat,d.ys).b0)));ctx2.stroke();
+    ctx2.fillStyle='#fff';ctx2.font='13px Georgia';ctx2.fillText('Stage 2: Y on X̂',pL,18);
+    ctx2.fillStyle='#606078';ctx2.font='11px Georgia';ctx2.fillText('X̂ (fitted from Stage 1)',W1/2-45,H1-8);
+
+    document.getElementById('res2SLS').innerHTML='OLS β̂₁: <strong style="color:#f87171">'+olsFit.b1.toFixed(3)+'</strong> (biased) | IV β̂₁: <strong style="color:#22d3ee">'+ivRes.b1IV.toFixed(3)+'</strong> | True β₁: <strong style="color:#fbbf24">'+d.trueB1.toFixed(1)+'</strong> | First-stage F: '+ivRes.fStat.toFixed(1);
+}
+document.getElementById('btnNew2SLS').addEventListener('click',function(){seed=Math.floor(Math.random()*1e8);drawTwoStage()});
+drawTwoStage();
+})();
+
+/* Section 2: Weak instruments */
+(function(){
+var cv=document.getElementById('cvWeak');
+var W=700,H=320,ctx=setupHiDPI(cv,W,H);
+document.getElementById('slPi').addEventListener('input',function(){document.getElementById('vPi').textContent=parseFloat(this.value).toFixed(2)});
+
+document.getElementById('btnWeak').addEventListener('click',function(){
+    var pi1=parseFloat(document.getElementById('slPi').value);
+    var trueB1=1.0,n=80;
+    var ivEst=[],fStats=[];
+    var mcRng=mulberry32(5555);
+    for(var rep=0;rep<1000;rep++){
+        var d=genIVdata(mcRng,n,pi1);
+        var iv=iv2SLS(d.zs,d.xs,d.ys);
+        if(isFinite(iv.b1IV)&&Math.abs(iv.b1IV)<20)ivEst.push(iv.b1IV);
+        fStats.push(iv.fStat);
+    }
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // histogram of IV estimates
+    var min=-3,max=5;
+    var nBins=60,bw=(max-min)/nBins;
+    var bins=new Array(nBins).fill(0);
+    for(var i=0;i<ivEst.length;i++){var b=Math.floor((ivEst[i]-min)/bw);if(b>=nBins)b=nBins-1;if(b<0)b=0;bins[b]++}
+    var maxB=0;for(var i=0;i<nBins;i++)if(bins[i]>maxB)maxB=bins[i];
+    var pL=60,pR=W-20,pT=20,pB=H-35,barW=(pR-pL)/nBins;
+    for(var i=0;i<nBins;i++){var bh=bins[i]/maxB*(pB-pT);ctx.fillStyle='rgba(14,165,233,0.45)';ctx.fillRect(pL+i*barW,pB-bh,barW-1,bh)}
+    var tx=pL+(trueB1-min)/(max-min)*(pR-pL);
+    ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(tx,pT);ctx.lineTo(tx,pB);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#fbbf24';ctx.font='12px Georgia';ctx.fillText('True β₁='+trueB1,tx+5,pT+14);
+    var meanF=0;for(var i=0;i<fStats.length;i++)meanF+=fStats[i];meanF/=fStats.length;
+    var meanIV=0;for(var i=0;i<ivEst.length;i++)meanIV+=ivEst[i];meanIV/=ivEst.length;
+    var varIV=0;for(var i=0;i<ivEst.length;i++)varIV+=(ivEst[i]-meanIV)*(ivEst[i]-meanIV);varIV/=ivEst.length;
+    var fStatus=meanF>10?'<strong style="color:#22d3ee">Strong (F > 10)</strong>':'<strong style="color:#f87171">Weak (F < 10) — unreliable!</strong>';
+    document.getElementById('resWeak').innerHTML='π₁ = '+pi1.toFixed(2)+' | Mean first-stage F: '+meanF.toFixed(1)+' '+fStatus+' | IV variance: '+varIV.toFixed(3);
+});
+})();
+
+/* Section 3: Three-way comparison */
+(function(){
+var cv=document.getElementById('cvMC3');
+var W=700,H=350,ctx=setupHiDPI(cv,W,H);
+
+document.getElementById('btnMC3').addEventListener('click',function(){
+    var trueB1=1.0,n=80;
+    var olsAll=[],ivStrong=[],ivWeak=[];
+    var mcRng=mulberry32(3456);
+    for(var rep=0;rep<1000;rep++){
+        // strong instrument
+        var ds=genIVdata(mcRng,n,1.0);
+        var ivS=iv2SLS(ds.zs,ds.xs,ds.ys);
+        olsAll.push(olsS(ds.xs,ds.ys).b1);
+        if(isFinite(ivS.b1IV)&&Math.abs(ivS.b1IV)<10)ivStrong.push(ivS.b1IV);
+        // weak instrument (reuse same confounders conceptually)
+        var dw=genIVdata(mcRng,n,0.1);
+        var ivW=iv2SLS(dw.zs,dw.xs,dw.ys);
+        if(isFinite(ivW.b1IV)&&Math.abs(ivW.b1IV)<10)ivWeak.push(ivW.b1IV);
+    }
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    var min=-3,max=5,nBins=70,bw=(max-min)/nBins;
+    function makeBins(arr){var b=new Array(nBins).fill(0);for(var i=0;i<arr.length;i++){var bi=Math.floor((arr[i]-min)/bw);if(bi>=nBins)bi=nBins-1;if(bi<0)bi=0;b[bi]++}return b}
+    var bO=makeBins(olsAll),bS=makeBins(ivStrong),bW=makeBins(ivWeak);
+    var maxB=0;for(var i=0;i<nBins;i++){if(bO[i]>maxB)maxB=bO[i];if(bS[i]>maxB)maxB=bS[i];if(bW[i]>maxB)maxB=bW[i]}
+    var pL=60,pR=W-20,pT=25,pB=H-40,barW=(pR-pL)/nBins;
+    // OLS
+    for(var i=0;i<nBins;i++){var h=bO[i]/maxB*(pB-pT);ctx.fillStyle='rgba(248,113,113,0.3)';ctx.fillRect(pL+i*barW,pB-h,barW-1,h)}
+    // IV strong
+    for(var i=0;i<nBins;i++){var h=bS[i]/maxB*(pB-pT)*0.7;ctx.fillStyle='rgba(14,165,233,0.4)';ctx.fillRect(pL+i*barW,pB-h,barW-1,h)}
+    // IV weak
+    for(var i=0;i<nBins;i++){var h=bW[i]/maxB*(pB-pT)*0.5;ctx.fillStyle='rgba(251,191,36,0.3)';ctx.fillRect(pL+i*barW,pB-h,barW-1,h)}
+    // true line
+    var tx=pL+(trueB1-min)/(max-min)*(pR-pL);
+    ctx.strokeStyle='#22d3ee';ctx.lineWidth=2;ctx.setLineDash([6,4]);ctx.beginPath();ctx.moveTo(tx,pT);ctx.lineTo(tx,pB);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#f87171';ctx.font='12px Georgia';ctx.fillText('● OLS (biased)',pR-160,pT+12);
+    ctx.fillStyle='#0ea5e9';ctx.fillText('● IV strong',pR-160,pT+28);
+    ctx.fillStyle='#fbbf24';ctx.fillText('● IV weak',pR-160,pT+44);
+    function mean(a){var s=0;for(var i=0;i<a.length;i++)s+=a[i];return s/a.length}
+    document.getElementById('resMC3').innerHTML='Mean OLS: <strong style="color:#f87171">'+mean(olsAll).toFixed(3)+'</strong> | Mean IV (strong): <strong style="color:#0ea5e9">'+mean(ivStrong).toFixed(3)+'</strong> | Mean IV (weak): <strong style="color:#fbbf24">'+mean(ivWeak).toFixed(3)+'</strong> | True: '+trueB1;
+});
+})();
+</script>
+</body>
+</html>

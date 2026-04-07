@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Multiple Regression &amp; OLS – Interactive Econometrics</title>
+<meta name="description" content="Explore multiple regression with a 3D scatter plot, Frisch-Waugh theorem and R² vs adjusted R² interactively.">
+<meta property="og:title" content="Multiple Regression & OLS – Interactive Econometrics">
+<meta property="og:description" content="3D visualisation of multiple regression, partial regression plots and model fit metrics.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"LearningResource","name":"Multiple Regression & OLS","description":"Interactive exploration of multiple regression, Frisch-Waugh and R² vs adjusted R².","creator":{"@type":"Person","name":"Manoj Bhaskar"},"license":"https://creativecommons.org/licenses/by-nc-sa/4.0/"}</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+.container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+.back{color:#606078;text-decoration:none;font-size:0.85em}
+.back:hover{color:#0ea5e9}
+h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+.subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+.panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+.panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s}
+.btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+.btn.active{background:rgba(14,165,233,0.13);border-color:rgba(14,165,233,0.4);color:#0ea5e9}
+.slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+.slider-row label{color:#a0a0b8;font-size:0.9em;min-width:130px}
+input[type=range]{flex:1;max-width:300px;accent-color:#0ea5e9;cursor:pointer}
+.slider-val{color:#0ea5e9;font-family:'Courier New',monospace;font-size:1.05em;min-width:60px;text-align:right}
+.result-box{background:rgba(14,165,233,0.06);border:1px solid rgba(14,165,233,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+.insight-box{background:rgba(14,165,233,0.04);border-left:3px solid rgba(14,165,233,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+.formula-block{margin:8px 0;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:6px;font-family:'Courier New',monospace;font-size:0.95em;line-height:2;color:#c0c0d8}
+.difficulty{display:inline-flex;gap:4px;margin-left:12px;vertical-align:middle}
+.difficulty .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.difficulty .dot.filled{background:#0ea5e9}
+.difficulty .dot.empty{background:rgba(255,255,255,0.15)}
+.explore-next{margin-top:32px;padding:18px 22px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px}
+.explore-next h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.explore-next a{color:#0ea5e9;text-decoration:none;margin-right:18px;font-size:0.95em}
+.explore-next a:hover{text-decoration:underline}
+footer{text-align:center;padding:32px 0 18px;color:#505068;font-size:0.78em}
+footer a{color:#505068;margin:0 8px}
+footer a:hover{color:#0ea5e9}
+@media(max-width:600px){.container{padding:14px 8px 32px}h1{font-size:1.3em}canvas{max-width:100%}.slider-row{flex-direction:column;align-items:flex-start;gap:6px}input[type=range]{max-width:100%}}
+</style>
+</head>
+<body>
+<div class="container">
+<a href="topic-econometrics.html" class="back">← Econometrics</a>
+<h1>Multiple Regression &amp; OLS <span class="difficulty"><span class="dot filled"></span><span class="dot empty"></span><span class="dot empty"></span></span></h1>
+<p class="subtitle">From simple lines to fitted planes — and the art of holding things constant</p>
+
+<h2>1 · 3D Scatter &amp; Fitted Plane</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">Drag to rotate the view. Two regressors (X₁, X₂) and one outcome (Y). The fitted plane shows the OLS estimate.</p>
+<div class="panel">
+<canvas id="cv3D" width="700" height="450"></canvas>
+<div class="result-box" id="res3D">Loading…</div>
+</div>
+
+<h2>2 · Frisch-Waugh-Lovell Theorem</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">The coefficient on X₁ in a multiple regression equals the coefficient from regressing the residuals of Y on X₂ against the residuals of X₁ on X₂. This is "holding X₂ constant".</p>
+<div class="panel">
+<div class="btn-row">
+<button class="btn active" id="btnFW1">Partial out X₂ for X₁</button>
+<button class="btn" id="btnFW2">Partial out X₁ for X₂</button>
+</div>
+<canvas id="cvFW" width="700" height="350"></canvas>
+<div class="result-box" id="resFW">Select a regressor above.</div>
+</div>
+<div class="insight-box">The Frisch-Waugh theorem explains what "controlling for" means in regression: it is equivalent to first removing the influence of other variables, then examining what remains.</div>
+
+<h2>3 · R² vs Adjusted R²</h2>
+<p style="color:#a0a0b8;font-size:0.9em;margin-bottom:10px">Add noise regressors and watch R² increase while adjusted R² may decrease — revealing overfitting.</p>
+<div class="panel">
+<div class="slider-row"><label>Extra noise regressors</label><input type="range" id="slExtra" min="0" max="20" step="1" value="0"><span class="slider-val" id="vExtra">0</span></div>
+<canvas id="cvR2" width="700" height="300"></canvas>
+<div class="result-box" id="resR2">Drag the slider to add irrelevant regressors.</div>
+</div>
+
+<div class="explore-next">
+<h3>Explore Next</h3>
+<a href="ols_assumptions.html">OLS Assumptions &amp; Gauss-Markov →</a>
+<a href="simple_linear_regression.html">Simple Linear Regression →</a>
+</div>
+</div>
+<footer><a href="terms.html">Terms</a><a href="intellectual-property.html">IP</a><a href="privacy.html">Privacy</a><br>© 2025 mathsedu.org</footer>
+
+<script>
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var rng=mulberry32(77);
+function rnorm(){var u=0,v=0;while(u===0)u=rng();while(v===0)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function setupHiDPI(c,w,h){var d=window.devicePixelRatio||1;c.width=w*d;c.height=h*d;c.style.width=w+'px';c.style.height=h+'px';var x=c.getContext('2d');x.scale(d,d);return x}
+
+/* Generate data: Y = 2 + 1.5*X1 + 0.8*X2 + eps */
+var N=60,data=[];
+rng=mulberry32(77);
+for(var i=0;i<N;i++){
+    var x1=rng()*6,x2=rng()*6;
+    var y=2+1.5*x1+0.8*x2+rnorm()*1.5;
+    data.push({x1:x1,x2:x2,y:y});
+}
+
+/* OLS for multiple regression (2 regressors) using normal equations */
+function ols2(dat){
+    var n=dat.length;
+    var sx1=0,sx2=0,sy=0,sx1x1=0,sx2x2=0,sx1x2=0,sx1y=0,sx2y=0;
+    for(var i=0;i<n;i++){var d=dat[i];sx1+=d.x1;sx2+=d.x2;sy+=d.y;sx1x1+=d.x1*d.x1;sx2x2+=d.x2*d.x2;sx1x2+=d.x1*d.x2;sx1y+=d.x1*d.y;sx2y+=d.x2*d.y}
+    // (X'X)b = X'y with intercept
+    // Using demeaned approach
+    var mx1=sx1/n,mx2=sx2/n,my=sy/n;
+    var a11=sx1x1-n*mx1*mx1,a12=sx1x2-n*mx1*mx2,a22=sx2x2-n*mx2*mx2;
+    var b1n=sx1y-n*mx1*my,b2n=sx2y-n*mx2*my;
+    var det=a11*a22-a12*a12;
+    if(Math.abs(det)<1e-12)return{b0:my,b1:0,b2:0};
+    var bb1=(a22*b1n-a12*b2n)/det;
+    var bb2=(a11*b2n-a12*b1n)/det;
+    var bb0=my-bb1*mx1-bb2*mx2;
+    return{b0:bb0,b1:bb1,b2:bb2};
+}
+
+function olsSimple(xs,ys){
+    var n=xs.length,sx=0,sy=0,sxy=0,sxx=0;
+    for(var i=0;i<n;i++){sx+=xs[i];sy+=ys[i];sxy+=xs[i]*ys[i];sxx+=xs[i]*xs[i]}
+    var mx=sx/n,my=sy/n;
+    var b1=(sxy-n*mx*my)/(sxx-n*mx*mx);
+    if(!isFinite(b1))b1=0;
+    var b0=my-b1*mx;
+    return{b0:b0,b1:b1};
+}
+
+var fit=ols2(data);
+
+/* === Section 1: 3D Scatter === */
+(function(){
+var cv=document.getElementById('cv3D');
+var W=700,H=450;
+var ctx=setupHiDPI(cv,W,H);
+var angleX=-0.5,angleY=0.4;
+var dragging=false,lastMX,lastMY;
+
+function project(x,y,z){
+    // center data
+    var cx=3,cy=3,cz=8;
+    x-=cx;y-=cy;z-=cz;
+    // rotate Y
+    var cosY=Math.cos(angleY),sinY=Math.sin(angleY);
+    var x2=x*cosY+z*sinY,z2=-x*sinY+z*cosY;
+    // rotate X
+    var cosX=Math.cos(angleX),sinX=Math.sin(angleX);
+    var y2=y*cosX-z2*sinX,z3=y*sinX+z2*cosX;
+    var scale=300/(z3+12);
+    return{x:W/2+x2*scale,y:H/2-y2*scale,z:z3};
+}
+
+function draw(){
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    // axes
+    var axes=[{from:[0,0,0],to:[7,0,0],label:'X₁',col:'#0ea5e9'},{from:[0,0,0],to:[0,7,0],label:'X₂',col:'#22d3ee'},{from:[0,0,0],to:[0,0,18],label:'Y',col:'#fbbf24'}];
+    axes.forEach(function(a){
+        var p0=project(a.from[0],a.from[1],a.from[2]);
+        var p1=project(a.to[0],a.to[1],a.to[2]);
+        ctx.strokeStyle=a.col;ctx.lineWidth=1;ctx.globalAlpha=0.5;
+        ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.lineTo(p1.x,p1.y);ctx.stroke();
+        ctx.globalAlpha=1;ctx.fillStyle=a.col;ctx.font='13px Georgia';ctx.fillText(a.label,p1.x+4,p1.y-4);
+    });
+    // plane (grid)
+    ctx.strokeStyle='rgba(14,165,233,0.12)';ctx.lineWidth=0.5;
+    for(var gx=0;gx<=6;gx+=1){
+        var p0=project(gx,0,fit.b0+fit.b1*gx+fit.b2*0);
+        var p1=project(gx,6,fit.b0+fit.b1*gx+fit.b2*6);
+        ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.lineTo(p1.x,p1.y);ctx.stroke();
+    }
+    for(var gy=0;gy<=6;gy+=1){
+        var p0=project(0,gy,fit.b0+fit.b1*0+fit.b2*gy);
+        var p1=project(6,gy,fit.b0+fit.b1*6+fit.b2*gy);
+        ctx.beginPath();ctx.moveTo(p0.x,p0.y);ctx.lineTo(p1.x,p1.y);ctx.stroke();
+    }
+    // points sorted by depth
+    var pts=data.map(function(d){var p=project(d.x1,d.x2,d.y);return{px:p.x,py:p.y,z:p.z,d:d}});
+    pts.sort(function(a,b){return a.z-b.z});
+    pts.forEach(function(p){
+        ctx.beginPath();ctx.arc(p.px,p.py,4,0,Math.PI*2);ctx.fillStyle='#0ea5e9';ctx.fill();
+    });
+    document.getElementById('res3D').innerHTML='Ŷ = '+fit.b0.toFixed(2)+' + '+fit.b1.toFixed(2)+'·X₁ + '+fit.b2.toFixed(2)+'·X₂ &nbsp;(drag to rotate)';
+}
+
+cv.addEventListener('mousedown',function(e){dragging=true;var r=cv.getBoundingClientRect();lastMX=e.clientX-r.left;lastMY=e.clientY-r.top});
+cv.addEventListener('mousemove',function(e){if(!dragging)return;var r=cv.getBoundingClientRect();var mx=e.clientX-r.left,my=e.clientY-r.top;angleY+=(mx-lastMX)*0.008;angleX+=(my-lastMY)*0.008;lastMX=mx;lastMY=my;draw()});
+window.addEventListener('mouseup',function(){dragging=false});
+draw();
+})();
+
+/* === Section 2: Frisch-Waugh === */
+(function(){
+var cv=document.getElementById('cvFW');
+var W=700,H=350;
+var ctx=setupHiDPI(cv,W,H);
+var which=1;
+
+function residuals(xs,zs){
+    // regress xs on zs, return residuals of xs
+    var f=olsSimple(zs,xs);
+    return xs.map(function(x,i){return x-(f.b0+f.b1*zs[i])});
+}
+
+function drawFW(){
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    var xArr=data.map(function(d){return which===1?d.x1:d.x2});
+    var zArr=data.map(function(d){return which===1?d.x2:d.x1});
+    var yArr=data.map(function(d){return d.y});
+    var rx=residuals(xArr,zArr);
+    var ry=residuals(yArr,zArr);
+    var fPart=olsSimple(rx,ry);
+    // find bounds
+    var minRX=Infinity,maxRX=-Infinity,minRY=Infinity,maxRY=-Infinity;
+    for(var i=0;i<rx.length;i++){if(rx[i]<minRX)minRX=rx[i];if(rx[i]>maxRX)maxRX=rx[i];if(ry[i]<minRY)minRY=ry[i];if(ry[i]>maxRY)maxRY=ry[i]}
+    var padX=(maxRX-minRX)*0.1||1,padY=(maxRY-minRY)*0.1||1;
+    minRX-=padX;maxRX+=padX;minRY-=padY;maxRY+=padY;
+    function fx(v){return 60+(v-minRX)/(maxRX-minRX)*(W-80)}
+    function fy(v){return H-40-(v-minRY)/(maxRY-minRY)*(H-60)}
+    // axes
+    ctx.strokeStyle='rgba(255,255,255,0.08)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(60,fy(0));ctx.lineTo(W-20,fy(0));ctx.stroke();
+    ctx.beginPath();ctx.moveTo(fx(0),20);ctx.lineTo(fx(0),H-40);ctx.stroke();
+    // points
+    for(var i=0;i<rx.length;i++){
+        ctx.beginPath();ctx.arc(fx(rx[i]),fy(ry[i]),4,0,Math.PI*2);ctx.fillStyle='#22d3ee';ctx.fill();
+    }
+    // fit line
+    ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(fx(minRX),fy(fPart.b0+fPart.b1*minRX));ctx.lineTo(fx(maxRX),fy(fPart.b0+fPart.b1*maxRX));ctx.stroke();
+    // labels
+    ctx.fillStyle='#606078';ctx.font='11px Georgia';
+    ctx.fillText('Residuals of '+(which===1?'X₁':'X₂')+' on '+(which===1?'X₂':'X₁'),W/2-60,H-8);
+    ctx.save();ctx.translate(12,H/2);ctx.rotate(-Math.PI/2);ctx.fillText('Residuals of Y on '+(which===1?'X₂':'X₁'),0,0);ctx.restore();
+    var fullCoef=which===1?fit.b1:fit.b2;
+    document.getElementById('resFW').innerHTML='Partial regression slope: <strong style="color:#fbbf24">'+fPart.b1.toFixed(4)+'</strong> &nbsp;|&nbsp; Full model β̂'+(which===1?'₁':'₂')+': <strong style="color:#0ea5e9">'+fullCoef.toFixed(4)+'</strong> — they match!';
+}
+
+document.getElementById('btnFW1').addEventListener('click',function(){which=1;this.classList.add('active');document.getElementById('btnFW2').classList.remove('active');drawFW()});
+document.getElementById('btnFW2').addEventListener('click',function(){which=2;this.classList.add('active');document.getElementById('btnFW1').classList.remove('active');drawFW()});
+drawFW();
+})();
+
+/* === Section 3: R² vs Adjusted R² === */
+(function(){
+var cv=document.getElementById('cvR2');
+var W=700,H=300;
+var ctx=setupHiDPI(cv,W,H);
+
+var r2Vals=[],adjR2Vals=[];
+
+function compute(){
+    var nExtra=parseInt(document.getElementById('slExtra').value);
+    document.getElementById('vExtra').textContent=nExtra;
+    r2Vals=[];adjR2Vals=[];
+    var baseRng=mulberry32(999);
+    // pregenerate noise columns
+    var noiseCols=[];
+    for(var j=0;j<20;j++){
+        var col=[];for(var i=0;i<N;i++)col.push(baseRng()*6);
+        noiseCols.push(col);
+    }
+    for(var k=0;k<=nExtra;k++){
+        // build X matrix: intercept, x1, x2, + k noise cols
+        var p=3+k,n=N;
+        // We'll use simple R² computation: R²=1-SSR/SST
+        // For simplicity, compute via correlation-based approach
+        // Fitted values from OLS with k extra regressors
+        // Use demeaned Y and project onto demeaned X columns
+        var yArr=data.map(function(d){return d.y});
+        var my=0;for(var i=0;i<n;i++)my+=yArr[i];my/=n;
+        var yDem=yArr.map(function(v){return v-my});
+        var sst=0;for(var i=0;i<n;i++)sst+=yDem[i]*yDem[i];
+
+        // Simple projection: use Gram-Schmidt to orthogonalise columns
+        var cols=[];
+        cols.push(data.map(function(d){return d.x1}));
+        cols.push(data.map(function(d){return d.x2}));
+        for(var j=0;j<k;j++)cols.push(noiseCols[j]);
+        // demean all
+        for(var c=0;c<cols.length;c++){
+            var mc=0;for(var i=0;i<n;i++)mc+=cols[c][i];mc/=n;
+            for(var i=0;i<n;i++)cols[c][i]-=mc;
+        }
+        // Gram-Schmidt
+        var Q=[];
+        for(var c=0;c<cols.length;c++){
+            var v=cols[c].slice();
+            for(var q=0;q<Q.length;q++){
+                var dot=0;for(var i=0;i<n;i++)dot+=v[i]*Q[q][i];
+                for(var i=0;i<n;i++)v[i]-=dot*Q[q][i];
+            }
+            var norm=0;for(var i=0;i<n;i++)norm+=v[i]*v[i];norm=Math.sqrt(norm);
+            if(norm>1e-10){for(var i=0;i<n;i++)v[i]/=norm;Q.push(v)}
+        }
+        // project y onto Q
+        var ssr=sst;
+        for(var q=0;q<Q.length;q++){
+            var dot=0;for(var i=0;i<n;i++)dot+=yDem[i]*Q[q][i];
+            ssr-=dot*dot;
+        }
+        if(ssr<0)ssr=0;
+        var r2=1-ssr/sst;
+        var adjR2=1-(1-r2)*(n-1)/(n-cols.length-1);
+        r2Vals.push(r2);
+        adjR2Vals.push(isFinite(adjR2)?adjR2:0);
+    }
+    drawR2();
+}
+
+function drawR2(){
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,W,H);
+    var nExtra=parseInt(document.getElementById('slExtra').value);
+    var plotL=60,plotR=W-30,plotT=25,plotB=H-40;
+    var total=r2Vals.length;
+    // y-axis: 0 to 1
+    ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=1;
+    for(var g=0;g<=1;g+=0.2){
+        var gy=plotB-(g)*(plotB-plotT);
+        ctx.beginPath();ctx.moveTo(plotL,gy);ctx.lineTo(plotR,gy);ctx.stroke();
+        ctx.fillStyle='#606078';ctx.font='11px Georgia';ctx.fillText(g.toFixed(1),30,gy+4);
+    }
+    // x-axis
+    for(var i=0;i<total;i++){
+        var gx=plotL+i/(Math.max(total-1,1))*(plotR-plotL);
+        if(i%2===0){ctx.fillStyle='#606078';ctx.font='11px Georgia';ctx.fillText(i,gx-3,plotB+16)}
+    }
+    // R² line
+    ctx.strokeStyle='#0ea5e9';ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<total;i++){
+        var x=plotL+i/(Math.max(total-1,1))*(plotR-plotL);
+        var y=plotB-r2Vals[i]*(plotB-plotT);
+        if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // Adjusted R² line
+    ctx.strokeStyle='#fbbf24';ctx.lineWidth=2;ctx.beginPath();
+    for(var i=0;i<total;i++){
+        var x=plotL+i/(Math.max(total-1,1))*(plotR-plotL);
+        var y=plotB-Math.max(0,adjR2Vals[i])*(plotB-plotT);
+        if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // dots
+    for(var i=0;i<total;i++){
+        var x=plotL+i/(Math.max(total-1,1))*(plotR-plotL);
+        ctx.beginPath();ctx.arc(x,plotB-r2Vals[i]*(plotB-plotT),3,0,Math.PI*2);ctx.fillStyle='#0ea5e9';ctx.fill();
+        ctx.beginPath();ctx.arc(x,plotB-Math.max(0,adjR2Vals[i])*(plotB-plotT),3,0,Math.PI*2);ctx.fillStyle='#fbbf24';ctx.fill();
+    }
+    // legend
+    ctx.fillStyle='#0ea5e9';ctx.font='12px Georgia';ctx.fillText('● R²',plotR-120,plotT+12);
+    ctx.fillStyle='#fbbf24';ctx.fillText('● Adj R²',plotR-60,plotT+12);
+    ctx.fillStyle='#606078';ctx.fillText('Number of extra noise regressors',W/2-80,H-4);
+    var last=r2Vals.length-1;
+    document.getElementById('resR2').innerHTML='With '+nExtra+' noise regressors — R²: <strong style="color:#0ea5e9">'+r2Vals[last].toFixed(4)+'</strong> | Adj R²: <strong style="color:#fbbf24">'+adjR2Vals[last].toFixed(4)+'</strong>';
+}
+
+document.getElementById('slExtra').addEventListener('input',compute);
+compute();
+})();
+</script>
+</body>
+</html>

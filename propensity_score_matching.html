@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matching &amp; Propensity Score Methods &mdash; A Visual Discovery of Mathematics</title>
+    <meta name="description" content="Interactive propensity score matching: covariate balance before and after matching, common support, and matching algorithms visualised step by step.">
+    <link rel="canonical" href="https://mathsedu.org/propensity_score_matching.html">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LearningResource",
+      "name": "Matching & Propensity Score Methods",
+      "url": "https://mathsedu.org/propensity_score_matching.html",
+      "description": "Interactive propensity score matching with covariate balance, common support, and matching algorithms.",
+      "educationalLevel": "Advanced",
+      "teaches": "Propensity score estimation, nearest-neighbour matching, caliper matching, covariate balance, common support",
+      "learningResourceType": "Interactive visualisation",
+      "interactivityType": "active",
+      "inLanguage": "en-GB",
+      "isAccessibleForFree": true,
+      "creator": { "@type": "Person", "name": "Manoj Bhaskar" },
+      "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+      "isPartOf": { "@type": "Course", "name": "Econometrics", "url": "https://mathsedu.org/topic-econometrics.html" }
+    }
+    </script>
+    <meta property="og:title" content="Matching &amp; Propensity Score Methods">
+    <meta property="og:description" content="Interactive propensity score matching with covariate balance and matching algorithms.">
+    <meta property="og:url" content="https://mathsedu.org/propensity_score_matching.html">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="A Visual Discovery of Mathematics">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Matching &amp; Propensity Score Methods">
+    <meta name="twitter:description" content="Interactive propensity score matching with covariate balance and matching algorithms.">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0a0a1a;color:#e0e0e0;font-family:Georgia,'Times New Roman',serif;line-height:1.6}
+        .container{max-width:960px;margin:0 auto;padding:24px 28px 48px}
+        .back{color:#606078;text-decoration:none;font-size:0.85em}.back:hover{color:#0ea5e9}
+        h1{font-size:1.8em;font-weight:400;color:#fff;margin:16px 0 4px}
+        .subtitle{color:#808098;font-style:italic;margin-bottom:28px}
+        h2{font-size:1.15em;font-weight:400;color:#fff;margin:28px 0 12px}
+        canvas{display:block;border-radius:10px;border:1px solid rgba(255,255,255,0.06)}
+        .panel{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:18px 22px;margin-bottom:20px}
+        .panel h3{font-weight:400;font-size:0.8em;color:#808098;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+        .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+        .btn{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.07);color:#b0b0c4;padding:5px 13px;border-radius:6px;cursor:pointer;font-family:Georgia,serif;font-size:0.92em;transition:all 0.2s;-webkit-tap-highlight-color:transparent}
+        .btn:hover{background:rgba(255,255,255,0.07);color:#e0e0ef}
+        .btn.active{background:rgba(14,165,233,0.13);border-color:rgba(14,165,233,0.4);color:#0ea5e9}
+        .slider-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+        .slider-row label{color:#a0a0b8;font-size:0.9em;min-width:160px}
+        .slider-row input[type=range]{flex:1;max-width:280px;accent-color:#0ea5e9;cursor:pointer}
+        .slider-val{color:#0ea5e9;font-family:'Courier New',monospace;font-size:1.05em;min-width:70px;text-align:right}
+        .result-box{background:rgba(14,165,233,0.06);border:1px solid rgba(14,165,233,0.2);border-radius:8px;padding:14px 18px;margin:14px 0}
+        .insight-box{background:rgba(14,165,233,0.04);border-left:3px solid rgba(14,165,233,0.3);border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:0.88em;color:#a0a0b8;line-height:1.7}
+        .section-desc{color:#a0a0b8;font-size:0.9em;line-height:1.7;margin-bottom:14px}
+        @media(max-width:600px){.container{padding:16px 12px}h1{font-size:1.4em}canvas{width:100%!important;height:auto!important}.slider-row{flex-wrap:wrap}.slider-row label{min-width:100%}}
+    </style>
+</head>
+<body>
+<div class="container">
+    <a class="back" href="index.html">&larr; Back to Index</a>
+    <nav style="font-size:0.82em;color:#707088;margin:6px 0 0">
+        <a href="index.html" style="color:#707088;text-decoration:none">Home</a>
+        <span style="margin:0 6px">&rsaquo;</span>
+        <a href="topic-econometrics.html" style="color:#707088;text-decoration:none">Econometrics</a>
+        <span style="margin:0 6px">&rsaquo;</span>
+        <span style="color:#b0b0c0">Matching &amp; Propensity Scores</span>
+    </nav>
+
+    <h1>Matching &amp; Propensity Score Methods</h1>
+    <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(14,165,233,0.10);border:1px solid rgba(14,165,233,0.25);color:#0ea5e9;padding:4px 12px;border-radius:12px;font-size:0.78em;margin:8px 0 2px"><span style="display:inline-flex;gap:3px"><span style="color:#0ea5e9">&#9679;</span><span style="color:#0ea5e9">&#9679;</span><span style="color:#0ea5e9">&#9679;</span><span style="color:#404058">&#9679;</span></span> Advanced</div>
+    <p class="subtitle">Creating comparable groups when randomisation is not possible</p>
+
+    <!-- ═══════════ SECTION 1: Covariate Balance ═══════════ -->
+    <h2>1. Covariate Balance</h2>
+    <p class="section-desc">Before matching, treated and control groups differ on observed covariates. After propensity score matching, the distributions align. The Love plot shows standardised mean differences &mdash; values below 0.1 indicate good balance.</p>
+
+    <canvas id="balanceCanvas" width="700" height="400"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div class="btn-row">
+            <button class="btn active" id="btnBefore" onclick="setBalanceView('before')">Before Matching</button>
+            <button class="btn" id="btnAfter" onclick="setBalanceView('after')">After Matching</button>
+            <button class="btn" id="btnLove" onclick="setBalanceView('love')">Love Plot</button>
+            <button class="btn" id="btnNewBalance" onclick="generateBalanceData()">New Sample</button>
+        </div>
+        <div id="balanceStats" class="result-box" style="font-size:0.9em"></div>
+    </div>
+
+    <!-- ═══════════ SECTION 2: Propensity Score Distribution ═══════════ -->
+    <h2>2. Propensity Score Distribution</h2>
+    <p class="section-desc">Histograms of the estimated propensity score for treated and control groups. The highlighted region is the common support &mdash; scores where both groups have adequate representation.</p>
+
+    <canvas id="psCanvas" width="700" height="320"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <div id="psStats" class="result-box" style="font-size:0.9em"></div>
+    </div>
+
+    <div class="insight-box"><strong>Common support</strong>: Causal effects can only be estimated where the propensity score distributions of treated and control groups overlap. Units outside common support must be trimmed.</div>
+
+    <!-- ═══════════ SECTION 3: Matching Animator ═══════════ -->
+    <h2>3. Matching Animator</h2>
+    <p class="section-desc">For each treated unit, a line is drawn to its matched control. Toggle between matching algorithms to see how the quality of matches changes.</p>
+
+    <canvas id="matchCanvas" width="700" height="380"></canvas>
+    <div class="panel" style="margin-top:14px">
+        <h3>Matching Method</h3>
+        <div class="btn-row">
+            <button class="btn active" id="btnNN" onclick="setMatchMethod('nn')">Nearest Neighbour</button>
+            <button class="btn" id="btnCaliper" onclick="setMatchMethod('caliper')">Caliper (0.1)</button>
+            <button class="btn" id="btnExact" onclick="setMatchMethod('exact')">Exact on X1</button>
+            <button class="btn" id="btnAnimate" onclick="animateMatching()">Animate</button>
+        </div>
+        <div id="matchStats" class="result-box" style="font-size:0.9em"></div>
+    </div>
+</div>
+
+<!-- Explore Next -->
+<div style="max-width:960px;margin:0 auto;padding:0 28px;">
+<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:16px 22px;margin:0 0 20px">
+    <h3 style="color:#808098;font-size:0.8em;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px;font-weight:400;">Explore Next</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:10px">
+        <a href="quantile_regression.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #0ea5e9;transition:background 0.2s;">
+            <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px;">Quantile Regression</div>
+            <div style="color:#606078;font-size:0.78em;">Econometrics</div>
+        </a>
+        <a href="regression_discontinuity.html" style="flex:1;min-width:180px;padding:14px 16px;text-decoration:none;background:rgba(255,255,255,0.025);border-radius:8px;border:1px solid rgba(255,255,255,0.06);border-left:3px solid #0ea5e9;transition:background 0.2s;">
+            <div style="color:#e0e0e0;font-size:0.92em;margin-bottom:4px;">Regression Discontinuity</div>
+            <div style="color:#606078;font-size:0.78em;">Econometrics</div>
+        </a>
+    </div>
+</div></div>
+
+<footer style="text-align:center;padding:28px 20px 18px;color:#505068;font-size:0.72em;line-height:1.7;border-top:1px solid rgba(255,255,255,0.04);margin-top:30px">
+    <div>&copy; 2025&ndash;2026 MathsEdu.org &mdash; All rights reserved</div>
+    <div style="margin-top:6px">
+        <a href="terms.html" style="color:#606078;text-decoration:none">Terms of Use</a>&nbsp;&middot;&nbsp;
+        <a href="intellectual-property.html" style="color:#606078;text-decoration:none">Intellectual Property</a>&nbsp;&middot;&nbsp;
+        <a href="privacy.html" style="color:#606078;text-decoration:none">Privacy Policy</a>
+    </div>
+</footer>
+
+<script>
+/* ═══ PRNG ═══ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+var rng=mulberry32(42);
+function rngNorm(){var u=0,v=0;while(u===0)u=rng();while(v===0)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function setupHiDPI(c){var d=window.devicePixelRatio||1,w=c.width,h=c.height;c.width=w*d;c.height=h*d;c.style.width=w+'px';c.style.height=h+'px';var x=c.getContext('2d');x.scale(d,d);x._cssW=w;x._cssH=h;return x;}
+
+/* ═══ Sigmoid for propensity score ═══ */
+function sigmoid(x){return 1/(1+Math.exp(-x));}
+
+/* ═══ Generate data ═══ */
+var psmData=[],matchMethod='nn',balanceView='before';
+var covNames=['Age','Income','Education'];
+
+function generateBalanceData(){
+    rng=mulberry32(Math.floor(Math.random()*100000));
+    psmData=[];
+    var N=200,trueTE=2.5;
+    for(var i=0;i<N;i++){
+        var x1=rngNorm()*2+5; // age-like
+        var x2=rngNorm()*3+10; // income-like
+        var x3=Math.floor(rng()*5); // education category 0-4
+        var ps=sigmoid(-2+0.4*x1+0.3*x2+0.2*x3);
+        var treated=rng()<ps?1:0;
+        var y=1+0.5*x1+0.3*x2+0.4*x3+treated*trueTE+rngNorm()*1.5;
+        psmData.push({x1:x1,x2:x2,x3:x3,ps:ps,treated:treated,y:y,matched:false,matchIdx:-1});
+    }
+    // Compute propensity scores via simple logistic approx
+    // We use the true ps for display since we generated the data
+    drawBalance();
+    drawPS();
+    drawMatching();
+}
+
+/* ═══════════ SECTION 1: Balance ═══════════ */
+var balC=document.getElementById('balanceCanvas');
+var ctx1=setupHiDPI(balC);
+var W1=ctx1._cssW,H1=ctx1._cssH;
+
+function setBalanceView(v){
+    balanceView=v;
+    ['btnBefore','btnAfter','btnLove'].forEach(function(id){document.getElementById(id).className='btn';});
+    var map={before:'btnBefore',after:'btnAfter',love:'btnLove'};
+    document.getElementById(map[v]).className='btn active';
+    drawBalance();
+}
+
+function getMatchedIndices(){
+    var treated=[],control=[];
+    for(var i=0;i<psmData.length;i++){
+        if(psmData[i].treated)treated.push(i);else control.push(i);
+    }
+    var matchedC=[];
+    for(var i=0;i<treated.length;i++){
+        var ti=treated[i],bestD=Infinity,bestJ=-1;
+        for(var j=0;j<control.length;j++){
+            var ci=control[j];
+            var d=Math.abs(psmData[ti].ps-psmData[ci].ps);
+            if(d<bestD){bestD=d;bestJ=ci;}
+        }
+        if(bestJ>=0)matchedC.push(bestJ);
+    }
+    return{treated:treated,matchedControl:matchedC};
+}
+
+function drawBalance(){
+    var ctx=ctx1,W=W1,H=H1;
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d0d22';ctx.fillRect(0,0,W,H);
+
+    if(!psmData.length)return;
+
+    var m={l:60,r:30,t:30,b:50};
+    var pW=W-m.l-m.r,pH=H-m.t-m.b;
+
+    if(balanceView==='love'){
+        drawLovePlot(ctx,W,H,m,pW,pH);return;
+    }
+
+    var mi=getMatchedIndices();
+    var covIdx=0; // Show x1 distribution
+    var tVals=[],cVals=[];
+
+    if(balanceView==='before'){
+        for(var i=0;i<psmData.length;i++){
+            if(psmData[i].treated)tVals.push(psmData[i].x1);else cVals.push(psmData[i].x1);
+        }
+    } else {
+        for(var i=0;i<mi.treated.length;i++)tVals.push(psmData[mi.treated[i]].x1);
+        for(var i=0;i<mi.matchedControl.length;i++)cVals.push(psmData[mi.matchedControl[i]].x1);
+    }
+
+    var allV=tVals.concat(cVals);
+    var minV=Math.min.apply(null,allV)-1,maxV=Math.max.apply(null,allV)+1;
+    var nBins=25;
+    var tBins=new Array(nBins).fill(0),cBins=new Array(nBins).fill(0);
+    for(var i=0;i<tVals.length;i++){var b=Math.floor((tVals[i]-minV)/(maxV-minV)*nBins);if(b<0)b=0;if(b>=nBins)b=nBins-1;tBins[b]++;}
+    for(var i=0;i<cVals.length;i++){var b=Math.floor((cVals[i]-minV)/(maxV-minV)*nBins);if(b<0)b=0;if(b>=nBins)b=nBins-1;cBins[b]++;}
+
+    // Normalise
+    var tTotal=tVals.length||1,cTotal=cVals.length||1;
+    var maxH=0;
+    for(var i=0;i<nBins;i++){tBins[i]/=tTotal;cBins[i]/=cTotal;maxH=Math.max(maxH,tBins[i],cBins[i]);}
+    if(maxH===0)maxH=1;
+
+    var barW=pW/nBins;
+    for(var i=0;i<nBins;i++){
+        var x=m.l+i*barW;
+        // Treated
+        var th=(tBins[i]/maxH)*pH*0.45;
+        ctx.fillStyle='rgba(14,165,233,0.4)';ctx.fillRect(x,m.t+pH/2-th,barW*0.45,th);
+        // Control
+        var ch=(cBins[i]/maxH)*pH*0.45;
+        ctx.fillStyle='rgba(112,112,136,0.4)';ctx.fillRect(x+barW*0.5,m.t+pH/2-ch,barW*0.45,ch);
+    }
+
+    // Midline
+    ctx.strokeStyle='#303048';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(m.l,m.t+pH/2);ctx.lineTo(m.l+pW,m.t+pH/2);ctx.stroke();
+
+    // Means
+    var tMean=tVals.reduce(function(a,b){return a+b;},0)/tVals.length;
+    var cMean=cVals.reduce(function(a,b){return a+b;},0)/cVals.length;
+    function xMap(v){return m.l+((v-minV)/(maxV-minV))*pW;}
+
+    ctx.strokeStyle='#0ea5e9';ctx.lineWidth=2;ctx.setLineDash([5,3]);
+    ctx.beginPath();ctx.moveTo(xMap(tMean),m.t);ctx.lineTo(xMap(tMean),m.t+pH);ctx.stroke();
+    ctx.strokeStyle='#707088';
+    ctx.beginPath();ctx.moveTo(xMap(cMean),m.t);ctx.lineTo(xMap(cMean),m.t+pH);ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle='#0ea5e9';ctx.font='12px Georgia';ctx.textAlign='left';
+    ctx.fillText('Treated (mean='+tMean.toFixed(2)+')',m.l+10,m.t+18);
+    ctx.fillStyle='#707088';
+    ctx.fillText('Control (mean='+cMean.toFixed(2)+')',m.l+10,m.t+36);
+
+    ctx.fillStyle='#808098';ctx.font='11px Georgia';ctx.textAlign='center';
+    ctx.fillText('Covariate: Age',m.l+pW/2,m.t+pH+20);
+    ctx.fillText(balanceView==='before'?'Before Matching':'After Matching',m.l+pW/2,m.t+pH+38);
+
+    // SMD
+    var pooledSD=Math.sqrt(((tVals.length-1)*variance(tVals)+(cVals.length-1)*variance(cVals))/(tVals.length+cVals.length-2));
+    var smd=pooledSD>0?Math.abs(tMean-cMean)/pooledSD:0;
+    var shtml='<span style="color:#808098">Standardised mean difference (Age): </span><span style="color:'+(smd<0.1?'#4ade80':'#f87171')+';font-family:monospace">'+smd.toFixed(3)+'</span>';
+    shtml+=(smd<0.1?' <span style="color:#4ade80;font-size:0.85em">(Good balance)</span>':' <span style="color:#f87171;font-size:0.85em">(Imbalanced)</span>');
+    document.getElementById('balanceStats').innerHTML=shtml;
+}
+
+function variance(arr){
+    var m=arr.reduce(function(a,b){return a+b;},0)/arr.length;
+    var s=0;for(var i=0;i<arr.length;i++)s+=(arr[i]-m)*(arr[i]-m);
+    return s/(arr.length-1);
+}
+
+function drawLovePlot(ctx,W,H,m,pW,pH){
+    var mi=getMatchedIndices();
+    var covs=['x1','x2','x3'];
+
+    var beforeSMD=[],afterSMD=[];
+    for(var c=0;c<covs.length;c++){
+        var key=covs[c];
+        var tBefore=[],cBefore=[],tAfter=[],cAfter=[];
+        for(var i=0;i<psmData.length;i++){
+            if(psmData[i].treated)tBefore.push(psmData[i][key]);else cBefore.push(psmData[i][key]);
+        }
+        for(var i=0;i<mi.treated.length;i++)tAfter.push(psmData[mi.treated[i]][key]);
+        for(var i=0;i<mi.matchedControl.length;i++)cAfter.push(psmData[mi.matchedControl[i]][key]);
+
+        var bMeanT=mean(tBefore),bMeanC=mean(cBefore);
+        var aMeanT=mean(tAfter),aMeanC=mean(cAfter);
+        var bSD=Math.sqrt((variance(tBefore)+variance(cBefore))/2);
+        var aSD=Math.sqrt((variance(tAfter)+variance(cAfter))/2);
+        beforeSMD.push(bSD>0?Math.abs(bMeanT-bMeanC)/bSD:0);
+        afterSMD.push(aSD>0?Math.abs(aMeanT-aMeanC)/aSD:0);
+    }
+
+    function mean(a){return a.reduce(function(s,v){return s+v;},0)/a.length;}
+
+    var maxSMD=0;
+    for(var i=0;i<covs.length;i++){maxSMD=Math.max(maxSMD,beforeSMD[i],afterSMD[i]);}
+    maxSMD=Math.max(maxSMD,0.3)*1.2;
+
+    var rowH=pH/(covs.length+1);
+
+    // Threshold line at 0.1
+    var threshX=m.l+(0.1/maxSMD)*pW;
+    ctx.strokeStyle='rgba(251,191,36,0.3)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+    ctx.beginPath();ctx.moveTo(threshX,m.t);ctx.lineTo(threshX,m.t+pH);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#fbbf24';ctx.font='10px Georgia';ctx.textAlign='center';
+    ctx.fillText('0.1 threshold',threshX,m.t-5);
+
+    for(var i=0;i<covs.length;i++){
+        var y=m.t+rowH*(i+1);
+        ctx.fillStyle='#808098';ctx.font='12px Georgia';ctx.textAlign='right';
+        ctx.fillText(covNames[i],m.l-10,y+4);
+
+        // Before (red circle)
+        var bx=m.l+(beforeSMD[i]/maxSMD)*pW;
+        ctx.fillStyle='rgba(248,113,113,0.7)';
+        ctx.beginPath();ctx.arc(bx,y,6,0,Math.PI*2);ctx.fill();
+
+        // After (green circle)
+        var ax=m.l+(afterSMD[i]/maxSMD)*pW;
+        ctx.fillStyle='rgba(74,222,128,0.7)';
+        ctx.beginPath();ctx.arc(ax,y,6,0,Math.PI*2);ctx.fill();
+
+        // Arrow
+        ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(bx,y);ctx.lineTo(ax,y);ctx.stroke();
+    }
+
+    // Legend
+    ctx.fillStyle='rgba(248,113,113,0.7)';ctx.beginPath();ctx.arc(m.l+20,m.t+pH+20,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#a0a0b8';ctx.font='11px Georgia';ctx.textAlign='left';ctx.fillText('Before',m.l+30,m.t+pH+24);
+    ctx.fillStyle='rgba(74,222,128,0.7)';ctx.beginPath();ctx.arc(m.l+100,m.t+pH+20,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#a0a0b8';ctx.fillText('After',m.l+110,m.t+pH+24);
+
+    // Axis
+    ctx.strokeStyle='#404058';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(m.l,m.t+pH);ctx.lineTo(m.l+pW,m.t+pH);ctx.stroke();
+    ctx.fillStyle='#808098';ctx.font='11px Georgia';ctx.textAlign='center';
+    for(var v=0;v<=maxSMD;v+=0.1){
+        var x=m.l+(v/maxSMD)*pW;
+        ctx.fillText(v.toFixed(1),x,m.t+pH+15);
+    }
+    ctx.fillText('Standardised Mean Difference',m.l+pW/2,m.t+pH+38);
+}
+
+/* ═══════════ SECTION 2: PS Distribution ═══════════ */
+var psC=document.getElementById('psCanvas');
+var ctx2=setupHiDPI(psC);
+var W2=ctx2._cssW,H2=ctx2._cssH;
+
+function drawPS(){
+    var ctx=ctx2,W=W2,H=H2;
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d0d22';ctx.fillRect(0,0,W,H);
+    if(!psmData.length)return;
+
+    var m={l:60,r:30,t:30,b:50};
+    var pW=W-m.l-m.r,pH=H-m.t-m.b;
+    var nBins=30;
+
+    var tPS=[],cPS=[];
+    for(var i=0;i<psmData.length;i++){
+        if(psmData[i].treated)tPS.push(psmData[i].ps);else cPS.push(psmData[i].ps);
+    }
+
+    var tBins=new Array(nBins).fill(0),cBins=new Array(nBins).fill(0);
+    for(var i=0;i<tPS.length;i++){var b=Math.floor(tPS[i]*nBins);if(b>=nBins)b=nBins-1;tBins[b]++;}
+    for(var i=0;i<cPS.length;i++){var b=Math.floor(cPS[i]*nBins);if(b>=nBins)b=nBins-1;cBins[b]++;}
+
+    var tN=tPS.length||1,cN=cPS.length||1;
+    var maxH=0;
+    for(var i=0;i<nBins;i++){tBins[i]/=tN;cBins[i]/=cN;maxH=Math.max(maxH,tBins[i],cBins[i]);}
+    if(maxH===0)maxH=1;
+
+    // Common support
+    var csMin=Infinity,csMax=-Infinity;
+    var tMin=Math.min.apply(null,tPS),tMax=Math.max.apply(null,tPS);
+    var cMin=Math.min.apply(null,cPS),cMax=Math.max.apply(null,cPS);
+    csMin=Math.max(tMin,cMin);csMax=Math.min(tMax,cMax);
+
+    function xMap(v){return m.l+v*pW;}
+
+    // Common support region
+    ctx.fillStyle='rgba(14,165,233,0.06)';
+    ctx.fillRect(xMap(csMin),m.t,xMap(csMax)-xMap(csMin),pH);
+
+    var barW=pW/nBins;
+    for(var i=0;i<nBins;i++){
+        var x=m.l+i*barW;
+        // Treated going up
+        var th=(tBins[i]/maxH)*pH*0.45;
+        ctx.fillStyle='rgba(14,165,233,0.4)';ctx.fillRect(x,m.t+pH/2-th,barW*0.9,th);
+        // Control going down
+        var ch=(cBins[i]/maxH)*pH*0.45;
+        ctx.fillStyle='rgba(112,112,136,0.4)';ctx.fillRect(x,m.t+pH/2,barW*0.9,ch);
+    }
+
+    ctx.strokeStyle='#303048';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(m.l,m.t+pH/2);ctx.lineTo(m.l+pW,m.t+pH/2);ctx.stroke();
+
+    ctx.fillStyle='#0ea5e9';ctx.font='12px Georgia';ctx.textAlign='left';
+    ctx.fillText('Treated (above)',m.l+10,m.t+18);
+    ctx.fillStyle='#707088';ctx.fillText('Control (below)',m.l+10,m.t+36);
+
+    ctx.fillStyle='#808098';ctx.font='11px Georgia';ctx.textAlign='center';
+    for(var v=0;v<=1;v+=0.2)ctx.fillText(v.toFixed(1),xMap(v),m.t+pH+20);
+    ctx.fillText('Propensity Score',m.l+pW/2,m.t+pH+40);
+
+    // Common support label
+    ctx.fillStyle='rgba(14,165,233,0.6)';ctx.font='10px Georgia';ctx.textAlign='center';
+    ctx.fillText('Common Support',xMap((csMin+csMax)/2),m.t+pH-5);
+
+    var csCount=0;
+    for(var i=0;i<psmData.length;i++){
+        if(psmData[i].ps>=csMin && psmData[i].ps<=csMax)csCount++;
+    }
+    document.getElementById('psStats').innerHTML='<span style="color:#808098">Common support: [</span><span style="color:#0ea5e9;font-family:monospace">'+csMin.toFixed(3)+', '+csMax.toFixed(3)+'</span><span style="color:#808098">] &mdash; </span><span style="color:#0ea5e9;font-family:monospace">'+csCount+'/'+psmData.length+'</span><span style="color:#808098"> units retained</span>';
+}
+
+/* ═══════════ SECTION 3: Matching Animator ═══════════ */
+var matC=document.getElementById('matchCanvas');
+var ctx3=setupHiDPI(matC);
+var W3=ctx3._cssW,H3=ctx3._cssH;
+var animStep=0,animTimer=null;
+
+function setMatchMethod(method){
+    matchMethod=method;
+    ['btnNN','btnCaliper','btnExact'].forEach(function(id){document.getElementById(id).className='btn';});
+    var map={nn:'btnNN',caliper:'btnCaliper',exact:'btnExact'};
+    document.getElementById(map[method]).className='btn active';
+    animStep=999;drawMatching();
+}
+
+function computeMatches(){
+    var treated=[],control=[];
+    for(var i=0;i<psmData.length;i++){
+        if(psmData[i].treated)treated.push(i);else control.push(i);
+    }
+    var matches=[];
+    for(var i=0;i<treated.length;i++){
+        var ti=treated[i];
+        var bestD=Infinity,bestJ=-1;
+        for(var j=0;j<control.length;j++){
+            var ci=control[j];
+            var d;
+            if(matchMethod==='exact'){
+                if(psmData[ti].x3!==psmData[ci].x3)continue;
+                d=Math.abs(psmData[ti].ps-psmData[ci].ps);
+            } else {
+                d=Math.abs(psmData[ti].ps-psmData[ci].ps);
+            }
+            if(matchMethod==='caliper' && d>0.1)continue;
+            if(d<bestD){bestD=d;bestJ=ci;}
+        }
+        if(bestJ>=0)matches.push({t:ti,c:bestJ,dist:bestD});
+    }
+    return matches;
+}
+
+function drawMatching(){
+    var ctx=ctx3,W=W3,H=H3;
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#0d0d22';ctx.fillRect(0,0,W,H);
+    if(!psmData.length)return;
+
+    var m={l:60,r:30,t:30,b:50};
+    var pW=W-m.l-m.r,pH=H-m.t-m.b;
+
+    // Plot ps on x-axis, y on y-axis
+    var allY=psmData.map(function(p){return p.y;});
+    var minY=Math.min.apply(null,allY)-1,maxY=Math.max.apply(null,allY)+1;
+
+    function xMap(v){return m.l+v*pW;}
+    function yMap(v){return m.t+pH-(v-minY)/(maxY-minY)*pH;}
+
+    var matches=computeMatches();
+    var showN=Math.min(animStep,matches.length);
+
+    // Draw match lines
+    for(var i=0;i<showN;i++){
+        var ma=matches[i];
+        var tp=psmData[ma.t],cp=psmData[ma.c];
+        ctx.strokeStyle='rgba(14,165,233,0.2)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(xMap(tp.ps),yMap(tp.y));ctx.lineTo(xMap(cp.ps),yMap(cp.y));ctx.stroke();
+    }
+
+    // Points
+    for(var i=0;i<psmData.length;i++){
+        var p=psmData[i];
+        ctx.fillStyle=p.treated?'rgba(14,165,233,0.6)':'rgba(112,112,136,0.4)';
+        ctx.beginPath();ctx.arc(xMap(p.ps),yMap(p.y),3,0,Math.PI*2);ctx.fill();
+    }
+
+    ctx.fillStyle='#808098';ctx.font='11px Georgia';ctx.textAlign='center';
+    for(var v=0;v<=1;v+=0.2)ctx.fillText(v.toFixed(1),xMap(v),m.t+pH+20);
+    ctx.fillText('Propensity Score',m.l+pW/2,m.t+pH+40);
+
+    // Legend
+    ctx.fillStyle='#0ea5e9';ctx.font='11px Georgia';ctx.textAlign='left';
+    ctx.fillText('Blue = Treated, Grey = Control',m.l+10,m.t+15);
+
+    var avgDist=0;for(var i=0;i<matches.length;i++)avgDist+=matches[i].dist;
+    avgDist=matches.length>0?avgDist/matches.length:NaN;
+
+    // ATT estimate from matched sample
+    var att=0;
+    for(var i=0;i<matches.length;i++){
+        att+=psmData[matches[i].t].y-psmData[matches[i].c].y;
+    }
+    att=matches.length>0?att/matches.length:NaN;
+
+    var shtml='<span style="color:#808098">Method: </span><span style="color:#0ea5e9">'+matchMethod.toUpperCase()+'</span>';
+    shtml+=' &nbsp; <span style="color:#808098">Matches: </span><span style="color:#0ea5e9;font-family:monospace">'+matches.length+'</span>';
+    shtml+=' &nbsp; <span style="color:#808098">Avg distance: </span><span style="color:#0ea5e9;font-family:monospace">'+(isFinite(avgDist)?avgDist.toFixed(4):'N/A')+'</span>';
+    shtml+='<br><span style="color:#808098">ATT estimate: </span><span style="color:#fbbf24;font-family:monospace">'+(isFinite(att)?att.toFixed(3):'N/A')+'</span>';
+    shtml+=' &nbsp; <span style="color:#808098">(True TE = 2.5)</span>';
+    document.getElementById('matchStats').innerHTML=shtml;
+}
+
+function animateMatching(){
+    animStep=0;
+    if(animTimer)cancelAnimationFrame(animTimer);
+    function step(){
+        animStep++;
+        drawMatching();
+        var matches=computeMatches();
+        if(animStep<matches.length)animTimer=requestAnimationFrame(step);
+    }
+    animTimer=requestAnimationFrame(step);
+}
+
+generateBalanceData();
+</script>
+</body>
+</html>
