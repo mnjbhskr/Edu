@@ -126,6 +126,7 @@ Every page belongs to a chapter. The accent colour permeates all interactive ele
 | Physics | `#14b8a6` | 20, 184, 166 |
 | AI & Intelligence | `#a78bfa` | 167, 139, 250 |
 | Internet Mathematics | `#f472b6` | 244, 114, 182 |
+| The Geometry of Information | `#6366f1` | 99, 102, 241 |
 
 ### 4.3 Accent Colour Usage
 

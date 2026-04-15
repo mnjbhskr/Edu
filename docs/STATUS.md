@@ -2,7 +2,7 @@
 
 **A Visual Discovery of Mathematics**
 
-*Last updated: 15 March 2026*
+*Last updated: 15 April 2026*
 
 ---
 
@@ -41,6 +41,7 @@ All content is **live and deployed** at [mathsedu.org](https://mathsedu.org).
 | 12. Physics | 20 | Complete |
 | 13. The Mathematics of Intelligence | 15 | Complete |
 | 14–19. Additional chapters | 78+ | Complete |
+| 20. The Geometry of Information | 11 | Complete (April 2026) |
 
 Chapters 14–19 include Chemistry & Materials, Biology & Life Sciences, Economics & Social Sciences, Internet & Information, Game Theory, and additional applied topics. See `index.html` for the authoritative page list.
 

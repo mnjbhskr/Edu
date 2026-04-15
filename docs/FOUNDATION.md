@@ -327,7 +327,26 @@ The `Research/` folder contains pedagogy papers, reference material, and attribu
 | 14 | Retrieval-Augmented Generation | `retrieval_augmented_generation.html` | 2 |
 | 15 | Agentic AI Systems | `agentic_systems.html` | 2 |
 
-**Total: 194 interactive visualisations across 19 chapters**
+### Chapter 20 — The Geometry of Information
+*Every chart is a mathematical act — and every mathematical act has consequences*
+
+| # | Topic | File | Difficulty |
+|---|-------|------|------------|
+| 0 | The Geometry of Information (Landing) | `data_representation.html` | 1 |
+| 1 | The Tube Map | `tube_map_topology.html` | 2 |
+| 2 | Distance & Similarity | `distance_similarity.html` | 2 |
+| 3 | Vector Spaces & Dimension | `vector_spaces_dimension.html` | 3 |
+| 4 | Information & Entropy | `information_entropy.html` | 2 |
+| 5 | Same Data, Different Space | `representation_transformations.html` | 3 |
+| 6 | All Maps Lie | `map_projections.html` | 2 |
+| 7 | Encoding Extra Dimensions | `encoding_dimensions.html` | 2 |
+| 8 | How Science Speaks | `science_representations.html` | 2 |
+| 9 | Cause, Effect & Structure | `causality_graphs.html` | 3 |
+| 10 | When They Lie | `misleading_representations.html` | 2 |
+
+Topic family navigation: [`topic-geometry-of-information.html`](../topic-geometry-of-information.html). Accent colour: indigo `#6366f1`. Chapter built April 2026 following the v1.1 specification with all five SME Round 2 mandatory amendments applied.
+
+**Total: 205 interactive visualisations across 20 chapters**
 
 ## Credits
 
